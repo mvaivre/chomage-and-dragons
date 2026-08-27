@@ -11,51 +11,69 @@
 | Base de données | **Neon Postgres** via le Marketplace Vercel | ✅ tranché |
 | Framework | **Next.js** + **React** pour l'UI | ✅ tranché |
 | Fuseau horaire de référence | **Europe/Zurich** | ✅ tranché |
-| Visualisation 3D | **Three.js** via **react-three-fiber** | ✅ tranché |
-| Graphiques du Scoreboard | SVG classique (Three.js est mauvais pour ça) | ✅ tranché |
+| Rendu de la carte | **Pixi.js 8** via **@pixi/react 8** (2D) | ✅ tranché |
+| ~~Three.js / 3D~~ | Abandonné après prototype — voir plus bas | ❌ écarté |
 | Forme des données | **Journal d'événements** (append-only), pas de compteurs | ✅ recommandé |
 | Authentification | Code d'accès partagé, pas de comptes | 🔶 à valider |
 | Temps réel | Non en v1 (rafraîchissement périodique suffit) | 🔶 à valider |
 
-## Visualisation : Three.js (react-three-fiber)
+## Rendu de la carte : Pixi.js 8 (2D)
 
-Choix assumé : la course se déroule dans un vrai paysage 3D. Bonne nouvelle, les
-animations qui font le sel du jeu (éclair + tremblement de caméra, confettis, coffre qui
-s'ouvre) sont **plus faciles et plus spectaculaires en 3D qu'en 2D**.
+La Grande Course est une **carte d'aventure en parchemin, dessinée en 2D** avec
+Pixi.js. `@pixi/react` v8 permet de décrire la scène en composants React plutôt qu'en
+instructions impératives.
 
-**react-three-fiber** permet de décrire la scène en composants React plutôt qu'en
-instructions impératives — cohérent avec « React pour l'UI ».
+> **Pourquoi pas la 3D ?** Un prototype Three.js / react-three-fiber a été construit
+> puis abandonné. Il fonctionnait, mais l'esthétique « carte au trésor sur parchemin »
+> est mieux servie par du dessin 2D que par un paysage en volume, et la 2D coûte
+> beaucoup moins cher en poids et en travail. La leçon est conservée ici pour ne pas
+> refaire le débat.
 
-### Règles d'architecture 3D
+### Versions
 
-**1. Les personnages sont des emojis en sprites face caméra (billboards).**
-La décision la plus importante. De vrais modèles 3D pour licorne, flamant rose, baleine
-et 9 autres créatures = des semaines de travail ou des assets payants, et perte du
-charme bricolé. Technique : on dessine l'emoji dans une texture (canvas 2D) et on
-l'affiche sur un plan qui pivote toujours vers la caméra. Ajouter un personnage devient
-une ligne dans une liste.
+`pixi.js` 8.x et `@pixi/react` 8.x. Ce dernier **exige React 19** et fonctionne par
+catalogue : on enregistre les classes Pixi avec `extend({ Container, Graphics, Text })`,
+puis on les utilise en JSX préfixé (`<pixiContainer>`, `<pixiGraphics>`, `<pixiText>`).
+L'ancienne API `<Stage>` de la v7 n'existe plus.
 
-**2. Seule la course est en 3D.** Boutons d'action, Scoreboard et classements restent du
-React/DOM classique **en superposition** au-dessus du canvas. Construire une UI dans une
-scène 3D est un enfer d'ergonomie pour zéro bénéfice.
+### Règles d'architecture
 
-**3. Le décor se fabrique avec des primitives, pas des assets.** Forêt, eau, montagne,
-pont en style low-poly coloré ; arbres dupliqués par **instanciation** (`InstancedMesh`).
-Léger sur mobile, aucune dépendance à un graphiste. Le changement de saison devient
-presque gratuit : palette, lumière et brouillard.
+**1. Les personnages sont des emojis rendus en texte Pixi.**
+Aucun asset graphique, aucune dépendance à un graphiste. Ajouter un personnage est une
+ligne dans `src/lib/game/characters.ts`.
 
-**4. Le chemin est une courbe 3D.** Une `CatmullRomCurve3` ; positionner un personnage à
-X % du parcours se réduit à `curve.getPointAt(t)`. Directement alimenté par la formule
-de progression (candidatures + temps + niveau).
+**2. Seule la carte est en Pixi.** Boutons d'action, Scoreboard, classements et gestion
+des joueur·euses sont du React/DOM classique **à côté** du canvas. Construire une
+interface dans un canvas est un enfer d'ergonomie et d'accessibilité pour zéro bénéfice.
 
-### Pièges Three.js + Next.js
+**3. Tout le décor se dessine avec `Graphics`, pas avec des images.** Sapins, marais,
+montagnes, pont et taverne sont des polygones. Le changement de saison ne touche donc
+que la palette du feuillage.
 
-- **WebGL n'existe pas côté serveur** : le canvas doit être chargé uniquement dans le
-  navigateur (import dynamique, `ssr: false`), sinon le build Vercel casse.
-- **Performance mobile** : plafonner le `dpr`, limiter le nombre de polygones, préférer
-  l'instanciation aux meshes individuels.
-- **Three.js est mauvais pour les graphiques** → les courbes du Scoreboard se font en
-  SVG classique, à côté du canvas.
+**4. Le chemin est une courbe Catmull-Rom 2D** avec table de longueurs cumulées, dans
+`src/lib/game/trail.ts`. Positionner quelqu'un à X % du parcours se réduit à
+`pointAt(t)`. Sans la table des longueurs, un personnage avancerait par à-coups, plus
+vite dans les virages que dans les lignes droites.
+
+**5. Les animations mutent les objets Pixi dans le ticker, jamais via l'état React.**
+`useTick` plus des refs : aucune image ne déclenche de re-render. C'est la règle qui
+garde le jeu fluide.
+
+**6. Le décor est déterministe.** Positions des sapins tirées avec une graine fixe
+(`src/lib/rng.ts`). Avec `Math.random()`, les arbres sauteraient à chaque rendu.
+
+### Pièges rencontrés
+
+- **Pixi a besoin du DOM et du canvas** : le composant doit être chargé uniquement dans
+  le navigateur (import dynamique, `ssr: false`), sinon le build Vercel casse.
+  Un seul endroit s'en charge : `src/components/GameBoardLoader.tsx`.
+- **`<pixiGraphics>` exige la prop `draw`**, même quand on redessine à la main dans le
+  ticker via une ref. On lui passe alors un dessin vide.
+- **Les noms d'étapes doivent être posés à distance verticale fixe**, pas le long de la
+  normale au chemin : la normale change de côté selon l'orientation, ce qui envoyait
+  les libellés derrière les montagnes.
+- **Les marques de pluriel en JSX** (`action{s}`) produisent des espaces parasites
+  quand elles tombent après un retour à la ligne. Construire la chaîne en JavaScript.
 
 ## Fuseau horaire : Europe/Zurich
 
