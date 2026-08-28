@@ -10,8 +10,11 @@
 /** Résolution de référence. L'axe Y descend, comme partout en 2D. */
 export const VIEW = { width: 1280, height: 720 } as const;
 
-/** Longueur totale du voyage, de la forêt à la taverne. */
-export const WORLD_LENGTH = 11200;
+/**
+ * Longueur totale du voyage. Un seul point représente maintenant un vrai morceau
+ * de pays, assez long pour lire le déplacement et découvrir plusieurs détails.
+ */
+export const WORLD_LENGTH = 32000;
 
 export interface BiomePalette {
   /** Dégradé du ciel, du haut vers l'horizon. */
@@ -51,13 +54,31 @@ export interface Biome {
  */
 export const BIOMES: Biome[] = [
   {
-    id: "foret",
-    name: "Forêt des Candidatures",
-    short: "Forêt",
+    id: "plaine",
+    name: "Plaine de la Poisse",
+    short: "Plaine",
     from: 0,
-    to: 0.19,
-    base: 556,
-    amp: 20,
+    to: 0.11,
+    base: 552,
+    amp: 4,
+    palette: {
+      sky: [0x79add2, 0xf0d9a5],
+      far: 0x92a77d,
+      mid: 0x657c58,
+      near: 0x41583d,
+      ground: 0x57452f,
+      groundDark: 0x34291d,
+      accent: 0xf2c85b,
+    },
+  },
+  {
+    id: "foret",
+    name: "Bois du Broyage",
+    short: "Bois",
+    from: 0.11,
+    to: 0.24,
+    base: 552,
+    amp: 5,
     palette: {
       sky: [0x7fb4d4, 0xdce9c8],
       far: 0x7d9c85,
@@ -70,12 +91,12 @@ export const BIOMES: Biome[] = [
   },
   {
     id: "marais",
-    name: "Marais des Refus",
+    name: "Marais du Malheur",
     short: "Marais",
-    from: 0.19,
-    to: 0.36,
-    base: 584,
-    amp: 11,
+    from: 0.24,
+    to: 0.37,
+    base: 554,
+    amp: 4,
     palette: {
       sky: [0x93aa9b, 0xcdc6a4],
       far: 0x6d7c6b,
@@ -88,12 +109,12 @@ export const BIOMES: Biome[] = [
   },
   {
     id: "lac",
-    name: "Lac du Silence Radio",
-    short: "Lac",
-    from: 0.36,
-    to: 0.53,
-    base: 546,
-    amp: 0,
+    name: "Pont de la Pitié",
+    short: "Pont",
+    from: 0.37,
+    to: 0.49,
+    base: 552,
+    amp: 1,
     palette: {
       sky: [0x86b2d6, 0xdfeaf2],
       far: 0x7d9bb5,
@@ -105,13 +126,31 @@ export const BIOMES: Biome[] = [
     },
   },
   {
+    id: "cascade",
+    name: "Les Larmes des Rejetés",
+    short: "Les Larmes",
+    from: 0.49,
+    to: 0.61,
+    base: 550,
+    amp: 4,
+    palette: {
+      sky: [0x668eb7, 0xd8e8ed],
+      far: 0x738ba4,
+      mid: 0x506b78,
+      near: 0x354c52,
+      ground: 0x4d514d,
+      groundDark: 0x293231,
+      accent: 0xa8eff2,
+    },
+  },
+  {
     id: "montagne",
-    name: "Mont des Entretiens",
-    short: "Montagne",
-    from: 0.53,
-    to: 0.72,
-    base: 474,
-    amp: 30,
+    name: "Mont du Mépris",
+    short: "Mont",
+    from: 0.61,
+    to: 0.73,
+    base: 548,
+    amp: 5,
     palette: {
       sky: [0x7099c0, 0xe4edf4],
       far: 0x8f9db2,
@@ -124,12 +163,12 @@ export const BIOMES: Biome[] = [
   },
   {
     id: "desert",
-    name: "Désert des Relances",
+    name: "Désert du Désespoir",
     short: "Désert",
-    from: 0.72,
-    to: 0.89,
+    from: 0.73,
+    to: 0.87,
     base: 552,
-    amp: 34,
+    amp: 5,
     palette: {
       sky: [0xe4ae64, 0xf7e5b4],
       far: 0xd7a468,
@@ -142,12 +181,12 @@ export const BIOMES: Biome[] = [
   },
   {
     id: "taverne",
-    name: "Taverne du Champion",
-    short: "Taverne",
-    from: 0.89,
+    name: "Taverne du Triomphe",
+    short: "Triomphe",
+    from: 0.87,
     to: 1,
-    base: 562,
-    amp: 8,
+    base: 552,
+    amp: 3,
     palette: {
       sky: [0x2c3a5a, 0x6d5b74],
       far: 0x3c4962,

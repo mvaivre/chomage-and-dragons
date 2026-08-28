@@ -37,8 +37,6 @@ const ACTION_ICONS: Record<
   embauche: TrophyIcon,
 };
 
-const RANK_COLORS = ["text-gold-light", "text-parchment/85", "text-parchment/65"];
-
 interface Row {
   rank: number;
   player: PlayerView;
@@ -92,67 +90,105 @@ export function CompactLeaderboard({
     <button
       type="button"
       onClick={onOpen}
-      className="frame riveted pointer-events-auto w-56 p-3 text-left transition-transform hover:-translate-y-0.5"
+      className="leaderboard-card pointer-events-auto text-left"
       aria-label="Ouvrir les classements détaillés"
     >
-      <div className="flex items-center gap-1.5">
-        <CrownIcon className="h-3.5 w-3.5 text-gold-light" />
-        <span className="engrave text-[0.6rem]">Couronne du mois</span>
+      <div className="leaderboard-card__mobile">
+        <CrownIcon className="h-6 w-6" />
+        <span>{top[0]?.player.name ?? "Classement"}</span>
       </div>
-      <p className="mt-0.5 text-[0.62rem] text-parchment/45 capitalize">
-        {monthLabel(monthKeyNow)}
-      </p>
-      <div className="gold-rule my-2" />
 
-      {top.length === 0 ? (
-        <p className="text-[0.7rem] text-parchment/50 italic">
-          Personne n’a encore marqué.
+      <div className="leaderboard-card__desktop">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <p className="leaderboard-card__kicker">La tournée de {monthLabel(monthKeyNow)}</p>
+            <h2>Couronne du mois</h2>
+          </div>
+          <CrownIcon className="h-7 w-7 text-gold" />
+        </header>
+        <p className="leaderboard-card__prize">Le premier se fait offrir un verre.</p>
+
+        {top.length === 0 ? (
+          <p className="py-3 text-sm text-parchment-ink/55 italic">
+            Le trône attend son premier exploit.
+          </p>
+        ) : (
+          <ul className="mt-2 grid gap-1.5">
+            {top.map((row) => (
+              <CompactRow key={row.player.id} row={row} isMe={row.player.id === meId} />
+            ))}
+            {meOutside ? <CompactRow row={meOutside} isMe /> : null}
+          </ul>
+        )}
+
+        <p className="leaderboard-card__footer">
+          <ScrollIcon className="h-4 w-4" />
+          Ouvrir le classement
         </p>
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {top.map((row) => (
-            <CompactRow key={row.player.id} row={row} isMe={row.player.id === meId} />
-          ))}
-          {meOutside ? (
-            <>
-              <li className="my-0.5 text-center text-[0.6rem] text-parchment/30">···</li>
-              <CompactRow row={meOutside} isMe />
-            </>
-          ) : null}
-        </ul>
-      )}
-
-      <p className="mt-2 flex items-center justify-center gap-1 text-[0.58rem] text-parchment/40">
-        <ScrollIcon className="h-3 w-3" />
-        Tout voir — Échap
-      </p>
+      </div>
     </button>
   );
 }
 
 function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
   return (
-    <li
-      className={`flex items-baseline gap-2 px-1 text-xs ${
-        isMe ? "bg-gold/12 -mx-1 rounded-sm px-2" : ""
-      }`}
-    >
-      <span
-        className={`w-3 font-display text-[0.7rem] ${
-          RANK_COLORS[row.rank - 1] ?? "text-parchment/50"
-        }`}
-      >
+    <li className={`leaderboard-row ${isMe ? "leaderboard-row--me" : ""}`}>
+      <span className="leaderboard-row__rank">
         {row.rank}
       </span>
-      <span
-        className={`min-w-0 flex-1 truncate ${
-          isMe ? "text-parchment" : "text-parchment/75"
-        }`}
-      >
+      <span className="min-w-0 flex-1 truncate font-semibold text-parchment-ink">
         {row.player.name}
       </span>
-      <span className="font-display text-sm text-gold-light">{row.score}</span>
+      <span className="font-display text-xl text-parchment-ink">{row.score}</span>
     </li>
+  );
+}
+
+/* -------------------------------------------------------------- vue carte */
+
+interface OverviewProps {
+  players: PlayerView[];
+  monthStandings: Standing[];
+  monthKeyNow: string;
+  meId: string | null;
+  onOpen: () => void;
+}
+
+/** Classement court posé sous la carte de la compagnie. */
+export function OverviewLeaderboard({
+  players,
+  monthStandings,
+  monthKeyNow,
+  meId,
+  onOpen,
+}: OverviewProps) {
+  const rows = useMemo(
+    () => toRows(monthStandings, players),
+    [monthStandings, players],
+  );
+
+  return (
+    <section className="overview-ranking pointer-events-auto" aria-label="Classement de la compagnie">
+      <header>
+        <div>
+          <span>La compagnie · {monthLabel(monthKeyNow)}</span>
+          <strong>Qui paiera la prochaine tournée ?</strong>
+        </div>
+        <button type="button" onClick={onOpen}>Classement complet</button>
+      </header>
+      <ol className="overview-ranking__list">
+        {rows.slice(0, 6).map((row) => (
+          <li
+            key={row.player.id}
+            className={row.player.id === meId ? "is-me" : undefined}
+          >
+            <span>{row.rank === 1 ? <CrownIcon className="h-4 w-4" /> : row.rank}</span>
+            <strong>{row.player.name}</strong>
+            <b>{row.score}</b>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -161,8 +197,8 @@ function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
 type Tab = "saison" | "mois" | "palmares";
 
 const TABS: Array<{ id: Tab; label: string }> = [
-  { id: "saison", label: "Saison" },
   { id: "mois", label: "Ce mois" },
+  { id: "saison", label: "Saison" },
   { id: "palmares", label: "Palmarès" },
 ];
 
@@ -195,7 +231,7 @@ export function LeaderboardOverlay({
   onChangeIdentity,
   onClose,
 }: OverlayProps) {
-  const [tab, setTab] = useState<Tab>("saison");
+  const [tab, setTab] = useState<Tab>("mois");
 
   const rows = useMemo(
     () => toRows(tab === "mois" ? monthStandings : seasonStandings, players),
@@ -204,39 +240,42 @@ export function LeaderboardOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/72 p-4 sm:p-8"
+      className="leaderboard-overlay absolute inset-0 z-30 flex items-start justify-center overflow-y-auto p-3 sm:p-8"
       onClick={onClose}
     >
       <div
-        className="scroll-sheet rise w-full max-w-3xl p-6 sm:p-8"
+        className="scroll-sheet leaderboard-sheet rise w-full max-w-4xl p-5 sm:p-9"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl tracking-wide text-parchment-ink">
-              Le Grand Registre
+            <p className="text-xs font-bold tracking-[0.18em] text-parchment-ink/45 uppercase">
+              {SEASON.label}
+            </p>
+            <h2 className="font-display text-4xl leading-none text-parchment-ink">
+              La tablée des braves
             </h2>
-            <p className="mt-0.5 text-sm text-parchment-ink/60 italic">
-              {SEASON.label} — la Légende du Chômage se joue au 31 décembre.
+            <p className="mt-2 text-base text-parchment-ink/60">
+              Chaque refus nourrit la légende. Chaque victoire finit autour d’un verre.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 border border-parchment-ink/25 px-3 py-1.5 font-display text-xs tracking-widest text-parchment-ink/70 transition-colors hover:border-parchment-ink/60 hover:text-parchment-ink"
+            className="leaderboard-close"
           >
             Fermer
           </button>
         </header>
 
-        <nav className="mt-5 flex gap-1 border-b border-parchment-ink/20">
+        <nav className="leaderboard-tabs mt-6 flex gap-1 border-b border-parchment-ink/20">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               aria-pressed={tab === id}
-              className={`-mb-px border-b-2 px-4 py-2 font-display text-xs tracking-widest transition-colors ${
+              className={`-mb-px border-b-2 px-4 py-3 text-sm font-bold transition-colors sm:px-6 ${
                 tab === id
                   ? "border-gold text-parchment-ink"
                   : "border-transparent text-parchment-ink/45 hover:text-parchment-ink/75"
@@ -248,6 +287,15 @@ export function LeaderboardOverlay({
         </nav>
 
         <div className="mt-5">
+          {tab === "mois" ? (
+            <div className="monthly-prize">
+              <CrownIcon className="h-8 w-8" />
+              <div>
+                <strong>La récompense de {monthLabel(monthKeyNow)}</strong>
+                <span>La compagnie offre un verre à la personne en tête.</span>
+              </div>
+            </div>
+          ) : null}
           {tab === "palmares" ? (
             <Palmares crowns={crowns} players={players} />
           ) : (
@@ -299,8 +347,8 @@ function Standings({
 
   return (
     <div>
-      <p className="mb-2 text-xs text-parchment-ink/55 capitalize">{caption}</p>
-      <ul className="flex flex-col">
+      <p className="mb-3 text-sm font-semibold text-parchment-ink/55 capitalize">{caption}</p>
+      <ul className="grid gap-2">
         {rows.map((row) => {
           const character = characterById(row.player.characterId);
           const isMe = row.player.id === meId;
@@ -308,11 +356,11 @@ function Standings({
           return (
             <li
               key={row.player.id}
-              className={`flex items-center gap-3 border-b border-parchment-ink/10 py-2.5 ${
-                isMe ? "-mx-2 bg-gold/12 px-2" : ""
+              className={`standing-row ${
+                isMe ? "standing-row--me" : ""
               }`}
             >
-              <span className="w-7 shrink-0 text-center font-display text-lg text-parchment-ink/70">
+              <span className="standing-row__rank">
                 {row.rank === 1 ? (
                   <CrownIcon className="mx-auto h-5 w-5 text-gold" />
                 ) : (
@@ -322,7 +370,7 @@ function Standings({
 
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline gap-2">
-                  <span className="truncate font-display text-base text-parchment-ink">
+                  <span className="truncate font-display text-xl text-parchment-ink">
                     {row.player.name}
                   </span>
                   {row.player.hiredAt ? (
@@ -331,7 +379,7 @@ function Standings({
                     </span>
                   ) : null}
                 </span>
-                <span className="block truncate text-xs text-parchment-ink/55">
+                <span className="block truncate text-sm text-parchment-ink/55">
                   {character.name} — niveau {row.player.level}
                 </span>
               </span>
@@ -352,8 +400,9 @@ function Standings({
                 })}
               </span>
 
-              <span className="w-12 shrink-0 text-right font-display text-xl text-parchment-ink">
-                {row.score}
+              <span className="w-16 shrink-0 text-right text-parchment-ink">
+                <strong className="block font-display text-2xl leading-none">{row.score}</strong>
+                <small className="text-xs text-parchment-ink/45">points</small>
               </span>
             </li>
           );
@@ -565,13 +614,13 @@ function Company({
         </div>
       ) : (
         <p className="mt-3 text-xs text-parchment-ink/50 italic">
-          Les huit classes sont prises.
+          Les quinze classes sont prises.
         </p>
       )}
 
       <div className="mt-5 flex items-center gap-2 text-xs text-parchment-ink/55">
         <ChestIcon className="h-4 w-4" />
-        <span>Un coffre s’ouvre à chaque palier de dix candidatures.</span>
+        <span>Un coffre s’ouvre tous les dix pas et débloque une farce visuelle.</span>
         <button
           type="button"
           onClick={onChangeIdentity}

@@ -21,6 +21,7 @@ const SKY_BANDS = 30;
 
 export function Sky() {
   const ref = useRef<Graphics>(null);
+  const time = useRef(0);
 
   // Redessiné à chaque image : ne pas mémoriser cette fonction est donc sans coût.
   const paint = (g: Graphics) => {
@@ -47,9 +48,35 @@ export function Sky() {
       color: mixColor(palette.accent, 0xffffff, 0.5),
       alpha: 0.9,
     });
+
+    // Voiles de nuages très lents : ils cassent les aplats et donnent une échelle au
+    // voyage sans détourner l'attention des personnages.
+    const cloudSpan = width + 420;
+    for (let i = 0; i < 6; i++) {
+      const raw =
+        i * 283 - camera.x * (0.018 + i * 0.002) + time.current * (6 + i * 0.7);
+      const x = ((raw % cloudSpan) + cloudSpan) % cloudSpan - 180;
+      const y = 92 + (i % 3) * 68 + Math.sin(time.current * 0.14 + i) * 9;
+      const cloud = mixColor(palette.sky[1], 0xffffff, 0.52);
+      const alpha = 0.1 + (i % 2) * 0.035;
+      g.ellipse(x, y, 86, 18).fill({ color: cloud, alpha });
+      g.ellipse(x + 54, y - 7, 62, 22).fill({ color: cloud, alpha });
+      g.ellipse(x - 52, y + 4, 48, 14).fill({ color: cloud, alpha: alpha * 0.8 });
+    }
+
+    // Poussières lumineuses : un mouvement minuscule évite l'impression de décor figé.
+    for (let i = 0; i < 20; i++) {
+      const x = ((i * 173 + time.current * (5 + (i % 4))) % (width + 80)) - 40;
+      const y = 285 + ((i * 71) % 230) + Math.sin(time.current * 0.8 + i) * 14;
+      g.circle(x, y, 1.2 + (i % 3) * 0.5).fill({
+        color: mixColor(palette.accent, 0xffffff, 0.42),
+        alpha: 0.12 + (i % 4) * 0.025,
+      });
+    }
   };
 
-  useTick(() => {
+  useTick((ticker) => {
+    time.current += ticker.deltaMS / 1000;
     const g = ref.current;
     if (g) paint(g);
   });

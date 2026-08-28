@@ -275,6 +275,12 @@ const DRAWERS: Record<PropKind, Drawer> = {
 };
 
 export function drawProp(g: Graphics, prop: Prop, y: number, ink: PropInk): void {
+  if (prop.kind === "rocher" || prop.kind === "cairn") {
+    g.ellipse(prop.x, y + prop.sink - 1, 25 * prop.scale, 6 * prop.scale).fill({
+      color: ink.dark,
+      alpha: 0.38,
+    });
+  }
   DRAWERS[prop.kind](
     g,
     prop.x,

@@ -28,6 +28,10 @@ export interface Scene {
   shake: number;
   /** Abscisse monde visée : le personnage du joueur. */
   focus: number;
+  /** Destination de la mise en scène ; `focus` la rejoint progressivement. */
+  targetFocus: number;
+  /** Vitesse du voyage caméra, accélérée lorsqu'une farce vise un autre joueur. */
+  focusSpeed: number;
   /** Écart imposé à la main pour aller voir le peloton. */
   pan: number;
   /** Vrai pendant un glisser : le recentrage attend que le joueur lâche. */
@@ -38,6 +42,8 @@ export const scene: Scene = {
   camera: { x: 0, y: 0, scale: 1, viewW: VIEW.width },
   shake: 0,
   focus: 0,
+  targetFocus: 0,
+  focusSpeed: 1.35,
   pan: 0,
   dragging: false,
 };
@@ -47,6 +53,8 @@ export function resetScene(): void {
   scene.camera = { x: 0, y: 0, scale: 1, viewW: VIEW.width };
   scene.shake = 0;
   scene.focus = 0;
+  scene.targetFocus = 0;
+  scene.focusSpeed = 1.35;
   scene.pan = 0;
   scene.dragging = false;
 }

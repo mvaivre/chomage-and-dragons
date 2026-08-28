@@ -2,32 +2,27 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { Application, useApplication, useTick } from "@pixi/react";
-import type { Container, Graphics } from "pixi.js";
+import type { Container } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import {
-  paletteAt,
   surfaceAt,
   VIEW,
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
-import { RidgeLayer, Sky } from "./Backdrop";
 import { resetScene, scene } from "./scene";
 import { EFFECT_COMPONENTS, type Effect } from "./Effects";
-import { Ground } from "./Ground";
+import { Sky } from "./Backdrop";
+import { JourneyMarkers } from "./Ground";
 import { Hero } from "./Hero";
 import { laneFor } from "./lanes";
 import {
-  closeRidgeY,
-  CLOSE_PROPS,
-  farRidgeY,
-  FRONT_BASE,
-  FRONT_PROPS,
-  LAYERS,
-  midRidgeY,
-  MID_PROPS,
-} from "./landscape";
-import { drawProp } from "./props";
+  AnimatedLandmarks,
+  AtmosphericMotes,
+  ParallaxBackdrop,
+  ParallaxForeground,
+  ParallaxGround,
+} from "./ParallaxWorld";
 import "./extendPixi";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
@@ -35,25 +30,8 @@ const REST_SURFACE = 556;
 
 /** Le personnage suivi se tient à cette fraction de la largeur visible. */
 const FOLLOW_ANCHOR = 0.36;
-
-/* ------------------------------------------------------------------ premier plan */
-
-/** Touffes qui passent devant les personnages. Leur base est sous l'écran. */
-function FrontLayer() {
-  const paint = useCallback((g: Graphics) => {
-    g.clear();
-    for (const prop of FRONT_PROPS) {
-      const palette = paletteAt(prop.worldX);
-      drawProp(g, prop, FRONT_BASE, {
-        color: palette.near,
-        dark: palette.groundDark,
-        accent: palette.accent,
-      });
-    }
-  }, []);
-
-  return <pixiGraphics draw={paint} />;
-}
+const MIDGROUND_FACTOR = 0.34;
+const FOREGROUND_FACTOR = 1.12;
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -61,22 +39,40 @@ function FrontLayer() {
  * Met le monde à l'échelle, suit le personnage et fait trembler l'écran.
  * Tout passe par mutation dans le ticker : aucun rendu React par image.
  */
-function CameraRig({ children }: { children: React.ReactNode }) {
+function CameraRig({
+  initialFocus,
+  children,
+}: {
+  initialFocus: number;
+  children: React.ReactNode;
+}) {
   const root = useRef<Container>(null);
+  const ready = useRef(false);
   const { app, isInitialised } = useApplication();
 
   useTick((ticker) => {
     const node = root.current;
     if (!node || !isInitialised) return;
 
+    const firstFrame = !ready.current;
+    if (firstFrame) {
+      resetScene();
+      scene.focus = initialFocus;
+      scene.targetFocus = initialFocus;
+    }
+
     const { camera } = scene;
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
     const { width, height } = app.screen;
 
-    // On remplit la hauteur : la largeur visible varie avec la fenêtre, et c'est
-    // très bien pour un défilement horizontal.
-    camera.scale = height / VIEW.height;
+    const baseScale = height / VIEW.height;
+    camera.scale = baseScale;
     camera.viewW = width / camera.scale;
+
+    // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
+    // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
+    const focusEase = 1 - Math.exp(-scene.focusSpeed * dt);
+    scene.focus += (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
     if (!scene.dragging && scene.pan !== 0) {
@@ -88,10 +84,19 @@ function CameraRig({ children }: { children: React.ReactNode }) {
     const maxX = Math.max(0, WORLD_LENGTH + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
-    camera.x += (clamped - camera.x) * Math.min(1, dt * 4.5);
-
     const wantedY = (surfaceAt(scene.focus) - REST_SURFACE) * 0.45;
-    camera.y += (wantedY - camera.y) * Math.min(1, dt * 3);
+
+    // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
+    // l'origine. Les déplacements gagnés après cela restent, eux, animés.
+    if (firstFrame) {
+      camera.x = clamped;
+      camera.y = wantedY;
+      ready.current = true;
+    } else {
+      const horizontalFollow = scene.focusSpeed > 2 ? 12 : 4.5;
+      camera.x += (clamped - camera.x) * Math.min(1, dt * horizontalFollow);
+      camera.y += (wantedY - camera.y) * Math.min(1, dt * 3);
+    }
 
     node.scale.set(camera.scale);
 
@@ -131,52 +136,51 @@ function Layer({
 interface SceneProps {
   players: PlayerView[];
   meId: string | null;
+  focusPlayerId: string | null;
+  initialFocus: number;
   effects: Effect[];
   onEffectDone: (id: string) => void;
 }
 
-function WorldScene({ players, meId, effects, onEffectDone }: SceneProps) {
+function WorldScene({
+  players,
+  meId,
+  focusPlayerId,
+  initialFocus,
+  effects,
+  onEffectDone,
+}: SceneProps) {
   // Les plus en avant dans la profondeur sont dessinés en dernier.
   const ordered = players
     .map((player, index) => ({ player, lane: laneFor(index) }))
     .sort((a, b) => a.lane.dy - b.lane.dy);
-
   return (
-    <CameraRig>
+    <CameraRig initialFocus={initialFocus}>
       <Sky />
 
-      <Layer factor={LAYERS.far}>
-        <RidgeLayer factor={LAYERS.far} ridge={farRidgeY} channel="far" haze={0.45} />
+      <Layer factor={MIDGROUND_FACTOR}>
+        <ParallaxBackdrop factor={MIDGROUND_FACTOR} />
+      </Layer>
+      <AtmosphericMotes />
+
+      <Layer factor={1}>
+        <ParallaxGround />
+        <AnimatedLandmarks />
+        <JourneyMarkers />
       </Layer>
 
-      <Layer factor={LAYERS.mid}>
-        <RidgeLayer
-          factor={LAYERS.mid}
-          ridge={midRidgeY}
-          channel="mid"
-          haze={0.22}
-          props={MID_PROPS}
-        />
+      <Layer factor={FOREGROUND_FACTOR}>
+        <ParallaxForeground factor={FOREGROUND_FACTOR} />
       </Layer>
 
-      <Layer factor={LAYERS.close}>
-        <RidgeLayer
-          factor={LAYERS.close}
-          ridge={closeRidgeY}
-          channel="near"
-          haze={0.07}
-          props={CLOSE_PROPS}
-        />
-      </Layer>
-
-      <Layer factor={LAYERS.ground}>
-        <Ground />
+      <Layer factor={1}>
 
         {ordered.map(({ player, lane }) => (
           <Hero
             key={player.id}
             player={player}
             isMe={player.id === meId}
+            isFocused={player.id === focusPlayerId}
             lane={lane}
           />
         ))}
@@ -192,10 +196,6 @@ function WorldScene({ players, meId, effects, onEffectDone }: SceneProps) {
           );
         })}
       </Layer>
-
-      <Layer factor={LAYERS.front}>
-        <FrontLayer />
-      </Layer>
     </CameraRig>
   );
 }
@@ -205,6 +205,8 @@ function WorldScene({ players, meId, effects, onEffectDone }: SceneProps) {
 export interface GameCanvasProps {
   players: PlayerView[];
   meId: string | null;
+  /** Cible temporairement suivie pendant une farce, puis null pour revenir à soi. */
+  focusPlayerId?: string | null;
   effects: Effect[];
   onEffectDone: (id: string) => void;
 }
@@ -212,21 +214,28 @@ export interface GameCanvasProps {
 export default function GameCanvas({
   players,
   meId,
+  focusPlayerId = null,
   effects,
   onEffectDone,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
+  const renderResolution =
+    typeof window === "undefined"
+      ? 1
+      : window.innerWidth <= 760
+        ? 1
+        : Math.min(1.25, window.devicePixelRatio || 1);
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
-  const focus = me ? worldXFor(me.position) : 0;
+  const focusPlayer =
+    players.find((player) => player.id === focusPlayerId) ?? me;
+  const focus = focusPlayer ? worldXFor(focusPlayer.position) : 0;
 
   useEffect(() => {
-    resetScene();
-  }, []);
-
-  useEffect(() => {
-    scene.focus = focus;
-  }, [focus]);
+    if (!focusPlayer) return;
+    scene.targetFocus = focus;
+    scene.focusSpeed = focusPlayerId ? 3.4 : 1.35;
+  }, [focus, focusPlayer, focusPlayerId]);
 
   // Glisser à la souris ou au doigt décale la vue, qui revient ensuite d'elle-même
   // sur le personnage : on peut aller voir le peloton sans perdre son repère.
@@ -251,7 +260,7 @@ export default function GameCanvas({
   return (
     <div
       ref={host}
-      className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
+      className="relative z-[1] h-full w-full cursor-grab touch-none active:cursor-grabbing"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -259,18 +268,16 @@ export default function GameCanvas({
     >
       <Application
         resizeTo={host}
-        background={0x1b2430}
+        backgroundAlpha={0}
         antialias
         autoDensity
-        resolution={
-          typeof window === "undefined"
-            ? 1
-            : Math.min(2, window.devicePixelRatio || 1)
-        }
+        resolution={renderResolution}
       >
         <WorldScene
           players={players}
           meId={meId}
+          focusPlayerId={focusPlayer?.id ?? null}
+          initialFocus={focus}
           effects={effects}
           onEffectDone={onEffectDone}
         />

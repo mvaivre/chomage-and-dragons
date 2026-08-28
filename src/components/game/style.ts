@@ -1,7 +1,7 @@
 import type { TextStyleOptions } from "pixi.js";
 
 /** Titres et cartouches : la police du grimoire. */
-export const SERIF = "var(--font-cinzel), 'Cinzel', Georgia, serif";
+export const SERIF = "'Pirata One', Georgia, serif";
 /** Texte courant du canvas. */
 export const BODY = "var(--font-garamond), 'EB Garamond', Georgia, serif";
 

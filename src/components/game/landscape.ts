@@ -39,27 +39,33 @@ interface RidgeParams {
 }
 
 const FAR: Record<string, RidgeParams> = {
+  plaine: { top: 452, amp: 18, rough: 0.2 },
   foret: { top: 424, amp: 44, rough: 0.55 },
   marais: { top: 448, amp: 24, rough: 0.35 },
   lac: { top: 464, amp: 14, rough: 0.2 },
+  cascade: { top: 304, amp: 104, rough: 1.2 },
   montagne: { top: 252, amp: 128, rough: 1.45 },
   desert: { top: 434, amp: 50, rough: 0.5 },
   taverne: { top: 420, amp: 46, rough: 0.7 },
 };
 
 const MID: Record<string, RidgeParams> = {
+  plaine: { top: 506, amp: 14, rough: 0.15 },
   foret: { top: 482, amp: 34, rough: 0.7 },
   marais: { top: 500, amp: 18, rough: 0.4 },
   lac: { top: 506, amp: 10, rough: 0.2 },
+  cascade: { top: 386, amp: 78, rough: 1 },
   montagne: { top: 360, amp: 90, rough: 1.15 },
   desert: { top: 490, amp: 38, rough: 0.45 },
   taverne: { top: 480, amp: 30, rough: 0.6 },
 };
 
 const CLOSE: Record<string, RidgeParams> = {
+  plaine: { top: 536, amp: 11, rough: 0.16 },
   foret: { top: 520, amp: 26, rough: 0.8 },
   marais: { top: 536, amp: 14, rough: 0.4 },
   lac: { top: 530, amp: 8, rough: 0.2 },
+  cascade: { top: 466, amp: 50, rough: 0.82 },
   montagne: { top: 450, amp: 62, rough: 1 },
   desert: { top: 522, amp: 32, rough: 0.5 },
   taverne: { top: 518, amp: 24, rough: 0.6 },
@@ -135,6 +141,7 @@ export interface Prop {
 
 /** Ce que l'on croise dans chaque biome. Les doublons pèsent plus lourd au tirage. */
 const PROP_TABLE: Record<string, PropKind[]> = {
+  plaine: ["buisson", "fougere", "fougere", "champignon", "feuillu"],
   foret: [
     "sapin",
     "sapin",
@@ -147,6 +154,7 @@ const PROP_TABLE: Record<string, PropKind[]> = {
   ],
   marais: ["roseau", "roseau", "arbreMort", "nenuphar", "souche", "champignon"],
   lac: ["pilotis", "roseau", "nenuphar"],
+  cascade: ["rocher", "rocher", "fougere", "sapin", "cairn"],
   montagne: ["rocher", "rocher", "sapin", "cairn"],
   desert: ["cactus", "cactus", "os", "buisson", "rocher"],
   taverne: ["lanterne", "tonneau", "buisson", "feuillu"],
@@ -154,9 +162,11 @@ const PROP_TABLE: Record<string, PropKind[]> = {
 
 /** Écartement moyen entre deux éléments, en unités monde. */
 const PROP_SPACING: Record<string, number> = {
+  plaine: 108,
   foret: 78,
   marais: 92,
   lac: 210,
+  cascade: 88,
   montagne: 100,
   desert: 124,
   taverne: 104,
@@ -206,13 +216,15 @@ function planProps({
     ) {
       if (!isClear(worldX / WORLD_LENGTH)) continue;
 
+      const kind = kinds[Math.floor(random() * kinds.length)];
       props.push({
-        kind: kinds[Math.floor(random() * kinds.length)],
+        kind,
         x: worldX * factor,
         worldX,
         scale: scale[0] + random() * (scale[1] - scale[0]),
         seed: Math.floor(random() * 100000),
-        sink: random() * 5,
+        // Les pierres sont franchement enchâssées dans le sol : aucune base flottante.
+        sink: (kind === "rocher" || kind === "cairn" ? 4 : 0) + random() * 5,
       });
     }
   }

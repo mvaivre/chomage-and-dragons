@@ -7,7 +7,14 @@ import type { PlayerView } from "@/hooks/useGame";
 import { characterById, type Character } from "@/lib/game/characters";
 import { seededRandom } from "@/lib/rng";
 import { slopeAt, surfaceAt, worldXFor } from "@/lib/game/world";
-import { useCharacterSprite } from "./sprites";
+import {
+  characterJumpNativeFacing,
+  characterNativeFacing,
+  useCharacterActionFrames,
+  useCharacterJumpFrames,
+  useCharacterSprite,
+} from "./sprites";
+import { scene } from "./scene";
 import { GOLD, GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
 
 /** Somme de contrôle d'une chaîne, pour amorcer un tirage reproductible. */
@@ -23,16 +30,22 @@ function hash(text: string): number {
 /**
  * Un personnage sur le chemin.
  *
- * Le corps est dessiné en pièces séparées et immobiles — jambes, buste, tête, arme —
- * que le ticker se contente de faire pivoter. Redessiner la silhouette à chaque image
- * coûterait cher pour un résultat identique.
- *
- * Si `public/sprites/<classe>.png` existe, le sprite pixel-art remplace le dessin
- * vectoriel sans que rien d'autre ne change.
+ * Les héros peints utilisent huit poses plein-corps. Le ticker ne déforme jamais
+ * leurs membres : il change simplement de cellule pour l'attente, la marche et les
+ * réactions. Les anciens personnages en code restent un fallback temporaire.
  */
 
 /** Hauteur du personnage, unités monde. Le repère local a les pieds en (0, 0). */
-export const HERO_HEIGHT = 104;
+export const HERO_HEIGHT = 112;
+const STRIDE_DURATION = 0.52;
+
+interface TravelLeg {
+  from: number;
+  to: number;
+  steps: number;
+  index: number;
+  elapsed: number;
+}
 
 export const LEG_TOP = -26;
 export const TORSO_TOP = -64;
@@ -49,6 +62,24 @@ export function drawLeg(g: Graphics, c: Character) {
 
 export function drawTorso(g: Graphics, c: Character) {
   g.clear();
+
+  if (c.hat === "fee") {
+    g.ellipse(-18, TORSO_TOP + 9, 13, 26).fill({ color: 0xb9f4e7, alpha: 0.58 });
+    g.ellipse(18, TORSO_TOP + 9, 13, 26).fill({ color: 0xb9f4e7, alpha: 0.58 });
+    g.ellipse(-20, TORSO_TOP + 28, 10, 20).fill({ color: 0x8fd7e8, alpha: 0.48 });
+    g.ellipse(20, TORSO_TOP + 28, 10, 20).fill({ color: 0x8fd7e8, alpha: 0.48 });
+  } else if (c.hat === "vampire") {
+    g.poly([-27, TORSO_TOP - 2, 27, TORSO_TOP - 2, 22, LEG_TOP + 8, 0, LEG_TOP - 2, -22, LEG_TOP + 8], true).fill(
+      c.palette.robeDark,
+    );
+  } else if (c.hat === "demon") {
+    g.moveTo(-12, LEG_TOP - 2);
+    g.quadraticCurveTo(-35, LEG_TOP + 10, -31, TORSO_TOP + 20);
+    g.stroke({ width: 4, color: c.palette.skin, cap: "round" });
+    g.poly([-35, TORSO_TOP + 17, -27, TORSO_TOP + 14, -30, TORSO_TOP + 24], true).fill(
+      c.palette.trim,
+    );
+  }
 
   // Tunique légèrement évasée : lit mieux qu'un rectangle, même à petite taille.
   g.poly(
@@ -140,6 +171,67 @@ export function drawHead(g: Graphics, c: Character) {
       // Feuille glissée dans le bandeau.
       g.ellipse(HEAD_R + 2, HEAD_Y - 12, 8, 3.4).fill(trim);
       break;
+
+    case "licorne":
+      g.poly([-13, top + 2, -22, top - 10, -7, top - 5], true).fill(c.palette.skin);
+      g.poly([13, top + 2, 22, top - 10, 7, top - 5], true).fill(c.palette.skin);
+      g.poly([-5, top - 5, 4, top - 5, 1, top - 40], true).fill(0xffe49b);
+      g.moveTo(-12, top - 1);
+      g.quadraticCurveTo(-2, top - 17, 15, top - 4);
+      g.stroke({ width: 6, color: robe, cap: "round" });
+      g.circle(-5, HEAD_Y - 1, 2.2).fill(0x41233c);
+      g.circle(5, HEAD_Y - 1, 2.2).fill(0x41233c);
+      break;
+
+    case "squelette":
+      g.circle(0, HEAD_Y, HEAD_R + 1).fill(c.palette.skin);
+      g.roundRect(-10, HEAD_Y + 7, 20, 12, 4).fill(c.palette.skin);
+      g.ellipse(-5.5, HEAD_Y - 3, 4.5, 5.5).fill(0x17151a);
+      g.ellipse(5.5, HEAD_Y - 3, 4.5, 5.5).fill(0x17151a);
+      g.poly([-3, HEAD_Y + 5, 3, HEAD_Y + 5, 0, HEAD_Y + 10], true).fill(0x17151a);
+      for (const x of [-6, -2, 2, 6]) g.rect(x, HEAD_Y + 12, 2, 6).fill(0x6e6659);
+      break;
+
+    case "fee":
+      g.poly([-15, top + 2, -22, top - 9, -8, top - 5], true).fill(c.palette.skin);
+      g.poly([15, top + 2, 22, top - 9, 8, top - 5], true).fill(c.palette.skin);
+      g.moveTo(-13, top + 1);
+      g.lineTo(0, top - 10);
+      g.lineTo(13, top + 1);
+      g.stroke({ width: 3, color: trim, join: "round" });
+      g.star(0, top - 11, 5, 4.5).fill(GOLD_LIGHT);
+      break;
+
+    case "demon":
+      g.poly([-11, top + 1, -24, top - 27, -5, top - 11], true).fill(robeDark);
+      g.poly([11, top + 1, 24, top - 27, 5, top - 11], true).fill(robeDark);
+      g.circle(-5, HEAD_Y - 1, 2.2).fill(0xffd56b);
+      g.circle(5, HEAD_Y - 1, 2.2).fill(0xffd56b);
+      break;
+
+    case "vampire":
+      g.poly([-HEAD_R - 1, HEAD_Y - 6, -10, top - 9, 0, top - 3, 9, top - 11, HEAD_R + 1, HEAD_Y - 6], true).fill(
+        0x16111b,
+      );
+      g.poly([-6, HEAD_Y + 7, -2, HEAD_Y + 11, -4, HEAD_Y + 14], true).fill(0xffffff);
+      g.poly([6, HEAD_Y + 7, 2, HEAD_Y + 11, 4, HEAD_Y + 14], true).fill(0xffffff);
+      break;
+
+    case "peluche":
+      g.circle(-11, top + 1, 8).fill(c.palette.skin);
+      g.circle(11, top + 1, 8).fill(c.palette.skin);
+      g.circle(0, HEAD_Y, HEAD_R + 2).fill(c.palette.skin);
+      g.circle(-5, HEAD_Y - 2, 2).fill(0x21160e);
+      g.circle(5, HEAD_Y - 2, 2).fill(0x21160e);
+      g.ellipse(0, HEAD_Y + 6, 7, 5).fill(0xdba16d);
+      g.circle(0, HEAD_Y + 4, 2.5).fill(0x21160e);
+      break;
+
+    case "casquette":
+      g.ellipse(0, top + 2, HEAD_R + 3, 6).fill(robeDark);
+      g.roundRect(-14, top - 10, 27, 13, 6).fill(robe);
+      g.poly([8, top - 1, 27, top + 2, 9, top + 6], true).fill(trim);
+      break;
   }
 }
 
@@ -200,6 +292,68 @@ export function drawHeld(g: Graphics, c: Character) {
       // Fanion : le seul qui flotte au vent.
       g.poly([2, -42, 20, -36, 2, -28], true).fill(trim);
       break;
+
+    case "arcenciel":
+      for (let i = 0; i < 4; i++) {
+        g.arc(0, 8, 10 + i * 3.2, Math.PI, Math.PI * 2).stroke({
+          width: 3,
+          color: [0xf06b7a, 0xf2c85b, 0x6fd49a, 0x78b9ef][i],
+        });
+      }
+      g.circle(-16, 9, 5).fill(0xffffff);
+      g.circle(16, 9, 5).fill(0xffffff);
+      break;
+
+    case "faux":
+      g.roundRect(-2, -42, 4, 75, 2).fill(0x6f4a2a);
+      g.moveTo(0, -40);
+      g.quadraticCurveTo(32, -43, 34, -18);
+      g.quadraticCurveTo(18, -32, 0, -31);
+      g.fill(0xd6dde6);
+      break;
+
+    case "baguette":
+      g.roundRect(-1.8, -31, 3.6, 54, 2).fill(0x8b5d32);
+      g.star(0, -36, 5, 8).fill(trim);
+      g.circle(0, -36, 13).fill({ color: trim, alpha: 0.2 });
+      break;
+
+    case "fourche":
+      g.roundRect(-2, -45, 4, 82, 2).fill(robeDark);
+      for (const x of [-9, 0, 9]) {
+        g.moveTo(x, -45);
+        g.lineTo(x, -61);
+        g.stroke({ width: 3.5, color: trim, cap: "round" });
+      }
+      g.moveTo(-9, -45);
+      g.lineTo(9, -45);
+      g.stroke({ width: 3.5, color: trim });
+      break;
+
+    case "ombrelle":
+      g.moveTo(0, -29);
+      g.lineTo(0, 26);
+      g.quadraticCurveTo(0, 34, 7, 28);
+      g.stroke({ width: 3, color: GOLD });
+      g.arc(0, -29, 23, Math.PI, Math.PI * 2).lineTo(23, -29).fill(robeDark);
+      g.moveTo(-23, -29);
+      g.lineTo(23, -29);
+      g.stroke({ width: 2, color: trim });
+      break;
+
+    case "miel":
+      g.roundRect(-11, -5, 22, 24, 5).fill(0xd99531);
+      g.rect(-12, -3, 24, 6).fill(trim);
+      g.roundRect(-9, -11, 18, 7, 3).fill(0x76502d);
+      g.circle(0, 8, 4).fill(GOLD_LIGHT);
+      break;
+
+    case "skate":
+      g.roundRect(-8, -32, 14, 58, 7).fill(trim);
+      g.roundRect(-5, -29, 8, 52, 4).fill(robeDark);
+      g.circle(-7, -23, 3).fill(0x171717);
+      g.circle(5, 20, 3).fill(0x171717);
+      break;
   }
 }
 
@@ -247,13 +401,21 @@ function drawShadow(g: Graphics) {
 export interface HeroProps {
   player: PlayerView;
   isMe: boolean;
+  /** Le suivi lit la position animée, jamais la destination brute. */
+  isFocused: boolean;
   /** Décalage en profondeur, pour que deux personnages au même endroit se distinguent. */
   lane: { dx: number; dy: number; scale: number };
 }
 
-export function Hero({ player, isMe, lane }: HeroProps) {
+export function Hero({ player, isMe, isFocused, lane }: HeroProps) {
   const character = useMemo(() => characterById(player.characterId), [player.characterId]);
   const sprite = useCharacterSprite(player.characterId);
+  const actionFrames = useCharacterActionFrames(player.characterId);
+  const jumpFrames = useCharacterJumpFrames(player.characterId);
+  const paintedFrames = actionFrames ?? jumpFrames;
+  const fineActionSheet = Boolean(actionFrames && actionFrames.length >= 24);
+  const nativeFacing = characterNativeFacing(player.characterId);
+  const jumpNativeFacing = characterJumpNativeFacing(player.characterId);
 
   const root = useRef<Container>(null);
   const rig = useRef<Container>(null);
@@ -261,49 +423,169 @@ export function Hero({ player, isMe, lane }: HeroProps) {
   const legR = useRef<Graphics>(null);
   const armFree = useRef<Container>(null);
   const armProp = useRef<Container>(null);
-  const spriteRef = useRef<Sprite>(null);
+  const actionSprite = useRef<Sprite>(null);
+  const labelRoot = useRef<Container>(null);
+  const selfMarker = useRef<Container>(null);
 
   const target = worldXFor(player.position) + lane.dx;
   const at = useRef(target);
+  const movementDelay = useRef(0);
+  const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
+  const travel = useRef<TravelLeg | null>(null);
+  const lastDirection = useRef<1 | -1>(1);
   // Déphasage tiré de l'identifiant : les personnages ne respirent pas à l'unisson,
   // et le tirage reste le même d'un rendu à l'autre.
   const phase = useRef(seededRandom(hash(player.id))() * Math.PI * 2);
-  const jump = useRef(0);
   const stun = useRef(0);
+  const impact = useRef(0);
+  const actionKind = useRef<
+    "candidature" | "refus" | "rejet" | "embauche" | null
+  >(null);
+  const actionTimer = useRef(0);
+  const actionDuration = useRef(1);
 
-  // Les compteurs ne déclenchent qu'en montant : une annulation ne doit pas faire
-  // sauter le personnage à l'envers.
   const seen = useRef({
-    applications: player.applications,
-    refus: player.counts.refus,
+    journeySteps: player.journeySteps,
+    counts: { ...player.counts },
+    hiredAt: player.hiredAt,
   });
 
   useEffect(() => {
-    if (player.applications > seen.current.applications) jump.current = 1;
-    if (player.counts.refus > seen.current.refus) stun.current = 1;
+    const stepDelta = player.journeySteps - seen.current.journeySteps;
+    const justHired =
+      player.counts.embauche > seen.current.counts.embauche ||
+      (Boolean(player.hiredAt) && player.hiredAt !== seen.current.hiredAt);
+    if (stepDelta !== 0) {
+      travelQueue.current.push({ target, steps: Math.abs(stepDelta) });
+    } else if (justHired && Math.abs(target - at.current) > 1) {
+      travelQueue.current.push({ target, steps: 6 });
+    }
+    const before = seen.current.counts;
+
+    if (player.counts.candidature > before.candidature) {
+      actionKind.current = "candidature";
+      actionTimer.current = 1;
+      actionDuration.current = 1;
+      movementDelay.current = 1;
+    }
+    if (player.counts.entretien > before.entretien) {
+      actionKind.current = "candidature";
+      actionTimer.current = 1.15;
+      actionDuration.current = 1.15;
+      movementDelay.current = 1.15;
+    }
+    if (player.counts.refus > before.refus) {
+      actionKind.current = "refus";
+      actionTimer.current = 1.25;
+      actionDuration.current = 1.25;
+      movementDelay.current = 1.25;
+      stun.current = 1;
+    }
+    if (player.counts.rejetApresEntretien > before.rejetApresEntretien) {
+      actionKind.current = "rejet";
+      actionTimer.current = 1.75;
+      actionDuration.current = 1.75;
+      movementDelay.current = 1.75;
+      stun.current = 1.25;
+    }
+    if (justHired) {
+      actionKind.current = "embauche";
+      actionTimer.current = 2;
+      actionDuration.current = 2;
+      movementDelay.current = 2;
+    }
+
     seen.current = {
-      applications: player.applications,
-      refus: player.counts.refus,
+      journeySteps: player.journeySteps,
+      counts: { ...player.counts },
+      hiredAt: player.hiredAt,
     };
-  }, [player.applications, player.counts.refus]);
+  }, [player.counts, player.hiredAt, player.journeySteps, target]);
 
   useTick((ticker) => {
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
 
-    // Approche du point visé : la marche est le résultat du déplacement, pas
-    // l'inverse. Un personnage immobile ne mime donc jamais la marche.
-    const delta = target - at.current;
-    const speed = Math.min(Math.abs(delta), 40 + Math.abs(delta) * 2.4);
-    const moving = Math.abs(delta) > 0.6;
-    if (moving) at.current += Math.sign(delta) * speed * dt;
+    if (movementDelay.current > 0) {
+      movementDelay.current = Math.max(0, movementDelay.current - dt);
+    }
 
-    phase.current += dt * (moving ? 9 : 2.2);
+    if (!travel.current && movementDelay.current === 0) {
+      const next = travelQueue.current.shift();
+      if (next && Math.abs(next.target - at.current) > 0.5) {
+        const direction = next.target >= at.current ? 1 : -1;
+        travel.current = {
+          from: at.current,
+          to: next.target,
+          steps: Math.max(1, next.steps),
+          index: 0,
+          elapsed: 0,
+        };
+        lastDirection.current = direction;
+      }
+    }
 
-    if (jump.current > 0) jump.current = Math.max(0, jump.current - dt / 0.62);
+    let moving = Boolean(travel.current);
+    let strideProgress = 0;
+    const activeTravel = travel.current;
+    if (activeTravel) {
+      activeTravel.elapsed += dt;
+      while (
+        activeTravel.elapsed >= STRIDE_DURATION &&
+        activeTravel.index < activeTravel.steps
+      ) {
+        activeTravel.elapsed -= STRIDE_DURATION;
+        activeTravel.index += 1;
+        at.current =
+          activeTravel.from +
+          ((activeTravel.to - activeTravel.from) * activeTravel.index) /
+            activeTravel.steps;
+        impact.current = 1;
+        scene.shake = Math.max(scene.shake, 0.045);
+      }
+
+      if (activeTravel.index >= activeTravel.steps) {
+        at.current = activeTravel.to;
+        travel.current = null;
+        moving = false;
+      } else {
+        strideProgress = activeTravel.elapsed / STRIDE_DURATION;
+        const eased =
+          strideProgress * strideProgress * (3 - 2 * strideProgress);
+        const start =
+          activeTravel.from +
+          ((activeTravel.to - activeTravel.from) * activeTravel.index) /
+            activeTravel.steps;
+        const end =
+          activeTravel.from +
+          ((activeTravel.to - activeTravel.from) *
+            (activeTravel.index + 1)) /
+            activeTravel.steps;
+        at.current = start + (end - start) * eased;
+      }
+    }
+
+    if (isFocused) {
+      scene.targetFocus = at.current;
+      if (!scene.dragging) scene.focusSpeed = moving ? 10 : 1.35;
+    }
+
+    phase.current += dt * (moving ? 7.5 : 2.2);
+
     if (stun.current > 0) stun.current = Math.max(0, stun.current - dt / 1.25);
+    if (impact.current > 0) impact.current = Math.max(0, impact.current - dt / 0.3);
+    if (actionTimer.current > 0) actionTimer.current = Math.max(0, actionTimer.current - dt);
 
-    const hop = Math.sin((1 - jump.current) * Math.PI) * 46;
-    const bob = moving ? Math.abs(Math.sin(phase.current)) * 3.4 : Math.sin(phase.current) * 2.2;
+    const hop = moving ? Math.sin(strideProgress * Math.PI) * 38 : 0;
+    const baseBob = fineActionSheet
+      ? 0
+      : character.hat === "vampire"
+        ? Math.sin(phase.current * 0.45) * 2
+        : moving
+          ? Math.abs(Math.sin(phase.current)) *
+            (character.hat === "peluche" ? 5.2 : 3.4)
+          : Math.sin(phase.current) * 2.2;
+    const speciesLift =
+      character.hat === "fee" ? 10 + Math.sin(phase.current * 0.72) * 4 : 0;
 
     const node = root.current;
     if (node) {
@@ -311,18 +593,36 @@ export function Hero({ player, isMe, lane }: HeroProps) {
       node.y = surfaceAt(at.current) + 4 + lane.dy;
     }
 
-    const body = rig.current;
-    if (body) {
-      body.y = -hop - bob;
-      // Électrocuté : le personnage part en arrière et tremble.
-      body.rotation =
-        stun.current > 0
-          ? Math.sin(stun.current * 42) * 0.26 * stun.current
-          : slopeAt(at.current) * 0.5;
-      body.scale.y = 1 - Math.sin((1 - jump.current) * Math.PI) * 0.06;
+    if (labelRoot.current) {
+      labelRoot.current.scale.set(1);
+      labelRoot.current.y = 14;
+    }
+    if (selfMarker.current) {
+      selfMarker.current.scale.set(1);
+      selfMarker.current.y = -HERO_HEIGHT - 16;
     }
 
-    const swing = moving ? Math.sin(phase.current) * 0.6 : Math.sin(phase.current) * 0.06;
+    const body = rig.current;
+    if (body) {
+      body.y = -hop - baseBob - speciesLift;
+      // Électrocuté : le personnage part en arrière et tremble.
+      body.rotation = fineActionSheet
+        ? stun.current > 0
+          ? Math.sin(stun.current * 34) * 0.055 * stun.current
+          : slopeAt(at.current) * 0.16
+        : stun.current > 0
+          ? Math.sin(stun.current * 42) * 0.26 * stun.current
+          : slopeAt(at.current) * 0.5 +
+            (moving && character.hat === "casquette" ? -0.08 : 0);
+      const landing =
+        Math.sin(impact.current * Math.PI) * (fineActionSheet ? 0.045 : 0.13);
+      body.scale.y = 1 - landing;
+      body.scale.x = 1 + landing * (fineActionSheet ? 0.28 : 0.58);
+    }
+
+    const swing = moving
+      ? Math.sin(phase.current) * 0.8
+      : Math.sin(phase.current) * 0.06;
     if (legL.current) legL.current.rotation = swing;
     if (legR.current) legR.current.rotation = -swing;
     if (armFree.current) armFree.current.rotation = -swing * 0.7;
@@ -330,8 +630,59 @@ export function Hero({ player, isMe, lane }: HeroProps) {
       // Le bras d'arme se lève quand le personnage prend la foudre.
       armProp.current.rotation = swing * 0.35 - (stun.current > 0 ? 0.9 : 0);
     }
-    if (spriteRef.current) {
-      spriteRef.current.skew.x = swing * 0.12;
+    if (paintedFrames && actionSprite.current) {
+      let nextTexture = paintedFrames[0];
+      let frameFacing = nativeFacing;
+      if (moving && jumpFrames) {
+        const frame = Math.min(
+          jumpFrames.length - 1,
+          Math.floor(strideProgress * jumpFrames.length),
+        );
+        nextTexture = jumpFrames[frame];
+        frameFacing = jumpNativeFacing;
+      } else if (actionFrames && fineActionSheet) {
+        let frame: number;
+        if (player.hiredAt) {
+          frame = 5;
+        } else if (actionTimer.current > 0 && actionKind.current) {
+          const start = actionKind.current === "candidature" ? 12 : 18;
+          const progress = 1 - actionTimer.current / actionDuration.current;
+          frame = start + Math.min(5, Math.floor(progress * 6));
+        } else {
+          frame = moving
+            ? 6 + (Math.floor(phase.current * 0.82) % 6)
+            : Math.floor(phase.current * 0.72) % 6;
+        }
+        nextTexture = actionFrames[frame];
+      } else if (actionFrames) {
+        const loopFrame = moving
+          ? 2 + (Math.floor(phase.current * 0.42) & 1)
+          : Math.floor(phase.current * 0.34) & 1;
+        const actionPose =
+          actionKind.current === "candidature"
+            ? 4
+            : actionKind.current === "refus"
+              ? 5
+              : actionKind.current === "rejet"
+                ? 6
+                : 7;
+        const frame = player.hiredAt
+          ? 7
+          : actionTimer.current > 0
+            ? actionPose
+            : loopFrame;
+        nextTexture = actionFrames[frame];
+      }
+      if (actionSprite.current.texture !== nextTexture) {
+        actionSprite.current.texture = nextTexture;
+      }
+      // Le sens natif appartient à l'asset. Le sens du voyage appartient au jeu :
+      // un idle conserve donc le dernier regard au lieu de revenir arbitrairement.
+      const horizontalScale = Math.abs(actionSprite.current.scale.x);
+      actionSprite.current.scale.x =
+        horizontalScale *
+        (frameFacing === "right" ? 1 : -1) *
+        lastDirection.current;
     }
   });
 
@@ -352,13 +703,20 @@ export function Hero({ player, isMe, lane }: HeroProps) {
       <pixiGraphics draw={drawShadow} />
 
       <pixiContainer ref={rig}>
-        {sprite ? (
+        {paintedFrames ? (
           <pixiSprite
-            ref={spriteRef}
+            ref={actionSprite}
+            texture={paintedFrames[0]}
+            anchor={{ x: 0.5, y: 0.96 }}
+            width={fineActionSheet ? 118 : 92}
+            height={fineActionSheet ? HERO_HEIGHT + 38 : HERO_HEIGHT + 14}
+          />
+        ) : sprite ? (
+          <pixiSprite
             texture={sprite}
             anchor={{ x: 0.5, y: 1 }}
+            width={74}
             height={HERO_HEIGHT}
-            width={(HERO_HEIGHT * sprite.width) / sprite.height}
           />
         ) : (
           <pixiContainer>
@@ -393,12 +751,12 @@ export function Hero({ player, isMe, lane }: HeroProps) {
       </pixiContainer>
 
       {isMe ? (
-        <pixiContainer y={-HERO_HEIGHT - 46}>
+        <pixiContainer ref={selfMarker} y={-HERO_HEIGHT - 46}>
           <pixiGraphics draw={drawMarker} />
         </pixiContainer>
       ) : null}
 
-      <pixiContainer y={14}>
+      <pixiContainer ref={labelRoot} y={14}>
         <pixiGraphics draw={paintPlate} />
         <pixiText
           text={label}

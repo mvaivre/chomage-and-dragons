@@ -13,32 +13,41 @@ export const SEASON = {
 
 /**
  * Points par action. `entretien` reste en discussion (−3 ou +3) : le −3 crée la seule
- * vraie tension du jeu, puisque le rejet après entretien rapporte +5 derrière.
+ * vraie tension du jeu, puisque le rejet après entretien rapporte +10 derrière.
  */
 export const POINTS = {
   candidature: 1,
   refus: 1,
   entretien: -3,
-  rejetApresEntretien: 5,
+  rejetApresEntretien: 10,
   embauche: 0,
 } as const;
 
-/** Mode Donjons & Refus : un niveau tous les N candidatures. */
-export const APPLICATIONS_PER_LEVEL = 10;
-
-/**
- * Pondération de la position sur le chemin. La somme doit valoir 1.
- * Le facteur temps fait avancer tout le monde vers l'arrivée au fil de la saison :
- * mener au score ne suffit donc pas à se retrouver seul au bout du chemin.
- */
-export const RACE_WEIGHTS = {
-  applications: 0.45,
-  time: 0.35,
-  level: 0.2,
+/** Pas de voyage par action. Un entretien ramène trois cases en arrière. */
+export const JOURNEY_STEPS = {
+  candidature: 1,
+  refus: 1,
+  entretien: -3,
+  rejetApresEntretien: 10,
+  embauche: 0,
 } as const;
 
-/** Nombre de candidatures qui vaut 100 % du facteur « candidatures ». */
-export const APPLICATIONS_TARGET = 120;
+/** Un coffre et un nouveau rang tous les dix pas, quelle que soit l'action. */
+export const STEPS_PER_LEVEL = 10;
 
-/** Niveau qui vaut 100 % du facteur « niveau ». */
-export const LEVEL_TARGET = 13;
+/** Quatre-vingts pas pour traverser le monde : chaque petit échec change le paysage. */
+export const JOURNEY_TARGET = 80;
+
+/** Titres allitératifs des rangs, sans supposer que quelqu'un décroche un entretien. */
+export const LEVEL_TITLES = [
+  "Plaine de la Poisse",
+  "Bois du Broyage",
+  "Marais du Malheur",
+  "Pont de la Pitié",
+  "Ravin du Râteau",
+  "Larmes des Rejetés",
+  "Mont du Mépris",
+  "Désert du Désespoir",
+  "Château du Chagrin",
+  "Taverne du Triomphe",
+] as const;

@@ -42,8 +42,8 @@ export function TitleScreen({
           </h1>
           <div className="gold-rule mx-auto mt-4 w-64" />
           <p className="mt-4 max-w-xl font-body text-base text-parchment/75 italic">
-            Plus on se fait recaler, plus on avance. Six contrées séparent la Forêt
-            des Candidatures de la Taverne du Champion.
+            Chaque tentative te fait avancer. Huit contrées séparent la Plaine de la
+            Poisse de la Taverne du Triomphe — même les refus deviennent du terrain gagné.
           </p>
         </header>
 
@@ -163,7 +163,7 @@ function Forge({
     return (
       <section className="frame riveted rise w-full max-w-md p-6 text-center">
         <p className="text-sm text-parchment/75">
-          Les huit classes sont déjà incarnées. Il faudra qu’un·e camarade se fasse
+          Les quinze classes sont déjà incarnées. Il faudra qu’un·e camarade se fasse
           engager pour libérer une place.
         </p>
       </section>

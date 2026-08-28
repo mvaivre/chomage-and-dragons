@@ -32,7 +32,23 @@ export interface GameEvent {
   at: string;
 }
 
+export type PowerKind = "feuSacré" | "fienteDragon" | "paperasse" | "crapaud";
+
+/** Une farce lancée grâce à un coffre. Elle n'affecte jamais le score ni le voyage. */
+export interface PowerCast {
+  id: string;
+  playerId: string;
+  targetPlayerId: string;
+  kind: PowerKind;
+  /** Numéro du coffre consommé, en partant de zéro. */
+  slot: number;
+  at: string;
+  /** Renseigné quand la cible a ouvert sa session et vu l'animation. */
+  seenAt?: string;
+}
+
 export interface GameState {
   players: Player[];
   events: GameEvent[];
+  casts: PowerCast[];
 }

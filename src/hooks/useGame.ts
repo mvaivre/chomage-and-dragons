@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadState, saveState } from "@/lib/data/local-store";
-import type { ActionKind, GameEvent, GameState } from "@/lib/data/types";
+import type {
+  ActionKind,
+  GameEvent,
+  GameState,
+  PowerCast,
+  PowerKind,
+} from "@/lib/data/types";
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
+import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { racePosition } from "@/lib/game/progress";
-import { levelFromApplications } from "@/lib/game/scoring";
+import { journeySteps, levelFromSteps } from "@/lib/game/scoring";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -33,10 +40,13 @@ export interface PlayerView {
   /** Score du mois en cours, remis à zéro le 1er. */
   monthScore: number;
   applications: number;
+  /** Effort de voyage cumulé, toutes les actions positives pour le trajet comprises. */
+  journeySteps: number;
   level: number;
   /** Position sur le chemin, dans [0, 1]. */
   position: number;
   counts: Record<ActionKind, number>;
+  availablePowers: AvailablePower[];
   /** Renseigné après une embauche : quitte la course, garde ses points. */
   hiredAt?: string;
 }
@@ -71,6 +81,47 @@ export function useGame() {
     }));
 
     return event;
+  }, []);
+
+  const castPower = useCallback(
+    (playerId: string, targetPlayerId: string, kind: PowerKind, slot: number) => {
+      const cast: PowerCast = {
+        id: crypto.randomUUID(),
+        playerId,
+        targetPlayerId,
+        kind,
+        slot,
+        at: new Date().toISOString(),
+      };
+
+      setState((prev) => {
+        const validPlayers =
+          playerId !== targetPlayerId &&
+          prev.players.some((player) => player.id === playerId) &&
+          prev.players.some((player) => player.id === targetPlayerId);
+        const slotIsFree = !prev.casts.some(
+          (existing) => existing.playerId === playerId && existing.slot === slot,
+        );
+
+        return validPlayers && slotIsFree
+          ? { ...prev, casts: [...prev.casts, cast] }
+          : prev;
+      });
+
+      return cast;
+    },
+    [],
+  );
+
+  const markCastSeen = useCallback((castId: string) => {
+    setState((prev) => ({
+      ...prev,
+      casts: prev.casts.map((cast) =>
+        cast.id === castId && !cast.seenAt
+          ? { ...cast, seenAt: new Date().toISOString() }
+          : cast,
+      ),
+    }));
   }, []);
 
   /**
@@ -121,6 +172,9 @@ export function useGame() {
     setState((prev) => ({
       players: prev.players.filter((p) => p.id !== playerId),
       events: prev.events.filter((e) => e.playerId !== playerId),
+      casts: prev.casts.filter(
+        (cast) => cast.playerId !== playerId && cast.targetPlayerId !== playerId,
+      ),
     }));
   }, []);
 
@@ -137,7 +191,6 @@ export function useGame() {
   );
 
   const players = useMemo<PlayerView[]>(() => {
-    const now = new Date();
     const monthScoreById = new Map(
       monthStandings.map((s) => [s.playerId, s.score]),
     );
@@ -145,6 +198,9 @@ export function useGame() {
     return state.players.map((player) => {
       const standing = seasonStandings.find((s) => s.playerId === player.id);
       const applications = standing?.counts.candidature ?? 0;
+      const steps = journeySteps(
+        state.events.filter((event) => event.playerId === player.id),
+      );
 
       return {
         id: player.id,
@@ -153,10 +209,11 @@ export function useGame() {
         score: standing?.score ?? 0,
         monthScore: monthScoreById.get(player.id) ?? 0,
         applications,
-        level: levelFromApplications(applications),
+        journeySteps: steps,
+        level: levelFromSteps(steps),
         // Être engagé·e, c'est avoir atteint la taverne : le personnage s'y installe
         // et cesse d'avancer, sans rien perdre de ses points.
-        position: player.hiredAt ? 1 : racePosition(applications, now),
+        position: player.hiredAt ? 1 : racePosition(steps),
         counts:
           standing?.counts ??
           ({
@@ -166,10 +223,11 @@ export function useGame() {
             rejetApresEntretien: 0,
             embauche: 0,
           } as Record<ActionKind, number>),
+        availablePowers: availablePowers(player.id, steps, state.casts),
         hiredAt: player.hiredAt,
       };
     });
-  }, [state.players, seasonStandings, monthStandings]);
+  }, [state.players, state.events, state.casts, seasonStandings, monthStandings]);
 
   const totals = useMemo(() => collectiveTotals(state.events), [state]);
 
@@ -198,6 +256,7 @@ export function useGame() {
   return {
     players,
     events: state.events,
+    casts: state.casts,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -205,6 +264,8 @@ export function useGame() {
     crowns,
     freeCharacters,
     addEvent,
+    castPower,
+    markCastSeen,
     undoLast,
     addPlayer,
     removePlayer,

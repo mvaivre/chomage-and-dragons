@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { POINTS } from "@/lib/config";
+import { JOURNEY_STEPS, POINTS } from "@/lib/config";
 import type { ActionKind } from "@/lib/data/types";
 import {
   BoltIcon,
@@ -106,16 +106,16 @@ export function ActionBar({
   }, [onAction, onUndo, canUndo, hired]);
 
   return (
-    <div className="pointer-events-auto flex flex-col items-center gap-1.5">
-      <p className="h-4 text-[0.7rem] text-parchment/50">
+    <div className="action-dock pointer-events-auto">
+      <p className="action-dock__prompt">
         {hired
-          ? "Tu as été engagé·e. Tes points restent acquis."
+          ? "Quête accomplie — ta place à la taverne est réservée."
           : lastActionLabel
-            ? `Dernière action : ${lastActionLabel}`
-            : ""}
+            ? `Dernier exploit : ${lastActionLabel}`
+            : "Transforme ta recherche en voyage"}
       </p>
 
-      <div className="frame riveted flex items-stretch gap-1.5 p-2">
+      <div className="action-dock__bar">
         {SLOTS.map(({ kind, label, hint, Icon, grave }, index) => (
           <button
             key={kind}
@@ -123,37 +123,36 @@ export function ActionBar({
             onClick={() => onAction(kind)}
             disabled={hired}
             title={`${label} — ${hint}`}
-            className="slot w-[5.6rem] px-1 py-2 sm:w-[6.4rem]"
+            className={`action-button action-button--${kind}`}
           >
             <span className="keycap">{index + 1}</span>
             <Icon
-              className={`h-6 w-6 ${grave ? "text-blood" : "text-gold-light"}`}
+              className={`action-button__icon ${grave ? "text-coral" : "text-gold-light"}`}
             />
-            <span className="mt-0.5 text-center text-[0.66rem] leading-tight text-parchment/85">
+            <span className="action-button__label">
               {label}
             </span>
-            <span
-              className={`font-display text-xs ${
-                POINTS[kind] < 0 ? "text-blood" : "text-gold-light"
-              }`}
-            >
-              {formatPoints(kind)}
+            <span className="action-button__reward">
+              {JOURNEY_STEPS[kind] === 0
+                ? "Arrivée"
+                : `${JOURNEY_STEPS[kind] > 0 ? "+" : ""}${JOURNEY_STEPS[kind]} pas`}
+            </span>
+            <span className={POINTS[kind] < 0 ? "text-coral" : "text-parchment/55"}>
+              {formatPoints(kind)} pt{Math.abs(POINTS[kind]) === 1 ? "" : "s"}
             </span>
           </button>
         ))}
-
-        <div className="mx-0.5 w-px self-stretch bg-gold-dim/50" />
 
         <button
           type="button"
           onClick={onUndo}
           disabled={!canUndo}
           title="Annuler ma dernière action (Z)"
-          className="slot w-14 px-1 py-2"
+          className="action-undo"
         >
           <span className="keycap">Z</span>
-          <UndoIcon className="h-5 w-5 text-parchment/70" />
-          <span className="text-[0.62rem] text-parchment/60">Annuler</span>
+          <UndoIcon className="h-5 w-5" />
+          <span>Annuler</span>
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useTick } from "@pixi/react";
 import type { Container, Graphics, Text } from "pixi.js";
 import { seededRandom } from "@/lib/rng";
+import { WORLD_LENGTH } from "@/lib/game/world";
 import { scene } from "./scene";
 import { GOLD, GOLD_LIGHT, SHOUT_STYLE, TAG_STYLE } from "./style";
 
@@ -21,7 +22,11 @@ export type EffectKind =
   | "cocktail"
   | "legendary"
   | "trophy"
-  | "chest";
+  | "chest"
+  | "fireCurse"
+  | "dragonDrop"
+  | "paperStorm"
+  | "frogCurse";
 
 export interface Effect {
   id: string;
@@ -37,6 +42,7 @@ export interface EffectProps {
 
 /** Hauteur approximative d'un personnage, pour viser la tête. */
 const HEAD = 104;
+const safeLabelX = (x: number) => Math.max(320, Math.min(WORLD_LENGTH - 320, x));
 
 const noDraw = (g: Graphics) => {
   g.clear();
@@ -372,7 +378,7 @@ function drawSkull(g: Graphics) {
   }
 }
 
-/** Rejet après entretien : la LEGENDARY REJECTION, +5 points. */
+/** Rejet après entretien : la LEGENDARY REJECTION, +10 points. */
 export function LegendaryEffect({ origin, onDone }: EffectProps) {
   const skull = useRef<Container>(null);
   const banner = useRef<Container>(null);
@@ -409,7 +415,7 @@ export function LegendaryEffect({ origin, onDone }: EffectProps) {
           anchor={{ x: 0.5, y: 0.5 }}
         />
       </pixiContainer>
-      <Points origin={{ x: origin.x + 60, y: origin.y }} value={5} />
+      <Points origin={{ x: origin.x + 60, y: origin.y }} value={10} />
     </pixiContainer>
   );
 }
@@ -495,18 +501,22 @@ export function TrophyEffect({ origin, onDone }: EffectProps) {
 
 function drawOpenChest(g: Graphics) {
   g.clear();
-  g.rect(-28, -18, 56, 22).fill(0x7a4a24);
-  g.rect(-28, -18, 56, 6).fill(GOLD);
+  g.ellipse(0, 7, 43, 9).fill({ color: 0x000000, alpha: 0.35 });
+  g.rect(-36, -23, 72, 30).fill(0x7a4a24);
+  g.rect(-36, -23, 72, 7).fill(GOLD);
   // Couvercle rabattu en arrière.
-  g.poly([-28, -18, 28, -18, 24, -40, -24, -40], true).fill(0x5e3718);
-  g.poly([-24, -40, 24, -40, 22, -35, -22, -35], true).fill(GOLD);
-  for (const x of [-14, 0, 14]) {
-    g.circle(x, -8, 5).fill(GOLD_LIGHT);
+  g.roundRect(-36, -53, 72, 33, 16).fill(0x5e3718);
+  g.rect(-36, -36, 72, 17).fill(0x5e3718);
+  g.rect(-31, -50, 7, 31).fill(GOLD);
+  g.rect(24, -50, 7, 31).fill(GOLD);
+  for (const x of [-19, 0, 19]) {
+    g.circle(x, -8, 5.5).fill(GOLD_LIGHT);
   }
-  g.rect(-5, -22, 10, 10).fill(GOLD);
+  g.roundRect(-7, -28, 14, 18, 3).fill(GOLD);
+  g.circle(0, -20, 2.8).fill(0x4a2e13);
 }
 
-/** Palier de dix candidatures : le coffre s'ouvre. Purement narratif. */
+/** Palier de dix pas : le coffre s'ouvre et annonce la farce débloquée. */
 export function ChestEffect({ origin, onDone }: EffectProps) {
   const chest = useRef<Container>(null);
   const sparkle = useRef<Graphics>(null);
@@ -545,6 +555,205 @@ export function ChestEffect({ origin, onDone }: EffectProps) {
       <pixiContainer ref={chest} x={origin.x} y={origin.y - HEAD - 34}>
         <pixiGraphics draw={drawOpenChest} />
       </pixiContainer>
+      <pixiText
+        text="NOUVELLE FARCE DÉBLOQUÉE"
+        style={{ ...SHOUT_STYLE, fontSize: 24, letterSpacing: 2 }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={safeLabelX(origin.x)}
+        y={origin.y - HEAD - 126}
+      />
+    </pixiContainer>
+  );
+}
+
+/* ------------------------------------------------------------------ pouvoirs */
+
+/** La tête de la cible brûle quelques secondes, sans modifier sa progression. */
+export function FireCurseEffect({ origin, onDone }: EffectProps) {
+  const flames = useRef<Graphics>(null);
+  const label = useRef<Text>(null);
+  const tick = useClock(2800, onDone);
+
+  useTick((ticker) => {
+    const t = tick(ticker.deltaMS);
+    const g = flames.current;
+    if (g) {
+      g.clear();
+      const fade = t > 0.78 ? 1 - (t - 0.78) / 0.22 : 1;
+      for (let i = 0; i < 9; i++) {
+        const x = origin.x - 30 + i * 7.5;
+        const wave = Math.sin(t * 32 + i * 1.8);
+        const height = 28 + (i % 4) * 9 + wave * 7;
+        const y = origin.y - HEAD + 5;
+        g.poly([x - 7, y, x, y - height, x + 7, y, x, y - height * 0.42], true).fill({
+          color: i % 3 === 0 ? 0xffdf52 : i % 2 === 0 ? 0xff8a2c : 0xd93b25,
+          alpha: fade * 0.9,
+        });
+      }
+      g.circle(origin.x, origin.y - HEAD + 4, 42).fill({ color: 0xff7a24, alpha: 0.08 * fade });
+    }
+    if (label.current) {
+      label.current.alpha = t > 0.72 ? 1 - (t - 0.72) / 0.28 : Math.min(1, t * 7);
+      label.current.y = origin.y - HEAD - 92 - t * 16;
+    }
+  });
+
+  return (
+    <pixiContainer>
+      <pixiGraphics ref={flames} draw={noDraw} />
+      <pixiText
+        ref={label}
+        text="FIÈVRE DU RECRUTEUR"
+        style={{ ...SHOUT_STYLE, fontSize: 25, letterSpacing: 2 }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={safeLabelX(origin.x)}
+        y={origin.y - HEAD - 92}
+      />
+    </pixiContainer>
+  );
+}
+
+/** Un dragon survole la cible et lui laisse un feedback organique. */
+export function DragonDropEffect({ origin, onDone }: EffectProps) {
+  const art = useRef<Graphics>(null);
+  const tick = useClock(3400, onDone);
+
+  useTick((ticker) => {
+    const t = tick(ticker.deltaMS);
+    const g = art.current;
+    if (!g) return;
+    g.clear();
+
+    const x = origin.x - 360 + t * 720;
+    const y = origin.y - 330 + Math.sin(t * 16) * 16;
+    const wing = Math.sin(t * 42) * 28;
+    g.ellipse(x, y, 48, 19).fill(0x3f6f49);
+    g.circle(x + 44, y - 10, 17).fill(0x548653);
+    g.moveTo(x - 32, y);
+    g.quadraticCurveTo(x - 108, y - 30, x - 132, y + 8);
+    g.stroke({ width: 13, color: 0x31563d, cap: "round" });
+    g.poly([x - 4, y - 5, x - 28, y - 74 - wing, x + 48, y - 17], true).fill(0x628b5d);
+    g.poly([x + 50, y - 15, x + 75, y - 8, x + 51, y - 3], true).fill(0x3f6f49);
+    g.circle(x + 50, y - 13, 2.3).fill(0xffdf65);
+
+    if (t > 0.34) {
+      const dropT = Math.min(1, (t - 0.34) / 0.34);
+      const dropY = origin.y - 300 + dropT * 235;
+      g.circle(origin.x, dropY, 10 + dropT * 5).fill(0x6f5129);
+      g.circle(origin.x - 7, dropY - 5, 5).fill(0x8b6935);
+      if (dropT === 1) {
+        g.ellipse(origin.x, origin.y - HEAD + 4, 30, 9).fill({ color: 0x6f5129, alpha: 1 - t * 0.45 });
+      }
+    }
+  });
+
+  return (
+    <pixiContainer>
+      <pixiGraphics ref={art} draw={noDraw} />
+      <pixiText
+        text="FEEDBACK DU DRAGON"
+        style={{ ...SHOUT_STYLE, fontSize: 25, letterSpacing: 2 }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={safeLabelX(origin.x)}
+        y={origin.y - HEAD - 160}
+      />
+    </pixiContainer>
+  );
+}
+
+/** Une tornade de formulaires tourne autour de la victime. */
+export function PaperStormEffect({ origin, onDone }: EffectProps) {
+  const papers = useRef<Graphics>(null);
+  const tick = useClock(3000, onDone);
+
+  useTick((ticker) => {
+    const t = tick(ticker.deltaMS);
+    const g = papers.current;
+    if (!g) return;
+    g.clear();
+    const fade = t > 0.78 ? 1 - (t - 0.78) / 0.22 : 1;
+
+    for (let i = 0; i < 18; i++) {
+      const a = t * (9 + (i % 3)) + i * 1.7;
+      const radius = 42 + (i % 6) * 17;
+      const x = origin.x + Math.cos(a) * radius;
+      const y = origin.y - HEAD * 0.55 + Math.sin(a) * 72 - ((t * 90 + i * 22) % 120);
+      const w = 18;
+      const h = 13;
+      const cos = Math.cos(a * 1.8);
+      const sin = Math.sin(a * 1.8);
+      g.poly(
+        [
+          x - w * cos,
+          y - h * sin,
+          x + h * sin,
+          y - w * cos,
+          x + w * cos,
+          y + h * sin,
+          x - h * sin,
+          y + w * cos,
+        ],
+        true,
+      ).fill({ color: i % 3 === 0 ? 0xf4e7ca : 0xd9c89f, alpha: fade });
+    }
+  });
+
+  return (
+    <pixiContainer>
+      <pixiGraphics ref={papers} draw={noDraw} />
+      <pixiText
+        text="OURAGAN ADMINISTRATIF"
+        style={{ ...SHOUT_STYLE, fontSize: 25, letterSpacing: 2 }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={safeLabelX(origin.x)}
+        y={origin.y - HEAD - 148}
+      />
+    </pixiContainer>
+  );
+}
+
+function drawCorporateFrog(g: Graphics) {
+  g.clear();
+  g.ellipse(0, 8, 42, 30).fill(0x72a84d);
+  g.circle(-25, -16, 18).fill(0x82b95a);
+  g.circle(25, -16, 18).fill(0x82b95a);
+  g.circle(-25, -19, 7).fill(0xffffff);
+  g.circle(25, -19, 7).fill(0xffffff);
+  g.circle(-23, -19, 3).fill(0x1c2817);
+  g.circle(23, -19, 3).fill(0x1c2817);
+  g.moveTo(-19, 13);
+  g.quadraticCurveTo(0, 25, 19, 13);
+  g.stroke({ width: 4, color: 0x304823, cap: "round" });
+  // Petite cravate corporate, parce que le monstre a des valeurs.
+  g.poly([-6, 29, 6, 29, 3, 42, 0, 48, -3, 42], true).fill(0x9e2e38);
+}
+
+export function FrogCurseEffect({ origin, onDone }: EffectProps) {
+  const frog = useRef<Container>(null);
+  const tick = useClock(2700, onDone);
+
+  useTick((ticker) => {
+    const t = tick(ticker.deltaMS);
+    const node = frog.current;
+    if (!node) return;
+    const pop = Math.min(1, t / 0.18);
+    node.scale.set(0.15 + pop * 1.1);
+    node.rotation = Math.sin(t * 18) * 0.08;
+    node.alpha = t > 0.78 ? 1 - (t - 0.78) / 0.22 : 1;
+  });
+
+  return (
+    <pixiContainer>
+      <pixiContainer ref={frog} x={origin.x} y={origin.y - HEAD - 50}>
+        <pixiGraphics draw={drawCorporateFrog} />
+      </pixiContainer>
+      <pixiText
+        text="BISE LINKEDIN"
+        style={{ ...SHOUT_STYLE, fontSize: 27, letterSpacing: 2 }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={safeLabelX(origin.x)}
+        y={origin.y - HEAD - 140}
+      />
     </pixiContainer>
   );
 }
@@ -559,4 +768,8 @@ export const EFFECT_COMPONENTS: Record<
   legendary: LegendaryEffect,
   trophy: TrophyEffect,
   chest: ChestEffect,
+  fireCurse: FireCurseEffect,
+  dragonDrop: DragonDropEffect,
+  paperStorm: PaperStormEffect,
+  frogCurse: FrogCurseEffect,
 };

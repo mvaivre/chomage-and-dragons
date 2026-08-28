@@ -1,18 +1,16 @@
 "use client";
 
 import type { PlayerView } from "@/hooks/useGame";
-import { APPLICATIONS_PER_LEVEL } from "@/lib/config";
+import { STEPS_PER_LEVEL } from "@/lib/config";
 import { characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
-import { daysUntilDeadline } from "@/lib/game/season";
 import { biomeAt, worldXFor } from "@/lib/game/world";
 import { ChestIcon, CrownIcon } from "./icons";
 
 /**
  * La fiche du joueur, en haut à gauche.
  *
- * Elle répond aux trois questions qu'on se pose en jouant : qui suis-je, où suis-je,
- * et combien de candidatures avant le prochain coffre.
+ * Une seule lecture horizontale : qui je suis, où j'en suis, ce qui m'attend.
  */
 
 interface QuestHudProps {
@@ -26,68 +24,62 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
 
   const character = characterById(me.characterId);
   const zone = biomeAt(worldXFor(me.position));
-  const remaining = untilNextChest(me.applications);
-  const filled = APPLICATIONS_PER_LEVEL - remaining;
-  const days = daysUntilDeadline();
+  const remaining = untilNextChest(me.journeySteps);
+  const filled = STEPS_PER_LEVEL - remaining;
 
   return (
-    <div className="frame riveted pointer-events-auto w-60 p-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate font-display text-lg tracking-wide text-parchment">
-          {me.name}
-        </span>
-        <span className="shrink-0 font-display text-xs text-gold-light">
-          Nv {me.level}
-        </span>
-      </div>
-      <p className="truncate text-[0.68rem] text-gold-light/65">{character.name}</p>
-
-      <div className="gold-rule my-2" />
-
-      <dl className="flex flex-col gap-1 text-[0.7rem]">
-        <div className="flex items-baseline justify-between gap-2">
-          <dt className="text-parchment/50">Contrée</dt>
-          <dd className="min-w-0 truncate text-parchment/85">{zone.short}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <dt className="text-parchment/50">Points de saison</dt>
-          <dd className="font-display text-sm text-gold-light">
-            {me.score}
-            {seasonRank ? (
-              <span className="ml-1.5 text-[0.62rem] text-parchment/45">
-                {seasonRank === 1 ? (
-                  <CrownIcon className="inline h-3 w-3 text-gold-light" />
-                ) : (
-                  `${seasonRank}ᵉ`
-                )}
-              </span>
-            ) : null}
-          </dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <dt className="text-parchment/50">Ce mois</dt>
-          <dd className="text-parchment/85">{me.monthScore}</dd>
-        </div>
-      </dl>
-
-      <div className="mt-2.5">
-        <div className="flex items-center gap-1.5 text-[0.64rem] text-parchment/55">
-          <ChestIcon className="h-3.5 w-3.5 text-gold-light/70" />
-          <span>
-            Coffre dans {remaining} candidature{remaining === 1 ? "" : "s"}
+    <section className="journey-card pointer-events-auto" aria-label="Ton voyage">
+      <div className="journey-card__identity">
+        <p className="journey-card__kicker">Ton aventure</p>
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="truncate font-display text-2xl text-parchment">{me.name}</h2>
+          <span className="shrink-0 rounded-full border border-gold/50 px-2 py-0.5 text-xs font-semibold text-gold-light">
+            Niv. {me.level}
           </span>
         </div>
-        <div className="mt-1 h-1.5 w-full overflow-hidden border border-gold-dim/60 bg-black/50">
-          <div
-            className="h-full bg-gold-light/80"
-            style={{ width: `${(filled / APPLICATIONS_PER_LEVEL) * 100}%` }}
-          />
-        </div>
+        <p className="journey-card__class">{character.name}</p>
       </div>
 
-      <p className="mt-2.5 text-[0.6rem] text-parchment/35">
-        {days} jour{days === 1 ? "" : "s"} avant la Légende du Chômage
-      </p>
-    </div>
+      <div className="journey-card__main">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="journey-card__kicker">En ce moment</p>
+            <p className="truncate font-display text-xl text-gold-light">{zone.name}</p>
+          </div>
+          <dl className="journey-card__stats">
+            <div>
+              <dt>Voyage</dt>
+              <dd>{me.journeySteps}</dd>
+            </div>
+            <div>
+              <dt>Points</dt>
+              <dd>{me.score}</dd>
+            </div>
+            <div>
+              <dt>Rang</dt>
+              <dd>
+                {seasonRank === 1 ? (
+                  <CrownIcon className="h-4 w-4" />
+                ) : seasonRank ? (
+                  `${seasonRank}ᵉ`
+                ) : (
+                  "—"
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="journey-card__chest">
+          <span className="flex items-center gap-1.5">
+            <ChestIcon className="h-4 w-4" />
+            Prochaine farce dans {remaining} pas
+          </span>
+          <div className="journey-card__meter">
+            <div style={{ width: `${(filled / STEPS_PER_LEVEL) * 100}%` }} />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

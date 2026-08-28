@@ -12,7 +12,14 @@ export type HatStyle =
   | "capuche"
   | "couronne"
   | "plume"
-  | "bandeau";
+  | "bandeau"
+  | "licorne"
+  | "squelette"
+  | "fee"
+  | "demon"
+  | "vampire"
+  | "peluche"
+  | "casquette";
 
 export type PropStyle =
   | "luth"
@@ -20,7 +27,14 @@ export type PropStyle =
   | "epee"
   | "dague"
   | "grimoire"
-  | "lance";
+  | "lance"
+  | "arcenciel"
+  | "faux"
+  | "baguette"
+  | "fourche"
+  | "ombrelle"
+  | "miel"
+  | "skate";
 
 export interface CharacterPalette {
   robe: number;
@@ -105,6 +119,62 @@ export const CHARACTERS: Character[] = [
     palette: { robe: 0x4a3f5c, robeDark: 0x2a2338, trim: 0x9fe0b0, skin: 0xd9d3c4 },
     hat: "capuche",
     prop: "baton",
+  },
+  {
+    id: "licorne",
+    name: "Licorne du Licenciement",
+    blurb: "Galopait vers un poste de rêve. Le poste était un CDD de trois jours.",
+    palette: { robe: 0xf1a9c7, robeDark: 0x9d5c8a, trim: 0x8fe4dc, skin: 0xffe8f0 },
+    hat: "licorne",
+    prop: "arcenciel",
+  },
+  {
+    id: "squelette",
+    name: "Squelette du Salaire",
+    blurb: "Attend une réponse depuis si longtemps qu’il a perdu un peu de chair.",
+    palette: { robe: 0x42495a, robeDark: 0x222630, trim: 0xd8d1b9, skin: 0xe8e2d2 },
+    hat: "squelette",
+    prop: "faux",
+  },
+  {
+    id: "fee",
+    name: "Fée du Feedback",
+    blurb: "Transforme « profil intéressant » en poussière, puis disparaît.",
+    palette: { robe: 0x6ebca8, robeDark: 0x397a70, trim: 0xffdf73, skin: 0xf2c7ac },
+    hat: "fee",
+    prop: "baguette",
+  },
+  {
+    id: "demon",
+    name: "Démon du Dossier",
+    blurb: "Connaît les sept cercles du formulaire de candidature Workday.",
+    palette: { robe: 0x8f3037, robeDark: 0x4e1720, trim: 0xf28b42, skin: 0xb84943 },
+    hat: "demon",
+    prop: "fourche",
+  },
+  {
+    id: "vampire",
+    name: "Vampire du Vendredi",
+    blurb: "Ne sort qu’après le mail de refus envoyé à 18 h 47.",
+    palette: { robe: 0x492d59, robeDark: 0x1f1528, trim: 0xb52235, skin: 0xe1d7d2 },
+    hat: "vampire",
+    prop: "ombrelle",
+  },
+  {
+    id: "teddy",
+    name: "Teddy Bear du Turnover",
+    blurb: "Doux, loyal, disponible immédiatement. Trop qualifié pour les câlins.",
+    palette: { robe: 0xa86c42, robeDark: 0x684027, trim: 0xe9b85f, skin: 0xb8794d },
+    hat: "peluche",
+    prop: "miel",
+  },
+  {
+    id: "skater",
+    name: "Skater des Sans-suite",
+    blurb: "Grinde les candidatures et ollie par-dessus les périodes d’essai.",
+    palette: { robe: 0x3b7aa6, robeDark: 0x24465f, trim: 0xf15e44, skin: 0xd9a77f },
+    hat: "casquette",
+    prop: "skate",
   },
 ];
 

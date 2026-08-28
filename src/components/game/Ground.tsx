@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import { useTick } from "@pixi/react";
 import type { Graphics } from "pixi.js";
+import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
 import {
   BIOMES,
   mixColor,
@@ -11,10 +12,8 @@ import {
   VIEW,
   WORLD_LENGTH,
 } from "@/lib/game/world";
-import { scene, WORLD_BOTTOM } from "./scene";
-import { GROUND_PROPS } from "./landscape";
-import { drawProp } from "./props";
-import { BIOME_SIGN_STYLE } from "./style";
+import { scene } from "./scene";
+import { usePaintedAsset } from "./sprites";
 
 /**
  * Le premier plan : la terre foulée par les personnages, le ponton du lac, la
@@ -32,7 +31,8 @@ const LAKE = {
   to: biome("lac").to * WORLD_LENGTH,
 };
 
-const TAVERN_X = 0.955 * WORLD_LENGTH;
+const CASCADE_X =
+  ((biome("cascade").from + biome("cascade").to) / 2) * WORLD_LENGTH;
 
 /** Épaisseur de la croûte d'herbe, de vase ou de sable. */
 const CRUST = 14;
@@ -52,13 +52,12 @@ function paintTerrain(g: Graphics) {
     const palette = paletteAt(Math.max(0, Math.min(WORLD_LENGTH, x)));
     const y0 = surfaceAt(x);
     const y1 = surfaceAt(x + step);
-    const deep = Math.max(y0, y1) + 132;
-
-    // Masse de terre.
+    // Ruban de terrain, volontairement peu profond : le panorama peint reste
+    // visible derrière lui et le chemin ne lit plus comme un grand mur gris.
     g.poly(
-      [x, y0, x + step, y1, x + step, WORLD_BOTTOM, x, WORLD_BOTTOM],
+      [x, y0, x + step, y1, x + step, y1 + 54, x, y0 + 54],
       true,
-    ).fill(palette.ground);
+    ).fill({ color: palette.ground, alpha: 0.82 });
 
     // Croûte de surface : c'est elle qui donne sa matière au biome.
     g.poly(
@@ -66,10 +65,13 @@ function paintTerrain(g: Graphics) {
       true,
     ).fill(mixColor(palette.ground, palette.near, 0.62));
 
-    // Assise sombre, pour que le sol ne paraisse pas plat sur toute sa hauteur.
-    g.rect(x, deep, step + 1, WORLD_BOTTOM - deep).fill({
+    // Ombre douce sous la croûte : elle ancre les pieds sans condamner le décor.
+    g.poly(
+      [x, y0 + 54, x + step, y1 + 54, x + step, y1 + 92, x, y0 + 92],
+      true,
+    ).fill({
       color: palette.groundDark,
-      alpha: 0.55,
+      alpha: 0.2,
     });
   }
 
@@ -84,22 +86,6 @@ function paintTerrain(g: Graphics) {
       width: 5,
       color: mixColor(palette.ground, 0xffffff, 0.3),
       alpha: 0.5,
-    });
-  }
-}
-
-function paintGroundProps(g: Graphics) {
-  g.clear();
-
-  for (const prop of GROUND_PROPS) {
-    // Le lac n'a pas de berge à décorer sous le ponton.
-    if (prop.worldX > LAKE.from && prop.worldX < LAKE.to) continue;
-
-    const palette = paletteAt(prop.worldX);
-    drawProp(g, prop, surfaceAt(prop.worldX) + CRUST * 0.4, {
-      color: palette.near,
-      dark: mixColor(palette.near, 0x000000, 0.35),
-      accent: palette.accent,
     });
   }
 }
@@ -158,9 +144,10 @@ function Water() {
     const palette = paletteAt((LAKE.from + LAKE.to) / 2);
     const top = surfaceAt((LAKE.from + LAKE.to) / 2) + 42;
 
-    g.rect(left, top, right - left, WORLD_BOTTOM - top).fill(
-      mixColor(palette.mid, palette.near, 0.45),
-    );
+    g.rect(left, top, right - left, 118).fill({
+      color: mixColor(palette.mid, palette.near, 0.45),
+      alpha: 0.52,
+    });
     g.rect(left, top, right - left, 6).fill(
       mixColor(palette.accent, 0xffffff, 0.35),
     );
@@ -192,133 +179,165 @@ function Water() {
   return <pixiGraphics ref={ref} draw={paint} />;
 }
 
-/* ------------------------------------------------------------------ taverne */
+/* ------------------------------------------------------------------ la cascade */
 
-/** La Taverne du Champion, but du voyage. Fenêtres allumées, enseigne dorée. */
-function paintTavern(g: Graphics) {
-  g.clear();
+/** Grande cascade animée au milieu du voyage : « Les Larmes des Rejetés ». */
+function Waterfall() {
+  const ref = useRef<Graphics>(null);
+  const time = useRef(0);
 
-  const base = surfaceAt(TAVERN_X);
-  const palette = paletteAt(TAVERN_X);
-  const wall = mixColor(palette.ground, 0xd8c49a, 0.55);
-  const beam = mixColor(palette.groundDark, 0x000000, 0.15);
-  const width = 300;
-  const height = 210;
-  const left = TAVERN_X - width / 2;
-  const top = base - height;
+  const paint = (g: Graphics) => {
+    g.clear();
+    const t = time.current;
+    const base = surfaceAt(CASCADE_X) + 8;
+    const top = 176;
+    const left = CASCADE_X - 176;
+    const right = CASCADE_X + 176;
+    const palette = paletteAt(CASCADE_X);
+    const cliff = mixColor(palette.near, 0x151c20, 0.36);
 
-  g.rect(left, top, width, height).fill(wall);
+    // Deux falaises imbriquées : la base touche franchement le sol, sans rocher flottant.
+    g.poly(
+      [
+        left - 52,
+        base,
+        left - 28,
+        318,
+        left + 20,
+        top + 28,
+        CASCADE_X - 70,
+        top,
+        CASCADE_X - 46,
+        base,
+      ],
+      true,
+    ).fill(cliff);
+    g.poly(
+      [
+        CASCADE_X + 46,
+        base,
+        CASCADE_X + 70,
+        top,
+        right - 20,
+        top + 38,
+        right + 26,
+        336,
+        right + 54,
+        base,
+      ],
+      true,
+    ).fill(mixColor(cliff, 0xffffff, 0.08));
 
-  // Colombages : quelques poutres suffisent à dire « auberge ».
-  for (const x of [left + 22, left + width / 2 - 6, left + width - 34]) {
-    g.rect(x, top, 12, height).fill(beam);
-  }
-  g.rect(left, top + height * 0.52, width, 11).fill(beam);
-  g.moveTo(left + 34, top + height * 0.52);
-  g.lineTo(left + width / 2 - 6, top + 12);
-  g.lineTo(left + width - 34, top + height * 0.52);
-  g.stroke({ width: 10, color: beam });
+    // Facettes et mousse : le rocher cesse d'être une masse noire uniforme.
+    g.poly(
+      [left - 28, 318, left + 20, top + 28, CASCADE_X - 92, 338, CASCADE_X - 128, base],
+      true,
+    ).fill({ color: mixColor(cliff, 0xffffff, 0.13), alpha: 0.62 });
+    g.poly(
+      [CASCADE_X + 78, top + 18, right - 20, top + 38, right - 56, 366, CASCADE_X + 104, 318],
+      true,
+    ).fill({ color: mixColor(cliff, 0x000000, 0.22), alpha: 0.5 });
+    for (const [x, y, w] of [
+      [left + 18, 302, 62],
+      [right - 22, 350, 54],
+      [left - 4, 430, 76],
+    ] as const) {
+      g.ellipse(x, y, w, 9).fill({ color: 0x6f8d69, alpha: 0.5 });
+    }
 
-  // Toit débordant.
-  g.poly(
-    [
-      left - 34,
-      top + 6,
-      TAVERN_X,
-      top - 78,
-      left + width + 34,
-      top + 6,
-      left + width + 18,
-      top + 22,
-      TAVERN_X,
-      top - 48,
-      left - 18,
-      top + 22,
-    ],
-    true,
-  ).fill(mixColor(palette.groundDark, 0x6a3f2a, 0.5));
+    // Bords irréguliers : la chute respire au lieu de lire comme un rectangle bleu.
+    const streamTop = top + 20;
+    const streamLeft = CASCADE_X - 72;
+    const streamRight = CASCADE_X + 72;
+    const waterShape: number[] = [];
+    for (let y = streamTop; y <= base; y += 34) {
+      waterShape.push(
+        streamLeft + Math.sin(y * 0.043 + t * 0.7) * 7,
+        y,
+      );
+    }
+    for (let y = base; y >= streamTop; y -= 34) {
+      waterShape.push(
+        streamRight + Math.sin(y * 0.037 + t * 0.62 + 2) * 8,
+        y,
+      );
+    }
+    g.poly(waterShape, true).fill({
+      color: mixColor(palette.accent, 0x5aa6c2, 0.42),
+      alpha: 0.86,
+    });
 
-  // Fenêtres et porte : la lumière chaude est le seul point vif de la nuit.
-  for (const x of [left + 52, left + width - 96]) {
-    g.rect(x, top + height * 0.62, 46, 40).fill(palette.accent);
-    g.rect(x, top + height * 0.62, 46, 40).stroke({ width: 5, color: beam });
-  }
-  g.roundRect(TAVERN_X - 30, base - 92, 60, 92, 6).fill(beam);
-  g.roundRect(TAVERN_X - 22, base - 84, 44, 84, 4).fill(
-    mixColor(palette.accent, 0x000000, 0.45),
-  );
+    for (let i = 0; i < 9; i++) {
+      const x = streamLeft + 12 + i * 15 + Math.sin(t * 1.7 + i) * 4;
+      const offset = (t * (88 + i * 5) + i * 43) % 110;
+      for (let y = top - 80 + offset; y < base; y += 110) {
+        g.roundRect(x, y, 5 + (i % 3), 48, 4).fill({
+          color: i % 2 === 0 ? 0xe8fbff : 0x9ce5ee,
+          alpha: 0.42,
+        });
+      }
+    }
 
-  // Enseigne suspendue.
-  g.rect(left + width + 4, top - 6, 8, 54).fill(beam);
-  g.moveTo(left + width + 8, top + 10);
-  g.lineTo(left + width + 62, top + 10);
-  g.stroke({ width: 5, color: beam });
-  g.roundRect(left + width + 30, top + 14, 64, 44, 5).fill(palette.accent);
-  g.roundRect(left + width + 30, top + 14, 64, 44, 5).stroke({
-    width: 4,
-    color: beam,
+    // Vasque, embruns et petites gouttes projetées.
+    g.ellipse(CASCADE_X, base + 10, 184, 30).fill({
+      color: mixColor(palette.accent, palette.mid, 0.45),
+      alpha: 0.84,
+    });
+    g.ellipse(CASCADE_X, base + 2, 118, 16).fill({ color: 0xe7fbff, alpha: 0.5 });
+    for (let i = 0; i < 7; i++) {
+      const mistX = CASCADE_X - 132 + i * 44 + Math.sin(t * 0.45 + i) * 12;
+      const mistY = base - 5 - (i % 3) * 10;
+      g.ellipse(mistX, mistY, 48 + (i % 2) * 20, 14).fill({
+        color: 0xe7fbff,
+        alpha: 0.1 + (i % 3) * 0.035,
+      });
+    }
+    for (let i = 0; i < 18; i++) {
+      const phase = t * (1.1 + (i % 4) * 0.14) + i * 2.13;
+      const spread = 42 + (i % 7) * 20;
+      const x = CASCADE_X + Math.sin(phase) * spread;
+      const y = base - 8 - Math.abs(Math.cos(phase * 1.3)) * (24 + (i % 5) * 9);
+      g.circle(x, y, 2 + (i % 3)).fill({ color: 0xe8fbff, alpha: 0.58 });
+    }
+  };
+
+  useTick((ticker) => {
+    time.current += ticker.deltaMS / 1000;
+    if (ref.current) {
+      paint(ref.current);
+    }
   });
+
+  return <pixiGraphics ref={ref} draw={paint} />;
 }
 
 /* ------------------------------------------------------------------ coffres */
 
-/** Coffres jalonnant la route, un par palier de niveau. */
-function paintChests(g: Graphics) {
-  g.clear();
+/** Coffres peints jalonnant la route, tous issus de la même texture GPU. */
+export function JourneyMarkers() {
+  const chest = usePaintedAsset("/art/runtime/chest.webp", true);
 
-  const count = 11;
+  if (!chest) return null;
 
-  for (let i = 1; i <= count; i++) {
-    const x = (i / (count + 1)) * WORLD_LENGTH;
-    const y = surfaceAt(x) + CRUST * 0.5;
-    const palette = paletteAt(x);
-    const wood = mixColor(palette.groundDark, 0x7a4a24, 0.6);
-    const w = 46;
-    const h = 30;
-
-    g.rect(x - w / 2, y - h, w, h).fill(wood);
-    g.ellipse(x, y - h, w / 2, 13).fill(mixColor(wood, 0xffffff, 0.16));
-    g.rect(x - w / 2, y - h - 4, w, 7).fill(palette.accent);
-    g.rect(x - 6, y - h - 6, 12, 16).fill(palette.accent);
-    g.circle(x, y - h + 4, 3.4).fill(mixColor(palette.accent, 0x000000, 0.5));
-  }
-}
-
-/* ------------------------------------------------------------------ panneaux */
-
-interface SignProps {
-  x: number;
-  label: string;
-}
-
-/** Panneau de bois planté au seuil de chaque zone. */
-function Sign({ x, label }: SignProps) {
-  const base = surfaceAt(x);
-  const palette = paletteAt(x);
-
-  const paint = useCallback(
-    (g: Graphics) => {
-      const wood = mixColor(palette.groundDark, 0x8a5a2a, 0.55);
-      g.clear();
-      g.rect(-6, -92, 12, 92).fill(wood);
-      g.roundRect(-104, -148, 208, 62, 7).fill(mixColor(0xe9d5a8, wood, 0.16));
-      g.roundRect(-104, -148, 208, 62, 7).stroke({ width: 6, color: wood });
-      g.circle(-88, -117, 4).fill(wood);
-      g.circle(88, -117, 4).fill(wood);
-    },
-    [palette.groundDark],
-  );
-
+  const count = Math.floor(JOURNEY_TARGET / STEPS_PER_LEVEL);
   return (
-    <pixiContainer x={x} y={base + 6}>
-      <pixiGraphics draw={paint} />
-      <pixiText
-        text={label}
-        style={BIOME_SIGN_STYLE}
-        anchor={{ x: 0.5, y: 0.5 }}
-        y={-117}
-        scale={0.92}
-      />
+    <pixiContainer>
+      {Array.from({ length: count }, (_, index) => {
+        const step = index + 1;
+        const x = (step * STEPS_PER_LEVEL * WORLD_LENGTH) / JOURNEY_TARGET;
+        const markerX = x > WORLD_LENGTH - 300 ? x - 160 : x + 160;
+        return (
+          <pixiSprite
+            key={step}
+            texture={chest}
+            anchor={{ x: 0.5, y: 1 }}
+            x={markerX}
+            y={surfaceAt(markerX) + 8}
+            width={84}
+            height={84}
+          />
+        );
+      })}
     </pixiContainer>
   );
 }
@@ -331,16 +350,8 @@ export function Ground() {
       <Water />
       <pixiGraphics draw={paintTerrain} />
       <pixiGraphics draw={paintBridge} />
-      <pixiGraphics draw={paintTavern} />
-      <pixiGraphics draw={paintGroundProps} />
-      <pixiGraphics draw={paintChests} />
-      {BIOMES.map((b) => (
-        <Sign
-          key={b.id}
-          x={Math.max(190, b.from * WORLD_LENGTH + 150)}
-          label={b.name}
-        />
-      ))}
+      <Waterfall />
+      <JourneyMarkers />
     </pixiContainer>
   );
 }

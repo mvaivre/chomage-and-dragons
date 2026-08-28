@@ -31,7 +31,7 @@ const LEGACY_CHARACTERS: Record<string, string> = {
   papillon: "barde",
 };
 
-const EMPTY: GameState = { players: [], events: [] };
+const EMPTY: GameState = { players: [], events: [], casts: [] };
 
 const knownCharacter = (id: string) => CHARACTERS.some((c) => c.id === id);
 
@@ -64,7 +64,7 @@ function parse(raw: string): GameState | null {
     if (!Array.isArray(parsed.players) || !Array.isArray(parsed.events)) {
       return null;
     }
-    return migrateCharacters(parsed);
+    return migrateCharacters({ ...parsed, casts: parsed.casts ?? [] });
   } catch {
     return null;
   }

@@ -99,7 +99,7 @@ export function CrownIcon({ className }: IconProps) {
   );
 }
 
-/** Le coffre des paliers de dix candidatures. */
+/** Le coffre des paliers de dix pas. */
 export function ChestIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

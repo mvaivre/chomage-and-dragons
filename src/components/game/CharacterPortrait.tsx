@@ -14,7 +14,7 @@ import {
   LEG_TOP,
   TORSO_TOP,
 } from "./Hero";
-import { useCharacterSprite } from "./sprites";
+import { useCharacterActionFrames, useCharacterSprite } from "./sprites";
 import "./extendPixi";
 
 /**
@@ -31,6 +31,7 @@ function Figure({ character }: { character: Character }) {
   const rig = useRef<Container>(null);
   const time = useRef(0);
   const sprite = useCharacterSprite(character.id);
+  const actionFrames = useCharacterActionFrames(character.id);
 
   const paintLeg = useCallback((g: Graphics) => drawLeg(g, character), [character]);
   const paintTorso = useCallback((g: Graphics) => drawTorso(g, character), [character]);
@@ -49,12 +50,19 @@ function Figure({ character }: { character: Character }) {
   return (
     <pixiContainer x={SIZE.width / 2} y={SIZE.height * 0.92} scale={scale}>
       <pixiContainer ref={rig}>
-        {sprite ? (
+        {actionFrames ? (
+          <pixiSprite
+            texture={actionFrames[0]}
+            anchor={{ x: 0.5, y: 0.96 }}
+            width={105}
+            height={HERO_HEIGHT + 16}
+          />
+        ) : sprite ? (
           <pixiSprite
             texture={sprite}
             anchor={{ x: 0.5, y: 1 }}
+            width={84}
             height={HERO_HEIGHT}
-            width={(HERO_HEIGHT * sprite.width) / sprite.height}
           />
         ) : (
           <pixiContainer>

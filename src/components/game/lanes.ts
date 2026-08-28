@@ -22,8 +22,8 @@ export function laneFor(index: number): Lane {
   const column = ((index * 37) % 5) - 2;
 
   return {
-    dx: column * 27,
-    dy: row * 11,
+    dx: column * 40,
+    dy: row * 24,
     scale: 1 - row * 0.05,
   };
 }
