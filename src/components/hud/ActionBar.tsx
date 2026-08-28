@@ -3,14 +3,8 @@
 import { useEffect } from "react";
 import { JOURNEY_STEPS, POINTS } from "@/lib/config";
 import type { ActionKind } from "@/lib/data/types";
-import {
-  BoltIcon,
-  GobletIcon,
-  PigeonIcon,
-  SkullIcon,
-  TrophyIcon,
-  UndoIcon,
-} from "./icons";
+import { ActionArtwork } from "./Artwork";
+import { UndoIcon } from "./icons";
 
 /**
  * La barre d'action, en bas de l'écran.
@@ -24,9 +18,6 @@ interface Slot {
   kind: ActionKind;
   label: string;
   hint: string;
-  Icon: (props: { className?: string }) => React.ReactElement;
-  /** Accentué en rouge : les actions qui coûtent ou qui font sortir de la course. */
-  grave?: boolean;
 }
 
 const SLOTS: Slot[] = [
@@ -34,28 +25,22 @@ const SLOTS: Slot[] = [
     kind: "candidature",
     label: "Candidature",
     hint: "Le pigeon part",
-    Icon: PigeonIcon,
   },
-  { kind: "refus", label: "Refus", hint: "La foudre tombe", Icon: BoltIcon },
+  { kind: "refus", label: "Refus", hint: "La foudre tombe" },
   {
     kind: "entretien",
     label: "Entretien",
     hint: "On trinque quand même",
-    Icon: GobletIcon,
-    grave: true,
   },
   {
     kind: "rejetApresEntretien",
     label: "Rejet post-entretien",
     hint: "Legendary rejection",
-    Icon: SkullIcon,
   },
   {
     kind: "embauche",
     label: "Engagé·e",
     hint: "Fin de la course",
-    Icon: TrophyIcon,
-    grave: true,
   },
 ];
 
@@ -71,6 +56,8 @@ interface ActionBarProps {
   canUndo: boolean;
   /** Un personnage engagé a quitté la course : plus rien à déclarer. */
   hired: boolean;
+  /** Une chronique est ouverte : on la lit avant de déclarer autre chose. */
+  locked: boolean;
   lastActionLabel: string | null;
 }
 
@@ -79,6 +66,7 @@ export function ActionBar({
   onUndo,
   canUndo,
   hired,
+  locked,
   lastActionLabel,
 }: ActionBarProps) {
   useEffect(() => {
@@ -89,13 +77,13 @@ export function ActionBar({
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
 
       const index = Number(event.key) - 1;
-      if (!hired && index >= 0 && index < SLOTS.length) {
+      if (!hired && !locked && index >= 0 && index < SLOTS.length) {
         event.preventDefault();
         onAction(SLOTS[index].kind);
         return;
       }
 
-      if ((event.key === "z" || event.key === "Backspace") && canUndo) {
+      if ((event.key === "z" || event.key === "Backspace") && canUndo && !locked) {
         event.preventDefault();
         onUndo();
       }
@@ -103,7 +91,7 @@ export function ActionBar({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onAction, onUndo, canUndo, hired]);
+  }, [onAction, onUndo, canUndo, hired, locked]);
 
   return (
     <div className="action-dock pointer-events-auto">
@@ -116,19 +104,17 @@ export function ActionBar({
       </p>
 
       <div className="action-dock__bar">
-        {SLOTS.map(({ kind, label, hint, Icon, grave }, index) => (
+        {SLOTS.map(({ kind, label, hint }, index) => (
           <button
             key={kind}
             type="button"
             onClick={() => onAction(kind)}
-            disabled={hired}
+            disabled={hired || locked}
             title={`${label} — ${hint}`}
             className={`action-button action-button--${kind}`}
           >
             <span className="keycap">{index + 1}</span>
-            <Icon
-              className={`action-button__icon ${grave ? "text-coral" : "text-gold-light"}`}
-            />
+            <ActionArtwork kind={kind} className="action-button__icon" />
             <span className="action-button__label">
               {label}
             </span>
@@ -146,7 +132,7 @@ export function ActionBar({
         <button
           type="button"
           onClick={onUndo}
-          disabled={!canUndo}
+          disabled={!canUndo || locked}
           title="Annuler ma dernière action (Z)"
           className="action-undo"
         >

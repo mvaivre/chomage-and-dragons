@@ -5,7 +5,7 @@ import { STEPS_PER_LEVEL } from "@/lib/config";
 import { characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
 import { biomeAt, worldXFor } from "@/lib/game/world";
-import { ChestIcon, CrownIcon } from "./icons";
+import { ChestArtwork, CrownArtwork } from "./Artwork";
 
 /**
  * La fiche du joueur, en haut à gauche.
@@ -33,7 +33,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
         <p className="journey-card__kicker">Ton aventure</p>
         <div className="flex min-w-0 items-baseline gap-2">
           <h2 className="truncate font-display text-2xl text-parchment">{me.name}</h2>
-          <span className="shrink-0 rounded-full border border-gold/50 px-2 py-0.5 text-xs font-semibold text-gold-light">
+          <span className="journey-card__level">
             Niv. {me.level}
           </span>
         </div>
@@ -59,7 +59,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
               <dt>Rang</dt>
               <dd>
                 {seasonRank === 1 ? (
-                  <CrownIcon className="h-4 w-4" />
+                  <CrownArtwork className="hud-crown-art" />
                 ) : seasonRank ? (
                   `${seasonRank}ᵉ`
                 ) : (
@@ -72,7 +72,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
 
         <div className="journey-card__chest">
           <span className="flex items-center gap-1.5">
-            <ChestIcon className="h-4 w-4" />
+            <ChestArtwork className="journey-card__chest-art" />
             Prochaine farce dans {remaining} pas
           </span>
           <div className="journey-card__meter">

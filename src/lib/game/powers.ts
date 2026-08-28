@@ -6,7 +6,6 @@ export interface PowerDefinition {
   name: string;
   short: string;
   description: string;
-  glyph: string;
 }
 
 export const POWERS: Record<PowerKind, PowerDefinition> = {
@@ -15,28 +14,24 @@ export const POWERS: Record<PowerKind, PowerDefinition> = {
     name: "Fièvre du recruteur",
     short: "Tête en feu",
     description: "Embrase la tête d’un camarade sans brûler son CV.",
-    glyph: "✦",
   },
   fienteDragon: {
     kind: "fienteDragon",
     name: "Fiente du dragon",
     short: "Dragon honteux",
     description: "Un dragon passe et dépose un feedback très personnel.",
-    glyph: "♜",
   },
   paperasse: {
     kind: "paperasse",
     name: "Ouragan administratif",
     short: "Pluie de CV",
     description: "Ensevelit la cible sous une tornade de formulaires inutiles.",
-    glyph: "§",
   },
   crapaud: {
     kind: "crapaud",
     name: "Baiser LinkedIn",
     short: "Mode crapaud",
     description: "Invoque le crapaud corporate et ses recommandations inspirantes.",
-    glyph: "◉",
   },
 };
 

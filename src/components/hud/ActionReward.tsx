@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import type { ActionKind } from "@/lib/data/types";
+import type { ActionKind, PowerKind } from "@/lib/data/types";
+import { POWERS } from "@/lib/game/powers";
+import { ActionArtwork, ChestArtwork, PowerArtwork } from "./Artwork";
 
-export interface RewardMoment {
+interface ActionMoment {
   id: string;
+  type: "action";
   kind: ActionKind;
   steps: number;
   points: number;
@@ -13,13 +15,21 @@ export interface RewardMoment {
   discoveredPlace: boolean;
 }
 
+interface ChestMoment {
+  id: string;
+  type: "chest";
+  powerKind: PowerKind;
+}
+
+export type RewardMoment = ActionMoment | ChestMoment;
+
 const COPY: Record<
   ActionKind,
   { eyebrow: string; title: string; body: string }
 > = {
   candidature: {
     eyebrow: "Candidature envoyée",
-    title: "Tu as osé. Le chemin répond.",
+    title: "Le pigeon est parti.",
     body: "Une tentative de plus, un morceau de monde qui t’appartient.",
   },
   refus: {
@@ -30,12 +40,12 @@ const COPY: Record<
   entretien: {
     eyebrow: "Entretien traversé",
     title: "Trois pas derrière. Toujours debout.",
-    body: "Le donjon t’a repoussé. Au prochain refus, tu traverseras une frontière.",
+    body: "Le donjon t’a repoussé, mais la quête est loin d’être terminée.",
   },
   rejetApresEntretien: {
     eyebrow: "Rejet légendaire",
     title: "Dix pas. Une frontière tombe.",
-    body: "Ce refus-là mérite au minimum un nouveau pays.",
+    body: "Ce refus-là méritait au minimum un nouveau pays.",
   },
   embauche: {
     eyebrow: "Quête accomplie",
@@ -51,43 +61,92 @@ export function ActionReward({
   moment: RewardMoment;
   onDone: () => void;
 }) {
-  useEffect(() => {
-    const timeout = window.setTimeout(onDone, 3500);
-    return () => window.clearTimeout(timeout);
-  }, [moment.id, onDone]);
+  const chest = moment.type === "chest";
 
+  return (
+    <div className={`reward-overlay ${chest ? "reward-overlay--chest" : ""}`}>
+      <section
+        className={`reward-modal ${chest ? "reward-modal--chest" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`reward-title-${moment.id}`}
+      >
+        <div className="reward-modal__corners" aria-hidden />
+        <div className="reward-modal__visual" aria-hidden>
+          <div className="reward-modal__rays" />
+          {chest ? (
+            <ChestArtwork className="reward-modal__art reward-modal__art--chest" priority />
+          ) : (
+            <ActionArtwork kind={moment.kind} className="reward-modal__art" priority />
+          )}
+        </div>
+
+        {chest ? (
+          <ChestCopy moment={moment} titleId={`reward-title-${moment.id}`} />
+        ) : (
+          <ActionCopy moment={moment} titleId={`reward-title-${moment.id}`} />
+        )}
+
+        <button type="button" onClick={onDone} className="reward-modal__close">
+          {chest ? "Ranger la farce" : "Continuer l’aventure"}
+          <span aria-hidden>›</span>
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function ActionCopy({ moment, titleId }: { moment: ActionMoment; titleId: string }) {
   const copy = COPY[moment.kind];
 
   return (
-    <aside className="journey-reward pointer-events-none absolute z-20">
-      <div className="journey-reward__glow" />
-      <p className="journey-reward__eyebrow">{copy.eyebrow}</p>
-      <p className="journey-reward__title">{copy.title}</p>
-      <p className="journey-reward__body">{copy.body}</p>
+    <div className="reward-modal__copy">
+      <p className="reward-modal__eyebrow">{copy.eyebrow}</p>
+      <h2 id={titleId} className="reward-modal__title">{copy.title}</h2>
+      <p className="reward-modal__body">{copy.body}</p>
 
-      <div className="journey-reward__gain">
+      <div className="reward-modal__gain">
         {moment.kind === "embauche" ? (
-          <span>Arrivée triomphale</span>
+          <strong>Arrivée triomphale</strong>
         ) : (
           <>
             <strong>{moment.steps > 0 ? "+" : ""}{moment.steps}</strong>
             <span>pas de voyage</span>
-            <i>·</i>
-            <span>
-              {moment.points > 0 ? "+" : ""}
-              {moment.points} pt{Math.abs(moment.points) === 1 ? "" : "s"}
-            </span>
+            <i aria-hidden>◆</i>
+            <b>{moment.points > 0 ? "+" : ""}{moment.points} pts</b>
           </>
         )}
       </div>
 
-      <div className="journey-reward__route" aria-hidden>
+      <div className="reward-modal__route" aria-hidden>
         <div style={{ width: `${moment.progress * 100}%` }} />
       </div>
-      <p className="journey-reward__place">
+      <p className="reward-modal__place">
         {moment.discoveredPlace ? "Nouvelle contrée · " : "En route vers · "}
         <strong>{moment.place}</strong>
       </p>
-    </aside>
+    </div>
+  );
+}
+
+function ChestCopy({ moment, titleId }: { moment: ChestMoment; titleId: string }) {
+  const power = POWERS[moment.powerKind];
+
+  return (
+    <div className="reward-modal__copy reward-modal__copy--chest">
+      <p className="reward-modal__eyebrow">Coffre de malheur ouvert</p>
+      <h2 id={titleId} className="reward-modal__title">{power.name}</h2>
+      <p className="reward-modal__loot-label">Farce débloquée</p>
+      <p className="reward-modal__body">{power.description}</p>
+      <div className="reward-modal__loot">
+        <span aria-hidden>
+          <PowerArtwork kind={moment.powerKind} className="reward-modal__power-art" />
+        </span>
+        <div>
+          <small>Dans ton sac à malices</small>
+          <strong>{power.short}</strong>
+        </div>
+      </div>
+    </div>
   );
 }

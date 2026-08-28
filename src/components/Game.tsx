@@ -17,6 +17,7 @@ import {
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { TitleScreen } from "@/components/hud/TitleScreen";
+import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame } from "@/hooks/useGame";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
 import type { ActionKind, PowerKind } from "@/lib/data/types";
@@ -57,6 +58,7 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 interface Notice {
   title: string;
   body: string;
+  powerKind?: PowerKind;
 }
 
 export function Game() {
@@ -82,7 +84,7 @@ export function Game() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [rewardMoment, setRewardMoment] = useState<RewardMoment | null>(null);
+  const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [overview, setOverview] = useState(false);
   const shownCasts = useRef(new Set<string>());
@@ -99,6 +101,14 @@ export function Game() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        if (rewardMoments.length > 0) {
+          setRewardMoments((moments) => moments.slice(1));
+          return;
+        }
+        if (notice) {
+          setNotice(null);
+          return;
+        }
         setRegisterOpen((open) => !open);
       } else if (event.key.toLowerCase() === "v") {
         event.preventDefault();
@@ -108,7 +118,7 @@ export function Game() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [notice, rewardMoments.length]);
 
   useEffect(
     () => () => {
@@ -116,12 +126,6 @@ export function Game() {
     },
     [],
   );
-
-  useEffect(() => {
-    if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 4300);
-    return () => window.clearTimeout(timeout);
-  }, [notice]);
 
   // Les farces reçues restent en attente dans la sauvegarde jusqu'à ce que leur
   // victime ouvre sa session. On les joue alors une fois, avec le nom du coupable.
@@ -157,8 +161,9 @@ export function Game() {
       const latest = fresh[fresh.length - 1];
       const attacker = players.find((player) => player.id === latest.playerId);
       setNotice({
-        title: `${POWERS[latest.kind].glyph} ${POWERS[latest.kind].name}`,
+        title: POWERS[latest.kind].name,
         body: `${attacker?.name ?? "Une âme lâche"} t’a lancé cette farce pendant ton absence.`,
+        powerKind: latest.kind,
       });
     }, 0);
 
@@ -195,26 +200,31 @@ export function Game() {
       const afterPosition = kind === "embauche" ? 1 : racePosition(afterSteps);
       const afterZone = biomeAt(worldXFor(afterPosition));
 
-      setRewardMoment({
-        id: event.id,
-        kind,
-        steps: stepsFor(kind),
-        points: POINTS[kind],
-        progress:
-          kind === "embauche" ? 1 : Math.min(1, afterSteps / JOURNEY_TARGET),
-        place: afterZone.name,
-        discoveredPlace: beforeZone.id !== afterZone.id,
-      });
+      const moments: RewardMoment[] = [
+        {
+          id: event.id,
+          type: "action",
+          kind,
+          steps: stepsFor(kind),
+          points: POINTS[kind],
+          progress:
+            kind === "embauche" ? 1 : Math.min(1, afterSteps / JOURNEY_TARGET),
+          place: afterZone.name,
+          discoveredPlace: beforeZone.id !== afterZone.id,
+        },
+      ];
 
       if (afterChest > beforeChest) {
         queued.push({ id: `${event.id}-chest`, kind: "chest", origin });
         const unlocked = powerForSlot(afterChest - 1);
-        setNotice({
-          title: `${POWERS[unlocked].glyph} ${POWERS[unlocked].name}`,
-          body: `Le coffre te confie « ${POWERS[unlocked].short} ». Choisis une victime dans tes farces.`,
+        moments.push({
+          id: `${event.id}-chest-reward`,
+          type: "chest",
+          powerKind: unlocked,
         });
       }
 
+      setRewardMoments((previous) => [...previous, ...moments]);
       setEffects((prev) => [...prev, ...queued]);
     },
     [addEvent, me, meIndex],
@@ -244,8 +254,9 @@ export function Game() {
         },
       ]);
       setNotice({
-        title: `${POWERS[power.kind].glyph} Farce lancée sur ${target.name}`,
+        title: `Farce lancée sur ${target.name}`,
         body: "Tu vois l’effet maintenant ; la victime le reverra à sa prochaine ouverture.",
+        powerKind: power.kind,
       });
     },
     [castPower, me, players],
@@ -260,7 +271,7 @@ export function Game() {
   }, []);
 
   const handleRewardDone = useCallback(() => {
-    setRewardMoment(null);
+    setRewardMoments((moments) => moments.slice(1));
   }, []);
 
   const handlePick = useCallback((playerId: string) => {
@@ -286,6 +297,7 @@ export function Game() {
   const canUndo = Boolean(
     me && events.some((event) => event.playerId === me.id),
   );
+  const rewardMoment = rewardMoments[0] ?? null;
 
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
@@ -348,6 +360,7 @@ export function Game() {
                 onUndo={handleUndo}
                 canUndo={canUndo}
                 hired={Boolean(me.hiredAt)}
+                locked={rewardMoments.length > 0}
                 lastActionLabel={lastActionLabel}
               />
             </div>
@@ -381,12 +394,18 @@ export function Game() {
       ) : null}
 
       {notice ? (
-        <div className="toast-notice rise pointer-events-none absolute left-1/2 z-[25] w-[min(92vw,34rem)] -translate-x-1/2">
-          <div className="hud-panel px-5 py-4 text-center">
-            <p className="font-display text-2xl text-gold-light">
-              {notice.title}
-            </p>
-            <p className="mt-1 text-base text-parchment/75">{notice.body}</p>
+        <div className="toast-notice rise absolute left-1/2 z-[25] w-[min(92vw,38rem)] -translate-x-1/2">
+          <div className="hud-panel toast-notice__panel">
+            {notice.powerKind ? (
+              <PowerArtwork kind={notice.powerKind} className="toast-notice__art" />
+            ) : null}
+            <div>
+              <p className="font-display text-2xl text-gold-light">{notice.title}</p>
+              <p className="mt-1 text-base text-parchment/75">{notice.body}</p>
+            </div>
+            <button type="button" onClick={() => setNotice(null)}>
+              J’ai compris
+            </button>
           </div>
         </div>
       ) : null}

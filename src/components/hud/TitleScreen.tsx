@@ -5,7 +5,7 @@ import { CharacterPortrait } from "@/components/game/CharacterPortrait";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterById, type Character } from "@/lib/game/characters";
 import { SEASON } from "@/lib/config";
-import { CrownIcon } from "./icons";
+import { CrownArtwork } from "./Artwork";
 
 /**
  * L'écran d'entrée.
@@ -128,7 +128,7 @@ function Roster({
         disabled={!canForge}
         className="slot mt-5 w-full flex-row! items-center! justify-center! gap-2 px-4 py-3 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed"
       >
-        <CrownIcon className="h-4 w-4" />
+        <CrownArtwork className="h-5 w-5" />
         {canForge ? "Nouvelle âme en peine" : "Toutes les classes sont prises"}
       </button>
     </section>

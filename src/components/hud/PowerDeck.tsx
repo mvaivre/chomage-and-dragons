@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { PlayerView } from "@/hooks/useGame";
 import type { AvailablePower } from "@/lib/game/powers";
 import { POWERS } from "@/lib/game/powers";
-import { ChestIcon } from "./icons";
+import { ChestArtwork, PowerArtwork } from "./Artwork";
 
 interface PowerDeckProps {
   me: PlayerView;
@@ -28,7 +28,7 @@ export function PowerDeck({ me, players, onCast }: PowerDeckProps) {
         className="power-menu__trigger"
         aria-expanded={open}
       >
-        <ChestIcon className="h-5 w-5" />
+        <ChestArtwork className="power-menu__chest-art" />
         <span>Farces</span>
         <strong>{me.availablePowers.length}</strong>
       </button>
@@ -62,7 +62,9 @@ export function PowerDeck({ me, players, onCast }: PowerDeckProps) {
                   className={`power-choice ${active ? "power-choice--active" : ""}`}
                   aria-pressed={active}
                 >
-                  <span className="power-sigil" aria-hidden>{definition.glyph}</span>
+                  <span className="power-sigil" aria-hidden>
+                    <PowerArtwork kind={power.kind} className="power-sigil__art" />
+                  </span>
                   <span className="min-w-0 text-left">
                     <strong>{definition.name}</strong>
                     <small>{definition.description}</small>

@@ -7,16 +7,8 @@ import type { ActionKind } from "@/lib/data/types";
 import { monthLabel } from "@/lib/game/calendar";
 import { characterById, type Character } from "@/lib/game/characters";
 import { ACTION_LABELS, ACTION_ORDER, type Standing } from "@/lib/game/standings";
-import {
-  BoltIcon,
-  ChestIcon,
-  CrownIcon,
-  GobletIcon,
-  PigeonIcon,
-  ScrollIcon,
-  SkullIcon,
-  TrophyIcon,
-} from "./icons";
+import { ScrollIcon } from "./icons";
+import { ActionArtwork, ChestArtwork, CrownArtwork } from "./Artwork";
 
 /**
  * Les classements.
@@ -25,17 +17,6 @@ import {
  * l'essentiel d'un coup d'œil, et un parchemin déplié pour tout le reste. Séparer les
  * deux évite d'avoir en permanence un tableau de bord devant le jeu.
  */
-
-const ACTION_ICONS: Record<
-  ActionKind,
-  (props: { className?: string }) => React.ReactElement
-> = {
-  candidature: PigeonIcon,
-  refus: BoltIcon,
-  entretien: GobletIcon,
-  rejetApresEntretien: SkullIcon,
-  embauche: TrophyIcon,
-};
 
 interface Row {
   rank: number;
@@ -94,7 +75,7 @@ export function CompactLeaderboard({
       aria-label="Ouvrir les classements détaillés"
     >
       <div className="leaderboard-card__mobile">
-        <CrownIcon className="h-6 w-6" />
+        <CrownArtwork className="leaderboard-crown-art" />
         <span>{top[0]?.player.name ?? "Classement"}</span>
       </div>
 
@@ -104,7 +85,7 @@ export function CompactLeaderboard({
             <p className="leaderboard-card__kicker">La tournée de {monthLabel(monthKeyNow)}</p>
             <h2>Couronne du mois</h2>
           </div>
-          <CrownIcon className="h-7 w-7 text-gold" />
+          <CrownArtwork className="leaderboard-crown-art" />
         </header>
         <p className="leaderboard-card__prize">Le premier se fait offrir un verre.</p>
 
@@ -182,7 +163,7 @@ export function OverviewLeaderboard({
             key={row.player.id}
             className={row.player.id === meId ? "is-me" : undefined}
           >
-            <span>{row.rank === 1 ? <CrownIcon className="h-4 w-4" /> : row.rank}</span>
+              <span>{row.rank === 1 ? <CrownArtwork className="overview-crown-art" /> : row.rank}</span>
             <strong>{row.player.name}</strong>
             <b>{row.score}</b>
           </li>
@@ -289,7 +270,7 @@ export function LeaderboardOverlay({
         <div className="mt-5">
           {tab === "mois" ? (
             <div className="monthly-prize">
-              <CrownIcon className="h-8 w-8" />
+              <CrownArtwork className="monthly-crown-art" />
               <div>
                 <strong>La récompense de {monthLabel(monthKeyNow)}</strong>
                 <span>La compagnie offre un verre à la personne en tête.</span>
@@ -362,7 +343,7 @@ function Standings({
             >
               <span className="standing-row__rank">
                 {row.rank === 1 ? (
-                  <CrownIcon className="mx-auto h-5 w-5 text-gold" />
+                  <CrownArtwork className="standing-crown-art" />
                 ) : (
                   row.rank
                 )}
@@ -386,14 +367,13 @@ function Standings({
 
               <span className="hidden shrink-0 items-center gap-3 sm:flex">
                 {ACTION_ORDER.map((kind) => {
-                  const Icon = ACTION_ICONS[kind];
                   return (
                     <span
                       key={kind}
                       title={ACTION_LABELS[kind]}
                       className="flex w-9 items-center gap-1 text-parchment-ink/60"
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <ActionArtwork kind={kind} className="standing-action-art" />
                       <span className="text-xs">{row.counts[kind]}</span>
                     </span>
                   );
@@ -442,7 +422,7 @@ function Palmares({
               <span className="min-w-0 flex-1">
                 {winner ? (
                   <span className="flex items-center gap-2">
-                    <CrownIcon className="h-4 w-4 shrink-0 text-gold" />
+                    <CrownArtwork className="palmares-crown-art" />
                     <span className="truncate text-parchment-ink">{winner.name}</span>
                   </span>
                 ) : (
@@ -485,14 +465,13 @@ function Collective({
 
       <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
         {ACTION_ORDER.map((kind) => {
-          const Icon = ACTION_ICONS[kind];
           return (
             <li
               key={kind}
               className="border border-parchment-ink/15 bg-parchment/40 px-3 py-2"
             >
               <span className="flex items-center gap-1.5 text-parchment-ink/60">
-                <Icon className="h-3.5 w-3.5" />
+                <ActionArtwork kind={kind} className="collective-action-art" />
                 <span className="text-[0.62rem] tracking-wide uppercase">
                   {ACTION_LABELS[kind]}
                 </span>
@@ -619,7 +598,7 @@ function Company({
       )}
 
       <div className="mt-5 flex items-center gap-2 text-xs text-parchment-ink/55">
-        <ChestIcon className="h-4 w-4" />
+        <ChestArtwork className="company-chest-art" />
         <span>Un coffre s’ouvre tous les dix pas et débloque une farce visuelle.</span>
         <button
           type="button"
