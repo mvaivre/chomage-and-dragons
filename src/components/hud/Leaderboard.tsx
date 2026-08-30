@@ -8,7 +8,12 @@ import { monthLabel } from "@/lib/game/calendar";
 import { characterById, type Character } from "@/lib/game/characters";
 import { ACTION_LABELS, ACTION_ORDER, type Standing } from "@/lib/game/standings";
 import { ScrollIcon } from "./icons";
-import { ActionArtwork, ChestArtwork, CrownArtwork } from "./Artwork";
+import {
+  ActionArtwork,
+  ChestArtwork,
+  CrownArtwork,
+  PowerArtwork,
+} from "./Artwork";
 
 /**
  * Les classements.
@@ -23,6 +28,19 @@ interface Row {
   player: PlayerView;
   score: number;
   counts: Record<ActionKind, number>;
+}
+
+function ShotTally({ count, compact = false }: { count: number; compact?: boolean }) {
+  return (
+    <span
+      className={`shot-tally ${compact ? "shot-tally--compact" : ""}`}
+      aria-label={`${count} shot${count > 1 ? "s" : ""} à boire`}
+      title={`${count} shot${count > 1 ? "s" : ""} à boire`}
+    >
+      <PowerArtwork kind="shot" className="shot-tally__art" />
+      <span>{count}</span>
+    </span>
+  );
 }
 
 function toRows(standings: Standing[], players: PlayerView[]): Row[] {
@@ -120,6 +138,7 @@ function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
       <span className="min-w-0 flex-1 truncate font-semibold text-parchment-ink">
         {row.player.name}
       </span>
+      <ShotTally count={row.player.shotsOwed} compact />
       <span className="font-display text-xl text-parchment-ink">{row.score}</span>
     </li>
   );
@@ -165,6 +184,7 @@ export function OverviewLeaderboard({
           >
               <span>{row.rank === 1 ? <CrownArtwork className="overview-crown-art" /> : row.rank}</span>
             <strong>{row.player.name}</strong>
+            <ShotTally count={row.player.shotsOwed} compact />
             <b>{row.score}</b>
           </li>
         ))}
@@ -379,6 +399,8 @@ function Standings({
                   );
                 })}
               </span>
+
+              <ShotTally count={row.player.shotsOwed} />
 
               <span className="w-16 shrink-0 text-right text-parchment-ink">
                 <strong className="block font-display text-2xl leading-none">{row.score}</strong>
@@ -599,7 +621,7 @@ function Company({
 
       <div className="mt-5 flex items-center gap-2 text-xs text-parchment-ink/55">
         <ChestArtwork className="company-chest-art" />
-        <span>Un coffre s’ouvre tous les dix pas et débloque une farce visuelle.</span>
+        <span>Un coffre s’ouvre tous les dix pas et débloque un butin à offrir.</span>
         <button
           type="button"
           onClick={onChangeIdentity}

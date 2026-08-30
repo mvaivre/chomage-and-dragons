@@ -20,6 +20,10 @@ export interface Camera {
   scale: number;
   /** Largeur visible, en unités monde. */
   viewW: number;
+  /** Hauteur visible, en unités monde. */
+  viewH: number;
+  /** Décalage vertical de composition, en pixels écran. */
+  screenOffsetY: number;
 }
 
 export interface Scene {
@@ -39,7 +43,14 @@ export interface Scene {
 }
 
 export const scene: Scene = {
-  camera: { x: 0, y: 0, scale: 1, viewW: VIEW.width },
+  camera: {
+    x: 0,
+    y: 0,
+    scale: 1,
+    viewW: VIEW.width,
+    viewH: VIEW.height,
+    screenOffsetY: 0,
+  },
   shake: 0,
   focus: 0,
   targetFocus: 0,
@@ -50,7 +61,14 @@ export const scene: Scene = {
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
 export function resetScene(): void {
-  scene.camera = { x: 0, y: 0, scale: 1, viewW: VIEW.width };
+  scene.camera = {
+    x: 0,
+    y: 0,
+    scale: 1,
+    viewW: VIEW.width,
+    viewH: VIEW.height,
+    screenOffsetY: 0,
+  };
   scene.shake = 0;
   scene.focus = 0;
   scene.targetFocus = 0;

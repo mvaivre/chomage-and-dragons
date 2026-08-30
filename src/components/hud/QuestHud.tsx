@@ -73,7 +73,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
         <div className="journey-card__chest">
           <span className="flex items-center gap-1.5">
             <ChestArtwork className="journey-card__chest-art" />
-            Prochaine farce dans {remaining} pas
+            Prochain butin dans {remaining} pas
           </span>
           <div className="journey-card__meter">
             <div style={{ width: `${(filled / STEPS_PER_LEVEL) * 100}%` }} />

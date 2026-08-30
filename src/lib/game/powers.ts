@@ -9,6 +9,13 @@ export interface PowerDefinition {
 }
 
 export const POWERS: Record<PowerKind, PowerDefinition> = {
+  shot: {
+    kind: "shot",
+    name: "Shot de la défaite",
+    short: "Un shot dû",
+    description:
+      "Offre un shot — alcoolisé ou non — à un camarade. La dette suivra son classement.",
+  },
   feuSacré: {
     kind: "feuSacré",
     name: "Fièvre du recruteur",
@@ -36,6 +43,7 @@ export const POWERS: Record<PowerKind, PowerDefinition> = {
 };
 
 const POWER_CYCLE: PowerKind[] = [
+  "shot",
   "feuSacré",
   "fienteDragon",
   "paperasse",

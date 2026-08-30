@@ -164,17 +164,64 @@ function keyOut(image: HTMLImageElement, preserveTopLeft = false): Texture {
   }
 
   ctx.putImageData(frame, 0, 0);
-  const texture = Texture.from(canvas);
-  texture.source.scaleMode = "linear";
-  return texture;
+  const feathered = Texture.from(canvas);
+  feathered.source.scaleMode = "linear";
+  return feathered;
+}
+
+/**
+ * Adoucit uniquement les bords verticaux d'une tuile. Deux tuiles qui se
+ * recouvrent peuvent alors partager une vraie couture, sans tranche de pixels.
+ */
+function featherHorizontalEdges(texture: Texture, feather: number): Texture {
+  const resource = texture.source.resource as CanvasImageSource | undefined;
+  if (!resource) return texture;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(texture.frame.width);
+  canvas.height = Math.round(texture.frame.height);
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return texture;
+
+  ctx.drawImage(
+    resource,
+    texture.frame.x,
+    texture.frame.y,
+    texture.frame.width,
+    texture.frame.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = frame.data;
+  const edgeWidth = Math.max(1, Math.min(feather, canvas.width / 2));
+
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const edge = Math.min(1, (x + 1) / edgeWidth, (canvas.width - x) / edgeWidth);
+      if (edge >= 1) continue;
+      const smooth = edge * edge * (3 - 2 * edge);
+      const alpha = (y * canvas.width + x) * 4 + 3;
+      pixels[alpha] = Math.round(pixels[alpha] * smooth);
+    }
+  }
+
+  ctx.putImageData(frame, 0, 0);
+  const feathered = Texture.from(canvas);
+  feathered.source.scaleMode = "linear";
+  return feathered;
 }
 
 function loadImage(
   url: string,
   chromaKey: boolean,
   preserveTopLeft = false,
+  horizontalFeather = 0,
 ): Promise<Texture | null> {
-  const key = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}`;
+  const key = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}`;
   const pending = PENDING.get(key);
   if (pending) return pending;
 
@@ -182,9 +229,12 @@ function loadImage(
     const image = new Image();
     image.onload = () => {
       try {
-        const texture = chromaKey
+        let texture = chromaKey
           ? keyOut(image, preserveTopLeft)
           : Texture.from(image);
+        if (horizontalFeather > 0) {
+          texture = featherHorizontalEdges(texture, horizontalFeather);
+        }
         texture.source.scaleMode = "linear";
         resolve(texture);
       } catch {
@@ -241,7 +291,21 @@ function normalizeActionAtlas(
   if (!sourceContext || !outputContext) return base;
 
   sourceContext.drawImage(resource, 0, 0, width, height);
-  const pixels = sourceContext.getImageData(0, 0, width, height).data;
+  const sourceFrame = sourceContext.getImageData(0, 0, width, height);
+  const pixels = sourceFrame.data;
+
+  // Les feuilles générées sur fond magenta gardent parfois un liseré violet
+  // semi-transparent. Neutraliser uniquement les pixels où rouge ET bleu
+  // dominent le vert conserve les vêtements rouges/bleus tout en nettoyant le bord.
+  for (let index = 0; index < pixels.length; index += 4) {
+    if (pixels[index + 3] < 4) continue;
+    const green = pixels[index + 1];
+    const magentaBias = Math.min(pixels[index], pixels[index + 2]) - green;
+    if (magentaBias <= 18) continue;
+    pixels[index] = Math.min(pixels[index], green + 18);
+    pixels[index + 2] = Math.min(pixels[index + 2], green + 22);
+  }
+  sourceContext.putImageData(sourceFrame, 0, 0);
 
   for (let frameIndex = 0; frameIndex < columns * rows; frameIndex++) {
     const column = frameIndex % columns;
@@ -352,8 +416,9 @@ export function usePaintedAsset(
   chromaKey = false,
   preserveTopLeft = false,
   enabled = true,
+  horizontalFeather = 0,
 ): Texture | null {
-  const cacheKey = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}`;
+  const cacheKey = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}`;
   const [texture, setTexture] = useState<Texture | null>(
     () => ASSET_CACHE.get(cacheKey) ?? null,
   );
@@ -361,16 +426,31 @@ export function usePaintedAsset(
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    loadImage(url, chromaKey, preserveTopLeft).then((result) => {
+    loadImage(url, chromaKey, preserveTopLeft, horizontalFeather).then((result) => {
       ASSET_CACHE.set(cacheKey, result);
       if (alive) setTexture(result);
     });
     return () => {
       alive = false;
     };
-  }, [cacheKey, chromaKey, enabled, preserveTopLeft, url]);
+  }, [cacheKey, chromaKey, enabled, horizontalFeather, preserveTopLeft, url]);
 
   return texture;
+}
+
+/** Texture de terrain avec une couture horizontale étroite et réutilisable. */
+export function useFeatheredPaintedAsset(
+  url: string,
+  enabled = true,
+  horizontalFeather = 96,
+): Texture | null {
+  return usePaintedAsset(
+    url,
+    false,
+    false,
+    enabled,
+    horizontalFeather,
+  );
 }
 
 const GRID_CACHE = new WeakMap<Texture, Map<string, Texture[]>>();

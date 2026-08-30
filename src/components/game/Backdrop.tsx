@@ -28,20 +28,24 @@ export function Sky() {
     const { camera } = scene;
     const palette = paletteAt(camera.x + camera.viewW * 0.5);
     const width = camera.viewW + 4;
-    const height = VIEW.height;
+    const height = camera.viewH;
+    const top = -camera.screenOffsetY / camera.scale;
 
     g.clear();
 
     for (let i = 0; i < SKY_BANDS; i++) {
       const t = i / (SKY_BANDS - 1);
-      g.rect(-2, (height / SKY_BANDS) * i - 1, width, height / SKY_BANDS + 2).fill(
-        mixColor(palette.sky[0], palette.sky[1], t),
-      );
+      g.rect(
+        -2,
+        top + (height / SKY_BANDS) * i - 1,
+        width,
+        height / SKY_BANDS + 2,
+      ).fill(mixColor(palette.sky[0], palette.sky[1], t));
     }
 
     // Astre bas sur l'horizon : le halo suffit à donner une heure au tableau.
     const sunX = width * 0.74;
-    const sunY = height * 0.24;
+    const sunY = top + height * 0.24;
     g.circle(sunX, sunY, 84).fill({ color: palette.sky[1], alpha: 0.34 });
     g.circle(sunX, sunY, 52).fill({ color: palette.sky[1], alpha: 0.5 });
     g.circle(sunX, sunY, 30).fill({
@@ -56,7 +60,8 @@ export function Sky() {
       const raw =
         i * 283 - camera.x * (0.018 + i * 0.002) + time.current * (6 + i * 0.7);
       const x = ((raw % cloudSpan) + cloudSpan) % cloudSpan - 180;
-      const y = 92 + (i % 3) * 68 + Math.sin(time.current * 0.14 + i) * 9;
+      const y =
+        top + 92 + (i % 3) * 68 + Math.sin(time.current * 0.14 + i) * 9;
       const cloud = mixColor(palette.sky[1], 0xffffff, 0.52);
       const alpha = 0.1 + (i % 2) * 0.035;
       g.ellipse(x, y, 86, 18).fill({ color: cloud, alpha });
@@ -67,7 +72,8 @@ export function Sky() {
     // Poussières lumineuses : un mouvement minuscule évite l'impression de décor figé.
     for (let i = 0; i < 20; i++) {
       const x = ((i * 173 + time.current * (5 + (i % 4))) % (width + 80)) - 40;
-      const y = 285 + ((i * 71) % 230) + Math.sin(time.current * 0.8 + i) * 14;
+      const y =
+        top + 285 + ((i * 71) % 230) + Math.sin(time.current * 0.8 + i) * 14;
       g.circle(x, y, 1.2 + (i % 3) * 0.5).fill({
         color: mixColor(palette.accent, 0xffffff, 0.42),
         alpha: 0.12 + (i % 4) * 0.025,

@@ -16,11 +16,13 @@ import {
 } from "@/components/hud/Leaderboard";
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
+import { ShotInbox } from "@/components/hud/ShotInbox";
 import { TitleScreen } from "@/components/hud/TitleScreen";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame } from "@/hooks/useGame";
+import type { PlayerView } from "@/hooks/useGame";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
-import type { ActionKind, PowerKind } from "@/lib/data/types";
+import type { ActionKind, PowerCast, PowerKind } from "@/lib/data/types";
 import {
   POWERS,
   powerForSlot,
@@ -30,7 +32,7 @@ import { stepsFor } from "@/lib/game/scoring";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
 import { racePosition } from "@/lib/game/progress";
-import { biomeAt, worldXFor } from "@/lib/game/world";
+import { BIOMES, biomeAt, worldXFor, WORLD_LENGTH } from "@/lib/game/world";
 
 /**
  * Le jeu complet.
@@ -49,11 +51,14 @@ const EFFECT_FOR: Record<ActionKind, EffectKind> = {
 };
 
 const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
+  shot: "cocktail",
   feuSacré: "fireCurse",
   fienteDragon: "dragonDrop",
   paperasse: "paperStorm",
   crapaud: "frogCurse",
 };
+
+const DEV_BUILD = process.env.NODE_ENV === "development";
 
 interface Notice {
   title: string;
@@ -75,6 +80,7 @@ export function Game() {
     addEvent,
     castPower,
     markCastSeen,
+    settleShots,
     undoLast,
     addPlayer,
     removePlayer,
@@ -85,9 +91,19 @@ export function Game() {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
+  const [powerAttention, setPowerAttention] = useState(0);
+  const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
+  const [heldPlayer, setHeldPlayer] = useState<PlayerView | null>(null);
+  const [awaitingTravel, setAwaitingTravel] = useState(false);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [overview, setOverview] = useState(false);
+  const [devExplore, setDevExplore] = useState(false);
+  const [devCameraTarget, setDevCameraTarget] = useState<{
+    worldX: number;
+    revision: number;
+  } | null>(null);
   const shownCasts = useRef(new Set<string>());
+  const pendingActionEffects = useRef(new Map<string, Effect[]>());
   const focusTimeout = useRef<number | null>(null);
 
   const meIndex = players.findIndex((p) => p.id === meId);
@@ -96,15 +112,55 @@ export function Game() {
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
+  const queuedRewardMoment = rewardMoments[0] ?? null;
+  const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
+  const canvasPlayers = useMemo(
+    () =>
+      heldPlayer
+        ? players.map((player) =>
+            player.id === heldPlayer.id ? heldPlayer : player,
+          )
+        : players,
+    [heldPlayer, players],
+  );
+
+  const handleRewardDone = useCallback(() => {
+    const current = rewardMoments[0];
+    if (!current) return;
+
+    if (current.type === "action") {
+      const queuedEffects = pendingActionEffects.current.get(current.id) ?? [];
+      pendingActionEffects.current.delete(current.id);
+      setHeldPlayer(null);
+      setEffects((previous) => [...previous, ...queuedEffects]);
+      setAwaitingTravel(rewardMoments[1]?.type === "chest");
+    } else {
+      setPowerAttention((value) => value + 1);
+    }
+
+    setRewardMoments((moments) => moments.slice(1));
+  }, [rewardMoments]);
+
+  const handleTravelDone = useCallback(
+    (playerId: string) => {
+      if (playerId === identity) setAwaitingTravel(false);
+    },
+    [identity],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        if (rewardMoments.length > 0) {
-          setRewardMoments((moments) => moments.slice(1));
+        if (shotInbox) {
+          setShotInbox(null);
           return;
         }
+        if (rewardMoment) {
+          handleRewardDone();
+          return;
+        }
+        if (awaitingTravel) return;
         if (notice) {
           setNotice(null);
           return;
@@ -118,7 +174,7 @@ export function Game() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [notice, rewardMoments.length]);
+  }, [awaitingTravel, handleRewardDone, notice, rewardMoment, shotInbox]);
 
   useEffect(
     () => () => {
@@ -127,8 +183,9 @@ export function Game() {
     [],
   );
 
-  // Les farces reçues restent en attente dans la sauvegarde jusqu'à ce que leur
-  // victime ouvre sa session. On les joue alors une fois, avec le nom du coupable.
+  // Les butins reçus restent en attente dans la sauvegarde jusqu'à ce que leur
+  // cible ouvre sa session. Les shots demandent une confirmation explicite ; les
+  // farces visuelles, elles, sont acquittées après leur première animation.
   useEffect(() => {
     if (!me) return;
 
@@ -148,6 +205,9 @@ export function Game() {
     // Différé d'une frame : l'ouverture de session termine son rendu avant que la
     // file d'animations et la persistance des accusés de réception ne soient modifiées.
     const timeout = window.setTimeout(() => {
+      const shots = fresh.filter((cast) => cast.kind === "shot");
+      const pranks = fresh.filter((cast) => cast.kind !== "shot");
+
       setEffects((previous) => [
         ...previous,
         ...fresh.map((cast) => ({
@@ -156,15 +216,23 @@ export function Game() {
           origin,
         })),
       ]);
-      for (const cast of fresh) markCastSeen(cast.id);
+      for (const cast of pranks) markCastSeen(cast.id);
 
-      const latest = fresh[fresh.length - 1];
-      const attacker = players.find((player) => player.id === latest.playerId);
-      setNotice({
-        title: POWERS[latest.kind].name,
-        body: `${attacker?.name ?? "Une âme lâche"} t’a lancé cette farce pendant ton absence.`,
-        powerKind: latest.kind,
-      });
+      if (shots.length > 0) {
+        setShotInbox((current) => [...(current ?? []), ...shots]);
+      }
+
+      const latestPrank = pranks[pranks.length - 1];
+      if (latestPrank) {
+        const attacker = players.find(
+          (player) => player.id === latestPrank.playerId,
+        );
+        setNotice({
+          title: POWERS[latestPrank.kind].name,
+          body: `${attacker?.name ?? "Une âme lâche"} t’a lancé cette farce pendant ton absence.`,
+          powerKind: latestPrank.kind,
+        });
+      }
     }, 0);
 
     return () => window.clearTimeout(timeout);
@@ -185,6 +253,7 @@ export function Game() {
     (kind: ActionKind) => {
       if (!me) return;
       setOverview(false);
+      setHeldPlayer(me);
 
       const event = addEvent(me.id, kind);
       const origin = heroOrigin(me, meIndex);
@@ -224,8 +293,8 @@ export function Game() {
         });
       }
 
+      pendingActionEffects.current.set(event.id, queued);
       setRewardMoments((previous) => [...previous, ...moments]);
-      setEffects((prev) => [...prev, ...queued]);
     },
     [addEvent, me, meIndex],
   );
@@ -254,8 +323,14 @@ export function Game() {
         },
       ]);
       setNotice({
-        title: `Farce lancée sur ${target.name}`,
-        body: "Tu vois l’effet maintenant ; la victime le reverra à sa prochaine ouverture.",
+        title:
+          power.kind === "shot"
+            ? `Shot envoyé à ${target.name}`
+            : `Farce lancée sur ${target.name}`,
+        body:
+          power.kind === "shot"
+            ? "Sa dette apparaît dans le classement et à sa prochaine ouverture."
+            : "Tu vois l’effet maintenant ; la victime le reverra à sa prochaine ouverture.",
         powerKind: power.kind,
       });
     },
@@ -270,11 +345,21 @@ export function Game() {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
   }, []);
 
-  const handleRewardDone = useCallback(() => {
-    setRewardMoments((moments) => moments.slice(1));
+  const handleDevExplore = useCallback(() => {
+    setDevExplore((active) => !active);
+  }, []);
+
+  const handleDevBiome = useCallback((from: number, to: number) => {
+    setDevExplore(true);
+    setDevCameraTarget((current) => ({
+      worldX: ((from + to) * 0.5) * WORLD_LENGTH,
+      revision: (current?.revision ?? 0) + 1,
+    }));
   }, []);
 
   const handlePick = useCallback((playerId: string) => {
+    shownCasts.current.clear();
+    setShotInbox(null);
     saveSession(playerId);
     setMeId(playerId);
   }, []);
@@ -282,6 +367,8 @@ export function Game() {
   const handleCreate = useCallback(
     (name: string, characterId: string) => {
       const id = addPlayer(name, characterId);
+      shownCasts.current.clear();
+      setShotInbox(null);
       saveSession(id);
       setMeId(id);
     },
@@ -289,6 +376,8 @@ export function Game() {
   );
 
   const handleChangeIdentity = useCallback(() => {
+    shownCasts.current.clear();
+    setShotInbox(null);
     clearSession();
     setMeId(null);
     setRegisterOpen(false);
@@ -297,20 +386,48 @@ export function Game() {
   const canUndo = Boolean(
     me && events.some((event) => event.playerId === me.id),
   );
-  const rewardMoment = rewardMoments[0] ?? null;
-
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
-        players={players}
+        players={canvasPlayers}
         meId={identity}
         focusPlayerId={effectFocusId}
         effects={effects}
         onEffectDone={handleEffectDone}
+        onTravelDone={handleTravelDone}
+        freeCamera={DEV_BUILD && devExplore}
+        devCameraTarget={devCameraTarget}
       />
 
       <div className="vignette absolute inset-0 z-[3]" />
       <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
+
+      {DEV_BUILD ? (
+        <aside className="dev-explorer" data-open={devExplore}>
+          <button
+            type="button"
+            className="dev-explorer__toggle"
+            aria-pressed={devExplore}
+            onClick={handleDevExplore}
+          >
+            <span>DEV</span>
+            {devExplore ? "Caméra libre" : "Explorer le monde"}
+          </button>
+          {devExplore ? (
+            <nav className="dev-explorer__biomes" aria-label="Biomes de test">
+              {BIOMES.map((biome) => (
+                <button
+                  key={biome.id}
+                  type="button"
+                  onClick={() => handleDevBiome(biome.from, biome.to)}
+                >
+                  {biome.short}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+        </aside>
+      ) : null}
 
       {me ? (
         <CompanyMap
@@ -329,7 +446,12 @@ export function Game() {
             <div className="hud-journey">
               <QuestHud me={me} seasonRank={seasonRank} />
               <div className="hud-controls">
-                <PowerDeck me={me} players={players} onCast={handleCast} />
+                <PowerDeck
+                  me={me}
+                  players={players}
+                  attentionToken={powerAttention}
+                  onCast={handleCast}
+                />
                 <button
                   type="button"
                   className="company-camera pointer-events-auto"
@@ -360,7 +482,12 @@ export function Game() {
                 onUndo={handleUndo}
                 canUndo={canUndo}
                 hired={Boolean(me.hiredAt)}
-                locked={rewardMoments.length > 0}
+                locked={
+                  rewardMoments.length > 0 ||
+                  heldPlayer !== null ||
+                  awaitingTravel ||
+                  shotInbox !== null
+                }
                 lastActionLabel={lastActionLabel}
               />
             </div>
@@ -390,6 +517,18 @@ export function Game() {
           key={rewardMoment.id}
           moment={rewardMoment}
           onDone={handleRewardDone}
+        />
+      ) : null}
+
+      {shotInbox ? (
+        <ShotInbox
+          casts={shotInbox}
+          players={players}
+          onLater={() => setShotInbox(null)}
+          onSettle={() => {
+            settleShots(shotInbox.map((cast) => cast.id));
+            setShotInbox(null);
+          }}
         />
       ) : null}
 

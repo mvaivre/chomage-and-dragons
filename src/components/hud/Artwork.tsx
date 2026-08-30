@@ -12,6 +12,7 @@ const ACTION_ART: Record<ActionKind, string> = {
 };
 
 const POWER_ART: Record<PowerKind, string> = {
+  shot: "/art/ui/power-shot.webp",
   feuSacré: "/art/ui/power-fire.webp",
   fienteDragon: "/art/ui/power-dragon.webp",
   paperasse: "/art/ui/power-paper.webp",

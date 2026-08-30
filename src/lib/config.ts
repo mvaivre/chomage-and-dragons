@@ -17,7 +17,7 @@ export const SEASON = {
  */
 export const POINTS = {
   candidature: 1,
-  refus: 1,
+  refus: 3,
   entretien: -3,
   rejetApresEntretien: 10,
   embauche: 0,

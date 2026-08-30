@@ -32,9 +32,14 @@ export interface GameEvent {
   at: string;
 }
 
-export type PowerKind = "feuSacré" | "fienteDragon" | "paperasse" | "crapaud";
+export type PowerKind =
+  | "shot"
+  | "feuSacré"
+  | "fienteDragon"
+  | "paperasse"
+  | "crapaud";
 
-/** Une farce lancée grâce à un coffre. Elle n'affecte jamais le score ni le voyage. */
+/** Un butin offert grâce à un coffre. Il n'affecte jamais le score ni le voyage. */
 export interface PowerCast {
   id: string;
   playerId: string;
@@ -45,6 +50,8 @@ export interface PowerCast {
   at: string;
   /** Renseigné quand la cible a ouvert sa session et vu l'animation. */
   seenAt?: string;
+  /** Un shot reste dû jusqu'à ce que sa cible l'ait honoré. */
+  settledAt?: string;
 }
 
 export interface GameState {

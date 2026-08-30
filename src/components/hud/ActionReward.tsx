@@ -88,7 +88,7 @@ export function ActionReward({
         )}
 
         <button type="button" onClick={onDone} className="reward-modal__close">
-          {chest ? "Ranger la farce" : "Continuer l’aventure"}
+          {chest ? "Ranger le butin" : "Continuer l’aventure"}
           <span aria-hidden>›</span>
         </button>
       </section>
@@ -136,7 +136,7 @@ function ChestCopy({ moment, titleId }: { moment: ChestMoment; titleId: string }
     <div className="reward-modal__copy reward-modal__copy--chest">
       <p className="reward-modal__eyebrow">Coffre de malheur ouvert</p>
       <h2 id={titleId} className="reward-modal__title">{power.name}</h2>
-      <p className="reward-modal__loot-label">Farce débloquée</p>
+      <p className="reward-modal__loot-label">Butin débloqué</p>
       <p className="reward-modal__body">{power.description}</p>
       <div className="reward-modal__loot">
         <span aria-hidden>

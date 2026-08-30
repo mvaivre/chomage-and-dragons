@@ -12,16 +12,18 @@ import {
 } from "@/lib/game/world";
 import { resetScene, scene } from "./scene";
 import { EFFECT_COMPONENTS, type Effect } from "./Effects";
-import { Sky } from "./Backdrop";
+import { RidgeLayer, Sky } from "./Backdrop";
 import { JourneyMarkers } from "./Ground";
 import { Hero } from "./Hero";
 import { laneFor } from "./lanes";
+import { farRidgeY, LAYERS } from "./landscape";
 import {
   AnimatedLandmarks,
   AtmosphericMotes,
   ParallaxBackdrop,
   ParallaxForeground,
   ParallaxGround,
+  ParallaxGroundOverlays,
 } from "./ParallaxWorld";
 import "./extendPixi";
 
@@ -41,9 +43,11 @@ const FOREGROUND_FACTOR = 1.12;
  */
 function CameraRig({
   initialFocus,
+  freeCamera,
   children,
 }: {
   initialFocus: number;
+  freeCamera: boolean;
   children: React.ReactNode;
 }) {
   const root = useRef<Container>(null);
@@ -65,9 +69,16 @@ function CameraRig({
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
     const { width, height } = app.screen;
 
-    const baseScale = height / VIEW.height;
+    // Trois compositions gardent le héros lisible sans étirer les bitmaps : un
+    // panorama 1280, une vue intermédiaire 960 et un portrait 720 unités de large.
+    const aspect = width / height;
+    const compositionWidth = aspect < 0.75 ? 720 : aspect < 1.35 ? 960 : VIEW.width;
+    const baseScale = Math.min(width / compositionWidth, height / VIEW.height);
     camera.scale = baseScale;
     camera.viewW = width / camera.scale;
+    camera.viewH = height / camera.scale;
+    camera.screenOffsetY =
+      aspect < 0.75 ? Math.max(0, (height - VIEW.height * baseScale) * 0.32) : 0;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
@@ -75,7 +86,7 @@ function CameraRig({
     scene.focus += (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
-    if (!scene.dragging && scene.pan !== 0) {
+    if (!freeCamera && !scene.dragging && scene.pan !== 0) {
       const eased = scene.pan * (1 - Math.min(1, dt * 2.2));
       scene.pan = Math.abs(eased) < 1 ? 0 : eased;
     }
@@ -102,7 +113,7 @@ function CameraRig({
 
     const jitter = scene.shake * 18 * camera.scale;
     node.x = (Math.random() - 0.5) * jitter;
-    node.y = (Math.random() - 0.5) * jitter;
+    node.y = camera.screenOffsetY + (Math.random() - 0.5) * jitter;
 
     // Décroissance par défaut ; un effet actif réécrit la valeur à chaque image.
     if (scene.shake > 0) scene.shake = Math.max(0, scene.shake - dt * 2.6);
@@ -140,6 +151,8 @@ interface SceneProps {
   initialFocus: number;
   effects: Effect[];
   onEffectDone: (id: string) => void;
+  onTravelDone: (playerId: string) => void;
+  freeCamera: boolean;
 }
 
 function WorldScene({
@@ -149,32 +162,42 @@ function WorldScene({
   initialFocus,
   effects,
   onEffectDone,
+  onTravelDone,
+  freeCamera,
 }: SceneProps) {
   // Les plus en avant dans la profondeur sont dessinés en dernier.
   const ordered = players
     .map((player, index) => ({ player, lane: laneFor(index) }))
     .sort((a, b) => a.lane.dy - b.lane.dy);
   return (
-    <CameraRig initialFocus={initialFocus}>
+    <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <Sky />
+
+      <Layer factor={LAYERS.far}>
+        <pixiContainer alpha={0.42}>
+          <RidgeLayer
+            factor={LAYERS.far}
+            ridge={farRidgeY}
+            channel="far"
+            haze={0.5}
+          />
+        </pixiContainer>
+      </Layer>
 
       <Layer factor={MIDGROUND_FACTOR}>
         <ParallaxBackdrop factor={MIDGROUND_FACTOR} />
       </Layer>
+
       <AtmosphericMotes />
 
       <Layer factor={1}>
         <ParallaxGround />
+        <ParallaxGroundOverlays />
         <AnimatedLandmarks />
         <JourneyMarkers />
       </Layer>
 
-      <Layer factor={FOREGROUND_FACTOR}>
-        <ParallaxForeground factor={FOREGROUND_FACTOR} />
-      </Layer>
-
       <Layer factor={1}>
-
         {ordered.map(({ player, lane }) => (
           <Hero
             key={player.id}
@@ -182,9 +205,16 @@ function WorldScene({
             isMe={player.id === meId}
             isFocused={player.id === focusPlayerId}
             lane={lane}
+            onTravelDone={onTravelDone}
           />
         ))}
+      </Layer>
 
+      <Layer factor={FOREGROUND_FACTOR}>
+        <ParallaxForeground factor={FOREGROUND_FACTOR} />
+      </Layer>
+
+      <Layer factor={1}>
         {effects.map((effect) => {
           const Animation = EFFECT_COMPONENTS[effect.kind];
           return (
@@ -209,6 +239,9 @@ export interface GameCanvasProps {
   focusPlayerId?: string | null;
   effects: Effect[];
   onEffectDone: (id: string) => void;
+  onTravelDone: (playerId: string) => void;
+  freeCamera?: boolean;
+  devCameraTarget?: { worldX: number; revision: number } | null;
 }
 
 export default function GameCanvas({
@@ -217,14 +250,18 @@ export default function GameCanvas({
   focusPlayerId = null,
   effects,
   onEffectDone,
+  onTravelDone,
+  freeCamera = false,
+  devCameraTarget = null,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
   const renderResolution =
     typeof window === "undefined"
       ? 1
-      : window.innerWidth <= 760
-        ? 1
-        : Math.min(1.25, window.devicePixelRatio || 1);
+      : Math.min(
+          window.innerWidth <= 760 ? 1.5 : 2,
+          window.devicePixelRatio || 1,
+        );
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
@@ -236,6 +273,18 @@ export default function GameCanvas({
     scene.targetFocus = focus;
     scene.focusSpeed = focusPlayerId ? 3.4 : 1.35;
   }, [focus, focusPlayer, focusPlayerId]);
+
+  useEffect(() => {
+    if (!freeCamera) {
+      scene.pan = 0;
+      return;
+    }
+    if (!devCameraTarget) return;
+
+    const centeredLeft = devCameraTarget.worldX - scene.camera.viewW * 0.5;
+    const followedLeft = focus - scene.camera.viewW * FOLLOW_ANCHOR;
+    scene.pan = centeredLeft - followedLeft;
+  }, [devCameraTarget, focus, freeCamera]);
 
   // Glisser à la souris ou au doigt décale la vue, qui revient ensuite d'elle-même
   // sur le personnage : on peut aller voir le peloton sans perdre son repère.
@@ -257,6 +306,19 @@ export default function GameCanvas({
     scene.dragging = false;
   }, []);
 
+  const onWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (!freeCamera) return;
+      event.preventDefault();
+      const delta =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      scene.pan += delta / scene.camera.scale;
+    },
+    [freeCamera],
+  );
+
   return (
     <div
       ref={host}
@@ -265,6 +327,7 @@ export default function GameCanvas({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
+      onWheel={onWheel}
     >
       <Application
         resizeTo={host}
@@ -280,6 +343,8 @@ export default function GameCanvas({
           initialFocus={focus}
           effects={effects}
           onEffectDone={onEffectDone}
+          onTravelDone={onTravelDone}
+          freeCamera={freeCamera}
         />
       </Application>
     </div>

@@ -47,6 +47,8 @@ export interface PlayerView {
   position: number;
   counts: Record<ActionKind, number>;
   availablePowers: AvailablePower[];
+  /** Shots reçus mais pas encore honorés. */
+  shotsOwed: number;
   /** Renseigné après une embauche : quitte la course, garde ses points. */
   hiredAt?: string;
 }
@@ -119,6 +121,20 @@ export function useGame() {
       casts: prev.casts.map((cast) =>
         cast.id === castId && !cast.seenAt
           ? { ...cast, seenAt: new Date().toISOString() }
+          : cast,
+      ),
+    }));
+  }, []);
+
+  const settleShots = useCallback((castIds: string[]) => {
+    const ids = new Set(castIds);
+    const at = new Date().toISOString();
+
+    setState((prev) => ({
+      ...prev,
+      casts: prev.casts.map((cast) =>
+        cast.kind === "shot" && ids.has(cast.id) && !cast.settledAt
+          ? { ...cast, seenAt: cast.seenAt ?? at, settledAt: at }
           : cast,
       ),
     }));
@@ -224,6 +240,12 @@ export function useGame() {
             embauche: 0,
           } as Record<ActionKind, number>),
         availablePowers: availablePowers(player.id, steps, state.casts),
+        shotsOwed: state.casts.filter(
+          (cast) =>
+            cast.kind === "shot" &&
+            cast.targetPlayerId === player.id &&
+            !cast.settledAt,
+        ).length,
         hiredAt: player.hiredAt,
       };
     });
@@ -266,6 +288,7 @@ export function useGame() {
     addEvent,
     castPower,
     markCastSeen,
+    settleShots,
     undoLast,
     addPlayer,
     removePlayer,

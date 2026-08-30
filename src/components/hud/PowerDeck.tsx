@@ -9,11 +9,17 @@ import { ChestArtwork, PowerArtwork } from "./Artwork";
 interface PowerDeckProps {
   me: PlayerView;
   players: PlayerView[];
+  attentionToken: number;
   onCast: (power: AvailablePower, targetId: string) => void;
 }
 
-/** Inventaire des farces gagnées dans les coffres, avec sélection explicite de cible. */
-export function PowerDeck({ me, players, onCast }: PowerDeckProps) {
+/** Inventaire des butins gagnés dans les coffres, avec sélection explicite de cible. */
+export function PowerDeck({
+  me,
+  players,
+  attentionToken,
+  onCast,
+}: PowerDeckProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AvailablePower | null>(null);
   const targets = players.filter((player) => player.id !== me.id);
@@ -23,13 +29,16 @@ export function PowerDeck({ me, players, onCast }: PowerDeckProps) {
   return (
     <div className="power-menu pointer-events-auto">
       <button
+        key={attentionToken}
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="power-menu__trigger"
+        className={`power-menu__trigger ${
+          attentionToken > 0 ? "power-menu__trigger--earned" : ""
+        }`}
         aria-expanded={open}
       >
         <ChestArtwork className="power-menu__chest-art" />
-        <span>Farces</span>
+        <span>Butins</span>
         <strong>{me.availablePowers.length}</strong>
       </button>
 
@@ -38,13 +47,13 @@ export function PowerDeck({ me, players, onCast }: PowerDeckProps) {
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="font-display text-xl text-parchment-ink">Sac à malices</p>
-              <p className="text-sm text-parchment-ink/60">Choisis un sort, puis une victime.</p>
+              <p className="text-sm text-parchment-ink/60">Choisis un butin, puis sa cible.</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="text-xl text-parchment-ink/45 hover:text-parchment-ink"
-              aria-label="Fermer les farces"
+              aria-label="Fermer les butins"
             >
               ×
             </button>

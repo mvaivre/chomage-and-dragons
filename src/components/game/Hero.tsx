@@ -393,7 +393,7 @@ function drawTrophy(g: Graphics) {
 
 function drawShadow(g: Graphics) {
   g.clear();
-  g.ellipse(0, 0, 24, 7).fill({ color: 0x000000, alpha: 0.3 });
+  g.ellipse(0, 1, 31, 9).fill({ color: 0x000000, alpha: 0.48 });
 }
 
 /* ------------------------------------------------------------------ composant */
@@ -405,9 +405,10 @@ export interface HeroProps {
   isFocused: boolean;
   /** Décalage en profondeur, pour que deux personnages au même endroit se distinguent. */
   lane: { dx: number; dy: number; scale: number };
+  onTravelDone?: (playerId: string) => void;
 }
 
-export function Hero({ player, isMe, isFocused, lane }: HeroProps) {
+export function Hero({ player, isMe, isFocused, lane, onTravelDone }: HeroProps) {
   const character = useMemo(() => characterById(player.characterId), [player.characterId]);
   const sprite = useCharacterSprite(player.characterId);
   const actionFrames = useCharacterActionFrames(player.characterId);
@@ -521,6 +522,8 @@ export function Hero({ player, isMe, isFocused, lane }: HeroProps) {
           elapsed: 0,
         };
         lastDirection.current = direction;
+      } else if (next) {
+        onTravelDone?.(player.id);
       }
     }
 
@@ -547,6 +550,7 @@ export function Hero({ player, isMe, isFocused, lane }: HeroProps) {
         at.current = activeTravel.to;
         travel.current = null;
         moving = false;
+        onTravelDone?.(player.id);
       } else {
         strideProgress = activeTravel.elapsed / STRIDE_DURATION;
         const eased =
@@ -678,11 +682,13 @@ export function Hero({ player, isMe, isFocused, lane }: HeroProps) {
       }
       // Le sens natif appartient à l'asset. Le sens du voyage appartient au jeu :
       // un idle conserve donc le dernier regard au lieu de revenir arbitrairement.
-      const horizontalScale = Math.abs(actionSprite.current.scale.x);
-      actionSprite.current.scale.x =
-        horizontalScale *
-        (frameFacing === "right" ? 1 : -1) *
-        lastDirection.current;
+      const facing =
+        (frameFacing === "right" ? 1 : -1) * lastDirection.current;
+      for (const sprite of [actionSprite.current]) {
+        if (!sprite) continue;
+        if (sprite.texture !== nextTexture) sprite.texture = nextTexture;
+        sprite.scale.x = Math.abs(sprite.scale.x) * facing;
+      }
     }
   });
 
