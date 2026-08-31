@@ -1,4 +1,4 @@
-# LOUCHÔMAGE — Pitch initial
+# CHÔMAGE & DRAGONS — Pitch initial
 
 > Document de référence. Capture des idées initiales telles que formulées au départ.
 > Statut : vision complète, **pas** un backlog. On construit par étapes, en partant du plus simple.

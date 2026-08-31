@@ -151,17 +151,6 @@ export function RidgeLayer({
         );
       }
 
-      // Liseré clair sur l'arête : sans lui, les couches se confondent en une bouillie.
-      for (let x = -VIEW.width * 0.2; x <= span; x += step) {
-        const worldX = x / factor;
-        g.moveTo(x, ridge(worldX));
-        g.lineTo(x + step, ridge((x + step) / factor));
-        g.stroke({
-          width: 2.4,
-          color: mixColor(inkAt(worldX).color, 0xffffff, 0.22),
-        });
-      }
-
       for (const prop of props) {
         drawProp(g, prop, ridge(prop.worldX), inkAt(prop.worldX));
       }

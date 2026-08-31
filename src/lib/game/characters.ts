@@ -1,5 +1,5 @@
 /**
- * Les classes de Louchômage & Dragons.
+ * Les classes de Chômage & Dragons.
  *
  * Chaque classe est une blague de recherche d'emploi déguisée en archétype de jeu
  * de rôle. La palette et la silhouette servent au personnage dessiné en code, qui

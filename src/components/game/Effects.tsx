@@ -2,10 +2,12 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { useTick } from "@pixi/react";
-import type { Container, Graphics, Text } from "pixi.js";
+import type { Container, Graphics, Sprite, Text } from "pixi.js";
+import { POINTS } from "@/lib/config";
 import { seededRandom } from "@/lib/rng";
 import { WORLD_LENGTH } from "@/lib/game/world";
 import { scene } from "./scene";
+import { atlasFrames, usePaintedAsset } from "./sprites";
 import { GOLD, GOLD_LIGHT, SHOUT_STYLE, TAG_STYLE } from "./style";
 
 /**
@@ -219,7 +221,7 @@ export function PigeonEffect({ origin, onDone }: EffectProps) {
 
   return (
     <pixiContainer>
-      <Points origin={origin} value={1} />
+      <Points origin={origin} value={POINTS.candidature} />
       <pixiContainer ref={root} x={from.x} y={from.y}>
         <pixiGraphics draw={drawPigeonBody} />
         <pixiContainer ref={wing} x={-2} y={-4}>
@@ -313,7 +315,7 @@ export function LightningEffect({ origin, onDone }: EffectProps) {
       <pixiGraphics ref={flash} draw={drawFlash} alpha={0.5} />
       <pixiGraphics ref={bolt} draw={drawBolt} />
       <pixiGraphics ref={stars} draw={noDraw} />
-      <Points origin={origin} value={1} />
+      <Points origin={origin} value={POINTS.refus} />
     </pixiContainer>
   );
 }
@@ -357,7 +359,10 @@ export function CocktailEffect({ origin, onDone }: EffectProps) {
       <pixiContainer ref={goblet} x={origin.x} y={origin.y - HEAD - 20}>
         <pixiGraphics draw={drawGoblet} />
       </pixiContainer>
-      <Points origin={{ x: origin.x - 54, y: origin.y }} value={-3} />
+      <Points
+        origin={{ x: origin.x - 54, y: origin.y }}
+        value={POINTS.entretien}
+      />
     </pixiContainer>
   );
 }
@@ -378,7 +383,7 @@ function drawSkull(g: Graphics) {
   }
 }
 
-/** Rejet après entretien : la LEGENDARY REJECTION, +10 points. */
+/** Rejet après entretien : la LEGENDARY REJECTION, +5 points. */
 export function LegendaryEffect({ origin, onDone }: EffectProps) {
   const skull = useRef<Container>(null);
   const banner = useRef<Container>(null);
@@ -415,7 +420,10 @@ export function LegendaryEffect({ origin, onDone }: EffectProps) {
           anchor={{ x: 0.5, y: 0.5 }}
         />
       </pixiContainer>
-      <Points origin={{ x: origin.x + 60, y: origin.y }} value={10} />
+      <Points
+        origin={{ x: origin.x + 60, y: origin.y }}
+        value={POINTS.rejetApresEntretien}
+      />
     </pixiContainer>
   );
 }
@@ -499,52 +507,47 @@ export function TrophyEffect({ origin, onDone }: EffectProps) {
 
 /* ------------------------------------------------------------------ coffre */
 
-function drawOpenChest(g: Graphics) {
-  g.clear();
-  g.ellipse(0, 7, 43, 9).fill({ color: 0x000000, alpha: 0.35 });
-  g.rect(-36, -23, 72, 30).fill(0x7a4a24);
-  g.rect(-36, -23, 72, 7).fill(GOLD);
-  // Couvercle rabattu en arrière.
-  g.roundRect(-36, -53, 72, 33, 16).fill(0x5e3718);
-  g.rect(-36, -36, 72, 17).fill(0x5e3718);
-  g.rect(-31, -50, 7, 31).fill(GOLD);
-  g.rect(24, -50, 7, 31).fill(GOLD);
-  for (const x of [-19, 0, 19]) {
-    g.circle(x, -8, 5.5).fill(GOLD_LIGHT);
-  }
-  g.roundRect(-7, -28, 14, 18, 3).fill(GOLD);
-  g.circle(0, -20, 2.8).fill(0x4a2e13);
-}
-
 /** Palier de dix pas : le coffre s'ouvre et annonce la farce débloquée. */
 export function ChestEffect({ origin, onDone }: EffectProps) {
+  const sheet = usePaintedAsset("/art/runtime/chest-opening-v2.webp?v=1", true);
+  const frames = sheet ? atlasFrames(sheet, 4, 1) : [];
   const chest = useRef<Container>(null);
+  const chestSprite = useRef<Sprite>(null);
   const sparkle = useRef<Graphics>(null);
-  const tick = useClock(2000, onDone);
+  const tick = useClock(2400, onDone);
 
   useTick((ticker) => {
     const t = tick(ticker.deltaMS);
 
     const node = chest.current;
     if (node) {
-      const pop = Math.min(1, t / 0.2);
-      node.scale.set(0.3 + pop * 1.1);
-      node.y = origin.y - HEAD - 34 - Math.sin(t * Math.PI) * 24;
-      node.alpha = t > 0.72 ? 1 - (t - 0.72) / 0.28 : 1;
+      const anticipation = t < 0.34 ? Math.sin(t * 110) * (1 - t / 0.34) : 0;
+      node.rotation = anticipation * 0.035;
+      node.scale.set(t < 0.16 ? 0.92 + t * 0.5 : 1);
+      node.alpha = t > 0.88 ? 1 - (t - 0.88) / 0.12 : 1;
+    }
+
+    const sprite = chestSprite.current;
+    if (sprite && frames.length === 4) {
+      const frame = t < 0.2 ? 0 : t < 0.38 ? 1 : t < 0.58 ? 2 : 3;
+      sprite.texture = frames[frame];
+      sprite.width = 176;
+      sprite.height = 264;
     }
 
     const g = sparkle.current;
     if (g) {
       g.clear();
-      const radius = 14 + t * 84;
+      const reveal = Math.max(0, (t - 0.34) / 0.66);
+      const radius = 12 + reveal * 104;
       for (let i = 0; i < 12; i++) {
         const a = (i / 12) * Math.PI * 2 + t * 2.4;
         g.star(
           origin.x + Math.cos(a) * radius,
-          origin.y - HEAD - 34 + Math.sin(a) * radius * 0.6,
+          origin.y - 88 + Math.sin(a) * radius * 0.6,
           4,
-          4.6 * (1 - t),
-        ).fill({ color: GOLD_LIGHT, alpha: Math.max(0, 1 - t * 1.1) });
+          5.2 * Math.max(0, 1 - reveal),
+        ).fill({ color: GOLD_LIGHT, alpha: Math.max(0, 1 - reveal) });
       }
     }
   });
@@ -552,15 +555,23 @@ export function ChestEffect({ origin, onDone }: EffectProps) {
   return (
     <pixiContainer>
       <pixiGraphics ref={sparkle} draw={noDraw} />
-      <pixiContainer ref={chest} x={origin.x} y={origin.y - HEAD - 34}>
-        <pixiGraphics draw={drawOpenChest} />
+      <pixiContainer ref={chest} x={origin.x} y={origin.y + 6}>
+        {frames.length === 4 ? (
+          <pixiSprite
+            ref={chestSprite}
+            texture={frames[0]}
+            anchor={{ x: 0.5, y: 0.8 }}
+            width={176}
+            height={264}
+          />
+        ) : null}
       </pixiContainer>
       <pixiText
         text="NOUVELLE FARCE DÉBLOQUÉE"
         style={{ ...SHOUT_STYLE, fontSize: 24, letterSpacing: 2 }}
         anchor={{ x: 0.5, y: 0.5 }}
         x={safeLabelX(origin.x)}
-        y={origin.y - HEAD - 126}
+        y={origin.y - 196}
       />
     </pixiContainer>
   );

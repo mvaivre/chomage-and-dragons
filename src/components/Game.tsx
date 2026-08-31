@@ -32,7 +32,13 @@ import { stepsFor } from "@/lib/game/scoring";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
 import { racePosition } from "@/lib/game/progress";
-import { BIOMES, biomeAt, worldXFor, WORLD_LENGTH } from "@/lib/game/world";
+import {
+  BIOMES,
+  biomeAt,
+  surfaceAt,
+  worldXFor,
+  WORLD_LENGTH,
+} from "@/lib/game/world";
 
 /**
  * Le jeu complet.
@@ -59,6 +65,15 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 };
 
 const DEV_BUILD = process.env.NODE_ENV === "development";
+const DEV_VIEWPOINTS = [
+  { id: "plain-forest", label: "Plaine→Bois", progress: 2.5 / 21 },
+  { id: "forest-marsh", label: "Bois→Marais", progress: 5.5 / 21 },
+  { id: "marsh-bridge", label: "Marais→Pont", progress: 8.5 / 21 },
+  { id: "bridge-falls", label: "Pont→Larmes", progress: 10.5 / 21 },
+  { id: "falls-mountain", label: "Larmes→Mont", progress: 12.5 / 21 },
+  { id: "mountain-wastes", label: "Mont→Désert", progress: 15.5 / 21 },
+  { id: "wastes-tavern", label: "Désert→Taverne", progress: 18.5 / 21 },
+] as const;
 
 interface Notice {
   title: string;
@@ -104,6 +119,8 @@ export function Game() {
   } | null>(null);
   const shownCasts = useRef(new Set<string>());
   const pendingActionEffects = useRef(new Map<string, Effect[]>());
+  const pendingChestEffect = useRef<Effect | null>(null);
+  const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
 
   const meIndex = players.findIndex((p) => p.id === meId);
@@ -143,7 +160,15 @@ export function Game() {
 
   const handleTravelDone = useCallback(
     (playerId: string) => {
-      if (playerId === identity) setAwaitingTravel(false);
+      if (playerId !== identity) return;
+      const chestEffect = pendingChestEffect.current;
+      if (chestEffect) {
+        pendingChestEffect.current = null;
+        chestAnimationId.current = chestEffect.id;
+        setEffects((previous) => [...previous, chestEffect]);
+        return;
+      }
+      setAwaitingTravel(false);
     },
     [identity],
   );
@@ -261,6 +286,7 @@ export function Game() {
       const queued: Effect[] = [
         { id: event.id, kind: EFFECT_FOR[kind], origin },
       ];
+      pendingChestEffect.current = null;
 
       const beforeChest = Math.floor(me.journeySteps / STEPS_PER_LEVEL);
       const afterSteps = Math.max(0, me.journeySteps + stepsFor(kind));
@@ -284,7 +310,14 @@ export function Game() {
       ];
 
       if (afterChest > beforeChest) {
-        queued.push({ id: `${event.id}-chest`, kind: "chest", origin });
+        const arrived = heroOrigin({ ...me, position: afterPosition }, meIndex);
+        const markerX =
+          arrived.x > WORLD_LENGTH - 300 ? arrived.x - 160 : arrived.x + 160;
+        pendingChestEffect.current = {
+          id: `${event.id}-chest`,
+          kind: "chest",
+          origin: { x: markerX, y: surfaceAt(markerX) + 8 },
+        };
         const unlocked = powerForSlot(afterChest - 1);
         moments.push({
           id: `${event.id}-chest-reward`,
@@ -343,6 +376,10 @@ export function Game() {
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
+    if (chestAnimationId.current === id) {
+      chestAnimationId.current = null;
+      setAwaitingTravel(false);
+    }
   }, []);
 
   const handleDevExplore = useCallback(() => {
@@ -422,6 +459,17 @@ export function Game() {
                   onClick={() => handleDevBiome(biome.from, biome.to)}
                 >
                   {biome.short}
+                </button>
+              ))}
+              {DEV_VIEWPOINTS.map((viewpoint) => (
+                <button
+                  key={viewpoint.id}
+                  type="button"
+                  onClick={() =>
+                    handleDevBiome(viewpoint.progress, viewpoint.progress)
+                  }
+                >
+                  {viewpoint.label}
                 </button>
               ))}
             </nav>

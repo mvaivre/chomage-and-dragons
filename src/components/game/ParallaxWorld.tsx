@@ -8,12 +8,11 @@ import {
   mixColor,
   paletteAt,
   surfaceAt,
-  VIEW,
   WORLD_LENGTH,
+  WORLD_MODULE_COUNT,
 } from "@/lib/game/world";
 import { scene } from "./scene";
 import { usePaintedAsset } from "./sprites";
-import { SERIF } from "./style";
 
 type TerrainId =
   | "grove"
@@ -43,6 +42,10 @@ interface TerrainDefinition {
   /** Hauteur de la ligne de marche dans le PNG, en fraction de sa hauteur. */
   ground: number;
   chromaKey?: boolean;
+  /** Largeur du fondu alpha dans le bitmap source. */
+  horizontalFeather?: number;
+  /** Les tuiles de transition se dessinent après leurs deux voisines. */
+  renderAbove?: boolean;
 }
 
 const TERRAIN: Record<TerrainId, TerrainDefinition> = {
@@ -55,9 +58,10 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
     ground: 0.62,
   },
   groveForest: {
-    url: "/art/world-v2/runtime/terrain-grove-forest-safe.webp?v=1",
+    url: "/art/world-v2/runtime/terrain-grove-forest-safe.webp?v=2",
     ground: 0.665,
     chromaKey: true,
+    renderAbove: true,
   },
   forest: {
     url: "/art/world-v2/runtime/terrain-forest-v2.webp?v=7",
@@ -68,8 +72,11 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
     ground: 0.67,
   },
   forestMarsh: {
-    url: "/art/world-v2/runtime/terrain-forest-marsh-v2.webp?v=7",
-    ground: 0.67,
+    url: "/art/world-v2/runtime/terrain-transition-forest-marsh-v3.webp?v=1",
+    ground: 0.625,
+    chromaKey: true,
+    horizontalFeather: 0,
+    renderAbove: true,
   },
   marsh: {
     url: "/art/world-v2/runtime/terrain-marsh-v2.webp?v=7",
@@ -82,6 +89,7 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
   marshBridge: {
     url: "/art/world-v2/runtime/terrain-marsh-bridge.webp?v=7",
     ground: 0.62,
+    renderAbove: true,
   },
   bridgeAlt: {
     url: "/art/world-v2/runtime/terrain-bridge-alt.webp?v=1",
@@ -90,6 +98,7 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
   bridgeWaterfall: {
     url: "/art/world-v2/runtime/terrain-bridge-waterfall.webp?v=7",
     ground: 0.405,
+    renderAbove: true,
   },
   waterfallAlt: {
     url: "/art/world-v2/runtime/terrain-waterfall-alt.webp?v=1",
@@ -98,6 +107,7 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
   waterfallMountain: {
     url: "/art/world-v2/runtime/terrain-waterfall-mountain.webp?v=7",
     ground: 0.445,
+    renderAbove: true,
   },
   mountain: {
     url: "/art/world-v2/runtime/terrain-mountain-v2.webp?v=7",
@@ -110,6 +120,7 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
   mountainWastes: {
     url: "/art/world-v2/runtime/terrain-mountain-wastes-v2.webp?v=7",
     ground: 0.5,
+    renderAbove: true,
   },
   wastes: {
     url: "/art/world-v2/runtime/terrain-wastes-v2.webp?v=7",
@@ -122,6 +133,7 @@ const TERRAIN: Record<TerrainId, TerrainDefinition> = {
   wastesTavern: {
     url: "/art/world-v2/runtime/terrain-wastes-tavern.webp?v=7",
     ground: 0.625,
+    renderAbove: true,
   },
   tavern: {
     url: "/art/world-v2/runtime/terrain-tavern-v2.webp?v=7",
@@ -163,13 +175,62 @@ const TERRAIN_SEQUENCE: TerrainId[] = [
 ];
 
 const TERRAIN_TILE_WIDTH = WORLD_LENGTH / TERRAIN_SEQUENCE.length;
-/** Recouvrement juste assez large pour fermer les fentes dues aux sous-pixels. */
-const TERRAIN_BLEED = 12;
+
+const FOREST_MARSH_ZONE = {
+  terrainIndex: 5,
+  midground: {
+    url: "/art/world-v2/runtime/mid-transition-forest-marsh-v1.webp?v=1",
+    width: 880,
+    contentBase: 0.835,
+    horizontalFeather: 0,
+    yOffset: 88,
+  },
+  detail: {
+    url: "/art/world-v2/runtime/mid-detail-transition-forest-marsh-v1.webp?v=1",
+    width: 820,
+    contentBase: 0.92,
+    horizontalFeather: 0,
+    yOffset: 42,
+  },
+  foreground: [
+    {
+      url: "/art/world-v2/runtime/front-standalone-forest-v1.webp?v=1",
+      offset: -0.46,
+      width: 620,
+    },
+    {
+      url: "/art/world-v2/runtime/front-standalone-transition-v1.webp?v=1",
+      offset: 0.08,
+      width: 560,
+    },
+    {
+      url: "/art/world-v2/runtime/front-standalone-marsh-v1.webp?v=1",
+      offset: 0.54,
+      width: 520,
+    },
+  ],
+} as const;
+
+const MOUNTAIN_WASTES_ZONE = {
+  progress: 15.5 / TERRAIN_SEQUENCE.length,
+  midground: {
+    url: "/art/world-v2/runtime/mid-transition-mountain-wastes-v1.webp?v=1",
+    width: 1080,
+    contentBase: 0.79,
+    horizontalFeather: 0,
+    yOffset: 96,
+  },
+} as const;
 
 type MidgroundId = "grove" | "marsh" | "alpine" | "wastes";
 const MIDGROUND: Record<
   MidgroundId,
-  { url: string; chromaKey: boolean; contentBase: number }
+  {
+    url: string;
+    chromaKey: boolean;
+    contentBase: number;
+    edgeFeather?: number;
+  }
 > = {
   grove: {
     url: "/art/world-v2/runtime/mid-grove-standalone.webp?v=1",
@@ -177,19 +238,21 @@ const MIDGROUND: Record<
     contentBase: 0.784,
   },
   marsh: {
-    url: "/art/world-v2/runtime/mid-marsh.webp?v=5",
+    url: "/art/world-v2/runtime/mid-marsh-standalone.webp?v=1",
     chromaKey: false,
-    contentBase: 0.75,
+    contentBase: 0.79,
   },
   alpine: {
-    url: "/art/world-v2/runtime/mid-alpine.webp?v=5",
+    url: "/art/world-v2/runtime/mid-alpine-standalone.webp?v=1",
     chromaKey: false,
-    contentBase: 0.75,
+    contentBase: 0.8,
+    edgeFeather: 110,
   },
   wastes: {
     url: "/art/world-v2/runtime/mid-wastes-standalone.webp?v=1",
     chromaKey: false,
     contentBase: 0.838,
+    edgeFeather: 110,
   },
 };
 const MIDGROUND_PLACEMENTS: Array<{
@@ -199,120 +262,186 @@ const MIDGROUND_PLACEMENTS: Array<{
   width: number;
   y: number;
 }> = [
-  { progress: 0.015, id: "grove", width: 980, y: 2 },
-  { progress: 0.12, id: "grove", mirror: true, width: 1040, y: -4 },
-  { progress: 0.27, id: "marsh", width: 2160, y: -22 },
-  { progress: 0.4, id: "marsh", mirror: true, width: 1960, y: 8 },
-  { progress: 0.51, id: "alpine", width: 2200, y: -50 },
-  { progress: 0.64, id: "alpine", mirror: true, width: 2040, y: -12 },
-  { progress: 0.71, id: "alpine", width: 1560, y: -28 },
-  { progress: 0.8, id: "wastes", width: 1020, y: 0 },
-  { progress: 0.855, id: "wastes", mirror: true, width: 1080, y: 8 },
-  { progress: 0.96, id: "wastes", width: 1000, y: -5 },
+  { progress: 0.045, id: "grove", width: 1120, y: 8 },
+  { progress: 0.17, id: "grove", mirror: true, width: 1240, y: -6 },
+  { progress: 0.3, id: "marsh", width: 1240, y: 4 },
+  { progress: 0.43, id: "marsh", mirror: true, width: 1180, y: 14 },
+  { progress: 0.55, id: "alpine", width: 1360, y: -16 },
+  { progress: 0.68, id: "alpine", mirror: true, width: 1280, y: -4 },
+  { progress: 0.86, id: "wastes", width: 1120, y: 8 },
+  { progress: 0.97, id: "wastes", mirror: true, width: 1180, y: 4 },
 ];
 
-type ForegroundId = "forest" | "marsh" | "mountain" | "wastes" | "tavern";
+type ForegroundId =
+  | "forestTall"
+  | "marshTall"
+  | "mountainTall"
+  | "wastesTall"
+  | "tavernTall";
 const FOREGROUND: Record<
   ForegroundId,
-  { url: string; chromaKey: boolean; contentBase: number }
+  { url: string; chromaKey: boolean; contentBase: number; aspect: number }
 > = {
-  forest: {
-    url: "/art/world-v2/runtime/front-forest-standalone.webp?v=1",
+  forestTall: {
+    url: "/art/world-v2/runtime/front-forest-tall-v1.webp?v=1",
     chromaKey: true,
-    contentBase: 0.754,
+    contentBase: 0.94,
+    aspect: 2 / 3,
   },
-  marsh: {
-    url: "/art/world-v2/runtime/front-marsh-standalone.webp?v=1",
+  marshTall: {
+    url: "/art/world-v2/runtime/front-marsh-tall-v1.webp?v=1",
     chromaKey: true,
-    contentBase: 0.789,
+    contentBase: 0.94,
+    aspect: 2 / 3,
   },
-  mountain: {
-    url: "/art/world-v2/runtime/front-mountain-standalone.webp?v=1",
+  mountainTall: {
+    url: "/art/world-v2/runtime/front-mountain-tall-v1.webp?v=1",
     chromaKey: true,
-    contentBase: 0.748,
+    contentBase: 0.94,
+    aspect: 2 / 3,
   },
-  wastes: {
-    url: "/art/world-v2/runtime/front-wastes-standalone.webp?v=1",
+  wastesTall: {
+    url: "/art/world-v2/runtime/front-wastes-tall-v1.webp?v=1",
     chromaKey: true,
-    contentBase: 0.753,
+    contentBase: 0.94,
+    aspect: 2 / 3,
   },
-  tavern: {
-    url: "/art/world-v2/runtime/front-tavern-standalone.webp?v=1",
+  tavernTall: {
+    url: "/art/world-v2/runtime/front-tavern-tall-v1.webp?v=1",
     chromaKey: true,
-    contentBase: 0.787,
+    contentBase: 0.94,
+    aspect: 2 / 3,
   },
 };
-const FOREGROUND_PLACEMENTS: Array<{
+const NEAR_FOREGROUND_PLACEMENTS: Array<{
   progress: number;
   id: ForegroundId;
   mirror?: boolean;
-}> = [
-  { progress: 0.06, id: "forest" },
-  { progress: 0.17, id: "forest", mirror: true },
-  { progress: 0.81, id: "wastes" },
-  { progress: 0.9, id: "wastes", mirror: true },
-  { progress: 0.96, id: "tavern" },
-];
-
-type SeamId = "forest" | "marsh" | "mountain" | "wastes";
-/** Base réelle du dessin dans chaque PNG (les fichiers ont du vide dessous). */
-const SEAM_CONTENT_BASE: Record<SeamId, number> = {
-  forest: 0.842,
-  marsh: 0.905,
-  mountain: 0.818,
-  wastes: 0.822,
-};
-const SEAM_CONNECTORS: Array<{
-  boundary: number;
-  id: SeamId;
   width: number;
+  y?: number;
 }> = [
-  { boundary: 1, id: "forest", width: 680 },
-  { boundary: 2, id: "forest", width: 740 },
-  { boundary: 3, id: "forest", width: 660 },
-  { boundary: 4, id: "forest", width: 760 },
-  { boundary: 5, id: "forest", width: 700 },
-  { boundary: 6, id: "marsh", width: 400 },
-  { boundary: 7, id: "marsh", width: 360 },
-  { boundary: 8, id: "marsh", width: 420 },
-  { boundary: 9, id: "marsh", width: 380 },
-  { boundary: 10, id: "marsh", width: 400 },
-  { boundary: 16, id: "wastes", width: 740 },
-  { boundary: 17, id: "wastes", width: 680 },
-  { boundary: 18, id: "wastes", width: 760 },
-  { boundary: 19, id: "wastes", width: 700 },
-  { boundary: 20, id: "forest", width: 720 },
+  { progress: 0.11, id: "forestTall", width: 450 },
+  { progress: 0.225, id: "forestTall", mirror: true, width: 390, y: 10 },
+  { progress: 0.35, id: "marshTall", width: 430 },
+  { progress: 0.455, id: "marshTall", mirror: true, width: 380 },
+  { progress: 0.6, id: "mountainTall", width: 450 },
+  { progress: 0.71, id: "mountainTall", mirror: true, width: 400 },
+  { progress: 0.77, id: "wastesTall", width: 450, y: 8 },
+  { progress: 0.86, id: "wastesTall", mirror: true, width: 400 },
+  { progress: 0.955, id: "tavernTall", width: 420 },
 ];
 
-const REJECTION_SIGNS = [
-  {
-    x: 0.103,
-    y: 0.505,
-    text: "PAS ASSEZ\nGRAND",
-    fontSize: 14,
-    lineHeight: 13,
-    width: 138,
-    rotation: 0.042,
+type GroundCoverId =
+  | "forest"
+  | "forestMarsh"
+  | "marsh"
+  | "marshWater"
+  | "water"
+  | "waterMountain"
+  | "mountain"
+  | "mountainWastes"
+  | "wastes"
+  | "wastesTavern"
+  | "tavern";
+
+interface GroundCoverDefinition {
+  url: string;
+  /** Première ligne opaque aux deux bords, mesurée dans le bitmap source. */
+  socket: number;
+  directional?: boolean;
+}
+
+const GROUND_COVER: Record<GroundCoverId, GroundCoverDefinition> = {
+  forest: {
+    url: "/art/world-v2/runtime/front-cover-forest-v1.webp?v=1",
+    socket: 589 / 1024,
   },
-  {
-    x: 0.473,
-    y: 0.538,
-    text: "15 ANS\nD’EXPÉRIENCE",
-    fontSize: 10.5,
-    lineHeight: 10.5,
-    width: 116,
-    rotation: 0.035,
+  forestMarsh: {
+    url: "/art/world-v2/runtime/front-cover-transition-forest-marsh-v1.webp?v=1",
+    socket: 648 / 1024,
+    directional: true,
   },
-  {
-    x: 0.866,
-    y: 0.546,
-    text: "J’AIME PAS\nTON PARFUM",
-    fontSize: 11.5,
-    lineHeight: 11,
-    width: 112,
-    rotation: -0.048,
+  marsh: {
+    url: "/art/world-v2/runtime/front-cover-marsh-v1.webp?v=1",
+    socket: 565 / 1024,
   },
-] as const;
+  marshWater: {
+    url: "/art/world-v2/runtime/front-cover-transition-marsh-water-v1.webp?v=1",
+    socket: 560 / 1024,
+    directional: true,
+  },
+  water: {
+    url: "/art/world-v2/runtime/front-cover-water-v1.webp?v=1",
+    socket: 506 / 1024,
+  },
+  waterMountain: {
+    url: "/art/world-v2/runtime/front-cover-transition-water-mountain-v1.webp?v=1",
+    socket: 582 / 1024,
+    directional: true,
+  },
+  mountain: {
+    url: "/art/world-v2/runtime/front-cover-mountain-v2.webp?v=1",
+    socket: 559 / 1024,
+  },
+  mountainWastes: {
+    url: "/art/world-v2/runtime/front-cover-transition-mountain-wastes-v1.webp?v=1",
+    socket: 594 / 1024,
+    directional: true,
+  },
+  wastes: {
+    url: "/art/world-v2/runtime/front-cover-wastes-v1.webp?v=1",
+    socket: 560 / 1024,
+  },
+  wastesTavern: {
+    url: "/art/world-v2/runtime/front-cover-transition-wastes-tavern-v1.webp?v=1",
+    socket: 510 / 1024,
+    directional: true,
+  },
+  tavern: {
+    url: "/art/world-v2/runtime/front-cover-tavern-v1.webp?v=1",
+    socket: 683 / 1024,
+  },
+};
+
+/** Une famille par module de sol ; les changements de biome se font dans le recouvrement. */
+const GROUND_COVER_SEQUENCE: GroundCoverId[] = [
+  "forest",
+  "forest",
+  "forest",
+  "forest",
+  "forest",
+  "forestMarsh",
+  "marsh",
+  "marsh",
+  "marshWater",
+  "water",
+  "water",
+  "water",
+  "waterMountain",
+  "mountain",
+  "mountain",
+  "mountainWastes",
+  "wastes",
+  "wastes",
+  "wastesTavern",
+  "tavern",
+  "tavern",
+];
+
+const GROUND_COVER_PLACEMENTS = Array.from(
+  { length: WORLD_MODULE_COUNT + 2 },
+  (_, placementIndex) => {
+    const moduleIndex = placementIndex - 1;
+    const sequenceIndex = Math.max(
+      0,
+      Math.min(WORLD_MODULE_COUNT - 1, moduleIndex),
+    );
+    return {
+      moduleIndex,
+      id: GROUND_COVER_SEQUENCE[sequenceIndex],
+    };
+  },
+);
 
 const MOTE_BY_BIOME: Record<string, number> = {
   plaine: 0xf8d873,
@@ -332,14 +461,15 @@ function positiveModulo(value: number, divisor: number): number {
 function useTerrainTextures(
   active: ReadonlySet<TerrainId>,
 ): Record<TerrainId, Texture | null> {
-  const useTerrain = (id: TerrainId) =>
-    usePaintedAsset(
-      TERRAIN[id].url,
-      Boolean(TERRAIN[id].chromaKey),
+  const useTerrain = (id: TerrainId) => {
+    return usePaintedAsset(
+      TERRAIN[id].url.replace("?v=", "?body=1&v="),
+      true,
       false,
       active.has(id),
-      TERRAIN_BLEED,
+      120,
     );
+  };
   const grove = useTerrain("grove");
   const groveAlt = useTerrain("groveAlt");
   const groveForest = useTerrain("groveForest");
@@ -395,56 +525,127 @@ function useMidgroundTextures(): Record<MidgroundId, Texture | null> {
     MIDGROUND.alpine.chromaKey,
     false,
     true,
-    160,
+    MIDGROUND.alpine.edgeFeather,
   );
   const wastes = usePaintedAsset(
     MIDGROUND.wastes.url,
     MIDGROUND.wastes.chromaKey,
     false,
     true,
-    160,
+    MIDGROUND.wastes.edgeFeather,
   );
   return { grove, marsh, alpine, wastes };
 }
 
-function useSeamTextures(): Record<SeamId, Texture | null> {
-  const forest = usePaintedAsset(
-    "/art/world-v2/runtime/front-forest-low.webp?v=1",
+function useForegroundTextures(): Record<ForegroundId, Texture | null> {
+  const forestTall = usePaintedAsset(
+    FOREGROUND.forestTall.url,
+    FOREGROUND.forestTall.chromaKey,
+    false,
+    true,
+    0,
+    3,
   );
-  const marsh = usePaintedAsset(
-    "/art/world-v2/runtime/front-marsh-low.webp?v=1",
+  const marshTall = usePaintedAsset(
+    FOREGROUND.marshTall.url,
+    FOREGROUND.marshTall.chromaKey,
+    false,
+    true,
+    0,
+    3,
   );
-  const mountain = usePaintedAsset(
-    "/art/world-v2/runtime/front-mountain-low.webp?v=1",
+  const mountainTall = usePaintedAsset(
+    FOREGROUND.mountainTall.url,
+    FOREGROUND.mountainTall.chromaKey,
+    false,
+    true,
+    0,
+    3,
   );
-  const wastes = usePaintedAsset(
-    "/art/world-v2/runtime/front-wastes-low.webp?v=1",
+  const wastesTall = usePaintedAsset(
+    FOREGROUND.wastesTall.url,
+    FOREGROUND.wastesTall.chromaKey,
+    false,
+    true,
+    0,
+    3,
   );
-  return { forest, marsh, mountain, wastes };
+  const tavernTall = usePaintedAsset(
+    FOREGROUND.tavernTall.url,
+    FOREGROUND.tavernTall.chromaKey,
+    false,
+    true,
+    0,
+    3,
+  );
+  return {
+    forestTall,
+    marshTall,
+    mountainTall,
+    wastesTall,
+    tavernTall,
+  };
 }
 
-function useForegroundTextures(): Record<ForegroundId, Texture | null> {
-  const forest = usePaintedAsset(
-    FOREGROUND.forest.url,
-    FOREGROUND.forest.chromaKey,
+function useGroundCoverTexture(
+  id: GroundCoverId,
+  enabled: boolean,
+): Texture | null {
+  return usePaintedAsset(
+    GROUND_COVER[id].url,
+    true,
+    false,
+    enabled,
+    64,
+    0,
+    2,
+    true,
+    "organic-left",
   );
-  const marsh = usePaintedAsset(
-    FOREGROUND.marsh.url,
-    FOREGROUND.marsh.chromaKey,
+}
+
+function useGroundCoverTextures(
+  active: ReadonlySet<GroundCoverId>,
+): Record<GroundCoverId, Texture | null> {
+  const forest = useGroundCoverTexture("forest", active.has("forest"));
+  const forestMarsh = useGroundCoverTexture(
+    "forestMarsh",
+    active.has("forestMarsh"),
   );
-  const mountain = usePaintedAsset(
-    FOREGROUND.mountain.url,
-    FOREGROUND.mountain.chromaKey,
+  const marsh = useGroundCoverTexture("marsh", active.has("marsh"));
+  const marshWater = useGroundCoverTexture(
+    "marshWater",
+    active.has("marshWater"),
   );
-  const wastes = usePaintedAsset(
-    FOREGROUND.wastes.url,
-    FOREGROUND.wastes.chromaKey,
+  const water = useGroundCoverTexture("water", active.has("water"));
+  const waterMountain = useGroundCoverTexture(
+    "waterMountain",
+    active.has("waterMountain"),
   );
-  const tavern = usePaintedAsset(
-    FOREGROUND.tavern.url,
-    FOREGROUND.tavern.chromaKey,
+  const mountain = useGroundCoverTexture("mountain", active.has("mountain"));
+  const mountainWastes = useGroundCoverTexture(
+    "mountainWastes",
+    active.has("mountainWastes"),
   );
-  return { forest, marsh, mountain, wastes, tavern };
+  const wastes = useGroundCoverTexture("wastes", active.has("wastes"));
+  const wastesTavern = useGroundCoverTexture(
+    "wastesTavern",
+    active.has("wastesTavern"),
+  );
+  const tavern = useGroundCoverTexture("tavern", active.has("tavern"));
+  return {
+    forest,
+    forestMarsh,
+    marsh,
+    marshWater,
+    water,
+    waterMountain,
+    mountain,
+    mountainWastes,
+    wastes,
+    wastesTavern,
+    tavern,
+  };
 }
 
 /**
@@ -458,8 +659,9 @@ function TerrainDepthUnderlay() {
   const paint = useCallback((g: Graphics) => {
     const { camera } = scene;
     const palette = paletteAt(camera.x + camera.viewW * 0.5);
-    const top = VIEW.height - 18 + camera.y;
-    const height = Math.max(180, camera.viewH - VIEW.height + 280);
+    const worldCenter = camera.x + camera.viewW * 0.5;
+    const top = surfaceAt(worldCenter) + 18;
+    const height = Math.max(260, camera.viewH + camera.y - top + 220);
     const left = camera.x - 160;
     const width = camera.viewW + 320;
 
@@ -507,7 +709,7 @@ export function ParallaxBackdrop({ factor }: { factor: number }) {
       sprite.scale.x = Math.abs(sprite.scale.x) * (placement.mirror ? -1 : 1);
       sprite.x = placement.mirror ? center + tileWidth * 0.5 : left;
       sprite.y = Math.round(
-        584 - tileHeight * definition.contentBase + placement.y,
+        700 - tileHeight * definition.contentBase + placement.y,
       );
     });
   });
@@ -544,8 +746,17 @@ export function ParallaxGround() {
     for (let index = from; index <= to; index++) ids.add(TERRAIN_SEQUENCE[index]);
     return ids;
   }, [activeIndex]);
-  const textures = useTerrainTextures(activeIds);
-  const sprites = useRef<Array<Sprite | null>>([]);
+  const bodyTextures = useTerrainTextures(activeIds);
+  const bodySprites = useRef<Array<Sprite | null>>([]);
+  const renderOrder = useMemo(
+    () =>
+      TERRAIN_SEQUENCE.map((_, index) => index).sort(
+        (left, right) =>
+          Number(Boolean(TERRAIN[TERRAIN_SEQUENCE[left]].renderAbove)) -
+          Number(Boolean(TERRAIN[TERRAIN_SEQUENCE[right]].renderAbove)),
+      ),
+    [],
+  );
 
   useTick(() => {
     const cameraCenter = scene.camera.x + scene.camera.viewW * 0.5;
@@ -561,107 +772,44 @@ export function ParallaxGround() {
       setActiveIndex(nextIndex);
     }
 
-    const tileHeight = TERRAIN_TILE_WIDTH / 1.5;
     const visibleLeft = scene.camera.x - TERRAIN_TILE_WIDTH;
     const visibleRight = scene.camera.x + scene.camera.viewW + TERRAIN_TILE_WIDTH;
 
-    sprites.current.forEach((sprite, index) => {
+    bodySprites.current.forEach((sprite, index) => {
       if (!sprite) return;
       const id = TERRAIN_SEQUENCE[index];
       const definition = TERRAIN[id];
       const start = index * TERRAIN_TILE_WIDTH;
+      const width = TERRAIN_TILE_WIDTH + 240;
+      const height = width / 1.5;
 
       sprite.visible =
-        start + TERRAIN_TILE_WIDTH > visibleLeft && start < visibleRight;
+        start + TERRAIN_TILE_WIDTH + 120 > visibleLeft &&
+        start - 120 < visibleRight;
       if (!sprite.visible) return;
 
-      sprite.width = TERRAIN_TILE_WIDTH + TERRAIN_BLEED;
-      sprite.height = tileHeight;
+      sprite.width = width;
+      sprite.height = height;
       sprite.scale.x = Math.abs(sprite.scale.x);
-      sprite.x = start - TERRAIN_BLEED * 0.5;
+      sprite.x = start - 120;
       sprite.y =
-        surfaceAt(start + TERRAIN_TILE_WIDTH * 0.5) -
-        definition.ground * tileHeight;
+        surfaceAt(start) - definition.ground * height;
     });
-  });
 
-  const tileHeight = TERRAIN_TILE_WIDTH / 1.5;
-  const forestIndex = TERRAIN_SEQUENCE.indexOf("forest");
-  const forestStart = forestIndex * TERRAIN_TILE_WIDTH;
-  const forestTop =
-    surfaceAt(forestStart + TERRAIN_TILE_WIDTH * 0.5) -
-    TERRAIN.forest.ground * tileHeight;
+  });
 
   return (
     <pixiContainer>
       <TerrainDepthUnderlay />
-      {TERRAIN_SEQUENCE.map((id, index) =>
-        activeIds.has(id) && textures[id] ? (
+      {renderOrder.map((index) => {
+        const id = TERRAIN_SEQUENCE[index];
+        return activeIds.has(id) && bodyTextures[id] ? (
           <pixiSprite
-            key={`${id}-${index}`}
+            key={`body-${id}-${index}`}
             ref={(node) => {
-              sprites.current[index] = node;
+              bodySprites.current[index] = node;
             }}
-            texture={textures[id]}
-          />
-        ) : null,
-      )}
-      {activeIds.has("forest") && textures.forest
-        ? REJECTION_SIGNS.map((sign) => (
-            <pixiText
-              key={sign.text}
-              text={sign.text}
-              style={{
-                fontFamily: SERIF,
-                fontSize: sign.fontSize,
-                fontWeight: "800",
-                fill: 0x2b1609,
-                align: "center",
-                lineHeight: sign.lineHeight,
-                letterSpacing: 0.25,
-                wordWrap: true,
-                wordWrapWidth: sign.width,
-                dropShadow: {
-                  color: 0xd8a65b,
-                  alpha: 0.42,
-                  blur: 0,
-                  distance: 1,
-                  angle: Math.PI / 2,
-                },
-              }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              x={
-                forestStart - TERRAIN_BLEED * 0.5 +
-                sign.x * (TERRAIN_TILE_WIDTH + TERRAIN_BLEED)
-              }
-              y={forestTop + sign.y * tileHeight}
-              rotation={sign.rotation}
-              resolution={3}
-            />
-          ))
-        : null}
-    </pixiContainer>
-  );
-}
-
-/** Matière basse posée derrière les bottes pour masquer les joints du terrain. */
-export function ParallaxGroundOverlays() {
-  const textures = useSeamTextures();
-
-  return (
-    <pixiContainer>
-      {SEAM_CONNECTORS.map((connector) => {
-        const texture = textures[connector.id];
-        const x = connector.boundary * TERRAIN_TILE_WIDTH;
-        return texture ? (
-          <pixiSprite
-            key={`${connector.id}-${connector.boundary}`}
-            texture={texture}
-            anchor={{ x: 0.5, y: SEAM_CONTENT_BASE[connector.id] }}
-            x={x}
-            y={surfaceAt(x) + 10}
-            width={connector.width}
-            height={connector.width / 1.5}
+            texture={bodyTextures[id]}
           />
         ) : null;
       })}
@@ -669,26 +817,236 @@ export function ParallaxGroundOverlays() {
   );
 }
 
-/** Branches et rochers proches : peu nombreux, mais leur vitesse crée le relief. */
-export function ParallaxForeground({ factor }: { factor: number }) {
+interface TransitionLayerProps {
+  factor: number;
+  progress: number;
+  layer:
+    | typeof FOREST_MARSH_ZONE.midground
+    | typeof FOREST_MARSH_ZONE.detail
+    | typeof MOUNTAIN_WASTES_ZONE.midground;
+}
+
+/** Une pièce autonome : marges alpha, ancrage au sol et vitesse propres. */
+function ParallaxTransitionLayer({
+  factor,
+  progress,
+  layer,
+}: TransitionLayerProps) {
+  const texture = usePaintedAsset(
+    layer.url,
+    true,
+    false,
+    true,
+    layer.horizontalFeather,
+  );
+  const ref = useRef<Sprite>(null);
+
+  useTick(() => {
+    const sprite = ref.current;
+    if (!sprite) return;
+
+    const centerX = progress * WORLD_LENGTH;
+    const screenX = (centerX - scene.camera.x) * factor;
+
+    sprite.visible =
+      screenX > -layer.width && screenX < scene.camera.viewW + layer.width;
+    sprite.x = centerX * factor;
+    sprite.y = surfaceAt(centerX) + layer.yOffset;
+    sprite.width = layer.width;
+    sprite.height = layer.width / 1.5;
+  });
+
+  return texture ? (
+    <pixiSprite
+      ref={ref}
+      texture={texture}
+      anchor={{
+        x: 0.5,
+        y: layer.contentBase,
+      }}
+    />
+  ) : null;
+}
+
+export function ParallaxTransitionMidground({ factor }: { factor: number }) {
+  return (
+    <>
+      <ParallaxTransitionLayer
+        factor={factor}
+        progress={
+          (FOREST_MARSH_ZONE.terrainIndex + 0.5) / TERRAIN_SEQUENCE.length
+        }
+        layer={FOREST_MARSH_ZONE.midground}
+      />
+      <ParallaxTransitionLayer
+        factor={factor}
+        progress={MOUNTAIN_WASTES_ZONE.progress}
+        layer={MOUNTAIN_WASTES_ZONE.midground}
+      />
+    </>
+  );
+}
+
+export function ParallaxTransitionDetails({ factor }: { factor: number }) {
+  return (
+    <ParallaxTransitionLayer
+      factor={factor}
+      progress={
+        (FOREST_MARSH_ZONE.terrainIndex + 0.5) / TERRAIN_SEQUENCE.length
+      }
+      layer={FOREST_MARSH_ZONE.detail}
+    />
+  );
+}
+
+export function ParallaxTransitionForeground({ factor }: { factor: number }) {
+  const forest = usePaintedAsset(FOREST_MARSH_ZONE.foreground[0].url, true);
+  const transition = usePaintedAsset(FOREST_MARSH_ZONE.foreground[1].url, true);
+  const marsh = usePaintedAsset(FOREST_MARSH_ZONE.foreground[2].url, true);
+  const textures = [forest, transition, marsh];
+  const refs = useRef<Array<Sprite | null>>([]);
+
+  useTick(() => {
+    const zoneCenter =
+      (FOREST_MARSH_ZONE.terrainIndex + 0.5) * TERRAIN_TILE_WIDTH;
+
+    refs.current.forEach((sprite, index) => {
+      if (!sprite) return;
+      const placement = FOREST_MARSH_ZONE.foreground[index];
+      const worldX = zoneCenter + placement.offset * TERRAIN_TILE_WIDTH;
+      const screenX = (worldX - scene.camera.x) * factor;
+
+      sprite.visible =
+        screenX > -placement.width &&
+        screenX < scene.camera.viewW + placement.width;
+      sprite.x = worldX * factor;
+      sprite.y = scene.camera.y * factor + scene.camera.viewH - 64;
+      sprite.width = placement.width;
+      sprite.height = placement.width;
+    });
+  });
+
+  return (
+    <pixiContainer alpha={0.94}>
+      {textures.map((texture, index) =>
+        texture ? (
+          <pixiSprite
+            key={FOREST_MARSH_ZONE.foreground[index].url}
+            ref={(node) => {
+              refs.current[index] = node;
+            }}
+            texture={texture}
+            anchor={{ x: 0.5, y: 1 }}
+          />
+        ) : null,
+      )}
+    </pixiContainer>
+  );
+}
+
+/**
+ * Surface nette et couvrante. Chaque module possède deux sockets latérales au même
+ * niveau ; seul son centre peut remonter. Les bords se touchent avec deux pixels de
+ * garde contre les fentes sous-pixel, sans superposer deux murs opaques.
+ */
+export function ParallaxGroundCover({ factor }: { factor: number }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const trackedIndex = useRef(0);
+  const activeIds = useMemo(() => {
+    const ids = new Set<GroundCoverId>();
+    for (let offset = -2; offset <= 2; offset += 1) {
+      const index = Math.max(
+        0,
+        Math.min(WORLD_MODULE_COUNT - 1, activeIndex + offset),
+      );
+      ids.add(GROUND_COVER_SEQUENCE[index]);
+    }
+    return ids;
+  }, [activeIndex]);
+  const textures = useGroundCoverTextures(activeIds);
+  const sprites = useRef<Array<Sprite | null>>([]);
+
+  useTick(() => {
+    const cameraCenter = scene.camera.x + scene.camera.viewW * 0.5;
+    const nextIndex = Math.max(
+      0,
+      Math.min(
+        WORLD_MODULE_COUNT - 1,
+        Math.floor(cameraCenter / TERRAIN_TILE_WIDTH),
+      ),
+    );
+    if (nextIndex !== trackedIndex.current) {
+      trackedIndex.current = nextIndex;
+      setActiveIndex(nextIndex);
+    }
+
+    const width = TERRAIN_TILE_WIDTH * factor + 48;
+    const height = width / 1.5;
+    const visibleLeft = scene.camera.x * factor - width;
+    const visibleRight = visibleLeft + scene.camera.viewW + width * 2;
+
+    sprites.current.forEach((sprite, index) => {
+      if (!sprite) return;
+      const placement = GROUND_COVER_PLACEMENTS[index];
+      const definition = GROUND_COVER[placement.id];
+      const worldX = (placement.moduleIndex + 0.5) * TERRAIN_TILE_WIDTH;
+      const socketWorldY = surfaceAt(
+        placement.moduleIndex * TERRAIN_TILE_WIDTH,
+      );
+      const center = worldX * factor;
+      const left = center - width * 0.5;
+      sprite.visible = left + width > visibleLeft && left < visibleRight;
+      if (!sprite.visible) return;
+
+      sprite.width = width;
+      sprite.height = height;
+      const mirror = !definition.directional && index % 2 === 1;
+      sprite.scale.x = Math.abs(sprite.scale.x) * (mirror ? -1 : 1);
+      sprite.x = center;
+      sprite.y =
+        socketWorldY * factor + 24 - definition.socket * height;
+    });
+  });
+
+  return (
+    <pixiContainer>
+      {GROUND_COVER_PLACEMENTS.map((placement, index) => {
+        const texture = textures[placement.id];
+        return texture ? (
+          <pixiSprite
+            key={`${placement.moduleIndex}-${placement.id}`}
+            ref={(node) => {
+              sprites.current[index] = node;
+            }}
+            texture={texture}
+            anchor={{ x: 0.5, y: 0 }}
+          />
+        ) : null;
+      })}
+    </pixiContainer>
+  );
+}
+
+/** Branches proches préfloutées : rares, ancrées hors cadre, jamais flottantes. */
+export function ParallaxNearForeground({ factor }: { factor: number }) {
   const textures = useForegroundTextures();
   const root = useRef<Container>(null);
   const sprites = useRef<Array<Sprite | null>>([]);
 
   useTick((ticker) => {
-    const maxWidth = 980;
+    const maxWidth = 840;
     const visibleLeft = scene.camera.x * factor - maxWidth;
     const visibleRight = visibleLeft + scene.camera.viewW + maxWidth * 2;
     const breathe = Math.sin(ticker.lastTime * 0.0007) * 2.2;
 
-    if (root.current) root.current.alpha = 0.9;
+    if (root.current) root.current.alpha = 0.48;
 
     sprites.current.forEach((sprite, index) => {
       if (!sprite) return;
-      const placement = FOREGROUND_PLACEMENTS[index];
+      const placement = NEAR_FOREGROUND_PLACEMENTS[index];
       const definition = FOREGROUND[placement.id];
-      const width = 820 + (index % 3) * 60;
-      const height = width / 1.5;
+      const width = placement.width;
+      const height = width / definition.aspect;
       const center = placement.progress * WORLD_LENGTH * factor;
       const left = center - width * 0.5;
       sprite.visible = left + width > visibleLeft && left < visibleRight;
@@ -698,16 +1056,19 @@ export function ParallaxForeground({ factor }: { factor: number }) {
       sprite.height = height;
       sprite.scale.x = Math.abs(sprite.scale.x) * (placement.mirror ? -1 : 1);
       sprite.x = placement.mirror ? center + width * 0.5 : left;
-      // Les îlots ont des marges transparentes différentes. Leur base peinte,
-      // et non le bord du fichier, vient se poser exactement au bas du monde.
       sprite.y =
-        VIEW.height + 40 - height * definition.contentBase + breathe;
+        scene.camera.y * factor +
+        scene.camera.viewH +
+        80 -
+        height * definition.contentBase +
+        (placement.y ?? 0) +
+        breathe;
     });
   });
 
   return (
     <pixiContainer ref={root}>
-      {FOREGROUND_PLACEMENTS.map((placement, index) => {
+      {NEAR_FOREGROUND_PLACEMENTS.map((placement, index) => {
         const texture = textures[placement.id];
         return texture ? (
           <pixiSprite

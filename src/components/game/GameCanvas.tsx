@@ -21,19 +21,23 @@ import {
   AnimatedLandmarks,
   AtmosphericMotes,
   ParallaxBackdrop,
-  ParallaxForeground,
+  ParallaxGroundCover,
   ParallaxGround,
-  ParallaxGroundOverlays,
+  ParallaxNearForeground,
+  ParallaxTransitionDetails,
+  ParallaxTransitionMidground,
 } from "./ParallaxWorld";
 import "./extendPixi";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
-const REST_SURFACE = 556;
+const REST_SURFACE = 628;
 
 /** Le personnage suivi se tient à cette fraction de la largeur visible. */
 const FOLLOW_ANCHOR = 0.36;
 const MIDGROUND_FACTOR = 0.34;
-const FOREGROUND_FACTOR = 1.12;
+const TRANSITION_MID_FACTOR = 0.76;
+const TRANSITION_DETAIL_FACTOR = 0.9;
+const NEAR_FOREGROUND_FACTOR = 1.12;
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -78,7 +82,7 @@ function CameraRig({
     camera.viewW = width / camera.scale;
     camera.viewH = height / camera.scale;
     camera.screenOffsetY =
-      aspect < 0.75 ? Math.max(0, (height - VIEW.height * baseScale) * 0.32) : 0;
+      aspect < 0.75 ? Math.max(0, (height - VIEW.height * baseScale) * 0.56) : 0;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
@@ -174,7 +178,7 @@ function WorldScene({
       <Sky />
 
       <Layer factor={LAYERS.far}>
-        <pixiContainer alpha={0.42}>
+        <pixiContainer alpha={0.18}>
           <RidgeLayer
             factor={LAYERS.far}
             ridge={farRidgeY}
@@ -188,11 +192,19 @@ function WorldScene({
         <ParallaxBackdrop factor={MIDGROUND_FACTOR} />
       </Layer>
 
+      <Layer factor={TRANSITION_MID_FACTOR}>
+        <ParallaxTransitionMidground factor={TRANSITION_MID_FACTOR} />
+      </Layer>
+
+      <Layer factor={TRANSITION_DETAIL_FACTOR}>
+        <ParallaxTransitionDetails factor={TRANSITION_DETAIL_FACTOR} />
+      </Layer>
+
       <AtmosphericMotes />
 
       <Layer factor={1}>
         <ParallaxGround />
-        <ParallaxGroundOverlays />
+        <ParallaxGroundCover factor={1} />
         <AnimatedLandmarks />
         <JourneyMarkers />
       </Layer>
@@ -210,8 +222,8 @@ function WorldScene({
         ))}
       </Layer>
 
-      <Layer factor={FOREGROUND_FACTOR}>
-        <ParallaxForeground factor={FOREGROUND_FACTOR} />
+      <Layer factor={NEAR_FOREGROUND_FACTOR}>
+        <ParallaxNearForeground factor={NEAR_FOREGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1}>

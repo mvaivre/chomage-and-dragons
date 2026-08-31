@@ -215,13 +215,150 @@ function featherHorizontalEdges(texture: Texture, feather: number): Texture {
   return feathered;
 }
 
+/**
+ * Découpe uniquement l'entrée d'une tuile avec une lisière irrégulière. La tuile
+ * précédente reste opaque sous le recouvrement : on masque une couture sans créer
+ * de fondu bilatéral ni de bande verticale translucide.
+ */
+function featherOrganicLeftEdge(texture: Texture, feather: number): Texture {
+  const resource = texture.source.resource as CanvasImageSource | undefined;
+  if (!resource) return texture;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(texture.frame.width);
+  canvas.height = Math.round(texture.frame.height);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return texture;
+
+  ctx.drawImage(
+    resource,
+    texture.frame.x,
+    texture.frame.y,
+    texture.frame.width,
+    texture.frame.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = frame.data;
+  const edgeWidth = Math.max(4, Math.min(feather, canvas.width / 3));
+
+  for (let y = 0; y < canvas.height; y++) {
+    const irregularity =
+      0.5 +
+      Math.sin(y * 0.061) * 0.18 +
+      Math.sin(y * 0.173 + 1.7) * 0.11 +
+      Math.sin(y * 0.419 + 0.4) * 0.055;
+    const boundary = edgeWidth * Math.max(0.15, Math.min(0.85, irregularity));
+    for (let x = 0; x < edgeWidth; x++) {
+      const coverage = Math.max(0, Math.min(1, (x - boundary + 2) / 4));
+      if (coverage >= 1) continue;
+      const alpha = (y * canvas.width + x) * 4 + 3;
+      pixels[alpha] = Math.round(pixels[alpha] * coverage);
+    }
+  }
+
+  ctx.putImageData(frame, 0, 0);
+  const feathered = Texture.from(canvas);
+  feathered.source.scaleMode = "linear";
+  return feathered;
+}
+
+/**
+ * Refuse une tuile couvrante dont les deux raccords latéraux ne commencent pas
+ * sur la même ligne. La mesure se fait après détourage mais avant le fondu des
+ * bords : le fondu ne peut donc pas masquer une géométrie de couture invalide.
+ */
+function hasAlignedSideSockets(texture: Texture, tolerance: number): boolean {
+  const resource = texture.source.resource as CanvasImageSource | undefined;
+  if (!resource) return false;
+
+  const width = Math.round(texture.frame.width);
+  const height = Math.round(texture.frame.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return false;
+
+  ctx.drawImage(
+    resource,
+    texture.frame.x,
+    texture.frame.y,
+    texture.frame.width,
+    texture.frame.height,
+    0,
+    0,
+    width,
+    height,
+  );
+  const pixels = ctx.getImageData(0, 0, width, height).data;
+  const firstOpaqueY = (x: number) => {
+    for (let y = 0; y < height; y += 1) {
+      if (pixels[(y * width + x) * 4 + 3] >= 128) return y;
+    }
+    return -1;
+  };
+
+  const left = firstOpaqueY(0);
+  const right = firstOpaqueY(width - 1);
+  const bottomLeft = pixels[((height - 1) * width) * 4 + 3];
+  const bottomCenter =
+    pixels[((height - 1) * width + Math.floor(width / 2)) * 4 + 3];
+  const bottomRight = pixels[((height - 1) * width + width - 1) * 4 + 3];
+
+  return (
+    left >= 0 &&
+    right >= 0 &&
+    Math.abs(left - right) <= tolerance &&
+    bottomLeft >= 128 &&
+    bottomCenter >= 128 &&
+    bottomRight >= 128
+  );
+}
+
+/** Préfloute une texture une seule fois au chargement, sans filtre GPU par frame. */
+function blurTexture(texture: Texture, radius: number): Texture {
+  const resource = texture.source.resource as CanvasImageSource | undefined;
+  if (!resource) return texture;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(texture.frame.width);
+  canvas.height = Math.round(texture.frame.height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return texture;
+
+  ctx.filter = `blur(${radius}px)`;
+  ctx.drawImage(
+    resource,
+    texture.frame.x,
+    texture.frame.y,
+    texture.frame.width,
+    texture.frame.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+  ctx.filter = "none";
+
+  const blurred = Texture.from(canvas);
+  blurred.source.scaleMode = "linear";
+  return blurred;
+}
+
 function loadImage(
   url: string,
   chromaKey: boolean,
   preserveTopLeft = false,
   horizontalFeather = 0,
+  blurRadius = 0,
+  sideSocketTolerance = 0,
+  edgeStyle: "smooth" | "organic-left" = "smooth",
 ): Promise<Texture | null> {
-  const key = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}`;
+  const key = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}-${edgeStyle}:blur-${blurRadius}:socket-${sideSocketTolerance}`;
   const pending = PENDING.get(key);
   if (pending) return pending;
 
@@ -232,16 +369,36 @@ function loadImage(
         let texture = chromaKey
           ? keyOut(image, preserveTopLeft)
           : Texture.from(image);
-        if (horizontalFeather > 0) {
-          texture = featherHorizontalEdges(texture, horizontalFeather);
+        if (
+          sideSocketTolerance > 0 &&
+          !hasAlignedSideSockets(texture, sideSocketTolerance)
+        ) {
+          console.error(
+            `[world] Tuile rejetée : raccords latéraux non alignés (${url})`,
+          );
+          PENDING.delete(key);
+          resolve(null);
+          return;
         }
+        if (horizontalFeather > 0) {
+          texture =
+            edgeStyle === "organic-left"
+              ? featherOrganicLeftEdge(texture, horizontalFeather)
+              : featherHorizontalEdges(texture, horizontalFeather);
+        }
+        if (blurRadius > 0) texture = blurTexture(texture, blurRadius);
         texture.source.scaleMode = "linear";
+        PENDING.delete(key);
         resolve(texture);
       } catch {
+        PENDING.delete(key);
         resolve(null);
       }
     };
-    image.onerror = () => resolve(null);
+    image.onerror = () => {
+      PENDING.delete(key);
+      resolve(null);
+    };
     image.src = url;
   });
 
@@ -417,25 +574,54 @@ export function usePaintedAsset(
   preserveTopLeft = false,
   enabled = true,
   horizontalFeather = 0,
+  blurRadius = 0,
+  sideSocketTolerance = 0,
+  cacheResult = true,
+  edgeStyle: "smooth" | "organic-left" = "smooth",
 ): Texture | null {
-  const cacheKey = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}`;
+  const cacheKey = `${url}:${chromaKey ? "key" : "alpha"}:${preserveTopLeft ? "keep-tl" : "all"}:feather-${horizontalFeather}-${edgeStyle}:blur-${blurRadius}:socket-${sideSocketTolerance}`;
   const [texture, setTexture] = useState<Texture | null>(
-    () => ASSET_CACHE.get(cacheKey) ?? null,
+    () => (cacheResult ? (ASSET_CACHE.get(cacheKey) ?? null) : null),
   );
 
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    loadImage(url, chromaKey, preserveTopLeft, horizontalFeather).then((result) => {
-      ASSET_CACHE.set(cacheKey, result);
+    let transientTexture: Texture | null = null;
+    loadImage(
+      url,
+      chromaKey,
+      preserveTopLeft,
+      horizontalFeather,
+      blurRadius,
+      sideSocketTolerance,
+      edgeStyle,
+    ).then((result) => {
+      if (cacheResult) ASSET_CACHE.set(cacheKey, result);
+      else if (!alive) {
+        if (result) result.destroy(true);
+        return;
+      } else transientTexture = result;
       if (alive) setTexture(result);
     });
     return () => {
       alive = false;
+      if (transientTexture) transientTexture.destroy(true);
     };
-  }, [cacheKey, chromaKey, enabled, horizontalFeather, preserveTopLeft, url]);
+  }, [
+    blurRadius,
+    cacheResult,
+    cacheKey,
+    chromaKey,
+    enabled,
+    edgeStyle,
+    horizontalFeather,
+    preserveTopLeft,
+    sideSocketTolerance,
+    url,
+  ]);
 
-  return texture;
+  return enabled ? texture : null;
 }
 
 /** Texture de terrain avec une couture horizontale étroite et réutilisable. */

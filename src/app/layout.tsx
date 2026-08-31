@@ -14,7 +14,7 @@ const garamond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Louchômage & Dragons",
+  title: "Chômage & Dragons",
   description:
     "Chaque tentative fait avancer. De la Plaine de la Poisse à la Taverne du Triomphe.",
 };

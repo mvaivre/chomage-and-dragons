@@ -13,7 +13,7 @@ import {
   WORLD_LENGTH,
 } from "@/lib/game/world";
 import { scene } from "./scene";
-import { usePaintedAsset } from "./sprites";
+import { atlasFrames, usePaintedAsset } from "./sprites";
 
 /**
  * Le premier plan : la terre foulée par les personnages, le ponton du lac, la
@@ -315,7 +315,8 @@ function Waterfall() {
 
 /** Coffres peints jalonnant la route, tous issus de la même texture GPU. */
 export function JourneyMarkers() {
-  const chest = usePaintedAsset("/art/runtime/chest.webp", true);
+  const sheet = usePaintedAsset("/art/runtime/chest-opening-v2.webp?v=1", true);
+  const chest = sheet ? atlasFrames(sheet, 4, 1)[0] : null;
 
   if (!chest) return null;
 
@@ -330,11 +331,11 @@ export function JourneyMarkers() {
           <pixiSprite
             key={step}
             texture={chest}
-            anchor={{ x: 0.5, y: 1 }}
+            anchor={{ x: 0.5, y: 0.8 }}
             x={markerX}
-            y={surfaceAt(markerX) + 8}
-            width={84}
-            height={84}
+            y={surfaceAt(markerX) + 6}
+            width={112}
+            height={168}
           />
         );
       })}

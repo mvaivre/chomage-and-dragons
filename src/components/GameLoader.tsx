@@ -11,7 +11,7 @@ const Game = dynamic(() => import("./Game").then((m) => m.Game), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-ink-deep">
-      <p className="engrave animate-pulse text-sm">Louchômage &amp; Dragons</p>
+      <p className="engrave animate-pulse text-sm">Chômage &amp; Dragons</p>
     </div>
   ),
 });

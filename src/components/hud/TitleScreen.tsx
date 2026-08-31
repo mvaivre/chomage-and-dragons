@@ -36,7 +36,7 @@ export function TitleScreen({
         <header className="rise text-center">
           <p className="engrave text-xs opacity-70">{SEASON.label}</p>
           <h1 className="engrave mt-2 text-4xl leading-[1.15] sm:text-6xl">
-            Louchômage
+            Chômage
             <span className="mx-3 text-gold opacity-80">&</span>
             Dragons
           </h1>

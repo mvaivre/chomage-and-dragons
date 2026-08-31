@@ -1,4 +1,4 @@
-# 🧙 Louchômage — Donjons & Refus
+# 🧙 Chômage & Dragons — Donjons & Refus
 
 Jeu web humoristique entre ami·es : **plus on se fait recaler, plus on avance.**
 Chaque candidature, chaque refus fait progresser ton personnage sur une carte

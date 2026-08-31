@@ -11,15 +11,12 @@ export const SEASON = {
   label: "Saison 2026",
 } as const;
 
-/**
- * Points par action. `entretien` reste en discussion (−3 ou +3) : le −3 crée la seule
- * vraie tension du jeu, puisque le rejet après entretien rapporte +10 derrière.
- */
+/** Points par action, indépendants du nombre de pas parcourus. */
 export const POINTS = {
   candidature: 1,
-  refus: 3,
+  refus: 2,
   entretien: -3,
-  rejetApresEntretien: 10,
+  rejetApresEntretien: 5,
   embauche: 0,
 } as const;
 

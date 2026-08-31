@@ -1,5 +1,5 @@
 /**
- * Le monde de Louchômage & Dragons : une longue bande horizontale traversée de
+ * Le monde de Chômage & Dragons : une longue bande horizontale traversée de
  * gauche à droite, vue de côté.
  *
  * Tout est exprimé en « unités monde », qui sont les pixels de la résolution de
@@ -14,7 +14,12 @@ export const VIEW = { width: 1280, height: 720 } as const;
  * Longueur totale du voyage. Un seul point représente maintenant un vrai morceau
  * de pays, assez long pour lire le déplacement et découvrir plusieurs détails.
  */
-export const WORLD_LENGTH = 32000;
+/**
+ * Le monde visuel est composé de 21 modules de 720 unités. Les bitmaps source
+ * font 1536 px de large : ils sont donc toujours réduits, jamais agrandis.
+ */
+export const WORLD_LENGTH = 15120;
+export const WORLD_MODULE_COUNT = 21;
 
 export interface BiomePalette {
   /** Dégradé du ciel, du haut vers l'horizon. */
@@ -59,7 +64,7 @@ export const BIOMES: Biome[] = [
     short: "Plaine",
     from: 0,
     to: 0.11,
-    base: 552,
+    base: 624,
     amp: 4,
     palette: {
       sky: [0x79add2, 0xf0d9a5],
@@ -77,7 +82,7 @@ export const BIOMES: Biome[] = [
     short: "Bois",
     from: 0.11,
     to: 0.24,
-    base: 552,
+    base: 624,
     amp: 5,
     palette: {
       sky: [0x7fb4d4, 0xdce9c8],
@@ -95,7 +100,7 @@ export const BIOMES: Biome[] = [
     short: "Marais",
     from: 0.24,
     to: 0.37,
-    base: 554,
+    base: 624,
     amp: 4,
     palette: {
       sky: [0x93aa9b, 0xcdc6a4],
@@ -113,7 +118,7 @@ export const BIOMES: Biome[] = [
     short: "Pont",
     from: 0.37,
     to: 0.49,
-    base: 552,
+    base: 624,
     amp: 1,
     palette: {
       sky: [0x86b2d6, 0xdfeaf2],
@@ -131,7 +136,7 @@ export const BIOMES: Biome[] = [
     short: "Les Larmes",
     from: 0.49,
     to: 0.61,
-    base: 550,
+    base: 624,
     amp: 4,
     palette: {
       sky: [0x668eb7, 0xd8e8ed],
@@ -149,7 +154,7 @@ export const BIOMES: Biome[] = [
     short: "Mont",
     from: 0.61,
     to: 0.73,
-    base: 548,
+    base: 624,
     amp: 5,
     palette: {
       sky: [0x7099c0, 0xe4edf4],
@@ -167,7 +172,7 @@ export const BIOMES: Biome[] = [
     short: "Désert",
     from: 0.73,
     to: 0.87,
-    base: 552,
+    base: 624,
     amp: 5,
     palette: {
       sky: [0xe4ae64, 0xf7e5b4],
@@ -185,7 +190,7 @@ export const BIOMES: Biome[] = [
     short: "Triomphe",
     from: 0.87,
     to: 1,
-    base: 552,
+    base: 624,
     amp: 3,
     palette: {
       sky: [0x2c3a5a, 0x6d5b74],
@@ -301,8 +306,11 @@ export function surfaceAt(worldX: number): number {
   const { a, b, t } = biomeMix(worldX);
   const base = t === 0 ? a.base : lerp(a.base, b.base, t);
   const amp = t === 0 ? a.amp : lerp(a.amp, b.amp, t);
+  const moduleLength = WORLD_LENGTH / WORLD_MODULE_COUNT;
+  const local = ((worldX % moduleLength) + moduleLength) % moduleLength;
+  const seamEnvelope = Math.sin((local / moduleLength) * Math.PI) ** 2;
 
-  return base + wave(worldX) * amp;
+  return base + wave(worldX) * amp * seamEnvelope;
 }
 
 /** Pente de la surface, pour incliner les personnages et les accessoires. */

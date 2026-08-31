@@ -1,4 +1,4 @@
-# LOUCHÔMAGE — Décisions techniques
+# CHÔMAGE & DRAGONS — Décisions techniques
 
 > Journal des choix techniques et de leurs raisons.
 > Vérifié en août 2026. Les tiers gratuits changent souvent : revérifier avant de brancher.
