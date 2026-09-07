@@ -186,6 +186,14 @@ export function Game() {
           handleRewardDone();
           return;
         }
+        if (registerOpen) {
+          setRegisterOpen(false);
+          return;
+        }
+        if (overview) {
+          setOverview(false);
+          return;
+        }
         if (awaitingTravel) return;
         if (notice) {
           setNotice(null);
@@ -200,7 +208,7 @@ export function Game() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, rewardMoment, shotInbox]);
+  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox]);
 
   useEffect(
     () => () => {
@@ -441,7 +449,7 @@ export function Game() {
       <div className="vignette absolute inset-0 z-[3]" />
       <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
 
-      {DEV_BUILD ? (
+      {DEV_BUILD && !overview ? (
         <aside className="dev-explorer" data-open={devExplore}>
           <button
             type="button"
@@ -494,9 +502,9 @@ export function Game() {
         </aside>
       ) : null}
 
-      {me ? (
+      {me && overview ? (
         <CompanyMap
-          open={overview}
+          onClose={() => setOverview(false)}
           players={players}
           meId={identity}
           monthStandings={monthStandings}
@@ -506,7 +514,7 @@ export function Game() {
       ) : null}
 
       {me ? (
-        <div className="hud-layer pointer-events-none absolute inset-0 z-10">
+        <div hidden={overview} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
               <QuestHud me={me} seasonRank={seasonRank} />
@@ -524,7 +532,7 @@ export function Game() {
                   onClick={() => setOverview((value) => !value)}
                 >
                   <span aria-hidden>◉</span>
-                  <span>{overview ? "Revenir à moi" : "Compagnie"}</span>
+                  <span>Compagnie</span>
                   <kbd>V</kbd>
                 </button>
               </div>
@@ -635,7 +643,7 @@ function mapRouteY(progress: number): number {
 }
 
 interface CompanyMapProps {
-  open: boolean;
+  onClose: () => void;
   players: ReturnType<typeof useGame>["players"];
   meId: string | null;
   monthStandings: ReturnType<typeof useGame>["monthStandings"];
@@ -645,48 +653,60 @@ interface CompanyMapProps {
 
 /** Carte d'interface : elle se fond sur le jeu sans toucher à la caméra Pixi. */
 function CompanyMap({
-  open,
+  onClose,
   players,
   meId,
   monthStandings,
   monthKeyNow,
   onOpenLeaderboard,
 }: CompanyMapProps) {
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeButton.current?.focus();
+    return () => {
+      requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".company-camera")?.focus());
+    };
+  }, []);
   return (
-    <section
-      className={`company-map-view absolute inset-0 z-[6] ${open ? "is-open" : ""}`}
-      aria-hidden={!open}
-    >
-      <div className="company-map-view__map">
-        <div
-          className="company-map-view__painting"
-          role="img"
-          aria-label="Carte médiévale du voyage de la compagnie"
-        />
-        <div className="company-map-view__pins" aria-label="Position des joueurs">
-          {players.map((player, index) => (
+    <section className="company-map-view is-open absolute inset-0 z-20" role="dialog" aria-modal="true" aria-labelledby="company-map-title">
+      <header className="company-map-view__header">
+        <h2 id="company-map-title">La compagnie</h2>
+        <button ref={closeButton} type="button" className="company-map-view__close" aria-label="Fermer la carte" title="Fermer la carte (Échap)" onClick={onClose}>×</button>
+      </header>
+      <div className="company-map-view__scroll">
+        <div className="company-map-view__content">
+          <div className="company-map-view__map">
             <div
-              key={player.id}
-              className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
-              style={{
-                left: `${16 + (player.position % 1 || (player.position > 0 ? 1 : 0)) * 68 + ((index % 3) - 1) * 1.25}%`,
-                top: `${mapRouteY(player.position % 1 || (player.position > 0 ? 1 : 0)) + ((index % 3) - 1) * 3.2}%`,
-                zIndex: player.id === meId ? 20 : index + 1,
-              }}
-            >
-              <span>{player.name.slice(0, 1).toUpperCase()}</span>
-              <strong>{player.name} · {player.journeySteps} pas</strong>
+              className="company-map-view__painting"
+              role="img"
+              aria-label="Carte médiévale du voyage de la compagnie"
+            />
+            <div className="company-map-view__pins" aria-label="Position des joueurs">
+              {players.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
+                  style={{
+                    left: `${16 + (player.position % 1 || (player.position > 0 ? 1 : 0)) * 68 + ((index % 3) - 1) * 1.25}%`,
+                    top: `${mapRouteY(player.position % 1 || (player.position > 0 ? 1 : 0)) + ((index % 3) - 1) * 3.2}%`,
+                    zIndex: player.id === meId ? 20 : index + 1,
+                  }}
+                >
+                  <span>{player.name.slice(0, 1).toUpperCase()}</span>
+                  <strong>{player.name} · {player.journeySteps} pas</strong>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <OverviewLeaderboard
+            players={players}
+            monthStandings={monthStandings}
+            monthKeyNow={monthKeyNow}
+            meId={meId}
+            onOpen={onOpenLeaderboard}
+          />
         </div>
       </div>
-      <OverviewLeaderboard
-        players={players}
-        monthStandings={monthStandings}
-        monthKeyNow={monthKeyNow}
-        meId={meId}
-        onOpen={onOpenLeaderboard}
-      />
     </section>
   );
 }
