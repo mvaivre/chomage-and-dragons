@@ -34,7 +34,7 @@ import {
 import { stepsFor } from "@/lib/game/scoring";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
-import { racePosition } from "@/lib/game/progress";
+import { hiredPosition, racePosition } from "@/lib/game/progress";
 import {
   BIOMES,
   biomeAt,
@@ -293,7 +293,7 @@ export function Game() {
       const afterSteps = Math.max(0, me.journeySteps + stepsFor(kind));
       const afterChest = Math.floor(afterSteps / STEPS_PER_LEVEL);
       const beforeZone = biomeAt(worldXFor(me.position));
-      const afterPosition = kind === "embauche" ? 1 : racePosition(afterSteps);
+      const afterPosition = kind === "embauche" ? hiredPosition(afterSteps) : racePosition(afterSteps);
       const afterZone = biomeAt(worldXFor(afterPosition));
 
       const moments: RewardMoment[] = [
@@ -304,7 +304,7 @@ export function Game() {
           steps: stepsFor(kind),
           points: POINTS[kind],
           progress:
-            kind === "embauche" ? 1 : Math.min(1, afterSteps / JOURNEY_TARGET),
+            kind === "embauche" ? 1 : (afterSteps > 0 ? ((afterSteps - 1) % JOURNEY_TARGET + 1) / JOURNEY_TARGET : 0),
           place: afterZone.name,
           discoveredPlace: beforeZone.id !== afterZone.id,
         },
@@ -524,7 +524,7 @@ export function Game() {
                   onClick={() => setOverview((value) => !value)}
                 >
                   <span aria-hidden>◉</span>
-                  <span>{overview ? "Revenir à moi" : "Voir la compagnie"}</span>
+                  <span>{overview ? "Revenir à moi" : "Compagnie"}</span>
                   <kbd>V</kbd>
                 </button>
               </div>
@@ -669,13 +669,13 @@ function CompanyMap({
               key={player.id}
               className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
               style={{
-                left: `${16 + player.position * 68 + ((index % 3) - 1) * 1.25}%`,
-                top: `${mapRouteY(player.position) + ((index % 3) - 1) * 3.2}%`,
+                left: `${16 + (player.position % 1 || (player.position > 0 ? 1 : 0)) * 68 + ((index % 3) - 1) * 1.25}%`,
+                top: `${mapRouteY(player.position % 1 || (player.position > 0 ? 1 : 0)) + ((index % 3) - 1) * 3.2}%`,
                 zIndex: player.id === meId ? 20 : index + 1,
               }}
             >
               <span>{player.name.slice(0, 1).toUpperCase()}</span>
-              <strong>{player.name}</strong>
+              <strong>{player.name} · {player.journeySteps} pas</strong>
             </div>
           ))}
         </div>

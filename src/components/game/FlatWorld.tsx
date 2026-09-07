@@ -53,23 +53,30 @@ const WORLD_ART: Record<string, BiomeArt> = Object.fromEntries(
 );
 WORLD_ART.cascade.back = `${ART_ROOT}/cascade-back-v2.webp`;
 
-export function useLayerBiomes(factor: number, width: number): number[] {
-  const maskForCamera = () => BIOMES.reduce((mask, biome, index) => {
-    const center = ((biome.from + biome.to) * WORLD_LENGTH) / 2;
-    const x = parallaxX(center, scene.camera.x, scene.camera.viewW, factor);
-    const margin = width / 2 + 400;
-    return x > -margin && x < scene.camera.viewW + margin ? mask | (1 << index) : mask;
-  }, 0);
-  const [mask, setMask] = useState(maskForCamera);
-  const previous = useRef(mask);
-  useTick(() => {
-    const next = maskForCamera();
-    if (next !== previous.current) {
-      previous.current = next;
-      setMask(next);
+/** Only materialize the nearby copies of the itinerary, at each layer's depth. */
+export function useLayerBiomes(factor: number, width: number) {
+  const measure = () => {
+    const center = scene.camera.x + scene.camera.viewW / 2;
+    const reach = (scene.camera.viewW / 2 + width / 2 + 400) / factor;
+    const first = Math.max(0, Math.floor((center - reach) / WORLD_LENGTH));
+    const last = Math.max(0, Math.floor((center + reach) / WORLD_LENGTH));
+    const visible: number[] = [];
+    for (let cycle = first; cycle <= last; cycle++) {
+      BIOMES.forEach((biome, index) => {
+        const x = cycle * WORLD_LENGTH + (biome.from + biome.to) * WORLD_LENGTH / 2;
+        if (Math.abs(x - center) < reach) visible.push(cycle * BIOMES.length + index);
+      });
     }
+    return visible.join(",");
+  };
+  const [key, setKey] = useState(measure);
+  useTick(() => {
+    const next = measure();
+    if (next !== key) setKey(next);
   });
-  return useMemo(() => BIOMES.map((_, index) => index).filter(index => mask & (1 << index)), [mask]);
+  return useMemo(() => key ? key.split(",").map(Number).map(id => ({
+    index: id % BIOMES.length, offset: Math.floor(id / BIOMES.length) * WORLD_LENGTH,
+  })) : [], [key]);
 }
 
 function LayerSprite({
@@ -141,13 +148,13 @@ export function BiomeArtLayer({
 
   return (
     <pixiContainer>
-      {indices.flatMap((index) => {
+      {indices.flatMap(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
-        const center = ((biome.from + biome.to) * WORLD_LENGTH) / 2;
-        const offsets = index === 0 ? [-width * 0.8 / factor, 0] : index === BIOMES.length - 1 ? [width * 0.8 / factor, 0] : [0];
+        const center = cycleOffset + ((biome.from + biome.to) * WORLD_LENGTH) / 2;
+        const offsets = index === 0 && cycleOffset === 0 ? [-width * 0.8 / factor, 0] : [0];
         return offsets.map(offset => (
           <LayerSprite
-            key={`${channel}-${biome.id}-${offset}`}
+            key={`${channel}-${cycleOffset}-${biome.id}-${offset}`}
             url={WORLD_ART[biome.id][channel]}
             factor={factor}
             bottom={bottom}
@@ -168,12 +175,12 @@ export function MidgroundLayer({ factor }: { factor: number }) {
 
   return (
     <pixiContainer>
-      {indices.map((index) => {
+      {indices.map(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
-        const center = ((biome.from + biome.to) * WORLD_LENGTH) / 2;
+        const center = cycleOffset + ((biome.from + biome.to) * WORLD_LENGTH) / 2;
         return (
           <LayerSprite
-            key={`mid-${biome.id}`}
+            key={`mid-${cycleOffset}-${biome.id}`}
             url={WORLD_ART[biome.id].mid}
             factor={factor}
             bottom={GROUND_Y + 100}
@@ -192,13 +199,13 @@ const TRANSITION_ART = Array.from(
   (_, index) => `${ART_ROOT}/transition-${index + 1}.webp`,
 );
 
-function TransitionLandmark({ boundaryIndex }: { boundaryIndex: number }) {
+function TransitionLandmark({ boundaryIndex, offset }: { boundaryIndex: number; offset: number }) {
   const texture = useDirectTexture(TRANSITION_ART[boundaryIndex]);
   if (!texture) return null;
 
   const height = boundaryIndex === 5 ? 460 : 400;
   const width = (height * texture.width) / texture.height;
-  const x = BIOMES[boundaryIndex].to * WORLD_LENGTH;
+  const x = offset + BIOMES[boundaryIndex].to * WORLD_LENGTH;
   return (
     <pixiSprite
       texture={texture}
@@ -215,15 +222,8 @@ function TransitionLandmark({ boundaryIndex }: { boundaryIndex: number }) {
 /** Landmark autonome derrière le joueur : il transforme la frontière en lieu. */
 export function TransitionLandmarks() {
   const indices = useLayerBiomes(1, 1800);
-  const boundaries = Array.from(new Set(indices.flatMap(index => [index - 1, index])))
-    .filter(index => index >= 0 && index < TRANSITION_ART.length);
-  return (
-    <pixiContainer>
-      {boundaries.map((boundaryIndex) => (
-        <TransitionLandmark key={boundaryIndex} boundaryIndex={boundaryIndex} />
-      ))}
-    </pixiContainer>
-  );
+  return <pixiContainer>{indices.filter(({ index }) => index < TRANSITION_ART.length)
+    .map(({ index, offset }) => <TransitionLandmark key={`${offset}-${index}`} boundaryIndex={index} offset={offset} />)}</pixiContainer>;
 }
 
 /**
@@ -232,11 +232,11 @@ export function TransitionLandmarks() {
  */
 const paintUnderworld = (g: Graphics) => {
   g.clear();
-  g.rect(-VIEW.width, GROUND_Y + 158, WORLD_LENGTH + VIEW.width * 2, WORLD_BOTTOM - GROUND_Y + 980).fill(
+  g.rect(0, GROUND_Y + 158, 2048, WORLD_BOTTOM - GROUND_Y + 980).fill(
     0x241d17,
   );
 
-  for (let x = -VIEW.width; x < WORLD_LENGTH + VIEW.width; x += 86) {
+  for (let x = 0; x < 2048; x += 86) {
     const y = GROUND_Y + 210 + ((x * 17) % 190 + 190) % 190;
     g.ellipse(x + 30, y, 20 + (Math.abs(x) % 19), 8).stroke({
       width: 2,
@@ -246,8 +246,8 @@ const paintUnderworld = (g: Graphics) => {
   }
 };
 
-function useStripTiles(tileWidth: number) {
-  const measure = () => visibleTiles(scene.camera.x, scene.camera.viewW, tileWidth, -VIEW.width);
+function useStripTiles(tileWidth: number, factor = 1) {
+  const measure = () => visibleTiles(scene.camera.x * factor - scene.camera.viewW * (1 - factor) / 2, scene.camera.viewW, tileWidth, -VIEW.width);
   const [range, setRange] = useState(measure);
   const previous = useRef(range);
   useTick(() => {
@@ -317,19 +317,22 @@ interface JourneyMarkersProps {
 }
 
 export function FlatJourneyMarkers({ journeySteps, pendingChestStep, activeChestX }: JourneyMarkersProps) {
-  const count = Math.floor(JOURNEY_TARGET / STEPS_PER_LEVEL);
-  return <pixiContainer>{Array.from({ length: count }, (_, index) => {
-    const step = (index + 1) * STEPS_PER_LEVEL;
+  const spacing = WORLD_LENGTH * STEPS_PER_LEVEL / JOURNEY_TARGET;
+  const indices = useStripTiles(spacing);
+  return <pixiContainer>{indices.map(index => {
+    const step = index * STEPS_PER_LEVEL;
+    if (step <= 0) return null;
     const x = chestXForStep(step, WORLD_LENGTH, JOURNEY_TARGET);
     if (activeChestX !== null && Math.abs(x - activeChestX) < 1) return null;
-    const pending = pendingChestStep !== null && Math.min(JOURNEY_TARGET, pendingChestStep) === step;
+    const pending = pendingChestStep !== null && pendingChestStep === step;
     return <JourneyChest key={step} x={x} y={surfaceAt(x) + 8} opened={journeySteps >= step && !pending} />;
   })}</pixiContainer>;
 }
 
 export function GroundLayer(props: JourneyMarkersProps) {
+  const tiles = useStripTiles(2048);
   return <pixiContainer>
-    <pixiGraphics draw={paintUnderworld} />
+    {tiles.map(index => <pixiGraphics key={index} x={-VIEW.width + index * 2048} draw={paintUnderworld} />)}
     <VergeStrip />
     <RoadStrip />
     <FlatJourneyMarkers {...props} />
@@ -345,13 +348,13 @@ export function NearForegroundLayer({ factor }: { factor: number }) {
 
   return (
     <pixiContainer>
-      {indices.flatMap((index) => {
+      {indices.flatMap(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
         const span = (biome.to - biome.from) * WORLD_LENGTH;
-        const start = biome.from * WORLD_LENGTH;
+        const start = cycleOffset + biome.from * WORLD_LENGTH;
         return [0.28, 0.78].map((ratio, occurrence) => (
           <LayerSprite
-            key={`front-${biome.id}-${occurrence}`}
+            key={`front-${cycleOffset}-${biome.id}-${occurrence}`}
             url={`${ART_ROOT}/ground-props.webp`}
             frame={index}
             factor={factor}
@@ -387,17 +390,22 @@ export function PaperMotes() {
 }
 
 /** Continuous opaque silhouettes support the cutout islands down to the road. */
-export function LandscapeBase({ factor, channel }: { factor: number; channel: "far" | "mid" }) {
+function LandscapeTile({ factor, channel, offset }: { factor: number; channel: "far" | "mid"; offset: number }) {
   const paint = useCallback((g: Graphics) => {
     g.clear();
     const step = 32;
     const ridge = (x: number) => GROUND_Y - (channel === "far" ? 90 : 15) + Math.sin(x * 0.008) * 18 + Math.sin(x * 0.021) * 7;
-    for (let x = -VIEW.width; x < WORLD_LENGTH * factor + VIEW.width; x += step) {
-      const palette = paletteAt(x / factor);
-      g.poly([x, ridge(x), x + step, ridge(x + step), x + step, WORLD_BOTTOM, x, WORLD_BOTTOM]).fill(
+    for (let x = 0; x < 2048; x += step) {
+      const palette = paletteAt((offset + x) / factor);
+      g.poly([x, ridge(offset + x), x + step, ridge(offset + x + step), x + step, WORLD_BOTTOM, x, WORLD_BOTTOM]).fill(
         mixColor(palette[channel], palette.sky[1], channel === "far" ? 0.32 : 0.08),
       );
     }
-  }, [factor, channel]);
-  return <pixiGraphics draw={paint} />;
+  }, [factor, channel, offset]);
+  return <pixiGraphics x={offset} draw={paint} />;
+}
+
+export function LandscapeBase({ factor, channel }: { factor: number; channel: "far" | "mid" }) {
+  const tiles = useStripTiles(2048, factor);
+  return <pixiContainer>{tiles.map(index => <LandscapeTile key={index} factor={factor} channel={channel} offset={-VIEW.width + index * 2048} />)}</pixiContainer>;
 }

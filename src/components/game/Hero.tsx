@@ -185,7 +185,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
     if (!travel.current && movementDelay.current === 0) {
       const next = travelQueue.current.shift();
       if (next && Math.abs(next.target - at.current) <= 0.5) {
-        // At the end of the road a new step still completes and can unlock a chest.
+        // A clamped step at zero still completes the action sequence.
         onTravelDone?.(player.id);
       } else if (next) {
         const direction = next.target >= at.current ? 1 : -1;
@@ -197,8 +197,6 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
           elapsed: 0,
         };
         lastDirection.current = direction;
-      } else if (next) {
-        onTravelDone?.(player.id);
       }
     }
 

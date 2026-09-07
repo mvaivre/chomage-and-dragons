@@ -22,17 +22,17 @@ export const POINTS = {
 
 /** Pas de voyage par action. Un entretien ramène trois cases en arrière. */
 export const JOURNEY_STEPS = {
-  candidature: 1,
-  refus: 1,
+  candidature: 2,
+  refus: 3,
   entretien: -3,
-  rejetApresEntretien: 10,
+  rejetApresEntretien: 6,
   embauche: 0,
 } as const;
 
 /** Un coffre et un nouveau rang tous les dix pas, quelle que soit l'action. */
 export const STEPS_PER_LEVEL = 10;
 
-/** Quatre-vingts pas pour traverser le monde : chaque petit échec change le paysage. */
+/** Quatre-vingts pas par traversée ; le voyage continue jusqu’à l’embauche. */
 export const JOURNEY_TARGET = 80;
 
 /** Titres allitératifs des rangs, sans supposer que quelqu'un décroche un entretien. */

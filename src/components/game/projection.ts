@@ -19,17 +19,16 @@ export function renderResolution(width: number, height: number, deviceRatio: num
 
 /** Every chest uses this position, including rewards earned after the finish. */
 export function chestXForStep(step: number, worldLength: number, journeyTarget: number): number {
-  const x = Math.max(0, Math.min(worldLength, step / journeyTarget * worldLength));
-  return x > worldLength - 220 ? x - 110 : x + 110;
+  return Math.max(0, step) / journeyTarget * worldLength + 110;
 }
 
 /** Keep the hero inside the clear window between the HUD and the action dock. */
 export function frameComposition(width: number, height: number, topInset: number, bottomInset: number, groundY: number) {
   const aspect = width / height;
   const compositionWidth = aspect < 0.75 ? 520 : aspect < 1.35 ? 960 : 1280;
-  const scale = Math.min(width / compositionWidth, height / 640);
   const dockTop = height - bottomInset;
   const available = Math.max(0, dockTop - topInset);
+  const scale = Math.min(width / compositionWidth, height / 640, Math.max(0.15, (available - 24) / 320));
   // Lane depth (48), name plate (38) and a physical gutter all remain visible.
   const clearance = 104 * scale + 12;
   const groundScreenY = Math.min(dockTop - clearance, topInset + available * 0.80);

@@ -129,9 +129,10 @@ victoire. Le skater roule et la fée bat des ailes au repos. Les petits habitant
 le chemin tamponnent, bâillent, picorent et volent ; six reflets suivent les cascades.
 Les atlas sont partagés, sans nouvelle texture à chaque pose.
 
-Les coffres statiques et animés utilisent `JourneyChest` et `chestXForStep`. Une étape
-gagnée après l’arrivée déclenche encore la fin du déplacement, même si la position ne
-change plus. Le coffre peut ainsi s’ouvrir et terminer sa récompense. Son état vidé
+Les coffres statiques et animés utilisent `JourneyChest` et `chestXForStep`. Le voyage continue au-delà des 80 pas : les paysages se répètent, avec uniquement
+les occurrences visibles chargées. La caméra, le sol et les coffres suivent la distance
+absolue ; chaque palier de dix pas possède son propre coffre. L’embauche mène à la
+prochaine taverne. Son état vidé
 reste au même emplacement. Les anciens dessins vectoriels des effets d’action ont
 été remplacés par les illustrations communes à l’interface (`lib/game/art.ts`).
 
@@ -159,3 +160,14 @@ Le build de production de cette seconde passe a été contrôlé à 320 × 568, 
 débordement de panneau ou de libellé, ni erreur console n’a été observé dans cet onglet.
 Le panorama 1920 × 900 et les effets sans mutation de sauvegarde ont été contrôlés
 avec les outils DEV. Les captures de cette passe sont dans `.codex/visual-qa/revision-2/`.
+
+
+### Parcours prolongé et lisibilité
+
+Barème de voyage : candidature +2, refus +3, entretien −3, rejet post-entretien +6.
+Le journal existant est recalculé avec ce barème ; les points restent indépendants.
+Les boutons affichent des textes et icônes agrandis ; sur petit écran, le libellé
+occupe une ligne complète au-dessus de l’icône et du nombre de pas. Le cadrage tient
+compte de l’espace restant entre les commandes, y compris sur écran court.
+Tests de régression : distances avant/après 80 et 160 pas, recul, embauche vers la
+prochaine taverne, coffres successifs et cadrage mobile.

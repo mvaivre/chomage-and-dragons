@@ -97,7 +97,7 @@ function CameraRig({
     const wanted = (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
       : scene.focus - camera.viewW * FOLLOW_ANCHOR) + scene.pan;
-    const maxX = Math.max(0, WORLD_LENGTH + 420 - camera.viewW);
+    const maxX = Math.max(0, Math.max(WORLD_LENGTH, scene.targetFocus + camera.viewW) + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
     const wantedY = (surfaceAt(scene.focus) - REST_SURFACE) * 0.45;

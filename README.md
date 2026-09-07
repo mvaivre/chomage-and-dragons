@@ -81,7 +81,7 @@ Prototype local. Fonctionne :
   éclair et personnage électrocuté ⚡😵, confettis et cocktail 🍸,
   LEGENDARY REJECTION 💀, grande célébration 🏆
 - l'**annulation** de la dernière action, pour le clic de trop
-- les **coffres** 🧰 aux paliers de 10 candidatures
+- les **coffres** 🧰 aux paliers de 10 pas
 - les **classements** : Saison (Légende du Chômage), Mois (Couronne du mois,
   remise à zéro le 1er) et Palmarès des couronnes passées
 - le **Scoreboard collectif** de la compagnie

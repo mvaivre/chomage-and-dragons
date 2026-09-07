@@ -211,18 +211,18 @@ export const BIOMES: Biome[] = [
 const BLEND = 320;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 /** Adoucit un 0→1 linéaire en une courbe sans angle aux extrémités. */
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
-/** Position de jeu (0 → 1) vers abscisse monde. */
+/** Distance de jeu (nombre de traversées) vers abscisse monde. */
 export function worldXFor(position: number): number {
-  return clamp01(position) * WORLD_LENGTH;
+  return Math.max(0, position) * WORLD_LENGTH;
 }
 
-/** Abscisse monde vers position de jeu. */
+/** Position dans l’itinéraire illustré répété, dans [0, 1]. */
 export function positionFor(worldX: number): number {
-  return clamp01(worldX / WORLD_LENGTH);
+  const x = Math.max(0, worldX);
+  return x > 0 && x % WORLD_LENGTH === 0 ? 1 : (x % WORLD_LENGTH) / WORLD_LENGTH;
 }
 
 const boundary = (index: number) => BIOMES[index].to * WORLD_LENGTH;
@@ -245,9 +245,10 @@ export function biomeMix(worldX: number): {
   b: Biome;
   t: number;
 } {
+  worldX = Math.max(0, worldX) % WORLD_LENGTH;
   const index = BIOMES.indexOf(biomeAt(worldX));
   const end = boundary(index);
-  const next = BIOMES[index + 1];
+  const next = BIOMES[(index + 1) % BIOMES.length];
 
   if (!next || worldX < end - BLEND) {
     return { a: BIOMES[index], b: BIOMES[index], t: 0 };

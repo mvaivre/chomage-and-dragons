@@ -1,14 +1,11 @@
 import { JOURNEY_TARGET } from "@/lib/config";
 
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
-
-/**
- * Position sur le chemin, dans [0, 1].
- *
- * Volontairement découplée du score : une action peut coûter des points mais ne
- * retire jamais l'effort accompli. Le calendrier ne déplace plus les personnages :
- * chaque mètre visible a été gagné par une vraie action.
- */
+/** Continuous distance, in traversals of the illustrated itinerary. */
 export function racePosition(steps: number): number {
-  return clamp01(steps / JOURNEY_TARGET);
+  return Math.max(0, steps) / JOURNEY_TARGET;
+}
+
+/** Hiring ends at the next tavern, never sends a veteran backwards. */
+export function hiredPosition(steps: number): number {
+  return Math.max(1, Math.ceil(racePosition(steps)));
 }

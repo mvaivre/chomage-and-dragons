@@ -64,11 +64,11 @@ function WaterGlints({ worldX, factor }: { worldX: number; factor: number }) {
 
 export function AmbientLife({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 1200);
-  return <pixiContainer>{indices.flatMap(index => {
+  return <pixiContainer>{indices.flatMap(({ index, offset }) => {
     const biome = BIOMES[index];
-    const start = biome.from * WORLD_LENGTH;
+    const start = offset + biome.from * WORLD_LENGTH;
     const span = (biome.to - biome.from) * WORLD_LENGTH;
     const kinds = index === 0 || index === 7 ? [0, 1, 2] : index >= 5 ? [1, 2] : [1, 2, 3];
-    return [biome.id === "cascade" ? <WaterGlints key="cascade-water" worldX={start + span * 0.5} factor={factor} /> : null, ...kinds.map(kind => <Resident key={`${index}-${kind}`} kind={kind} worldX={start + span * [0.35, 0.5, 0.72, 0.62][kind]} factor={factor} />)];
+    return [biome.id === "cascade" ? <WaterGlints key={`cascade-water-${offset}`} worldX={start + span * 0.5} factor={factor} /> : null, ...kinds.map(kind => <Resident key={`${offset}-${index}-${kind}`} kind={kind} worldX={start + span * [0.35, 0.5, 0.72, 0.62][kind]} factor={factor} />)];
   })}</pixiContainer>;
 }

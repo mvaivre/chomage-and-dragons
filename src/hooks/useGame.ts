@@ -12,7 +12,7 @@ import type {
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
-import { racePosition } from "@/lib/game/progress";
+import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeySteps, levelFromSteps } from "@/lib/game/scoring";
 import {
   collectiveTotals,
@@ -229,7 +229,7 @@ export function useGame() {
         level: levelFromSteps(steps),
         // Être engagé·e, c'est avoir atteint la taverne : le personnage s'y installe
         // et cesse d'avancer, sans rien perdre de ses points.
-        position: player.hiredAt ? 1 : racePosition(steps),
+        position: player.hiredAt ? hiredPosition(steps) : racePosition(steps),
         counts:
           standing?.counts ??
           ({

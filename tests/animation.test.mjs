@@ -17,21 +17,21 @@ test('all animation states address valid poses and movement has four distinct dr
 });
 
 test('lowest lane and name plate stay above the action dock in portrait, tall and landscape views', () => {
-  for (const [w, h, top, bottom] of [[320, 740, 170, 210], [390, 844, 175, 230], [900, 1400, 235, 275], [1280, 720, 200, 180], [1920, 900, 235, 210], [844, 390, 90, 100]]) {
+  for (const [w, h, top, bottom] of [[320, 568, 215, 220], [320, 740, 170, 210], [390, 844, 175, 230], [900, 1400, 235, 275], [1280, 720, 200, 180], [1920, 900, 235, 210], [844, 390, 90, 100]]) {
     const { scale, screenOffsetY } = frameComposition(w, h, top, bottom, 602);
     const feet = (602 + 48) * scale + screenOffsetY;
     const labelBottom = feet + 38 * scale;
     assert.ok(labelBottom + 12 <= h - bottom, `${w}×${h}: label overlaps dock`);
-    assert.ok(feet - 164 * scale > 0, `${w}×${h}: character is above the viewport`);
+    assert.ok(feet - (164 + 48) * scale > top, `${w}×${h}: character overlaps the HUD`);
   }
 });
 
-test('static and reward chests use bounded milestone locations, including steps after the finish', () => {
+test('chest milestones keep advancing after each itinerary traversal', () => {
   for (let steps = 10; steps <= 200; steps += 10) {
     const x = chestXForStep(steps, 15120, 80);
-    assert.ok(x > 0 && x < 15120);
+    assert.equal(x, steps / 80 * 15120 + 110);
   }
-  assert.equal(chestXForStep(90, 15120, 80), chestXForStep(80, 15120, 80));
+  assert.ok(chestXForStep(90, 15120, 80) > chestXForStep(80, 15120, 80));
 });
 
 test('ticker cleanup remains safe when the application is destroyed before its children', () => {
