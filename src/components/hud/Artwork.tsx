@@ -3,21 +3,7 @@
 import Image from "next/image";
 import type { ActionKind, PowerKind } from "@/lib/data/types";
 
-const ACTION_ART: Record<ActionKind, string> = {
-  candidature: "/art/ui/action-candidature.webp",
-  refus: "/art/ui/action-refus.webp",
-  entretien: "/art/ui/action-entretien.webp",
-  rejetApresEntretien: "/art/ui/action-rejet.webp",
-  embauche: "/art/ui/action-embauche.webp",
-};
-
-const POWER_ART: Record<PowerKind, string> = {
-  shot: "/art/ui/power-shot.webp",
-  feuSacré: "/art/ui/power-fire.webp",
-  fienteDragon: "/art/ui/power-dragon.webp",
-  paperasse: "/art/ui/power-paper.webp",
-  crapaud: "/art/ui/power-frog.webp",
-};
+import { ACTION_ART, POWER_ART } from "@/lib/game/art";
 
 interface ArtworkProps {
   className?: string;
@@ -52,11 +38,11 @@ export function ActionArtwork({
 }
 
 export function ChestArtwork(props: ArtworkProps) {
-  return <Artwork src="/art/ui/reward-chest.webp" {...props} />;
+  return <Artwork src="/art/world-v3/runtime/chest-reward.webp" {...props} />;
 }
 
 export function CrownArtwork(props: ArtworkProps) {
-  return <Artwork src="/art/ui/ui-crown.webp" {...props} />;
+  return <Artwork src="/art/world-v3/ui/ui-crown.webp" {...props} />;
 }
 
 export function PowerArtwork({

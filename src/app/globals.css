@@ -2222,3 +2222,403 @@ html { font-size: 18px; }
   .reward-modal__title { font-size: 2.6rem; }
   .reward-modal__close { margin-bottom: 24px; }
 }
+
+/* ================================================================== MONDE V3
+ * Interface de théâtre de papier : aplats, contours noirs irréguliers et ombres
+ * franches. Cette passe neutralise volontairement le métal, le verre et les halos
+ * de l'ancien HUD afin que l'interface parle le même langage que le monde dessiné.
+ */
+
+:root {
+  --janky-ink: #20201d;
+  --janky-charcoal: #292b2c;
+  --janky-paper: #ead9a9;
+  --janky-paper-light: #f5e8bd;
+  --janky-yellow: #efbd3c;
+  --janky-red: #ce4d48;
+  --janky-blue: #4d9e9b;
+  --janky-green: #718744;
+  --janky-purple: #806080;
+}
+
+.world-glaze { display: none; }
+
+.vignette {
+  background: transparent;
+  box-shadow: inset 0 0 55px rgb(31 28 24 / 0.22);
+}
+
+.bitmap-art {
+  filter: saturate(0.78) contrast(1.1) drop-shadow(3px 4px 0 rgb(20 19 17 / 0.7));
+}
+
+.frame,
+.hud-panel,
+.journey-card,
+.leaderboard-card,
+.action-dock__bar,
+.power-menu__popover,
+.overview-ranking,
+.leaderboard-sheet,
+.reward-modal,
+.toast-notice__panel {
+  border: 3px solid var(--janky-ink);
+  border-radius: 0;
+  outline: 0;
+  color: var(--janky-paper-light);
+  background: var(--janky-charcoal);
+  box-shadow: 5px 6px 0 rgb(23 22 20 / 0.72);
+  backdrop-filter: none;
+}
+
+.journey-card { transform: rotate(-0.25deg); }
+.leaderboard-card { transform: rotate(0.4deg); }
+.action-dock__bar { transform: rotate(0.12deg); }
+
+.slot,
+.power-choice,
+.power-target {
+  border: 2px solid var(--janky-ink);
+  border-radius: 0;
+  color: var(--janky-ink);
+  background: var(--janky-paper);
+  box-shadow: 3px 3px 0 rgb(20 19 17 / 0.58);
+}
+
+.slot:hover,
+.power-choice:hover,
+.power-target:hover,
+.power-choice--active {
+  transform: translate(-1px, -1px) rotate(-0.35deg);
+  border-color: var(--janky-ink);
+  color: var(--janky-ink);
+  background: var(--janky-yellow);
+  box-shadow: 5px 5px 0 rgb(20 19 17 / 0.65);
+}
+
+.riveted::before,
+.riveted::after { display: none; }
+
+.gold-rule {
+  height: 4px;
+  background: var(--janky-red);
+  transform: rotate(-0.7deg);
+}
+
+.engrave {
+  color: var(--janky-yellow);
+  text-shadow: 2px 2px 0 var(--janky-ink);
+}
+
+/* ------------------------------------------------------------ écran titre */
+
+.curtain {
+  color: var(--janky-ink);
+  background-color: #d9c89c;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(51 47 39 / 0.07) 0 1px, transparent 2px),
+    radial-gradient(circle at 71% 62%, rgb(51 47 39 / 0.06) 0 1px, transparent 2px);
+  background-size: 17px 19px, 23px 29px;
+}
+
+.curtain h1 {
+  color: var(--janky-ink);
+  text-shadow: 3px 3px 0 rgb(255 246 210 / 0.5);
+  transform: rotate(-1deg);
+}
+
+.curtain h1 span { color: var(--janky-red); }
+.curtain p { color: color-mix(in srgb, var(--janky-ink) 78%, transparent) !important; }
+.curtain .frame { transform: rotate(0.35deg); }
+.curtain .slot [class*="text-parchment"] { color: var(--janky-ink) !important; }
+.curtain .slot [class*="text-gold"] { color: #713f2e !important; }
+
+/* --------------------------------------------------------------- HUD haut */
+
+.journey-card__identity {
+  border-color: var(--janky-ink);
+  background: var(--janky-red);
+}
+
+.journey-card__kicker,
+.journey-card__class,
+.journey-card__stats dt,
+.journey-card__chest { color: #d8c99f; }
+
+.journey-card__level,
+.power-menu__trigger strong {
+  border: 2px solid var(--janky-ink);
+  color: var(--janky-ink);
+  background: var(--janky-yellow);
+  box-shadow: 2px 2px 0 #111;
+}
+
+.journey-card__meter,
+.reward-modal__route {
+  height: 12px;
+  border: 2px solid var(--janky-ink);
+  background: #151615;
+}
+
+.journey-card__meter > div,
+.reward-modal__route > div {
+  border-radius: 0;
+  background: var(--janky-yellow);
+  box-shadow: none;
+}
+
+.company-camera,
+.power-menu__trigger,
+.toast-notice__panel button {
+  border: 3px solid var(--janky-ink);
+  border-radius: 0;
+  color: var(--janky-ink);
+  background: var(--janky-paper);
+  box-shadow: 4px 4px 0 rgb(21 20 18 / 0.72);
+}
+
+.company-camera:hover,
+.company-camera[aria-pressed="true"],
+.power-menu__trigger:hover,
+.toast-notice__panel button:hover {
+  transform: translate(-1px, -1px) rotate(0.5deg);
+  border-color: var(--janky-ink);
+  color: var(--janky-ink);
+  background: var(--janky-yellow);
+  box-shadow: 6px 6px 0 rgb(21 20 18 / 0.75);
+}
+
+/* ---------------------------------------------------------- barre d'actions */
+
+.action-dock__prompt {
+  border: 3px solid var(--janky-ink);
+  border-radius: 0;
+  color: var(--janky-ink);
+  background: var(--janky-paper);
+  box-shadow: 4px 4px 0 rgb(20 19 17 / 0.62);
+  transform: rotate(-0.3deg);
+}
+
+.action-dock__bar {
+  gap: 5px;
+  padding: 7px;
+}
+
+.action-button,
+.action-undo {
+  min-height: 5.15rem;
+  border: 2px solid #111;
+  border-radius: 0;
+  background: #414344;
+  box-shadow: 2px 3px 0 #111;
+  clip-path: polygon(1% 3%, 98% 0, 100% 96%, 3% 100%);
+}
+
+.action-button--candidature { background: #566f75; }
+.action-button--refus { background: #8e4f49; }
+.action-button--entretien { background: #677f58; }
+.action-button--rejetApresEntretien { background: #6f5572; }
+.action-button--embauche { background: #9a772e; }
+
+.action-button:hover:not(:disabled),
+.action-undo:hover:not(:disabled) {
+  transform: translateY(-3px) rotate(-0.5deg);
+  border-color: #111;
+  background: var(--janky-yellow);
+  box-shadow: 4px 6px 0 #111;
+}
+
+.action-button__label { color: #fff0c5; text-shadow: 2px 2px 0 #1a1816; }
+.action-button__reward { color: #ffe269; }
+
+.keycap {
+  border: 2px solid var(--janky-ink);
+  border-radius: 0;
+  color: var(--janky-ink);
+  background: var(--janky-paper-light);
+}
+
+/* --------------------------------------------------------- modales papier */
+
+.reward-overlay,
+.reward-overlay--chest,
+.leaderboard-overlay {
+  background: rgb(31 30 27 / 0.78);
+  backdrop-filter: none;
+}
+
+.reward-modal {
+  color: var(--janky-ink);
+  background: var(--janky-paper);
+  transform: rotate(-0.25deg);
+}
+
+.reward-modal--chest {
+  border-color: var(--janky-ink);
+  box-shadow: 8px 9px 0 rgb(18 17 15 / 0.8);
+}
+
+.reward-modal__corners,
+.reward-modal__rays { display: none; }
+
+.reward-modal__visual {
+  border-color: var(--janky-ink);
+  background: var(--janky-blue);
+}
+
+.reward-modal__art,
+.reward-modal__art--chest,
+.shot-inbox-art {
+  filter: saturate(0.78) contrast(1.12) drop-shadow(5px 6px 0 rgb(25 23 20 / 0.68));
+}
+
+.reward-modal__eyebrow { color: #7d3c34; }
+.reward-modal__title {
+  color: var(--janky-ink);
+  text-shadow: 2px 2px 0 rgb(255 246 210 / 0.55);
+}
+.reward-modal__body,
+.reward-modal__gain,
+.reward-modal__place,
+.reward-modal__loot small { color: #554b3b; }
+.reward-modal__gain strong,
+.reward-modal__gain b,
+.reward-modal__place strong,
+.reward-modal__loot strong { color: var(--janky-ink); }
+
+.reward-modal__loot-label,
+.reward-modal__loot {
+  border: 2px solid var(--janky-ink);
+  color: var(--janky-ink);
+  background: #d7bd7a;
+}
+
+.reward-modal__close,
+.shot-inbox-later {
+  border: 3px solid var(--janky-ink);
+  border-radius: 0;
+  color: var(--janky-ink);
+  background: var(--janky-yellow);
+  box-shadow: 4px 5px 0 #332b20;
+}
+
+.reward-modal__close:hover,
+.shot-inbox-later:hover {
+  transform: translate(-1px, -1px) rotate(-0.5deg);
+  filter: none;
+  box-shadow: 6px 7px 0 #332b20;
+}
+
+/* ------------------------------------------------------------ dev / mobile */
+
+.dev-explorer,
+.dev-explorer__toggle,
+.dev-explorer__biomes button {
+  border-radius: 0;
+  border-color: var(--janky-ink);
+  color: var(--janky-ink);
+  background: var(--janky-paper);
+  box-shadow: 3px 3px 0 rgb(22 21 19 / 0.65);
+}
+
+@media (max-width: 760px) {
+  .vignette { box-shadow: inset 0 0 30px rgb(31 28 24 / 0.18); }
+  .journey-card,
+  .leaderboard-card,
+  .action-dock__bar { transform: none; }
+  .action-dock__bar { gap: 4px; padding: 5px; }
+  .action-button,
+  .action-undo { min-height: 4rem; box-shadow: 2px 2px 0 #111; }
+  .reward-modal { transform: none; }
+}
+
+/* Keep the game above browser chrome and phone safe areas. */
+html, body { height: 100%; height: 100dvh; }
+.hud-bottom { bottom: max(12px, env(safe-area-inset-bottom)); }
+.hud-layer { padding-top: max(14px, env(safe-area-inset-top)); }
+.dev-explorer__stats { flex: 1 0 100%; font: 11px/1.5 monospace; text-align: center; }
+.dev-explorer[data-open="true"] { flex-direction: column; width: min(620px, calc(100vw - 24px)); top: 8px; }
+.dev-explorer__biomes { flex-wrap: wrap; justify-content: center; max-height: 125px; overflow-y: auto; }
+.character-portrait { width: 240px; height: 280px; }
+.character-portrait img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.curtain { backdrop-filter: none; }
+.curtain h1 { font-size: clamp(2.3rem, 8vw, 4rem); line-height: 1.1; }
+.curtain .frame { color: var(--janky-ink); background: var(--janky-paper-light); }
+.curtain .frame .engrave { color: var(--janky-ink); text-shadow: none; }
+.curtain input { color: var(--janky-ink); background: rgb(255 255 255 / 0.5); border-color: var(--janky-ink); }
+.curtain input::placeholder { color: #776c53; }
+.action-button__label { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.12; }
+
+@media (max-width: 760px) {
+  .hud-bottom { bottom: max(6px, env(safe-area-inset-bottom)); }
+  .hud-layer { padding-top: max(7px, env(safe-area-inset-top)); }
+  .action-button { grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: 4px; }
+  .action-button__icon { width: 1.6rem; height: 1.6rem; }
+  .action-button__label { font-size: 0.78rem; }
+  .character-portrait { width: 180px; height: 224px; }
+  .curtain > div { padding: 24px 16px; gap: 20px; }
+  .curtain .frame { padding: 16px; }
+}
+
+@media (max-width: 360px) {
+  .action-button { grid-template: auto auto / 1fr 1fr; gap: 2px; }
+  .action-button .keycap { display: none; }
+  .action-button__label { grid-column: 1 / -1; text-align: center; overflow-wrap: normal; }
+  .action-button__icon { grid-row: 2; width: 20px; height: 20px; justify-self: end; }
+  .action-button__reward { grid-column: 2; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .journey-card__main, .journey-card__identity > p,
+  .leaderboard-card, .action-dock__prompt, .company-camera kbd { display: none; }
+  .hud-journey { width: min(300px, 38vw); }
+  .journey-card { display: block; min-height: 0; }
+  .journey-card__identity { padding: 5px 10px; }
+  .journey-card__identity h2 { font-size: 1.25rem; }
+  .hud-controls { position: absolute; top: 0; left: 100%; margin-left: 10px; }
+  .action-dock__bar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .action-button, .action-undo { min-height: 54px; padding: 4px; }
+  .action-button { grid-template-columns: 28px minmax(0, 1fr); column-gap: 5px; }
+  .action-button > span:last-child, .keycap { display: none; }
+  .action-button__icon { width: 30px; height: 30px; }
+  .action-button__label { font-size: 0.7rem; }
+  .action-button__reward { font-size: 0.65rem; }
+  .dev-explorer { top: 75px; }
+}
+
+/* The voyage card adapts to its own available width, including tablet panels. */
+.hud-journey { min-width: 0; container-type: inline-size; }
+.journey-card { grid-template-columns: minmax(130px, 0.65fr) minmax(0, 1.7fr); overflow: hidden; }
+.journey-card__summary { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.journey-card__summary > div { flex: 1; min-width: 0; }
+.journey-card__place { overflow-wrap: break-word; line-height: 1.15; }
+.journey-card__chest { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.journey-card__chest > span { min-width: 0; }
+.journey-card__chest-art { flex-shrink: 0; }
+.journey-card__meter { width: 100%; min-width: 0; }
+@container (max-width: 650px) {
+  .journey-card { grid-template-columns: minmax(0, 1fr); }
+  .journey-card__identity { display: flex; gap: 8px; align-items: baseline; padding: 8px 12px; border-right: 0; }
+  .journey-card__identity > p { display: none; }
+  .journey-card__main { padding: 8px 12px; }
+  .journey-card__stats { gap: 12px; }
+  .journey-card__kicker { font-size: 0.6rem; }
+}
+@container (max-width: 430px) {
+  .journey-card__stats > div:first-child, .journey-card__stats > div:last-child,
+  .journey-card__main .journey-card__kicker, .journey-card__chest > span { display: none; }
+  .journey-card__chest { display: block; margin-top: 6px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .journey-card__main { display: none; }
+}
+
+/* Tablets and tall windows need three readable actions per row. */
+.action-button__label { overflow-wrap: normal; word-break: normal; }
+@media (min-width: 761px) and (max-width: 1100px) and (min-height: 501px) {
+  .action-dock__bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .action-button, .action-undo { min-height: 94px; }
+  .action-button { grid-template-columns: 44px minmax(0, 1fr); }
+  .action-button__icon { width: 44px; height: 44px; }
+  .action-button__label { font-size: 1rem; }
+}

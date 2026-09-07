@@ -1,42 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import { Application, useApplication, useTick } from "@pixi/react";
-import type { Container } from "pixi.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Application, useApplication } from "@pixi/react";
+import { useSceneTick as useTick } from "./useSceneTick";
+import type { Application as PixiApplication, Container, Sprite, TextureSource } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
-  VIEW,
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
 import { resetScene, scene } from "./scene";
 import { EFFECT_COMPONENTS, type Effect } from "./Effects";
-import { RidgeLayer, Sky } from "./Backdrop";
-import { JourneyMarkers } from "./Ground";
-import { Hero } from "./Hero";
-import { laneFor } from "./lanes";
-import { farRidgeY, LAYERS } from "./landscape";
+import { Sky } from "./Backdrop";
 import {
-  AnimatedLandmarks,
-  AtmosphericMotes,
-  ParallaxBackdrop,
-  ParallaxGroundCover,
-  ParallaxGround,
-  ParallaxNearForeground,
-  ParallaxTransitionDetails,
-  ParallaxTransitionMidground,
-} from "./ParallaxWorld";
+  BiomeArtLayer,
+  GROUND_Y,
+  GroundLayer,
+  LandscapeBase,
+  MidgroundLayer,
+  NearForegroundLayer,
+  PaperMotes,
+  TransitionLandmarks,
+} from "./FlatWorld";
+import { Hero } from "./Hero";
+import { AmbientLife } from "./AmbientLife";
+import { laneFor } from "./lanes";
+import type { HeroMotion } from "./animation";
+import { frameComposition, parallaxX, renderResolution } from "./projection";
 import "./extendPixi";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
-const REST_SURFACE = 628;
+const REST_SURFACE = GROUND_Y;
 
 /** Le personnage suivi se tient à cette fraction de la largeur visible. */
 const FOLLOW_ANCHOR = 0.36;
-const MIDGROUND_FACTOR = 0.34;
-const TRANSITION_MID_FACTOR = 0.76;
-const TRANSITION_DETAIL_FACTOR = 0.9;
+const FAR_FACTOR = 0.16;
+const BACKGROUND_FACTOR = 0.36;
+const MIDGROUND_FACTOR = 0.76;
 const NEAR_FOREGROUND_FACTOR = 1.12;
 
 /* ------------------------------------------------------------------ caméra */
@@ -56,9 +57,10 @@ function CameraRig({
 }) {
   const root = useRef<Container>(null);
   const ready = useRef(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const { app, isInitialised } = useApplication();
 
-  useTick((ticker) => {
+  useTick({ priority: 50, callback: (ticker) => {
     const node = root.current;
     if (!node || !isInitialised) return;
 
@@ -72,17 +74,14 @@ function CameraRig({
     const { camera } = scene;
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
     const { width, height } = app.screen;
+    if (width <= 0 || height <= 0) return;
 
-    // Trois compositions gardent le héros lisible sans étirer les bitmaps : un
-    // panorama 1280, une vue intermédiaire 960 et un portrait 720 unités de large.
-    const aspect = width / height;
-    const compositionWidth = aspect < 0.75 ? 720 : aspect < 1.35 ? 960 : VIEW.width;
-    const baseScale = Math.min(width / compositionWidth, height / VIEW.height);
+    const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, GROUND_Y);
+    const baseScale = composition.scale;
     camera.scale = baseScale;
     camera.viewW = width / camera.scale;
     camera.viewH = height / camera.scale;
-    camera.screenOffsetY =
-      aspect < 0.75 ? Math.max(0, (height - VIEW.height * baseScale) * 0.56) : 0;
+    camera.screenOffsetY = composition.screenOffsetY;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
@@ -95,7 +94,9 @@ function CameraRig({
       scene.pan = Math.abs(eased) < 1 ? 0 : eased;
     }
 
-    const wanted = scene.focus - camera.viewW * FOLLOW_ANCHOR + scene.pan;
+    const wanted = (freeCamera && scene.exploreCenter !== null
+      ? scene.exploreCenter - camera.viewW * 0.5
+      : scene.focus - camera.viewW * FOLLOW_ANCHOR) + scene.pan;
     const maxX = Math.max(0, WORLD_LENGTH + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
@@ -107,6 +108,7 @@ function CameraRig({
       camera.x = clamped;
       camera.y = wantedY;
       ready.current = true;
+      setCameraReady(true);
     } else {
       const horizontalFollow = scene.focusSpeed > 2 ? 12 : 4.5;
       camera.x += (clamped - camera.x) * Math.min(1, dt * horizontalFollow);
@@ -121,9 +123,9 @@ function CameraRig({
 
     // Décroissance par défaut ; un effet actif réécrit la valeur à chaque image.
     if (scene.shake > 0) scene.shake = Math.max(0, scene.shake - dt * 2.6);
-  });
+  }});
 
-  return <pixiContainer ref={root}>{children}</pixiContainer>;
+  return <pixiContainer eventMode="none" ref={root}>{cameraReady ? children : null}</pixiContainer>;
 }
 
 /** Une couche qui défile à sa propre vitesse. */
@@ -139,11 +141,78 @@ function Layer({
   useTick(() => {
     const node = ref.current;
     if (!node) return;
-    node.x = -scene.camera.x * factor;
+    // Le pivot au centre de la fenêtre évite que les couches lentes dérivent vers
+    // le bord gauche du canvas au fil du voyage.
+    node.x = parallaxX(0, scene.camera.x, scene.camera.viewW, factor);
     node.y = -scene.camera.y * factor;
   });
 
   return <pixiContainer ref={ref}>{children}</pixiContainer>;
+}
+
+function configureRenderer(app: PixiApplication) {
+  app.ticker.maxFPS = 60;
+  if (process.env.NODE_ENV !== "development") return;
+  let samples: number[] = [];
+  let elapsed = 0;
+  app.ticker.add((ticker) => {
+    elapsed += ticker.elapsedMS;
+    samples.push(ticker.elapsedMS);
+    if (elapsed < 1000) return;
+    const output = document.getElementById("scene-stats");
+    if (output) {
+      const sources = new Set<TextureSource>();
+      let sprites = 0;
+      const inspect = (node: Container, visible = true) => {
+        const texture = (node as Sprite).texture;
+        if (texture?.source) {
+          sources.add(texture.source);
+          if (visible && node.visible) sprites += 1;
+        }
+        node.children?.forEach(child => inspect(child, visible && node.visible));
+      };
+      inspect(app.stage);
+      const bytes = [...sources].reduce((sum, source) => sum + source.pixelWidth * source.pixelHeight * 4, 0);
+      const ordered = [...samples].sort((a, b) => a - b);
+      const p95 = ordered[Math.floor(ordered.length * 0.95)] ?? 0;
+      output.textContent = `${Math.round(samples.length * 1000 / elapsed)} fps · p95 ${p95.toFixed(1)} ms · ${sprites} sprites · textures ${(bytes / 1048576).toFixed(0)} Mio`;
+    }
+    samples = [];
+    elapsed = 0;
+  });
+}
+
+/** No work is scheduled while the document is in the background. */
+function RenderLifecycle() {
+  const { app, isInitialised } = useApplication();
+  useEffect(() => {
+    if (!isInitialised || !app.renderer) return;
+    const sync = () => {
+      if (!app.ticker) return;
+      if (document.hidden) app.stop();
+      else app.start();
+    };
+    const host = app.canvas.parentElement;
+    const resize = () => {
+      // An observer notification may already be queued when Pixi is destroyed.
+      if (!host || !app.renderer) return;
+      const { width, height } = host.getBoundingClientRect();
+      if (width <= 0 || height <= 0) return;
+      const resolution = renderResolution(width, height, window.devicePixelRatio || 1);
+      if (app.screen.width === width && app.screen.height === height && app.renderer.resolution === resolution) return;
+      app.renderer.resize(width, height, resolution);
+    };
+    const observer = new ResizeObserver(resize);
+    if (host) observer.observe(host);
+    resize();
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [app, isInitialised]);
+  return null;
 }
 
 /* ------------------------------------------------------------------ scène */
@@ -157,6 +226,9 @@ interface SceneProps {
   onEffectDone: (id: string) => void;
   onTravelDone: (playerId: string) => void;
   freeCamera: boolean;
+  previewAt: number | null;
+  pendingChestStep: number | null;
+  devHero: { characterId: string; motion: HeroMotion };
 }
 
 function WorldScene({
@@ -168,48 +240,66 @@ function WorldScene({
   onEffectDone,
   onTravelDone,
   freeCamera,
+  previewAt,
+  devHero,
+  pendingChestStep,
 }: SceneProps) {
   // Les plus en avant dans la profondeur sont dessinés en dernier.
   const ordered = players
     .map((player, index) => ({ player, lane: laneFor(index) }))
     .sort((a, b) => a.lane.dy - b.lane.dy);
   return (
+    <>
+    <RenderLifecycle />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <Sky />
 
-      <Layer factor={LAYERS.far}>
-        <pixiContainer alpha={0.18}>
-          <RidgeLayer
-            factor={LAYERS.far}
-            ridge={farRidgeY}
-            channel="far"
-            haze={0.5}
-          />
-        </pixiContainer>
+      <Layer factor={FAR_FACTOR}>
+        <LandscapeBase factor={FAR_FACTOR} channel="far" />
+        <BiomeArtLayer
+          channel="far"
+          factor={FAR_FACTOR}
+          bottom={636}
+          width={980}
+          alpha={1}
+        />
+      </Layer>
+
+      <Layer factor={BACKGROUND_FACTOR}>
+        <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
+        <BiomeArtLayer
+          channel="back"
+          factor={BACKGROUND_FACTOR}
+          bottom={686}
+          width={1120}
+          alpha={1}
+        />
       </Layer>
 
       <Layer factor={MIDGROUND_FACTOR}>
-        <ParallaxBackdrop factor={MIDGROUND_FACTOR} />
-      </Layer>
-
-      <Layer factor={TRANSITION_MID_FACTOR}>
-        <ParallaxTransitionMidground factor={TRANSITION_MID_FACTOR} />
-      </Layer>
-
-      <Layer factor={TRANSITION_DETAIL_FACTOR}>
-        <ParallaxTransitionDetails factor={TRANSITION_DETAIL_FACTOR} />
-      </Layer>
-
-      <AtmosphericMotes />
-
-      <Layer factor={1}>
-        <ParallaxGround />
-        <ParallaxGroundCover factor={1} />
-        <AnimatedLandmarks />
-        <JourneyMarkers />
+        <MidgroundLayer factor={MIDGROUND_FACTOR} />
+        <AmbientLife factor={MIDGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1}>
+        <TransitionLandmarks />
+      </Layer>
+
+      <PaperMotes />
+
+      <Layer factor={1}>
+        <GroundLayer journeySteps={players.find(player => player.id === meId)?.journeySteps ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+      </Layer>
+
+      <Layer factor={1}>
+        {previewAt !== null && players[0] ? <Hero
+          key={`preview-${previewAt}`}
+          player={{ ...players.find(player => player.id === meId) ?? players[0], characterId: devHero.characterId, id: "visual-preview", name: "Repère visuel", position: previewAt / WORLD_LENGTH }}
+          isMe={false}
+          isFocused={false}
+          lane={{ dx: 0, dy: 48, scale: 0.9 }}
+          previewMotion={devHero.motion}
+        /> : null}
         {ordered.map(({ player, lane }) => (
           <Hero
             key={player.id}
@@ -223,7 +313,7 @@ function WorldScene({
       </Layer>
 
       <Layer factor={NEAR_FOREGROUND_FACTOR}>
-        <ParallaxNearForeground factor={NEAR_FOREGROUND_FACTOR} />
+        <NearForegroundLayer factor={NEAR_FOREGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1}>
@@ -239,6 +329,7 @@ function WorldScene({
         })}
       </Layer>
     </CameraRig>
+    </>
   );
 }
 
@@ -253,6 +344,9 @@ export interface GameCanvasProps {
   onEffectDone: (id: string) => void;
   onTravelDone: (playerId: string) => void;
   freeCamera?: boolean;
+  actionDockVisible: boolean;
+  pendingChestStep: number | null;
+  devHero: { characterId: string; motion: HeroMotion };
   devCameraTarget?: { worldX: number; revision: number } | null;
 }
 
@@ -264,16 +358,12 @@ export default function GameCanvas({
   onEffectDone,
   onTravelDone,
   freeCamera = false,
+  actionDockVisible,
+  devHero,
+  pendingChestStep,
   devCameraTarget = null,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
-  const renderResolution =
-    typeof window === "undefined"
-      ? 1
-      : Math.min(
-          window.innerWidth <= 760 ? 1.5 : 2,
-          window.devicePixelRatio || 1,
-        );
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
@@ -289,27 +379,45 @@ export default function GameCanvas({
   useEffect(() => {
     if (!freeCamera) {
       scene.pan = 0;
+      scene.exploreCenter = null;
       return;
     }
     if (!devCameraTarget) return;
-
-    const centeredLeft = devCameraTarget.worldX - scene.camera.viewW * 0.5;
-    const followedLeft = focus - scene.camera.viewW * FOLLOW_ANCHOR;
-    scene.pan = centeredLeft - followedLeft;
-  }, [devCameraTarget, focus, freeCamera]);
+    scene.exploreCenter = devCameraTarget.worldX;
+    scene.pan = 0;
+  }, [devCameraTarget, freeCamera]);
 
   // Glisser à la souris ou au doigt décale la vue, qui revient ensuite d'elle-même
   // sur le personnage : on peut aller voir le peloton sans perdre son repère.
-  const drag = useRef<{ x: number; pan: number } | null>(null);
+  useEffect(() => {
+    const root = host.current;
+    if (!root) return;
+    const dock = actionDockVisible ? root.parentElement?.querySelector<HTMLElement>(".hud-bottom") : null;
+    const top = root.parentElement?.querySelector<HTMLElement>(".hud-journey");
+    const measure = () => {
+      scene.bottomInset = dock ? Math.max(0, root.getBoundingClientRect().bottom - dock.getBoundingClientRect().top) : 80;
+      scene.topInset = top ? Math.max(0, top.getBoundingClientRect().bottom - root.getBoundingClientRect().top) : 0;
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    if (dock) observer.observe(dock);
+    if (top) observer.observe(top);
+    measure();
+    return () => observer.disconnect();
+  }, [meId, actionDockVisible]);
+
+  const drag = useRef<{ x: number; pan: number; id: number } | null>(null);
 
   const onPointerDown = useCallback((event: React.PointerEvent) => {
-    drag.current = { x: event.clientX, pan: scene.pan };
+    if (!event.isPrimary || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { x: event.clientX, pan: scene.pan, id: event.pointerId };
     scene.dragging = true;
   }, []);
 
   const onPointerMove = useCallback((event: React.PointerEvent) => {
     const start = drag.current;
-    if (!start) return;
+    if (!start || start.id !== event.pointerId) return;
     scene.pan = start.pan - (event.clientX - start.x) / scene.camera.scale;
   }, []);
 
@@ -318,18 +426,20 @@ export default function GameCanvas({
     scene.dragging = false;
   }, []);
 
-  const onWheel = useCallback(
-    (event: React.WheelEvent) => {
-      if (!freeCamera) return;
+  useEffect(() => {
+    const root = host.current;
+    if (!root || !freeCamera) return;
+    const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const delta =
         Math.abs(event.deltaX) > Math.abs(event.deltaY)
           ? event.deltaX
           : event.deltaY;
       scene.pan += delta / scene.camera.scale;
-    },
-    [freeCamera],
-  );
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, [freeCamera]);
 
   return (
     <div
@@ -338,15 +448,16 @@ export default function GameCanvas({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
-      onWheel={onWheel}
+      onPointerCancel={onPointerUp}
+      onLostPointerCapture={onPointerUp}
     >
       <Application
-        resizeTo={host}
-        backgroundAlpha={0}
-        antialias
+        onInit={configureRenderer}
+        backgroundAlpha={1}
+        backgroundColor={0x292b2c}
+        antialias={false}
         autoDensity
-        resolution={renderResolution}
+        resolution={1}
       >
         <WorldScene
           players={players}
@@ -357,6 +468,9 @@ export default function GameCanvas({
           onEffectDone={onEffectDone}
           onTravelDone={onTravelDone}
           freeCamera={freeCamera}
+          previewAt={freeCamera ? devCameraTarget?.worldX ?? null : null}
+          devHero={devHero}
+          pendingChestStep={pendingChestStep}
         />
       </Application>
     </div>

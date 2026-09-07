@@ -187,7 +187,6 @@ function Forge({
           </button>
 
           <div className="relative">
-            <div className="pulse-gold absolute inset-4 rounded-full" />
             <CharacterPortrait character={character} />
           </div>
 
@@ -225,7 +224,6 @@ function Forge({
                 }
               }}
               maxLength={18}
-              autoFocus
               placeholder="Mika"
               className="mt-1 w-full border border-gold-dim bg-black/45 px-3 py-2 font-display text-lg tracking-wide text-parchment outline-none placeholder:text-parchment/25 focus:border-gold-light"
             />

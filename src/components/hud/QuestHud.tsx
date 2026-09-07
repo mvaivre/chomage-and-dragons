@@ -41,10 +41,10 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
       </div>
 
       <div className="journey-card__main">
-        <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="journey-card__summary">
           <div className="min-w-0">
             <p className="journey-card__kicker">En ce moment</p>
-            <p className="truncate font-display text-xl text-gold-light">{zone.name}</p>
+            <p className="journey-card__place font-display text-xl text-gold-light">{zone.name}</p>
           </div>
           <dl className="journey-card__stats">
             <div>

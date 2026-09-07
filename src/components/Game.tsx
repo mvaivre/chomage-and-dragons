@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { chestXForStep } from "@/components/game/projection";
 import type { Effect, EffectKind } from "@/components/game/Effects";
 import GameCanvas from "@/components/game/GameCanvas";
 import { heroOrigin } from "@/components/game/lanes";
+import type { HeroMotion } from "@/components/game/animation";
+import { CHARACTERS } from "@/lib/game/characters";
 import { ActionBar } from "@/components/hud/ActionBar";
 import {
   ActionReward,
@@ -65,15 +68,11 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 };
 
 const DEV_BUILD = process.env.NODE_ENV === "development";
-const DEV_VIEWPOINTS = [
-  { id: "plain-forest", label: "Plaine→Bois", progress: 2.5 / 21 },
-  { id: "forest-marsh", label: "Bois→Marais", progress: 5.5 / 21 },
-  { id: "marsh-bridge", label: "Marais→Pont", progress: 8.5 / 21 },
-  { id: "bridge-falls", label: "Pont→Larmes", progress: 10.5 / 21 },
-  { id: "falls-mountain", label: "Larmes→Mont", progress: 12.5 / 21 },
-  { id: "mountain-wastes", label: "Mont→Désert", progress: 15.5 / 21 },
-  { id: "wastes-tavern", label: "Désert→Taverne", progress: 18.5 / 21 },
-] as const;
+const DEV_VIEWPOINTS = BIOMES.slice(0, -1).map((biome, index) => ({
+  id: `${biome.id}-${BIOMES[index + 1].id}`,
+  label: `${biome.short}→${BIOMES[index + 1].short}`,
+  progress: biome.to,
+}));
 
 interface Notice {
   title: string;
@@ -113,6 +112,8 @@ export function Game() {
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [overview, setOverview] = useState(false);
   const [devExplore, setDevExplore] = useState(false);
+  const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
+  const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
   const [devCameraTarget, setDevCameraTarget] = useState<{
     worldX: number;
     revision: number;
@@ -310,9 +311,7 @@ export function Game() {
       ];
 
       if (afterChest > beforeChest) {
-        const arrived = heroOrigin({ ...me, position: afterPosition }, meIndex);
-        const markerX =
-          arrived.x > WORLD_LENGTH - 300 ? arrived.x - 160 : arrived.x + 160;
+        const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
         pendingChestEffect.current = {
           id: `${event.id}-chest`,
           kind: "chest",
@@ -426,6 +425,9 @@ export function Game() {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
+        actionDockVisible={Boolean(me && !overview)}
+        devHero={devHero}
+        pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
         players={canvasPlayers}
         meId={identity}
         focusPlayerId={effectFocusId}
@@ -452,6 +454,21 @@ export function Game() {
           </button>
           {devExplore ? (
             <nav className="dev-explorer__biomes" aria-label="Biomes de test">
+              <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
+              <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
+                {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
+              </select>
+              <select aria-label="Animation de test" value={devHero.motion} onChange={event => setDevHero(value => ({ ...value, motion: event.target.value as HeroMotion }))}>
+                <option value="idle">Repos</option><option value="walk">Marche</option><option value="send">Lettre</option><option value="hurt">Réaction</option><option value="celebrate">Victoire</option>
+              </select>
+              <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
+                {Object.entries({ pigeon: "Candidature", lightning: "Refus", cocktail: "Entretien", legendary: "Rejet", trophy: "Embauche", chest: "Coffre", fireCurse: "Feu", dragonDrop: "Dragon", paperStorm: "Paperasse", frogCurse: "Crapaud" }).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+              <button type="button" onClick={() => {
+                const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
+                const x = devEffect === "chest" ? at + 110 : at;
+                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
+              }}>Tester l’effet</button>
               {BIOMES.map((biome) => (
                 <button
                   key={biome.id}

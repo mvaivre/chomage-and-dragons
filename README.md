@@ -2,11 +2,12 @@
 
 Jeu web humoristique entre ami·es : **plus on se fait recaler, plus on avance.**
 Chaque candidature, chaque refus fait progresser ton personnage sur une carte
-d'aventure en 3D. Le 31 décembre, celui ou celle qui a le plus de points est
+d'aventure en 2D avec parallaxe. Le 31 décembre, celui ou celle qui a le plus de points est
 couronné·e **Légende du Chômage** et se fait inviter à manger par tout le monde.
 
 📖 Les règles complètes : [`docs/PITCH.md`](docs/PITCH.md)
 🔧 Les choix techniques et leurs raisons : [`docs/TECH.md`](docs/TECH.md)
+🎨 Le rendu actuel, les assets et les vérifications : [`docs/RENDERING.md`](docs/RENDERING.md)
 
 ## Démarrer
 
@@ -24,7 +25,8 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 | `pnpm dev` | Serveur de développement |
 | `pnpm build` | Build de production (ce que Vercel exécute) |
 | `pnpm exec tsc --noEmit` | Vérification des types |
-| `pnpm exec eslint src` | Lint (`next lint` a été retiré dans Next 16) |
+| `pnpm lint` | ESLint |
+| `pnpm test` | Tests de projection, couverture du sol et budget de pixels (Node ≥ 22.18) |
 
 ## Pile technique
 
@@ -39,17 +41,18 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 src/
   app/                    Routage et styles globaux
   components/
-    GameBoardLoader.tsx   ⚠️ Garantit le rendu navigateur-seulement (canvas + stockage local)
-    GameBoard.tsx         Assemblage : carte + interface + file d'animations
-    race/
-      PixiRace.tsx        Application Pixi, mise à l'échelle, tremblement d'écran
-      MapScene.tsx        Décor immobile : parchemin, chemin, forêt, marais, pont, taverne
-      PlayerToken.tsx     Jeton d'un joueur : bond, électrocution, plaque de nom
-      Effects.tsx         Pigeon, éclair, confettis, rejet légendaire, trophée, coffre
-      sceneryLayout.ts    Positions du décor, tirées avec une graine fixe
-      lanes.ts            Répartition des jetons à égalité
-      mapStyle.ts         Palette et styles de texte de la carte
-    ui/                   Panneaux parchemin : actions, classements, Scoreboard, joueurs
+    GameLoader.tsx        Chargement navigateur-seulement (canvas + stockage local)
+    Game.tsx              Scène + interface + file d'animations
+    game/
+      GameCanvas.tsx      Application Pixi, caméra, profondeur, redimensionnement
+      FlatWorld.tsx       Décors v3, transitions, route et chargement par zone visible
+      Backdrop.tsx        Ciel et nuages à géométrie fixe
+      Hero.tsx            Illustrations des joueurs, déplacements et effets
+      textures.ts        Cache partagé des textures et des images d'animation
+      projection.ts      Projection des couches et budget du framebuffer
+      Effects.tsx        Pigeon, éclair, cocktail, trophée, coffre et farces
+      lanes.ts           Répartition des personnages à égalité
+    hud/                  Interface DOM : actions, classements, sélection, récompenses
   hooks/useGame.ts        État du jeu et actions
   lib/
     config.ts             ⚙️ Réglages : saison, points, pondérations
@@ -70,10 +73,10 @@ Deux fichiers portent l'essentiel des décisions structurantes :
 
 Prototype local. Fonctionne :
 
-- la carte d'aventure en 2D sur parchemin, avec ses cinq étapes
-  (🌲 Forêt des Candidatures → 🌊 Marais des Refus → 🏔️ Mont du Silence Radio →
-  🌉 Pont des Entretiens → 🍻 Taverne du Champion)
-- les personnages emoji qui avancent le long du chemin
+- huit contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
+  reliées par sept lieux de transition
+- quinze personnages illustrés, partagés entre le jeu et l'écran de sélection
+- un cadrage adapté au bureau, au portrait et au paysage sur mobile
 - **les 5 actions officielles** avec leurs animations : pigeon voyageur 🕊️,
   éclair et personnage électrocuté ⚡😵, confettis et cocktail 🍸,
   LEGENDARY REJECTION 💀, grande célébration 🏆
@@ -83,7 +86,7 @@ Prototype local. Fonctionne :
   remise à zéro le 1er) et Palmarès des couronnes passées
 - le **Scoreboard collectif** de la compagnie
 - l'**ajout et le retrait de joueur·euses** avec choix du personnage
-- la palette du feuillage qui suit la saison en cours
+- le ciel et les silhouettes de fond qui suivent la palette du biome
 
 Pas encore fait : les événements aléatoires narratifs (chance / mini-boss RH),
 et la base de données partagée.

@@ -26,16 +26,16 @@ const SLOTS: Slot[] = [
     label: "Candidature",
     hint: "Le pigeon part",
   },
-  { kind: "refus", label: "Refus", hint: "La foudre tombe" },
+  { kind: "refus", label: "Refus", hint: "La lettre de refus arrive" },
   {
     kind: "entretien",
     label: "Entretien",
-    hint: "On trinque quand même",
+    hint: "Un entretien décroché",
   },
   {
     kind: "rejetApresEntretien",
     label: "Rejet post-entretien",
-    hint: "Legendary rejection",
+    hint: "Rejet légendaire",
   },
   {
     kind: "embauche",

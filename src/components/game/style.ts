@@ -14,17 +14,16 @@ export const PARCHMENT = 0xf2e3c0;
 export const NAME_STYLE: TextStyleOptions = {
   fontFamily: BODY,
   fontSize: 19,
-  fontWeight: "600",
-  fill: PARCHMENT,
-  stroke: { color: 0x1a120a, width: 4, join: "round" },
+  fontWeight: "700",
+  fill: INK,
 };
 
 /** Petit texte doré : niveau, classe. */
 export const TAG_STYLE: TextStyleOptions = {
   fontFamily: BODY,
   fontSize: 15,
-  fill: GOLD_LIGHT,
-  stroke: { color: 0x1a120a, width: 3, join: "round" },
+  fontWeight: "700",
+  fill: INK,
 };
 
 /** Bandeau d'annonce d'un biome, traversé en chemin. */

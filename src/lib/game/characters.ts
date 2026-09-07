@@ -2,8 +2,7 @@
  * Les classes de Chômage & Dragons.
  *
  * Chaque classe est une blague de recherche d'emploi déguisée en archétype de jeu
- * de rôle. La palette et la silhouette servent au personnage dessiné en code, qui
- * reste affiché tant que le sprite pixel-art n'est pas chargé.
+ * de rôle. Chaque silhouette partage la même illustration dans la scène et la sélection.
  */
 
 export type HatStyle =
@@ -180,4 +179,14 @@ export const CHARACTERS: Character[] = [
 
 export function characterById(id: string): Character {
   return CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
+}
+
+/** Shared by the Pixi scene and the DOM selection portrait. */
+export function characterArt(id: string): string {
+  return `/art/world-v3/characters/${characterById(id).id}.webp`;
+}
+
+/** Direction actually drawn in the static illustrations. Animation sheets face right. */
+export function staticCharacterFacing(id: string): 1 | -1 {
+  return ["chevalier", "voleur", "archimage", "necromancien", "licorne", "squelette", "teddy", "skater"].includes(id) ? -1 : 1;
 }

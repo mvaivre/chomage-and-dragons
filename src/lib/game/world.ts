@@ -10,6 +10,9 @@
 /** Résolution de référence. L'axe Y descend, comme partout en 2D. */
 export const VIEW = { width: 1280, height: 720 } as const;
 
+/** Ligne de raccord commune à toutes les tuiles de route et aux pieds des héros. */
+export const WALKABLE_GROUND_Y = 602;
+
 /**
  * Longueur totale du voyage. Un seul point représente maintenant un vrai morceau
  * de pays, assez long pour lire le déplacement et découvrir plusieurs détails.
@@ -64,8 +67,8 @@ export const BIOMES: Biome[] = [
     short: "Plaine",
     from: 0,
     to: 0.11,
-    base: 624,
-    amp: 4,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x79add2, 0xf0d9a5],
       far: 0x92a77d,
@@ -82,8 +85,8 @@ export const BIOMES: Biome[] = [
     short: "Bois",
     from: 0.11,
     to: 0.24,
-    base: 624,
-    amp: 5,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x7fb4d4, 0xdce9c8],
       far: 0x7d9c85,
@@ -100,8 +103,8 @@ export const BIOMES: Biome[] = [
     short: "Marais",
     from: 0.24,
     to: 0.37,
-    base: 624,
-    amp: 4,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x93aa9b, 0xcdc6a4],
       far: 0x6d7c6b,
@@ -118,8 +121,8 @@ export const BIOMES: Biome[] = [
     short: "Pont",
     from: 0.37,
     to: 0.49,
-    base: 624,
-    amp: 1,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x86b2d6, 0xdfeaf2],
       far: 0x7d9bb5,
@@ -136,8 +139,8 @@ export const BIOMES: Biome[] = [
     short: "Les Larmes",
     from: 0.49,
     to: 0.61,
-    base: 624,
-    amp: 4,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x668eb7, 0xd8e8ed],
       far: 0x738ba4,
@@ -154,8 +157,8 @@ export const BIOMES: Biome[] = [
     short: "Mont",
     from: 0.61,
     to: 0.73,
-    base: 624,
-    amp: 5,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x7099c0, 0xe4edf4],
       far: 0x8f9db2,
@@ -172,8 +175,8 @@ export const BIOMES: Biome[] = [
     short: "Désert",
     from: 0.73,
     to: 0.87,
-    base: 624,
-    amp: 5,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0xe4ae64, 0xf7e5b4],
       far: 0xd7a468,
@@ -190,8 +193,8 @@ export const BIOMES: Biome[] = [
     short: "Triomphe",
     from: 0.87,
     to: 1,
-    base: 624,
-    amp: 3,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
     palette: {
       sky: [0x2c3a5a, 0x6d5b74],
       far: 0x3c4962,
@@ -287,34 +290,19 @@ export function paletteAt(worldX: number): BiomePalette {
   };
 }
 
-/** Ondulation lisse et déterministe du terrain, dans [-1, 1]. */
-function wave(worldX: number): number {
-  return (
-    Math.sin(worldX * 0.0029) * 0.55 +
-    Math.sin(worldX * 0.0071 + 1.7) * 0.29 +
-    Math.sin(worldX * 0.0163 + 0.6) * 0.16
-  );
-}
-
 /**
  * Hauteur de la surface sur laquelle marchent les personnages.
  *
- * Dans le lac, c'est le tablier du ponton, d'où l'amplitude nulle de ce biome :
- * un pont qui ondule n'inspire pas confiance.
+ * Le monde v3 impose le même socket vertical à chaque module. Le relief existe au
+ * centre des îlots décoratifs, jamais sur leurs bords ni sous les pieds du joueur.
  */
 export function surfaceAt(worldX: number): number {
-  const { a, b, t } = biomeMix(worldX);
-  const base = t === 0 ? a.base : lerp(a.base, b.base, t);
-  const amp = t === 0 ? a.amp : lerp(a.amp, b.amp, t);
-  const moduleLength = WORLD_LENGTH / WORLD_MODULE_COUNT;
-  const local = ((worldX % moduleLength) + moduleLength) % moduleLength;
-  const seamEnvelope = Math.sin((local / moduleLength) * Math.PI) ** 2;
-
-  return base + wave(worldX) * amp * seamEnvelope;
+  void worldX;
+  return WALKABLE_GROUND_Y;
 }
 
 /** Pente de la surface, pour incliner les personnages et les accessoires. */
 export function slopeAt(worldX: number): number {
-  const step = 16;
-  return (surfaceAt(worldX + step) - surfaceAt(worldX - step)) / (step * 2);
+  void worldX;
+  return 0;
 }

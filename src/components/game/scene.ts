@@ -28,6 +28,9 @@ export interface Camera {
 
 export interface Scene {
   camera: Camera;
+  /** Screen pixels occupied by the action dock, measured when it resizes. */
+  bottomInset: number;
+  topInset: number;
   /** Intensité du tremblement, dans [0, 1]. Écrite par les effets. */
   shake: number;
   /** Abscisse monde visée : le personnage du joueur. */
@@ -38,11 +41,15 @@ export interface Scene {
   focusSpeed: number;
   /** Écart imposé à la main pour aller voir le peloton. */
   pan: number;
+  /** Absolute centre for development composition checks, including resize. */
+  exploreCenter: number | null;
   /** Vrai pendant un glisser : le recentrage attend que le joueur lâche. */
   dragging: boolean;
 }
 
 export const scene: Scene = {
+  bottomInset: 170,
+  topInset: 160,
   camera: {
     x: 0,
     y: 0,
@@ -56,6 +63,7 @@ export const scene: Scene = {
   targetFocus: 0,
   focusSpeed: 1.35,
   pan: 0,
+  exploreCenter: null,
   dragging: false,
 };
 
@@ -74,8 +82,9 @@ export function resetScene(): void {
   scene.targetFocus = 0;
   scene.focusSpeed = 1.35;
   scene.pan = 0;
+  scene.exploreCenter = null;
   scene.dragging = false;
 }
 
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */
-export const WORLD_BOTTOM = VIEW.height + 260;
+export const WORLD_BOTTOM = VIEW.height + 1040;

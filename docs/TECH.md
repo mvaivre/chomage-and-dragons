@@ -19,6 +19,10 @@
 
 ## Rendu de la carte : Pixi.js 8 (2D)
 
+> Cette section conserve les décisions du premier prototype. Depuis septembre 2026,
+> les personnages et les décors utilisent des illustrations WebP et une caméra latérale
+> avec parallaxe. Les règles de rendu actuelles sont dans [RENDERING.md](RENDERING.md).
+
 La Grande Course est une **carte d'aventure en parchemin, dessinée en 2D** avec
 Pixi.js. `@pixi/react` v8 permet de décrire la scène en composants React plutôt qu'en
 instructions impératives.
