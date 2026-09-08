@@ -24,8 +24,8 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
 
   const character = characterById(me.characterId);
   const zone = biomeAt(worldXFor(me.position));
-  const remaining = untilNextChest(me.journeySteps);
-  const filled = STEPS_PER_LEVEL - remaining;
+  const remaining = untilNextChest(me.journeySteps, me.earnedChests);
+  const filled = Math.max(0, STEPS_PER_LEVEL - remaining);
 
   return (
     <section className="journey-card pointer-events-auto" aria-label="Ton voyage">
@@ -37,6 +37,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
             Niv. {me.level}
           </span>
         </div>
+        <span className="journey-card__mobile-score">{me.score} pts</span>
         <p className="journey-card__class">{character.name}</p>
       </div>
 

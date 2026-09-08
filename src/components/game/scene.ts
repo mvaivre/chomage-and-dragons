@@ -27,6 +27,7 @@ export interface Camera {
 }
 
 export interface Scene {
+  reducedMotion: boolean;
   camera: Camera;
   /** Screen pixels occupied by the action dock, measured when it resizes. */
   bottomInset: number;
@@ -48,6 +49,7 @@ export interface Scene {
 }
 
 export const scene: Scene = {
+  reducedMotion: false,
   bottomInset: 170,
   topInset: 160,
   camera: {

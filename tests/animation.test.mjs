@@ -21,7 +21,7 @@ test('lowest lane and name plate stay above the action dock in portrait, tall an
     const { scale, screenOffsetY } = frameComposition(w, h, top, bottom, 602);
     const feet = (602 + 48) * scale + screenOffsetY;
     const labelBottom = feet + 38 * scale;
-    assert.ok(labelBottom + 12 <= h - bottom, `${w}×${h}: label overlaps dock`);
+    assert.ok(labelBottom + (w <= 760 || h <= 500 ? 40 : 12) <= h - bottom, `${w}×${h}: label overlaps dock`);
     assert.ok(feet - (164 + 48) * scale > top, `${w}×${h}: character overlaps the HUD`);
   }
 });

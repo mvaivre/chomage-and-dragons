@@ -171,3 +171,39 @@ occupe une ligne complète au-dessus de l’icône et du nombre de pas. Le cadra
 compte de l’espace restant entre les commandes, y compris sur écran court.
 Tests de régression : distances avant/après 80 et 160 pas, recul, embauche vers la
 prochaine taverne, coffres successifs et cadrage mobile.
+
+
+### Passe de fiabilisation — septembre 2026
+
+- Une action ordinaire déclenche directement sa réaction et son déplacement. Le
+  message de gain est annoncé dans une zone de statut ; seuls coffre et embauche
+  demandent une validation. Les commandes attendent la fin du mouvement pour éviter
+  les séquences superposées. La préparation des sprites bloque les clics prématurés.
+- Le journal calcule le maximum de pas atteint pour déterminer les coffres acquis.
+  Un entretien ne révoque aucun butin, et repasser un palier n’en crée pas un nouveau.
+  Annuler retire l’événement et recalcule ce maximum. La position de retour après
+  annulation d’une embauche est animée même si le compteur de pas ne change pas.
+- `VisibleHero` ne monte les compagnons éloignés qu’à proximité de la caméra. Le
+  cache libère leurs textures après huit secondes sans utilisateur. Le personnage
+  local et la cible de caméra restent montés.
+- Carte, classement et fenêtres de récompense arrêtent le ticker du jeu. La
+  préférence de réduction des mouvements supprime le balancement, les secousses,
+  les confettis et les déplacements de caméra interpolés ; les trajets restent
+  courts et les interactions gardent leurs confirmations de fin.
+- Les pas avancent à vitesse continue. Le skater ne rebondit plus à chaque case.
+  Les effets ordinaires restent proches de la main et durent moins d’une seconde.
+  Les trajets, coffres et effets utilisent le temps réellement écoulé entre les
+  images : un faible débit d’images n’allonge plus leur durée ni le verrouillage
+  des commandes. L’arrêt du ticker suspend cette horloge derrière les fenêtres.
+- Le cadrage portrait utilise 440 unités de largeur, sous réserve de l’espace libre
+  entre HUD et commandes. Le HUD mobile tient en deux lignes ; le feedback s’affiche
+  brièvement au-dessus des actions. Le petit format 320 × 568 garde environ 228 px
+  de scène disponible dans la partie de test à deux joueurs.
+- Les petits décors de sol partagent une ligne d’appui et une ombre. La plaine a été
+  inspectée en 1280 × 720, 390 × 844 et 1920 × 900 avant d’appliquer ce placement aux
+  autres biomes. Les paysages lointains et les bitmaps approuvés sont conservés.
+
+`pnpm test:browser` rejoue les actions immédiates, les coffres, les reculs, les
+annulations, la réduction des mouvements et la fermeture de la carte. Les captures
+et les essais Chromium en rendu logiciel valident la composition et le comportement,
+pas les FPS, la chauffe ou l’autonomie d’un téléphone physique.

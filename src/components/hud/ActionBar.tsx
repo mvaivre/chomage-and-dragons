@@ -59,6 +59,7 @@ interface ActionBarProps {
   /** Une chronique est ouverte : on la lit avant de déclarer autre chose. */
   locked: boolean;
   lastActionLabel: string | null;
+  feedback: string | null;
 }
 
 export function ActionBar({
@@ -68,6 +69,7 @@ export function ActionBar({
   hired,
   locked,
   lastActionLabel,
+  feedback,
 }: ActionBarProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -95,12 +97,12 @@ export function ActionBar({
 
   return (
     <div className="action-dock pointer-events-auto">
-      <p className="action-dock__prompt">
-        {hired
+      <p className="action-dock__prompt" data-feedback={Boolean(feedback)} role="status" aria-live="polite">
+        {feedback ?? (hired
           ? "Quête accomplie — ta place à la taverne est réservée."
           : lastActionLabel
             ? `Dernier exploit : ${lastActionLabel}`
-            : "Transforme ta recherche en voyage"}
+            : "Transforme ta recherche en voyage")}
       </p>
 
       <div className="action-dock__bar">

@@ -25,12 +25,13 @@ export function chestXForStep(step: number, worldLength: number, journeyTarget: 
 /** Keep the hero inside the clear window between the HUD and the action dock. */
 export function frameComposition(width: number, height: number, topInset: number, bottomInset: number, groundY: number) {
   const aspect = width / height;
-  const compositionWidth = aspect < 0.75 ? 520 : aspect < 1.35 ? 960 : 1280;
+  const compositionWidth = aspect < 0.75 ? 440 : aspect < 1.35 ? 960 : 1280;
   const dockTop = height - bottomInset;
   const available = Math.max(0, dockTop - topInset);
-  const scale = Math.min(width / compositionWidth, height / 640, Math.max(0.15, (available - 24) / 320));
-  // Lane depth (48), name plate (38) and a physical gutter all remain visible.
-  const clearance = 104 * scale + 12;
+  const compact = width <= 760 || height <= 500;
+  const scale = Math.min(width / compositionWidth, height / 640, Math.max(0.15, (available - (compact ? 64 : 24)) / (compact ? 280 : 320)));
+  // Reserve the lowest lane, name plate and the transient mobile action message.
+  const clearance = compact ? 86 * scale + 52 : 104 * scale + 12;
   const groundScreenY = Math.min(dockTop - clearance, topInset + available * 0.80);
   return { scale, screenOffsetY: groundScreenY - groundY * scale };
 }

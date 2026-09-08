@@ -13,7 +13,7 @@ import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
-import { journeySteps, levelFromSteps } from "@/lib/game/scoring";
+import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -42,6 +42,7 @@ export interface PlayerView {
   applications: number;
   /** Effort de voyage cumulé, toutes les actions positives pour le trajet comprises. */
   journeySteps: number;
+  earnedChests: number;
   level: number;
   /** Position sur le chemin, dans [0, 1]. */
   position: number;
@@ -214,7 +215,7 @@ export function useGame() {
     return state.players.map((player) => {
       const standing = seasonStandings.find((s) => s.playerId === player.id);
       const applications = standing?.counts.candidature ?? 0;
-      const steps = journeySteps(
+      const { steps, earnedChests } = journeyProgress(
         state.events.filter((event) => event.playerId === player.id),
       );
 
@@ -226,6 +227,7 @@ export function useGame() {
         monthScore: monthScoreById.get(player.id) ?? 0,
         applications,
         journeySteps: steps,
+        earnedChests,
         level: levelFromSteps(steps),
         // Être engagé·e, c'est avoir atteint la taverne : le personnage s'y installe
         // et cesse d'avancer, sans rien perdre de ses points.
@@ -239,7 +241,7 @@ export function useGame() {
             rejetApresEntretien: 0,
             embauche: 0,
           } as Record<ActionKind, number>),
-        availablePowers: availablePowers(player.id, steps, state.casts),
+        availablePowers: availablePowers(player.id, earnedChests, state.casts),
         shotsOwed: state.casts.filter(
           (cast) =>
             cast.kind === "shot" &&

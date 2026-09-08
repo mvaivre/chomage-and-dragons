@@ -23,7 +23,6 @@ import { ShotInbox } from "@/components/hud/ShotInbox";
 import { TitleScreen } from "@/components/hud/TitleScreen";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame } from "@/hooks/useGame";
-import type { PlayerView } from "@/hooks/useGame";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
 import type { ActionKind, PowerCast, PowerKind } from "@/lib/data/types";
 import {
@@ -107,10 +106,13 @@ export function Game() {
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
-  const [heldPlayer, setHeldPlayer] = useState<PlayerView | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string } | null>(null);
+  const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [overview, setOverview] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const handleSceneReady = useCallback(() => setSceneReady(true), []);
   const [devExplore, setDevExplore] = useState(false);
   const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
   const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
@@ -119,7 +121,6 @@ export function Game() {
     revision: number;
   } | null>(null);
   const shownCasts = useRef(new Set<string>());
-  const pendingActionEffects = useRef(new Map<string, Effect[]>());
   const pendingChestEffect = useRef<Effect | null>(null);
   const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
@@ -132,32 +133,17 @@ export function Game() {
   const identity = me ? meId : null;
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
-  const canvasPlayers = useMemo(
-    () =>
-      heldPlayer
-        ? players.map((player) =>
-            player.id === heldPlayer.id ? heldPlayer : player,
-          )
-        : players,
-    [heldPlayer, players],
-  );
-
   const handleRewardDone = useCallback(() => {
-    const current = rewardMoments[0];
-    if (!current) return;
-
-    if (current.type === "action") {
-      const queuedEffects = pendingActionEffects.current.get(current.id) ?? [];
-      pendingActionEffects.current.delete(current.id);
-      setHeldPlayer(null);
-      setEffects((previous) => [...previous, ...queuedEffects]);
-      setAwaitingTravel(rewardMoments[1]?.type === "chest");
-    } else {
-      setPowerAttention((value) => value + 1);
-    }
-
-    setRewardMoments((moments) => moments.slice(1));
+    if (rewardMoments[0]?.type === "chest") setPowerAttention(value => value + 1);
+    setRewardMoments(moments => moments.slice(1));
+    actionInFlight.current = false;
   }, [rewardMoments]);
+
+  useEffect(() => {
+    if (!actionFeedback) return;
+    const timeout = window.setTimeout(() => setActionFeedback(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [actionFeedback]);
 
   const handleTravelDone = useCallback(
     (playerId: string) => {
@@ -170,6 +156,7 @@ export function Game() {
         return;
       }
       setAwaitingTravel(false);
+      actionInFlight.current = false;
     },
     [identity],
   );
@@ -200,7 +187,8 @@ export function Game() {
           return;
         }
         setRegisterOpen((open) => !open);
-      } else if (event.key.toLowerCase() === "v") {
+      } else if (event.key.toLowerCase() === "v" && !event.metaKey && !event.ctrlKey && !event.altKey &&
+        !(event.target instanceof HTMLElement && (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)))) {
         event.preventDefault();
         setOverview((value) => !value);
       }
@@ -285,9 +273,10 @@ export function Game() {
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
-      if (!me) return;
+      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0) return;
+      actionInFlight.current = true;
+      setAwaitingTravel(true);
       setOverview(false);
-      setHeldPlayer(me);
 
       const event = addEvent(me.id, kind);
       const origin = heroOrigin(me, meIndex);
@@ -297,14 +286,14 @@ export function Game() {
       ];
       pendingChestEffect.current = null;
 
-      const beforeChest = Math.floor(me.journeySteps / STEPS_PER_LEVEL);
+      const beforeChest = me.earnedChests;
       const afterSteps = Math.max(0, me.journeySteps + stepsFor(kind));
-      const afterChest = Math.floor(afterSteps / STEPS_PER_LEVEL);
+      const afterChest = Math.max(beforeChest, Math.floor(afterSteps / STEPS_PER_LEVEL));
       const beforeZone = biomeAt(worldXFor(me.position));
       const afterPosition = kind === "embauche" ? hiredPosition(afterSteps) : racePosition(afterSteps);
       const afterZone = biomeAt(worldXFor(afterPosition));
 
-      const moments: RewardMoment[] = [
+      const moments: RewardMoment[] = kind === "embauche" ? [
         {
           id: event.id,
           type: "action",
@@ -316,7 +305,7 @@ export function Game() {
           place: afterZone.name,
           discoveredPlace: beforeZone.id !== afterZone.id,
         },
-      ];
+      ] : [];
 
       if (afterChest > beforeChest) {
         const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
@@ -333,10 +322,12 @@ export function Game() {
         });
       }
 
-      pendingActionEffects.current.set(event.id, queued);
-      setRewardMoments((previous) => [...previous, ...moments]);
+      setEffects(previous => [...previous, ...queued]);
+      const steps = stepsFor(kind);
+      setActionFeedback({ id: event.id, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
+      setRewardMoments(moments);
     },
-    [addEvent, me, meIndex],
+    [addEvent, me, meIndex, rewardMoments.length],
   );
 
   const handleCast = useCallback(
@@ -378,14 +369,20 @@ export function Game() {
   );
 
   const handleUndo = useCallback(() => {
-    if (me) undoLast(me.id);
-  }, [me, undoLast]);
+    if (!me || actionInFlight.current || rewardMoments.length > 0) return;
+    actionInFlight.current = true;
+    setAwaitingTravel(true);
+    setEffects([]);
+    setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
+    undoLast(me.id);
+  }, [me, undoLast, rewardMoments.length]);
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
     if (chestAnimationId.current === id) {
       chestAnimationId.current = null;
       setAwaitingTravel(false);
+      actionInFlight.current = false;
     }
   }, []);
 
@@ -401,31 +398,48 @@ export function Game() {
     }));
   }, []);
 
+  const resetPresentation = useCallback(() => {
+    actionInFlight.current = false;
+    pendingChestEffect.current = null;
+    chestAnimationId.current = null;
+    setAwaitingTravel(false);
+    setRewardMoments([]);
+    setEffects([]);
+    setActionFeedback(null);
+    setOverview(false);
+    setEffectFocusId(null);
+  }, []);
+
   const handlePick = useCallback((playerId: string) => {
+    resetPresentation();
     shownCasts.current.clear();
     setShotInbox(null);
+    setSceneReady(false);
     saveSession(playerId);
     setMeId(playerId);
-  }, []);
+  }, [resetPresentation]);
 
   const handleCreate = useCallback(
     (name: string, characterId: string) => {
+      resetPresentation();
       const id = addPlayer(name, characterId);
       shownCasts.current.clear();
       setShotInbox(null);
+      setSceneReady(false);
       saveSession(id);
       setMeId(id);
     },
-    [addPlayer],
+    [addPlayer, resetPresentation],
   );
 
   const handleChangeIdentity = useCallback(() => {
+    resetPresentation();
     shownCasts.current.clear();
     setShotInbox(null);
     clearSession();
     setMeId(null);
     setRegisterOpen(false);
-  }, []);
+  }, [resetPresentation]);
 
   const canUndo = Boolean(
     me && events.some((event) => event.playerId === me.id),
@@ -433,10 +447,12 @@ export function Game() {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
+        onSceneReady={handleSceneReady}
+        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox)}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
-        players={canvasPlayers}
+        players={players}
         meId={identity}
         focusPlayerId={effectFocusId}
         effects={effects}
@@ -556,12 +572,14 @@ export function Game() {
                 canUndo={canUndo}
                 hired={Boolean(me.hiredAt)}
                 locked={
+                  registerOpen ||
+                  !sceneReady ||
                   rewardMoments.length > 0 ||
-                  heldPlayer !== null ||
                   awaitingTravel ||
                   shotInbox !== null
                 }
                 lastActionLabel={lastActionLabel}
+                feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
               />
             </div>
           ) : null}
@@ -693,7 +711,7 @@ function CompanyMap({
                   }}
                 >
                   <span>{player.name.slice(0, 1).toUpperCase()}</span>
-                  <strong>{player.name} · {player.journeySteps} pas</strong>
+                  <strong>{player.name} · {player.journeySteps} pas<small>Voyage {Math.max(1, Math.ceil(player.position))}</small></strong>
                 </div>
               ))}
             </div>

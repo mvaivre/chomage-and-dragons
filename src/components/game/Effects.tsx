@@ -64,32 +64,35 @@ function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: Illus
   const elapsed = useRef(0);
   const finished = useRef(false);
   useTick(ticker => {
-    elapsed.current += Math.min(60, ticker.deltaMS);
-    const t = Math.min(1, elapsed.current / reaction.duration);
+    elapsed.current += ticker.elapsedMS;
+    const ordinary = ["pigeon", "lightning", "cocktail", "legendary"].includes(kind);
+    const duration = scene.reducedMotion ? 450 : ordinary ? 900 : reaction.duration;
+    const t = Math.min(1, elapsed.current / duration);
     const fade = Math.min(1, t / 0.08, (1 - t) / 0.22);
-    const pop = Math.min(1, t / 0.18);
+    const pop = scene.reducedMotion ? 1 : Math.min(1, t / 0.18);
     const x = Math.max(scene.camera.x + 100, Math.min(scene.camera.x + scene.camera.viewW - 100, origin.x));
     if (art.current && texture) {
       const node = art.current;
-      const fly = reaction.motion === "fly";
-      node.x = x + (fly ? t * t * 500 : Math.sin(t * 24) * (1 - t) * (reaction.motion === "stamp" ? 5 : 0));
-      node.y = origin.y - 225 - (fly ? t * 135 : reaction.motion === "fall" ? (1 - pop) * 160 : t * 25)
-        - (reaction.motion === "hop" ? Math.abs(Math.sin(t * Math.PI * 3)) * 30 : 0);
-      node.scale.set((240 / texture.height) * (0.8 + pop * 0.2));
-      node.rotation = fly ? -0.15 + Math.sin(t * 28) * 0.08 : Math.sin(t * 12) * 0.035;
+      const fly = !scene.reducedMotion && reaction.motion === "fly";
+      node.x = x + (ordinary ? 72 : 0) + (fly ? t * t * 500 : scene.reducedMotion ? 0 : Math.sin(t * 24) * (1 - t) * (reaction.motion === "stamp" ? 5 : 0));
+      node.y = origin.y - (ordinary ? 100 : 180) - (scene.reducedMotion ? 0 : fly ? t * 135 : reaction.motion === "fall" ? (1 - pop) * 160 : t * 25)
+        - (!scene.reducedMotion && reaction.motion === "hop" ? Math.abs(Math.sin(t * Math.PI * 3)) * 30 : 0);
+      node.scale.set(((ordinary ? 96 : 150) / texture.height) * (0.8 + pop * 0.2));
+      node.rotation = scene.reducedMotion ? 0 : fly ? -0.15 + Math.sin(t * 28) * 0.08 : Math.sin(t * 12) * 0.035;
       node.alpha = fade;
     }
     if (caption.current) {
       caption.current.x = x;
-      caption.current.y = origin.y - 330 - t * 10;
+      caption.current.y = origin.y - 205 - (scene.reducedMotion ? 0 : t * 10);
       caption.current.alpha = fade;
     }
     if (points.current) {
       points.current.x = x - 75;
-      points.current.y = origin.y - 155 - t * 60;
+      points.current.y = origin.y - 145 - (scene.reducedMotion ? 0 : t * 35);
       points.current.alpha = fade;
     }
     if (confetti.current) {
+      confetti.current.visible = !scene.reducedMotion;
       confetti.current.position.set(x, origin.y - 220 + t * t * 150);
       confetti.current.scale.set(0.4 + t * 1.2);
       confetti.current.rotation = t * 0.3;

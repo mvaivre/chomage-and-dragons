@@ -103,3 +103,23 @@ plusieurs. Le passage à Neon résout les deux.
 Rien à configurer pour l'instant : le projet est un site Next.js standard, donc
 `git push` sur une branche connectée à Vercel suffit. Aucune variable
 d'environnement n'est requise tant que la base de données n'est pas branchée.
+
+
+### Vérification des parcours du jeu
+
+`pnpm test` couvre le barème, la progression et les coffres acquis, la projection et
+les sprites. Les actions retirées du journal par Annuler retirent aussi les gains
+qu’elles avaient débloqués ; un entretien ordinaire conserve les coffres acquis.
+
+Pour les tests dans un vrai navigateur :
+
+```sh
+pnpm exec playwright install chromium
+pnpm build
+pnpm test:browser
+```
+
+Les tests démarrent leur serveur sur le port 3100 et utilisent des contextes isolés,
+sans toucher à la sauvegarde de votre navigateur. `GAME_TEST_URL` permet de choisir
+un serveur déjà lancé. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un
+Chromium installé plutôt que celui fourni par Playwright.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
@@ -31,7 +31,7 @@ function hash(text: string): number {
 
 /** Hauteur du personnage, unités monde. Le repère local a les pieds en (0, 0). */
 export const HERO_HEIGHT = 164;
-const STRIDE_DURATION = 0.52;
+const STRIDE_DURATION = 0.32;
 
 interface TravelLeg {
   from: number;
@@ -83,16 +83,20 @@ export interface HeroProps {
   /** Décalage en profondeur, pour que deux personnages au même endroit se distinguent. */
   lane: { dx: number; dy: number; scale: number };
   onTravelDone?: (playerId: string) => void;
+  onReady?: () => void;
   previewMotion?: HeroMotion;
 }
 
-export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotion }: HeroProps) {
+export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, previewMotion }: HeroProps) {
   const character = useMemo(() => characterById(player.characterId), [player.characterId]);
 
   const root = useRef<Container>(null);
   const rig = useRef<Container>(null);
   const animation = CHARACTER_ANIMATIONS[character.id];
   const texture = useDirectTexture(animation?.url ?? characterArt(character.id));
+  useEffect(() => {
+    if (texture) onReady?.();
+  }, [texture, onReady]);
   const poses = texture && animation ? atlasFrames(texture, animation.columns, animation.rows) : null;
   const art = useRef<Sprite>(null);
   const elapsed = useRef(0);
@@ -109,7 +113,6 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
   // et le tirage reste le même d'un rendu à l'autre.
   const phase = useRef(seededRandom(hash(player.id))() * Math.PI * 2);
   const stun = useRef(0);
-  const impact = useRef(0);
   const actionKind = useRef<
     "candidature" | "refus" | "rejet" | "embauche" | null
   >(null);
@@ -117,6 +120,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
   const actionDuration = useRef(1);
 
   const seen = useRef({
+    target,
     journeySteps: player.journeySteps,
     counts: { ...player.counts },
     hiredAt: player.hiredAt,
@@ -127,10 +131,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
     const justHired =
       player.counts.embauche > seen.current.counts.embauche ||
       (Boolean(player.hiredAt) && player.hiredAt !== seen.current.hiredAt);
-    if (stepDelta !== 0) {
-      travelQueue.current.push({ target, steps: Math.abs(stepDelta) });
-    } else if (justHired && Math.abs(target - at.current) > 1) {
-      travelQueue.current.push({ target, steps: 6 });
+    const countsChanged = Object.entries(player.counts).some(([key, count]) => count !== seen.current.counts[key as keyof typeof seen.current.counts]);
+    if (stepDelta !== 0 || target !== seen.current.target || countsChanged) {
+      travelQueue.current.push({ target, steps: stepDelta !== 0 ? Math.abs(stepDelta) : 6 });
     }
     const before = seen.current.counts;
 
@@ -138,36 +141,37 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
       actionKind.current = "candidature";
       actionTimer.current = 1;
       actionDuration.current = 1;
-      movementDelay.current = 1;
+      movementDelay.current = 0.16;
     }
     if (player.counts.entretien > before.entretien) {
       actionKind.current = "candidature";
       actionTimer.current = 1.15;
       actionDuration.current = 1.15;
-      movementDelay.current = 1.15;
+      movementDelay.current = 0.16;
     }
     if (player.counts.refus > before.refus) {
       actionKind.current = "refus";
       actionTimer.current = 1.25;
       actionDuration.current = 1.25;
-      movementDelay.current = 1.25;
+      movementDelay.current = 0.16;
       stun.current = 1;
     }
     if (player.counts.rejetApresEntretien > before.rejetApresEntretien) {
       actionKind.current = "rejet";
       actionTimer.current = 1.75;
       actionDuration.current = 1.75;
-      movementDelay.current = 1.75;
+      movementDelay.current = 0.16;
       stun.current = 1.25;
     }
     if (justHired) {
       actionKind.current = "embauche";
       actionTimer.current = 2;
       actionDuration.current = 2;
-      movementDelay.current = 2;
+      movementDelay.current = 0.16;
     }
 
     seen.current = {
+      target,
       journeySteps: player.journeySteps,
       counts: { ...player.counts },
       hiredAt: player.hiredAt,
@@ -175,11 +179,14 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
   }, [player.counts, player.hiredAt, player.journeySteps, target]);
 
   useTick({ priority: 100, callback: (ticker) => {
-    const dt = Math.min(ticker.deltaMS, 60) / 1000;
+    // These are timed poses and travel interpolation, not a physics simulation.
+    // Capping deltaMS stretches a two-second journey into minutes at low FPS.
+    // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
+    const dt = ticker.elapsedMS / 1000;
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
-      movementDelay.current = Math.max(0, movementDelay.current - dt);
+      movementDelay.current = scene.reducedMotion ? 0 : Math.max(0, movementDelay.current - dt);
     }
 
     if (!travel.current && movementDelay.current === 0) {
@@ -204,7 +211,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
     let strideProgress = 0;
     const activeTravel = travel.current;
     if (activeTravel) {
-      activeTravel.elapsed += dt;
+      activeTravel.elapsed += scene.reducedMotion ? dt * activeTravel.steps * 3 : dt;
       while (
         activeTravel.elapsed >= STRIDE_DURATION &&
         activeTravel.index < activeTravel.steps
@@ -215,8 +222,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
             activeTravel.steps;
-        impact.current = 1;
-        scene.shake = Math.max(scene.shake, 0.045);
+
       }
 
       if (activeTravel.index >= activeTravel.steps) {
@@ -226,8 +232,8 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
         onTravelDone?.(player.id);
       } else {
         strideProgress = activeTravel.elapsed / STRIDE_DURATION;
-        const eased =
-          strideProgress * strideProgress * (3 - 2 * strideProgress);
+        // Keep a steady speed between steps; easing each footfall caused stop-start skating.
+        const eased = strideProgress;
         const start =
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
@@ -243,19 +249,17 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
 
     if (isFocused) {
       scene.targetFocus = at.current;
-      if (!scene.dragging) scene.focusSpeed = moving ? 10 : 1.35;
+      if (!scene.dragging) scene.focusSpeed = moving || Math.abs(scene.focus - at.current) > 20 ? 10 : 1.35;
     }
 
     phase.current += dt * (moving ? 7.5 : 2.2);
 
     if (stun.current > 0) stun.current = Math.max(0, stun.current - dt / 1.25);
-    if (impact.current > 0) impact.current = Math.max(0, impact.current - dt / 0.3);
     if (actionTimer.current > 0) actionTimer.current = Math.max(0, actionTimer.current - dt);
 
-    const hop = moving ? Math.sin(strideProgress * Math.PI) * (character.id === "skater" ? 2 : 7) : 0;
-    const baseBob = moving ? Math.abs(Math.sin(phase.current)) * 2 : 0;
+    const hop = moving && !scene.reducedMotion ? Math.sin(strideProgress * Math.PI) * (character.id === "skater" ? 0 : 2) : 0;
     const speciesLift =
-      character.hat === "fee" ? 10 + Math.sin(phase.current * 0.72) * 4 : 0;
+      character.hat === "fee" ? 10 + (scene.reducedMotion ? 0 : Math.sin(phase.current * 0.72) * 4) : 0;
 
     const node = root.current;
     if (node) {
@@ -274,28 +278,27 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
       selfMarker.current.y = -HERO_HEIGHT - 16;
     }
 
-    const motion: HeroMotion = previewMotion ?? (actionTimer.current > 0
+    const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
-      : moving ? "walk" : "idle");
+      : "idle");
     const progress = previewMotion ? (elapsed.current % 2) / 2 : 1 - actionTimer.current / actionDuration.current;
-    const frame = characterFrame(character.id, motion, elapsed.current, progress);
+    const frame = characterFrame(character.id, motion, scene.reducedMotion ? 0 : elapsed.current, progress);
     if (art.current && poses) art.current.texture = poses[frame];
 
     const body = rig.current;
     if (body) {
-      body.y = -hop - baseBob - speciesLift;
+      body.y = -hop - speciesLift;
       // Électrocuté : le personnage part en arrière et tremble.
-      body.rotation =
-        stun.current > 0
-          ? Math.sin(stun.current * 42) * 0.26 * stun.current
+      body.rotation = scene.reducedMotion || character.id === "skater" ? 0 :
+        stun.current > 0 && !moving
+          ? Math.sin(stun.current * 24) * 0.08 * stun.current
           : slopeAt(at.current) * 0.5 +
-            (moving ? Math.sin(phase.current) * 0.055 : 0) +
+            (moving ? Math.sin(phase.current) * 0.015 : 0) +
             (actionKind.current === "candidature" ? Math.sin(actionTimer.current / actionDuration.current * Math.PI) * -0.08 : 0);
-      const landing = Math.sin(impact.current * Math.PI) * 0.13;
-      body.scale.y = 1 - landing + (moving ? 0 : Math.sin(phase.current) * 0.006);
+      body.scale.y = 1;
       // Animated sheets face right; static fallbacks declare their native direction.
       const facing = animation ? poseFacing(character.id, frame) : staticCharacterFacing(character.id);
-      body.scale.x = facing * (moving ? lastDirection.current : 1) * (1 + landing * 0.58);
+      body.scale.x = facing * (moving ? lastDirection.current : 1);
     }
   }});
 
@@ -338,4 +341,18 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, previewMotio
       </pixiContainer>
     </pixiContainer>
   );
+}
+
+/** Distant companions do not keep an animation atlas resident on the GPU. */
+export function VisibleHero(props: HeroProps) {
+  const nearCamera = () => {
+    const x = worldXFor(props.player.position) + props.lane.dx;
+    return props.isFocused || props.isMe || (x > scene.camera.x - 600 && x < scene.camera.x + scene.camera.viewW + 600);
+  };
+  const [visible, setVisible] = useState(nearCamera);
+  useTick(() => {
+    const next = nearCamera();
+    if (next !== visible) setVisible(next);
+  });
+  return visible ? <Hero {...props} /> : null;
 }

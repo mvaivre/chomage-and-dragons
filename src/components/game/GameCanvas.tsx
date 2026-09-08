@@ -23,7 +23,7 @@ import {
   PaperMotes,
   TransitionLandmarks,
 } from "./FlatWorld";
-import { Hero } from "./Hero";
+import { Hero, VisibleHero } from "./Hero";
 import { AmbientLife } from "./AmbientLife";
 import { laneFor } from "./lanes";
 import type { HeroMotion } from "./animation";
@@ -72,7 +72,7 @@ function CameraRig({
     }
 
     const { camera } = scene;
-    const dt = Math.min(ticker.deltaMS, 60) / 1000;
+    const dt = ticker.elapsedMS / 1000;
     const { width, height } = app.screen;
     if (width <= 0 || height <= 0) return;
 
@@ -86,7 +86,7 @@ function CameraRig({
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
     const focusEase = 1 - Math.exp(-scene.focusSpeed * dt);
-    scene.focus += (scene.targetFocus - scene.focus) * focusEase;
+    scene.focus = scene.reducedMotion ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
     if (!freeCamera && !scene.dragging && scene.pan !== 0) {
@@ -104,7 +104,7 @@ function CameraRig({
 
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
-    if (firstFrame) {
+    if (firstFrame || scene.reducedMotion) {
       camera.x = clamped;
       camera.y = wantedY;
       ready.current = true;
@@ -183,15 +183,19 @@ function configureRenderer(app: PixiApplication) {
 }
 
 /** No work is scheduled while the document is in the background. */
-function RenderLifecycle() {
+function RenderLifecycle({ paused }: { paused: boolean }) {
   const { app, isInitialised } = useApplication();
   useEffect(() => {
     if (!isInitialised || !app.renderer) return;
     const sync = () => {
       if (!app.ticker) return;
-      if (document.hidden) app.stop();
+      if (document.hidden || paused) app.stop();
       else app.start();
     };
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotion = () => { scene.reducedMotion = preference.matches; };
+    syncMotion();
+    preference.addEventListener("change", syncMotion);
     const host = app.canvas.parentElement;
     const resize = () => {
       // An observer notification may already be queued when Pixi is destroyed.
@@ -208,16 +212,19 @@ function RenderLifecycle() {
     sync();
     document.addEventListener("visibilitychange", sync);
     return () => {
+      preference.removeEventListener("change", syncMotion);
       observer.disconnect();
       document.removeEventListener("visibilitychange", sync);
     };
-  }, [app, isInitialised]);
+  }, [app, isInitialised, paused]);
   return null;
 }
 
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  onSceneReady: () => void;
+  paused: boolean;
   players: PlayerView[];
   meId: string | null;
   focusPlayerId: string | null;
@@ -232,6 +239,8 @@ interface SceneProps {
 }
 
 function WorldScene({
+  onSceneReady,
+  paused,
   players,
   meId,
   focusPlayerId,
@@ -250,7 +259,7 @@ function WorldScene({
     .sort((a, b) => a.lane.dy - b.lane.dy);
   return (
     <>
-    <RenderLifecycle />
+    <RenderLifecycle paused={paused} />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <Sky />
 
@@ -288,7 +297,7 @@ function WorldScene({
       <PaperMotes />
 
       <Layer factor={1}>
-        <GroundLayer journeySteps={players.find(player => player.id === meId)?.journeySteps ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+        <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
       <Layer factor={1}>
@@ -301,13 +310,14 @@ function WorldScene({
           previewMotion={devHero.motion}
         /> : null}
         {ordered.map(({ player, lane }) => (
-          <Hero
+          <VisibleHero
             key={player.id}
             player={player}
             isMe={player.id === meId}
             isFocused={player.id === focusPlayerId}
             lane={lane}
             onTravelDone={onTravelDone}
+            onReady={player.id === meId ? onSceneReady : undefined}
           />
         ))}
       </Layer>
@@ -336,6 +346,8 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  onSceneReady: () => void;
+  paused: boolean;
   players: PlayerView[];
   meId: string | null;
   /** Cible temporairement suivie pendant une farce, puis null pour revenir à soi. */
@@ -351,6 +363,8 @@ export interface GameCanvasProps {
 }
 
 export default function GameCanvas({
+  onSceneReady,
+  paused,
   players,
   meId,
   focusPlayerId = null,
@@ -460,6 +474,8 @@ export default function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          onSceneReady={onSceneReady}
+          paused={paused}
           players={players}
           meId={meId}
           focusPlayerId={focusPlayer?.id ?? null}

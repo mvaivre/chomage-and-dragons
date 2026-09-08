@@ -23,7 +23,7 @@ function Resident({ kind, worldX, factor }: { kind: number; worldX: number; fact
     const x = parallaxX(worldX, scene.camera.x, scene.camera.viewW, factor);
     node.visible = x > -260 && x < scene.camera.viewW + 260;
     if (!node.visible) return;
-    time.current += Math.min(ticker.deltaMS, 60) / 1000;
+    if (!scene.reducedMotion) time.current += Math.min(ticker.deltaMS, 60) / 1000;
     const t = time.current;
     const sequence = RESIDENT_FRAMES[kind];
     node.texture = frames[kind * 4 + sequence[Math.floor(t * (kind === 1 ? 7 : 2)) % sequence.length]];
@@ -41,6 +41,7 @@ function WaterGlints({ worldX, factor }: { worldX: number; factor: number }) {
   const nodes = useRef<Array<Graphics | null>>([]);
   const time = useRef(0);
   useTick(ticker => {
+    if (scene.reducedMotion) return;
     const x = parallaxX(worldX, scene.camera.x, scene.camera.viewW, factor);
     if (x < -600 || x > scene.camera.viewW + 600) return;
     time.current += Math.min(60, ticker.deltaMS) / 1000;

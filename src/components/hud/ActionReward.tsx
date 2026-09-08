@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { ActionKind, PowerKind } from "@/lib/data/types";
 import { POWERS } from "@/lib/game/powers";
 import { ActionArtwork, ChestArtwork, PowerArtwork } from "./Artwork";
@@ -40,11 +41,11 @@ const COPY: Record<
   entretien: {
     eyebrow: "Entretien traversé",
     title: "Trois pas derrière. Toujours debout.",
-    body: "Le donjon t’a repoussé, mais la quête est loin d’être terminée.",
+    body: "Une occasion se rapproche : trois pas vers la sortie du chômage.",
   },
   rejetApresEntretien: {
     eyebrow: "Rejet légendaire",
-    title: "Dix pas. Une frontière tombe.",
+    title: "Un refus. La quête continue.",
     body: "Ce refus-là méritait au minimum un nouveau pays.",
   },
   embauche: {
@@ -61,6 +62,11 @@ export function ActionReward({
   moment: RewardMoment;
   onDone: () => void;
 }) {
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    close.current?.focus();
+    return () => { requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".action-button:not(:disabled), .action-undo:not(:disabled)")?.focus()); };
+  }, []);
   const chest = moment.type === "chest";
 
   return (
@@ -87,7 +93,7 @@ export function ActionReward({
           <ActionCopy moment={moment} titleId={`reward-title-${moment.id}`} />
         )}
 
-        <button type="button" onClick={onDone} className="reward-modal__close">
+        <button ref={close} type="button" onClick={onDone} className="reward-modal__close">
           {chest ? "Ranger le butin" : "Continuer l’aventure"}
           <span aria-hidden>›</span>
         </button>

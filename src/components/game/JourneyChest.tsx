@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
+import { scene } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 
 const drawShadow = (g: Graphics) => {
@@ -21,11 +22,11 @@ export function JourneyChest({ x, y, opened = false, opening = false, onDone }: 
   const finished = useRef(false);
   useTick(ticker => {
     if (!opening) return;
-    elapsed.current += Math.min(ticker.deltaMS, 60);
-    const t = elapsed.current / 2200;
+    elapsed.current += ticker.elapsedMS;
+    const t = elapsed.current / (scene.reducedMotion ? 250 : 1300);
     if (sprite.current && frames) {
       sprite.current.texture = frames[t < 0.2 ? 0 : t < 0.4 ? 1 : t < 0.84 ? 2 : 4];
-      sprite.current.x = t < 0.2 ? Math.sin(t * 120) * 2 : 0;
+      sprite.current.x = !scene.reducedMotion && t < 0.2 ? Math.sin(t * 120) * 2 : 0;
     }
     if (glint.current) glint.current.alpha = Math.sin(Math.min(1, t) * Math.PI) * 0.7;
     if (t >= 1 && !finished.current) { finished.current = true; onDone?.(); }

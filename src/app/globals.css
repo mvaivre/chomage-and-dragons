@@ -2695,3 +2695,46 @@ html, body { height: 100%; height: 100dvh; }
   .company-map-view__content { display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; }
   .company-map-view__map, .company-map-view .overview-ranking { width: 100%; }
 }
+
+/* Mobile prioritizes the journey: identity and progress fit in two short rows. */
+.journey-card__mobile-score { display: none; }
+.company-map-pin strong small { display: block; margin-top: 3px; font-size: 0.65rem; }
+.action-dock__prompt { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 760px) and (min-height: 501px) {
+  .journey-card__identity { padding: 5px 8px; gap: 4px; }
+  .journey-card__identity h2 { font-size: 1.3rem; }
+  .journey-card__level { font-size: 0.72rem; padding: 1px 4px; }
+  .journey-card__mobile-score { display: block; margin-left: auto; white-space: nowrap; font-size: 0.85rem; }
+  .journey-card__main { padding: 5px 8px; }
+  .journey-card__main .journey-card__place { font-size: 1rem; }
+  .journey-card__summary { gap: 6px; align-items: center; }
+  .journey-card__stats > div { display: none; }
+  .journey-card__stats > div:first-child { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+  .journey-card__stats > div:first-child dt { font-size: 0; letter-spacing: 0; }
+  .journey-card__stats > div:first-child dt::after { content: "Pas"; font-size: 0.75rem; }
+  .journey-card__stats dd { font-size: 1.1rem; }
+  .journey-card__chest { margin-top: 4px; }
+  .journey-card__meter { height: 6px; }
+  .hud-controls { margin-top: 5px; gap: 6px; }
+  .hud-controls .power-menu__trigger, .hud-controls .company-camera { min-height: 40px; padding: 3px 7px; font-size: 0.9rem; }
+  .power-menu__trigger img { width: 1.9rem; height: 1.9rem; }
+  .action-dock__prompt { font-size: 0.85rem; line-height: 1.2; padding: 3px 8px; margin-bottom: 4px; min-height: 24px; }
+  .action-button, .action-undo { min-height: 82px; padding: 4px; }
+  .action-button { grid-template: 32px 40px / 1fr 1fr; gap: 0 2px; }
+  .action-button__label { font-size: 0.94rem; line-height: 1.05; align-self: center; }
+  .action-button__icon { width: 42px; height: 40px; }
+  .action-button__reward { font-size: 0.85rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .company-map-view, .company-map-view__map, .overview-ranking, .action-button,
+  .reward-modal, .reward-modal__rays, .rise { animation: none !important; transition: none !important; }
+}
+
+@media (max-width: 760px), (max-height: 500px) {
+  .action-dock { position: relative; }
+  .action-dock__prompt[data-feedback="true"] {
+    display: block; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 100%; margin-bottom: 6px; padding: 4px 8px;
+    font-size: 0.85rem; line-height: 1.2; text-align: center;
+  }
+}

@@ -9,11 +9,19 @@ export function stepsFor(kind: ActionKind): number {
   return JOURNEY_STEPS[kind];
 }
 
+/** Replay the journal: ordinary setbacks never revoke an earned chest. Undo does. */
+export function journeyProgress(events: GameEvent[]): { steps: number; earnedChests: number } {
+  let steps = 0;
+  let peak = 0;
+  for (const event of events) {
+    steps = Math.max(0, steps + stepsFor(event.kind));
+    peak = Math.max(peak, steps);
+  }
+  return { steps, earnedChests: Math.floor(peak / STEPS_PER_LEVEL) };
+}
+
 export function journeySteps(events: GameEvent[]): number {
-  return events.reduce(
-    (total, event) => Math.max(0, total + stepsFor(event.kind)),
-    0,
-  );
+  return journeyProgress(events).steps;
 }
 
 /** Niveau 1 = 0–9 pas de voyage, niveau 2 = 10–19, etc. */
@@ -22,6 +30,6 @@ export function levelFromSteps(steps: number): number {
 }
 
 /** Pas restants avant le prochain coffre. */
-export function untilNextChest(steps: number): number {
-  return STEPS_PER_LEVEL - (Math.max(0, steps) % STEPS_PER_LEVEL);
+export function untilNextChest(steps: number, earnedChests = Math.floor(Math.max(0, steps) / STEPS_PER_LEVEL)): number {
+  return (earnedChests + 1) * STEPS_PER_LEVEL - Math.max(0, steps);
 }

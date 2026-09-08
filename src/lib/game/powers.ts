@@ -1,4 +1,3 @@
-import { STEPS_PER_LEVEL } from "@/lib/config";
 import type { PowerCast, PowerKind } from "@/lib/data/types";
 
 export interface PowerDefinition {
@@ -61,10 +60,10 @@ export function powerForSlot(slot: number): PowerKind {
 
 export function availablePowers(
   playerId: string,
-  journeySteps: number,
+  earnedChests: number,
   casts: PowerCast[],
 ): AvailablePower[] {
-  const opened = Math.floor(journeySteps / STEPS_PER_LEVEL);
+  const opened = earnedChests;
   const spent = new Set(
     casts.filter((cast) => cast.playerId === playerId).map((cast) => cast.slot),
   );

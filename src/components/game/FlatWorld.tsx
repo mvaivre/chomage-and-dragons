@@ -24,8 +24,8 @@ import { chestXForStep, parallaxX, visibleTiles } from "./projection";
  *   ciel -> paysage lointain -> paysage proche -> décor derrière le joueur
  *        -> route continue -> joueur -> occultants proches
  *
- * Tous les décors de biome sont des îlots autonomes à bords transparents. Seule la
- * route se répète ; son bord droit est raccordé au suivant par miroir, ce qui rend
+ * Tous les décors de biome sont des îlots autonomes à bords transparents. L’itinéraire et la
+ * route se répètent ; le bord droit de la route est raccordé au suivant par miroir, ce qui rend
  * la couture exacte au lieu d'essayer de la cacher avec un fondu rectangulaire.
  */
 
@@ -116,10 +116,11 @@ function LayerSprite({
       x={worldX * factor}
       y={bottom}
     >
+      {frame !== undefined ? <pixiGraphics draw={g => { g.clear().ellipse(0, 0, width * 0.25, 4).fill({ color: 0x211b18, alpha: 0.2 }); }} /> : null}
       <pixiContainer alpha={alpha} scale={{ x: mirror ? -1 : 1, y: 1 }}>
         <pixiSprite
           texture={texture}
-          anchor={{ x: 0.5, y: 1 }}
+          anchor={{ x: 0.5, y: frame !== undefined ? 216 / 224 : 1 }}
           width={width}
           height={height}
         />
@@ -311,12 +312,12 @@ function VergeStrip() {
 }
 
 interface JourneyMarkersProps {
-  journeySteps: number;
+  earnedChests: number;
   pendingChestStep: number | null;
   activeChestX: number | null;
 }
 
-export function FlatJourneyMarkers({ journeySteps, pendingChestStep, activeChestX }: JourneyMarkersProps) {
+export function FlatJourneyMarkers({ earnedChests, pendingChestStep, activeChestX }: JourneyMarkersProps) {
   const spacing = WORLD_LENGTH * STEPS_PER_LEVEL / JOURNEY_TARGET;
   const indices = useStripTiles(spacing);
   return <pixiContainer>{indices.map(index => {
@@ -325,7 +326,7 @@ export function FlatJourneyMarkers({ journeySteps, pendingChestStep, activeChest
     const x = chestXForStep(step, WORLD_LENGTH, JOURNEY_TARGET);
     if (activeChestX !== null && Math.abs(x - activeChestX) < 1) return null;
     const pending = pendingChestStep !== null && pendingChestStep === step;
-    return <JourneyChest key={step} x={x} y={surfaceAt(x) + 8} opened={journeySteps >= step && !pending} />;
+    return <JourneyChest key={step} x={x} y={surfaceAt(x) + 8} opened={earnedChests * STEPS_PER_LEVEL >= step && !pending} />;
   })}</pixiContainer>;
 }
 
@@ -358,8 +359,8 @@ export function NearForegroundLayer({ factor }: { factor: number }) {
             url={`${ART_ROOT}/ground-props.webp`}
             frame={index}
             factor={factor}
-            bottom={GROUND_Y + 166}
-            width={180}
+            bottom={GROUND_Y + 100}
+            width={152}
             alpha={1}
             worldX={start + span * ratio}
             mirror={(index + occurrence) % 2 === 1}
@@ -376,6 +377,8 @@ export function PaperMotes() {
   const ref = useRef<Container>(null);
   const time = useRef(0);
   useTick((ticker) => {
+    if (ref.current) ref.current.visible = !scene.reducedMotion;
+    if (scene.reducedMotion) return;
     time.current += Math.min(60, ticker.deltaMS) / 1000;
     const camera = scene.camera;
     ref.current?.children.forEach((node, i) => {
