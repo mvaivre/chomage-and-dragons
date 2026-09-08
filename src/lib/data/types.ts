@@ -21,8 +21,8 @@ export interface Player {
 }
 
 /**
- * Une ligne immuable du journal. Les scores sont recalculés à la lecture, jamais
- * stockés — c'est ce qui rend l'annulation et le classement mensuel triviaux.
+ * Une action du journal, complétée une seule fois par son éventuel résultat de
+ * mini-jeu. Les scores et pas sont recalculés à la lecture, jamais stockés.
  */
 export interface GameEvent {
   id: string;
@@ -30,6 +30,19 @@ export interface GameEvent {
   kind: ActionKind;
   /** Instant ISO. Sert au score annuel, au classement mensuel et au facteur temps. */
   at: string;
+  /** Only the candidature mini-game can double travel; ranking points stay unchanged. */
+  journeyMultiplier?: 2;
+  pigeonFlightId?: string;
+}
+
+export type PigeonResult = "hit" | "miss" | "skipped";
+export interface PigeonFlight {
+  id: string;
+  playerId: string;
+  /** Application ordinal survives undo/re-entry without granting a fresh attempt. */
+  slot: number;
+  eventId: string;
+  result: "pending" | PigeonResult;
 }
 
 export type PowerKind =
@@ -58,4 +71,5 @@ export interface GameState {
   players: Player[];
   events: GameEvent[];
   casts: PowerCast[];
+  pigeonFlights?: PigeonFlight[];
 }

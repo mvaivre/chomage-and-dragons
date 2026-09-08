@@ -9,12 +9,16 @@ export function stepsFor(kind: ActionKind): number {
   return JOURNEY_STEPS[kind];
 }
 
+export function stepsForEvent(event: GameEvent): number {
+  return stepsFor(event.kind) * (event.kind === "candidature" && event.journeyMultiplier === 2 ? 2 : 1);
+}
+
 /** Replay the journal: ordinary setbacks never revoke an earned chest. Undo does. */
 export function journeyProgress(events: GameEvent[]): { steps: number; earnedChests: number } {
   let steps = 0;
   let peak = 0;
   for (const event of events) {
-    steps = Math.max(0, steps + stepsFor(event.kind));
+    steps = Math.max(0, steps + stepsForEvent(event));
     peak = Math.max(peak, steps);
   }
   return { steps, earnedChests: Math.floor(peak / STEPS_PER_LEVEL) };

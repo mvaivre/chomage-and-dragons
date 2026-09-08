@@ -8,12 +8,14 @@ import type {
   GameState,
   PowerCast,
   PowerKind,
+  PigeonResult,
 } from "@/lib/data/types";
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
+import { reservePigeonFlight, resolvePigeonFlight } from "@/lib/game/pigeon-flight";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -71,20 +73,32 @@ export function useGame() {
       at: new Date().toISOString(),
     };
 
-    setState((prev) => ({
-      ...prev,
-      events: [...prev.events, event],
+    const reservation = reservePigeonFlight(state, event);
+    const next = {
+      ...reservation.state,
+      events: [...state.events, reservation.event],
       // Une embauche sort le personnage de la course active, sans toucher au score.
       players:
         kind === "embauche"
-          ? prev.players.map((p) =>
+          ? state.players.map((p) =>
               p.id === playerId && !p.hiredAt ? { ...p, hiredAt: event.at } : p,
             )
-          : prev.players,
-    }));
+          : state.players,
+    };
+    // Persist the reservation synchronously, including before an immediate reload.
+    saveState(next);
+    setState(next);
 
-    return event;
-  }, []);
+    return { event: reservation.event, offerPigeon: reservation.offerPigeon };
+  }, [state]);
+
+  const finishPigeon = useCallback((eventId: string, result: PigeonResult) => {
+    const next = resolvePigeonFlight(state, eventId, result);
+    if (next === state) return false;
+    saveState(next);
+    setState(next);
+    return true;
+  }, [state]);
 
   const castPower = useCallback(
     (playerId: string, targetPlayerId: string, kind: PowerKind, slot: number) => {
@@ -187,11 +201,13 @@ export function useGame() {
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
     setState((prev) => ({
+      ...prev,
       players: prev.players.filter((p) => p.id !== playerId),
       events: prev.events.filter((e) => e.playerId !== playerId),
       casts: prev.casts.filter(
         (cast) => cast.playerId !== playerId && cast.targetPlayerId !== playerId,
       ),
+      pigeonFlights: prev.pigeonFlights?.filter(f => f.playerId !== playerId),
     }));
   }, []);
 
@@ -288,6 +304,7 @@ export function useGame() {
     crowns,
     freeCharacters,
     addEvent,
+    finishPigeon,
     castPower,
     markCastSeen,
     settleShots,

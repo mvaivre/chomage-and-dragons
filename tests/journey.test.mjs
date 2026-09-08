@@ -49,3 +49,64 @@ test('undo removes the chest only when its unlocking event no longer exists', ()
   assert.equal(journeyProgress(events.slice(0,-1)).earnedChests, 0);
   assert.deepEqual(journeyProgress([{kind:'entretien'}, {kind:'candidature'}]), {steps:2, earnedChests:0});
 });
+
+const { reservePigeonFlight, resolvePigeonFlight, pigeonAltitude, pigeonHitsMailbox } = await import('../src/lib/game/pigeon-flight.ts');
+const { stepsForEvent, pointsFor } = await import('../src/lib/game/scoring.ts');
+const application = (id, playerId = 'me') => ({ id, playerId, kind: 'candidature', at: '2026-09-08T12:00:00Z' });
+function enter(state, event) {
+  const reserved = reservePigeonFlight(state, event);
+  return { ...reserved, state: { ...reserved.state, events: [...state.events, reserved.event] } };
+}
+
+test('a pigeon delivery doubles only application travel and can unlock a chest', () => {
+  const initial = {players: [], casts: [], events: [application('a'), application('b'), application('c')]};
+  const reservation = enter(initial, application('delivery'));
+  assert.equal(reservation.offerPigeon, true);
+  assert.deepEqual(journeyProgress(reservation.state.events), {steps: 8, earnedChests: 0});
+  const awarded = resolvePigeonFlight(reservation.state, 'delivery', 'hit');
+  assert.deepEqual(journeyProgress(awarded.events), {steps: 10, earnedChests: 1});
+  assert.equal(pointsFor(awarded.events.at(-1).kind), 1);
+  assert.equal(resolvePigeonFlight(awarded, 'delivery', 'hit'), awarded, 'Award is idempotent');
+  assert.equal(stepsForEvent({kind: 'refus', journeyMultiplier: 2}), 3);
+});
+
+test('undo and re-entry restore the earned multiplier without another attempt', () => {
+  const first = enter({players: [], casts: [], events: []}, application('original'));
+  const awarded = resolvePigeonFlight(first.state, 'original', 'hit');
+  const undone = { ...awarded, events: [] };
+  assert.equal(journeyProgress(undone.events).steps, 0);
+  const replacement = enter(undone, application('replacement'));
+  assert.equal(replacement.offerPigeon, false);
+  assert.equal(journeyProgress(replacement.state.events).steps, 4);
+  assert.equal(resolvePigeonFlight(replacement.state, 'original', 'hit'), replacement.state);
+  assert.equal(enter(replacement.state, application('next')).offerPigeon, true);
+  assert.equal(enter(replacement.state, application('other', 'companion')).offerPigeon, true);
+});
+
+test('missed, skipped and interrupted attempts keep the base and survive reload/undo', () => {
+  for (const result of ['miss', 'skipped', 'pending']) {
+    const first = enter({players: [], casts: [], events: []}, application('first'));
+    const state = result === 'pending' ? first.state : resolvePigeonFlight(first.state, 'first', result);
+    assert.equal(journeyProgress(state.events).steps, 2);
+    const reloaded = JSON.parse(JSON.stringify(state));
+    const retry = enter({...reloaded, events: []}, application('retry'));
+    assert.equal(retry.offerPigeon, false);
+    assert.equal(journeyProgress(retry.state.events).steps, 2);
+    assert.equal(resolvePigeonFlight(retry.state, 'first', 'hit'), retry.state);
+    if (result !== 'pending') assert.equal(resolvePigeonFlight(state, 'first', 'hit'), state);
+  }
+});
+
+test('the moving pigeon stays in the arena and the marked delivery band is hittable', () => {
+  let hits = 0;
+  for (let ms = 0; ms <= 12000; ms += 50) {
+    const y = pigeonAltitude(ms);
+    assert.ok(y >= 23 && y <= 77);
+    if (pigeonHitsMailbox(y)) hits++;
+  }
+  assert.ok(hits > 20 && hits < 150);
+  assert.equal(pigeonHitsMailbox(41), true);
+  assert.equal(pigeonHitsMailbox(59), true);
+  assert.equal(pigeonHitsMailbox(40.9), false);
+  assert.equal(pigeonHitsMailbox(59.1), false);
+});

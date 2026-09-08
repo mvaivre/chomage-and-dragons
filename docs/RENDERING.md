@@ -215,3 +215,23 @@ fois par semaine. Chaque action doit donc être un moment visuel marquant, avec 
 réaction lisible, un déplacement et un résultat illustré. Ne pas optimiser ce
 parcours comme une boucle de clics fréquents. Conserver la réduction des mouvements
 et éviter d’ajouter des confirmations qui coupent la séquence.
+
+### Mini-jeu de candidature : le pigeon à reculons
+
+Après les deux pas de base (et l’éventuel coffre), une livraison facultative propose
+douze secondes pour envoyer le pigeon à la hauteur de la boîte. Il se déplace vers
+la droite en regardant à gauche. Toucher la scène, cliquer « Envoyer » ou utiliser
+Espace/Entrée verrouille l’altitude. La bande dorée correspond à la zone de réussite.
+Un succès double les pas de cette candidature : 2 + 2 bonus, sans changer les points
+du classement. Le trajet bonus peut ouvrir son propre coffre.
+
+Le monde est en pause derrière le dialogue natif, qui garde le focus et gère Escape.
+La préférence de réduction des mouvements remplace le timing par un réglage de
+hauteur au curseur, sans limite de temps. Le chrono normal se suspend en onglet caché.
+
+La tentative est réservée et persistée dès la saisie. Son résultat est enregistré
+avant le vol final. Les réservations `pigeonFlights` restent dans la sauvegarde après
+Annuler, indexées par joueur et rang de candidature : rétablir cette candidature
+réutilise le résultat, sans nouvelle tentative. Annuler retire tous ses pas, bonus
+compris. Une tentative non résolue interrompue par un rechargement conserve seulement la base.
+Les anciennes sauvegardes sans ces champs gardent leur progression d’origine.

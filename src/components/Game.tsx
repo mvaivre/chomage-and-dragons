@@ -8,6 +8,7 @@ import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
 import { ActionBar } from "@/components/hud/ActionBar";
+import { PigeonGame } from "@/components/hud/PigeonGame";
 import {
   ActionReward,
   type RewardMoment,
@@ -24,13 +25,13 @@ import { TitleScreen } from "@/components/hud/TitleScreen";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame } from "@/hooks/useGame";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
-import type { ActionKind, PowerCast, PowerKind } from "@/lib/data/types";
+import type { ActionKind, PowerCast, PowerKind, PigeonResult } from "@/lib/data/types";
 import {
   POWERS,
   powerForSlot,
   type AvailablePower,
 } from "@/lib/game/powers";
-import { stepsFor } from "@/lib/game/scoring";
+import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
@@ -91,6 +92,7 @@ export function Game() {
     crowns,
     freeCharacters,
     addEvent,
+    finishPigeon,
     castPower,
     markCastSeen,
     settleShots,
@@ -104,6 +106,7 @@ export function Game() {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
+  const [pigeonOffer, setPigeonOffer] = useState<{ eventId: string; resolved?: boolean } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
@@ -133,6 +136,8 @@ export function Game() {
   const identity = me ? meId : null;
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
+  const pigeonVisible = Boolean(pigeonOffer && (pigeonOffer.resolved ||
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen)));
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") setPowerAttention(value => value + 1);
     setRewardMoments(moments => moments.slice(1));
@@ -163,6 +168,8 @@ export function Game() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // The native mini-game dialog owns Escape, Space, Enter and focus.
+      if (pigeonVisible) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -196,7 +203,7 @@ export function Game() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox]);
+  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, pigeonVisible]);
 
   useEffect(
     () => () => {
@@ -273,12 +280,13 @@ export function Game() {
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
-      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0) return;
+      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || pigeonOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
       setOverview(false);
 
-      const event = addEvent(me.id, kind);
+      const { event, offerPigeon } = addEvent(me.id, kind);
+      if (offerPigeon) setPigeonOffer({ eventId: event.id });
       const origin = heroOrigin(me, meIndex);
 
       const queued: Effect[] = [
@@ -287,7 +295,7 @@ export function Game() {
       pendingChestEffect.current = null;
 
       const beforeChest = me.earnedChests;
-      const afterSteps = Math.max(0, me.journeySteps + stepsFor(kind));
+      const afterSteps = Math.max(0, me.journeySteps + stepsForEvent(event));
       const afterChest = Math.max(beforeChest, Math.floor(afterSteps / STEPS_PER_LEVEL));
       const beforeZone = biomeAt(worldXFor(me.position));
       const afterPosition = kind === "embauche" ? hiredPosition(afterSteps) : racePosition(afterSteps);
@@ -323,12 +331,30 @@ export function Game() {
       }
 
       setEffects(previous => [...previous, ...queued]);
-      const steps = stepsFor(kind);
-      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
+      const steps = stepsForEvent(event);
+      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyMultiplier === 2 ? " ×2" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length],
+    [addEvent, me, meIndex, rewardMoments.length, pigeonOffer],
   );
+
+  const handlePigeonResult = useCallback((result: PigeonResult) => {
+    if (!pigeonOffer || !me || !finishPigeon(pigeonOffer.eventId, result)) return;
+    setPigeonOffer(offer => offer ? { ...offer, resolved: true } : null);
+    if (result !== "hit") return;
+    actionInFlight.current = true;
+    setAwaitingTravel(true);
+    const bonus = stepsFor("candidature");
+    const afterChest = Math.max(me.earnedChests, Math.floor((me.journeySteps + bonus) / STEPS_PER_LEVEL));
+    if (afterChest > me.earnedChests) {
+      const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
+      pendingChestEffect.current = { id: `${pigeonOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
+      setRewardMoments([{ id: `${pigeonOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
+    }
+    setActionFeedback({ id: `${pigeonOffer.eventId}-bonus`, kind: "candidature", text: `Livraison à reculons ×2 · +${bonus} pas bonus` });
+  }, [pigeonOffer, me, finishPigeon]);
+
+  const handlePigeonDone = useCallback(() => { setPigeonOffer(null); }, []);
 
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
@@ -369,13 +395,13 @@ export function Game() {
   );
 
   const handleUndo = useCallback(() => {
-    if (!me || actionInFlight.current || rewardMoments.length > 0) return;
+    if (!me || actionInFlight.current || rewardMoments.length > 0 || pigeonOffer) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
-  }, [me, undoLast, rewardMoments.length]);
+  }, [me, undoLast, rewardMoments.length, pigeonOffer]);
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
@@ -404,6 +430,7 @@ export function Game() {
     chestAnimationId.current = null;
     setAwaitingTravel(false);
     setRewardMoments([]);
+    setPigeonOffer(null);
     setEffects([]);
     setActionFeedback(null);
     setOverview(false);
@@ -448,7 +475,7 @@ export function Game() {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox)}
+        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox) || pigeonVisible}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -575,6 +602,7 @@ export function Game() {
                   registerOpen ||
                   !sceneReady ||
                   rewardMoments.length > 0 ||
+                  pigeonOffer !== null ||
                   awaitingTravel ||
                   shotInbox !== null
                 }
@@ -611,6 +639,8 @@ export function Game() {
           onDone={handleRewardDone}
         />
       ) : null}
+
+      {pigeonVisible && pigeonOffer ? <PigeonGame key={pigeonOffer.eventId} onResolve={handlePigeonResult} onDone={handlePigeonDone} /> : null}
 
       {shotInbox ? (
         <ShotInbox

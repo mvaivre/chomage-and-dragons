@@ -9,7 +9,7 @@ const ready = page => page.waitForFunction(() => {
   return button && !button.disabled;
 });
 
-test('real game journeys, rewards, undo and mobile controls', { timeout: 180_000 }, async t => {
+test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000 }, async t => {
   const server = process.env.GAME_TEST_URL ? null : spawn(process.execPath,
     ['node_modules/next/dist/bin/next', 'start', '--port', '3100'], { stdio: 'ignore' });
   t.after(() => server?.kill());
@@ -30,6 +30,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 180_000
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(({ steps }) => {
+      if (localStorage.getItem('louchomage:v2')) return;
       const at = new Date().toISOString();
       localStorage.setItem('louchomage:moi:v1', 'test');
       localStorage.setItem('louchomage:v2', JSON.stringify({
@@ -95,6 +96,82 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 180_000
       await page.keyboard.press('Escape');
       assert.equal(await page.getByRole('button', { name: 'Fermer la carte' }).count(), 0);
       await ready(page);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+
+  await t.test('pigeon ×2 awards the bonus, opens a chest, and survives undo/reload without replay', async () => {
+    const { context, page, errors } = await fixture(6, 'reduce');
+    try {
+      await page.setViewportSize({width: 390, height: 844});
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Tenter le ×2'}).click();
+      assert.equal(await page.locator('dialog[open]').count(), 1);
+      await page.getByRole('slider', {name: 'Hauteur du pigeon'}).fill('50');
+      await page.getByRole('button', {name: 'Envoyer !', exact: true}).focus();
+      await page.keyboard.press('Space');
+      await page.waitForFunction(() => document.querySelector('.pigeon-game__result')?.textContent?.includes('×2 · +4 pas'));
+      assert.match(await page.locator('.journey-card__stats').innerText(), /10/);
+      await page.getByRole('button', {name: 'Continuer le voyage'}).click();
+      await page.getByRole('button', {name: 'Ranger le butin'}).click();
+      await ready(page);
+      const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')));
+      assert.equal(saved.events.at(-1).journeyMultiplier, 2);
+      assert.equal(saved.pigeonFlights[0].result, 'hit');
+      await page.locator('.action-undo').click();
+      await ready(page);
+      assert.match(await page.locator('.journey-card__stats').innerText(), /6/);
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Ranger le butin'}).click();
+      await ready(page);
+      assert.equal(await page.locator('.pigeon-game').count(), 0);
+      await page.reload();
+      await ready(page);
+      assert.match(await page.locator('.journey-card__stats').innerText(), /10/);
+      assert.equal(await page.locator('.pigeon-game').count(), 0);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+
+  await t.test('skipping, missing and timing out keep the base; small-screen dialog stays usable', async () => {
+    const { context, page, errors } = await fixture(0, 'reduce');
+    try {
+      await page.setViewportSize({width: 320, height: 568});
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Tenter le ×2'}).waitFor();
+      assert.equal(await page.locator('.pigeon-game').evaluate(n => n.scrollWidth > n.clientWidth), false);
+      await page.keyboard.press('Escape');
+      await ready(page);
+      assert.match(await page.locator('.journey-card__stats').innerText(), /2/);
+      assert.equal(await page.locator('.leaderboard-sheet').count(), 0, 'Escape stays inside the dialog');
+      await page.locator('.action-undo').click();
+      await ready(page);
+      await page.locator('.action-button--candidature').click();
+      await ready(page);
+      assert.equal(await page.locator('.pigeon-game').count(), 0);
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Tenter le ×2'}).click();
+      await page.getByRole('button', {name: 'Envoyer !', exact: true}).click();
+      assert.match(await page.locator('.pigeon-game__result').innerText(), /2 pas conservés/);
+      await page.getByRole('button', {name: 'Continuer le voyage'}).click();
+      await ready(page);
+      await page.emulateMedia({reducedMotion: 'no-preference'});
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Tenter le ×2'}).click();
+      await page.getByRole('button', {name: 'Continuer le voyage'}).click(); // Automatic miss after twelve seconds.
+      await ready(page);
+      assert.match(await page.locator('.journey-card__stats').innerText(), /6/);
+      await page.locator('.action-button--candidature').click();
+      await page.getByRole('button', {name: 'Tenter le ×2'}).click();
+      await page.reload(); // Interrupt an unresolved flight: preserve base, consume attempt.
+      await ready(page);
+      assert.match(await page.locator('.journey-card__stats').innerText(), /8/);
+      assert.equal(await page.locator('.pigeon-game').count(), 0);
+      await page.locator('.action-undo').click();
+      await ready(page);
+      await page.locator('.action-button--candidature').click();
+      await ready(page);
+      assert.equal(await page.locator('.pigeon-game').count(), 0);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });

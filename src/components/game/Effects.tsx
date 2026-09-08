@@ -79,6 +79,7 @@ function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: Illus
       node.y = origin.y - (ordinary ? 100 : 180) - (scene.reducedMotion ? 0 : fly ? t * 135 : reaction.motion === "fall" ? (1 - pop) * 160 : t * 25)
         - (!scene.reducedMotion && reaction.motion === "hop" ? Math.abs(Math.sin(t * Math.PI * 3)) * 30 : 0);
       node.scale.set(((ordinary ? 136 : 150) / texture.height) * (0.8 + pop * 0.2));
+      if (kind === "pigeon") node.scale.x *= -1; // The courier flies backwards, beak opposite its route.
       node.rotation = scene.reducedMotion ? 0 : fly ? -0.15 + Math.sin(t * 28) * 0.08 : Math.sin(t * 12) * 0.035;
       node.alpha = fade;
     }
