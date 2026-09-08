@@ -191,7 +191,7 @@ prochaine taverne, coffres successifs et cadrage mobile.
   les confettis et les déplacements de caméra interpolés ; les trajets restent
   courts et les interactions gardent leurs confirmations de fin.
 - Les pas avancent à vitesse continue. Le skater ne rebondit plus à chaque case.
-  Les effets ordinaires restent proches de la main et durent moins d’une seconde.
+  Les réactions illustrées restent à côté du personnage et durent 1,6 à 2,5 secondes.
   Les trajets, coffres et effets utilisent le temps réellement écoulé entre les
   images : un faible débit d’images n’allonge plus leur durée ni le verrouillage
   des commandes. L’arrêt du ticker suspend cette horloge derrière les fenêtres.
@@ -207,3 +207,11 @@ prochaine taverne, coffres successifs et cadrage mobile.
 annulations, la réduction des mouvements et la fermeture de la carte. Les captures
 et les essais Chromium en rendu logiciel valident la composition et le comportement,
 pas les FPS, la chauffe ou l’autonomie d’un téléphone physique.
+
+### Rythme d’usage
+
+Une action représente un événement réel rare : au plus une fois par jour, quelques
+fois par semaine. Chaque action doit donc être un moment visuel marquant, avec une
+réaction lisible, un déplacement et un résultat illustré. Ne pas optimiser ce
+parcours comme une boucle de clics fréquents. Conserver la réduction des mouvements
+et éviter d’ajouter des confirmations qui coupent la séquence.

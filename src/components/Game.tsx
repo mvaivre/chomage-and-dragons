@@ -106,7 +106,7 @@ export function Game() {
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string } | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
   const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
@@ -324,7 +324,7 @@ export function Game() {
 
       setEffects(previous => [...previous, ...queued]);
       const steps = stepsFor(kind);
-      setActionFeedback({ id: event.id, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
+      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
     [addEvent, me, meIndex, rewardMoments.length],
@@ -548,7 +548,7 @@ export function Game() {
                   onClick={() => setOverview((value) => !value)}
                 >
                   <span aria-hidden>◉</span>
-                  <span>Compagnie</span>
+                  <span>Carte</span>
                   <kbd>V</kbd>
                 </button>
               </div>
@@ -580,6 +580,7 @@ export function Game() {
                 }
                 lastActionLabel={lastActionLabel}
                 feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
+                feedbackKind={actionFeedback?.kind}
               />
             </div>
           ) : null}

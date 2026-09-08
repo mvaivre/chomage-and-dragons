@@ -60,6 +60,7 @@ interface ActionBarProps {
   locked: boolean;
   lastActionLabel: string | null;
   feedback: string | null;
+  feedbackKind?: ActionKind;
 }
 
 export function ActionBar({
@@ -70,6 +71,7 @@ export function ActionBar({
   locked,
   lastActionLabel,
   feedback,
+  feedbackKind,
 }: ActionBarProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -98,11 +100,12 @@ export function ActionBar({
   return (
     <div className="action-dock pointer-events-auto">
       <p className="action-dock__prompt" data-feedback={Boolean(feedback)} role="status" aria-live="polite">
-        {feedback ?? (hired
+        {feedback && feedbackKind ? <ActionArtwork kind={feedbackKind} className="action-dock__feedback-art" /> : null}
+        <span>{feedback ?? (hired
           ? "Quête accomplie — ta place à la taverne est réservée."
           : lastActionLabel
             ? `Dernier exploit : ${lastActionLabel}`
-            : "Transforme ta recherche en voyage")}
+            : "Transforme ta recherche en voyage")}</span>
       </p>
 
       <div className="action-dock__bar">

@@ -2296,6 +2296,14 @@ html { font-size: 18px; }
   box-shadow: 5px 5px 0 rgb(20 19 17 / 0.65);
 }
 
+/* The parchment cards need their own ink, independent of the dark popover. */
+.power-choice strong { color: var(--janky-ink); }
+.power-choice small { color: #4c432f; }
+.power-choice:focus-visible, .power-target:focus-visible {
+  outline: 3px solid var(--janky-paper-light);
+  outline-offset: 3px;
+}
+
 .riveted::before,
 .riveted::after { display: none; }
 
@@ -2737,4 +2745,16 @@ html, body { height: 100%; height: 100dvh; }
     width: max-content; max-width: 100%; margin-bottom: 6px; padding: 4px 8px;
     font-size: 0.85rem; line-height: 1.2; text-align: center;
   }
+}
+
+/* A rare action gets a clear illustrated receipt, without another confirmation. */
+.action-dock__prompt[data-feedback="true"] {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--janky-yellow); color: var(--janky-ink);
+  font-size: 1.1rem; line-height: 1.15;
+}
+.action-dock__feedback-art { flex: 0 0 auto; width: 44px; height: 44px; object-fit: contain; }
+@media (max-width: 760px), (max-height: 500px) {
+  .action-dock__prompt[data-feedback="true"] { gap: 6px; font-size: 0.9rem; padding: 3px 7px; }
+  .action-dock__feedback-art { width: 30px; height: 30px; }
 }

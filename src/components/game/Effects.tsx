@@ -66,7 +66,8 @@ function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: Illus
   useTick(ticker => {
     elapsed.current += ticker.elapsedMS;
     const ordinary = ["pigeon", "lightning", "cocktail", "legendary"].includes(kind);
-    const duration = scene.reducedMotion ? 450 : ordinary ? 900 : reaction.duration;
+    // Actions happen only a few times a week: let each illustrated reaction read.
+    const duration = scene.reducedMotion ? 900 : reaction.duration;
     const t = Math.min(1, elapsed.current / duration);
     const fade = Math.min(1, t / 0.08, (1 - t) / 0.22);
     const pop = scene.reducedMotion ? 1 : Math.min(1, t / 0.18);
@@ -74,10 +75,10 @@ function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: Illus
     if (art.current && texture) {
       const node = art.current;
       const fly = !scene.reducedMotion && reaction.motion === "fly";
-      node.x = x + (ordinary ? 72 : 0) + (fly ? t * t * 500 : scene.reducedMotion ? 0 : Math.sin(t * 24) * (1 - t) * (reaction.motion === "stamp" ? 5 : 0));
+      node.x = x + (ordinary ? 115 : 0) + (fly ? t * t * 320 : scene.reducedMotion ? 0 : Math.sin(t * 24) * (1 - t) * (reaction.motion === "stamp" ? 5 : 0));
       node.y = origin.y - (ordinary ? 100 : 180) - (scene.reducedMotion ? 0 : fly ? t * 135 : reaction.motion === "fall" ? (1 - pop) * 160 : t * 25)
         - (!scene.reducedMotion && reaction.motion === "hop" ? Math.abs(Math.sin(t * Math.PI * 3)) * 30 : 0);
-      node.scale.set(((ordinary ? 96 : 150) / texture.height) * (0.8 + pop * 0.2));
+      node.scale.set(((ordinary ? 136 : 150) / texture.height) * (0.8 + pop * 0.2));
       node.rotation = scene.reducedMotion ? 0 : fly ? -0.15 + Math.sin(t * 28) * 0.08 : Math.sin(t * 12) * 0.035;
       node.alpha = fade;
     }
