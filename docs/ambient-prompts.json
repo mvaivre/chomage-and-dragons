@@ -1,0 +1,41 @@
+{
+  "toolMode": "Built-in ImageGen; no CLI fallback",
+  "sourceDirectory": "~/.codex/generated_images/01a0786c-8dc1-7c72-b64e-f2df416784d9/",
+  "assets": [
+    {
+      "source": "exec-8de1a3fc-4462-4eb9-bb2d-74fc335bb5c2.png",
+      "output": "public/art/world-v3/runtime/plaine-back-animated.webp",
+      "compileMode": "plaine",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached transparent game landscape, plaine-back.webp. Prepare an animation clean plate. Change ONLY the large left windmill: remove all four wooden rotor blades and their spokes, leaving a small central circular axle on the tower; reconstruct the stone wall and slate roof formerly hidden by those blades. Also remove the blue fabric flag at the top but KEEP its pole. Keep the smaller distant windmill unchanged. Preserve absolutely every other pixel composition: all trees, paths, grass, fences, hills, castles, colors, ink strokes, original transparent outer silhouette, image framing and aspect ratio. No new objects. No sky or flat background: genuine RGBA transparency outside the existing landscape. Same exact hand-inked muted medieval cartoon artwork. Return only the edited landscape, aligned exactly like the source, with no labels or margins."
+    },
+    {
+      "source": "exec-79395d1b-091e-446f-bc03-47223e4431aa.png",
+      "output": "public/art/world-v3/runtime/windmill-rotor.webp",
+      "compileMode": "rotor",
+      "prompt": "Use case: background-extraction. Reference image: the large left windmill in plaine-back.webp. Produce ONE isolated rotor asset for a 2D game, square 1024x1024 transparent RGBA canvas. Exactly four wooden lattice-and-canvas windmill sails attached to four wooden spokes and a round central hub, viewed straight-on. The sails form an X, fourfold rotational symmetry, perfectly centred hub at image centre, equal radius all four sails. Match the reference's rough black ink outlines, ochre weathered wood, muted beige canvas, medieval comic illustration with subtle paper grain. Only the moving rotor: NO tower, roof, stone, tree, ground, landscape, pole, flag or cast shadow. Reconstruct the parts hidden by the tower so the isolated shape can rotate cleanly. Keep every blade inside the image with generous transparent margins. No text, no checkerboard paint, genuine transparency."
+    },
+    {
+      "source": "exec-1f012688-0fad-4d14-967c-a2fffe60e115.png",
+      "output": "public/art/world-v3/animations/gnomes.webp",
+      "compileMode": "atlas",
+      "prompt": "Use case: stylized-concept. Create a production 2D ambient NPC sprite sheet, 4 columns × 2 rows, eight distinct separated full-body poses on genuine RGBA transparent background. Reference image ambient.webp is STYLE ONLY; do NOT copy its hooded human character. Row 1: the SAME tiny garden gnome, long white beard covering torso, bulbous nose, very tall bent red conical hat, squat blue coat, oversized brown boots. Four poses: relaxed eyes open; blink eyes closed; raises a tiny wooden mug; lowers mug smiling. Row 2: a second tiny garden gnome, same dwarf proportions, long white beard, tall ochre conical hat, moss-blue apron and brown boots, holding a tiny broom. Four poses: broom at rest; sweeping left; sweeping right; resting eyes closed. All eight poses have exactly the same ground baseline and scale, each entirely within its own spacious equally sized cell; clear transparent gutters, no grid lines. Quiet comic medieval folk-art, thick irregular black outlines, muted warm earthy colors, hand-painted grain matching reference. These are little non-playable garden gnomes, NOT humans, NOT adventurers: no green hood, no dagger, no desk, no letter stacks, no knight, no floating poses. No labels, no text, no floor, no shadows, no checkerboard paint."
+    },
+    {
+      "source": "exec-2a6e5218-5143-459f-aac3-99d2913437b8.png",
+      "output": "public/art/world-v3/runtime/taverne-mid-animated.webp",
+      "compileMode": "tavern",
+      "prompt": "Use case: precise-object-edit. Edit target taverne-mid.webp, a transparent 2D game cutout. Create an animation clean plate: remove ONLY (1) the crowned white chicken standing on the central barrel, leaving the barrel top intact; (2) the small hanging lantern at the tavern doorway and the large hanging lantern on the right post, while keeping their wooden support beams and suspension points; (3) the candle flame on the table but keep the candle and wax; (4) the small gray smoke puff above the chimney. Reconstruct the wood, wall or transparent space formerly covered by these four moving subjects. Preserve the original building, roof, window, furniture, rocks, plants, terrain footprint, warm colors, hand-inked linework, scale and composition exactly. Keep the scene fully opaque wherever there is painted architecture or ground, with genuine transparent alpha outside. Do NOT add a checkerboard, black background, sky, labels, borders or any new object. Return only the aligned clean plate in the original wide aspect ratio."
+    },
+    {
+      "source": "exec-6b513aee-30ff-4c50-871f-f7e4e9b40e5a.png",
+      "output": "public/art/world-v3/animations/tavern-life.webp",
+      "compileMode": "atlas",
+      "prompt": "Use case: stylized-concept. Reference: taverne-mid.webp, identity and art style. Generate ONE game animation parts atlas, 4 columns × 2 rows, all 8 elements separated by ample genuinely transparent gutters. Top row: FOUR poses of the exact SAME crowned white chicken from the reference, same red comb, wide funny eyes, yellow beak, white plumage and little gold crown with three points, facing right, full body with feet aligned to identical baseline at identical scale. Pose 1 calm; pose 2 blink with closed eyelids; pose 3 curious head tilted; pose 4 one wing raised for a small flap. Keep feet planted in the same position, no barrel under it. Bottom row, four isolated objects, one per cell: (1) a hanging medieval iron lantern with warm amber panes and a small suspension loop, matching the reference right lantern, no post or beam; (2) a single little warm yellow candle flame, no candle; (3) one wispy gray-cream chimney smoke puff, soft irregular silhouette and faint ink edges; (4) a small tuft of green leaves/reeds, no rocks or soil. Thick irregular black ink, muted warm ochre olive cream palette and painted grain, same charming medieval comic. NO backdrop, no checkerboard pattern, no text, no frames, no shadows or floor. Output actual transparent RGBA PNG, every object fully visible."
+    }
+  ],
+  "existingCutout": {
+    "source": "public/art/world-v3/runtime/plaine-back.webp",
+    "output": "public/art/world-v3/runtime/windmill-flag.webp",
+    "compileMode": "flag"
+  }
+}

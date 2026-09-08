@@ -24,7 +24,7 @@ import {
   TransitionLandmarks,
 } from "./FlatWorld";
 import { Hero, VisibleHero } from "./Hero";
-import { AmbientLife } from "./AmbientLife";
+import { AmbientLife, BackgroundGnomes } from "./AmbientLife";
 import { laneFor } from "./lanes";
 import type { HeroMotion } from "./animation";
 import { frameComposition, parallaxX, renderResolution } from "./projection";
@@ -298,6 +298,10 @@ function WorldScene({
 
       <Layer factor={1}>
         <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+      </Layer>
+
+      <Layer factor={MIDGROUND_FACTOR}>
+        <BackgroundGnomes factor={MIDGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1}>

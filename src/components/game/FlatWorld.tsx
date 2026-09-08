@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { type Container, type Graphics } from "pixi.js";
 import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
@@ -17,6 +17,7 @@ import { atlasFrames, useDirectTexture } from "./textures";
 import { scene, WORLD_BOTTOM } from "./scene";
 import { JourneyChest } from "./JourneyChest";
 import { chestXForStep, parallaxX, visibleTiles } from "./projection";
+import { WindmillLife, TavernLife } from "./LandmarkLife";
 
 /**
  * Le monde v3 suit un contrat volontairement court :
@@ -52,6 +53,8 @@ const WORLD_ART: Record<string, BiomeArt> = Object.fromEntries(
   ]),
 );
 WORLD_ART.cascade.back = `${ART_ROOT}/cascade-back-v2.webp`;
+WORLD_ART.plaine.back = `${ART_ROOT}/plaine-back-animated.webp`;
+WORLD_ART.taverne.mid = `${ART_ROOT}/taverne-mid-animated.webp`;
 
 /** Only materialize the nearby copies of the itinerary, at each layer's depth. */
 export function useLayerBiomes(factor: number, width: number) {
@@ -88,6 +91,8 @@ function LayerSprite({
   mirror = false,
   worldX,
   frame,
+  children,
+  tint = 0xffffff,
 }: {
   url: string;
   factor: number;
@@ -97,6 +102,8 @@ function LayerSprite({
   mirror?: boolean;
   worldX: number;
   frame?: number;
+  children?: ReactNode;
+  tint?: number;
 }) {
   const source = useDirectTexture(url);
   const texture = source && frame !== undefined ? atlasFrames(source, 4, 2)[frame] : source;
@@ -117,13 +124,14 @@ function LayerSprite({
       y={bottom}
     >
       {frame !== undefined ? <pixiGraphics draw={g => { g.clear().ellipse(0, 0, width * 0.25, 4).fill({ color: 0x211b18, alpha: 0.2 }); }} /> : null}
-      <pixiContainer alpha={alpha} scale={{ x: mirror ? -1 : 1, y: 1 }}>
+      <pixiContainer alpha={alpha} tint={tint} scale={{ x: mirror ? -1 : 1, y: 1 }}>
         <pixiSprite
           texture={texture}
           anchor={{ x: 0.5, y: frame !== undefined ? 216 / 224 : 1 }}
           width={width}
           height={height}
         />
+        {children ? <pixiContainer x={-width / 2} y={-height} scale={width / texture.width}>{children}</pixiContainer> : null}
       </pixiContainer>
     </pixiContainer>
   );
@@ -163,7 +171,10 @@ export function BiomeArtLayer({
             alpha={alpha}
             worldX={center + offset}
             mirror={(index % 2 === 1) !== (offset !== 0)}
-          />
+            tint={channel === "back" && biome.id === "plaine" ? 0xdad8d0 : 0xffffff}
+          >
+            {channel === "back" && biome.id === "plaine" ? <WindmillLife worldX={center + offset} factor={factor} /> : null}
+          </LayerSprite>
         ));
       })}
     </pixiContainer>
@@ -188,7 +199,10 @@ export function MidgroundLayer({ factor }: { factor: number }) {
             width={820}
             alpha={1}
             worldX={center}
-          />
+            tint={biome.id === "taverne" ? 0xdad8d0 : 0xffffff}
+          >
+            {biome.id === "taverne" ? <TavernLife worldX={center} factor={factor} /> : null}
+          </LayerSprite>
         );
       })}
     </pixiContainer>

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Ticker } from 'pixi.js';
 import { heroFrame } from '../src/components/game/animation.ts';
+import { gnomeFrame, crownedChickenFrame } from '../src/components/game/ambient-animation.ts';
 import { subscribeTick } from '../src/components/game/tickSubscription.ts';
 import { frameComposition, chestXForStep } from '../src/components/game/projection.ts';
 
@@ -14,6 +15,53 @@ test('all animation states address valid poses and movement has four distinct dr
   }
   assert.equal(new Set([0, 1, 2, 3].map(i => heroFrame('walk', i / 9))).size, 4);
   assert.notEqual(heroFrame('idle', 4.6), heroFrame('idle', 0));
+});
+
+test('background gestures stay in their own atlas row and leave quiet intervals', () => {
+  for (const [pose, start, count] of [[t => gnomeFrame(0, t), 0, 4], [t => gnomeFrame(1, t), 4, 4], [crownedChickenFrame, 0, 4]]) {
+    const observed = new Set();
+    let idle = 0;
+    for (let i = 0; i < 2600; i++) {
+      const frame = pose(i / 20);
+      assert.ok(Number.isInteger(frame) && frame >= start && frame < start + count);
+      observed.add(frame);
+      if (frame === start) idle++;
+    }
+    assert.equal(observed.size, count);
+    assert.ok(idle > 400, 'gestures must leave a rest interval');
+  }
+});
+
+test('ambient atlases have transparent gutters and registered feet across character poses', async () => {
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
+  const { readFile } = await import('node:fs/promises');
+  for (const name of ['gnomes', 'tavern-life']) {
+    const base = new URL(`../public/art/world-v3/animations/${name}`, import.meta.url);
+    const meta = JSON.parse(await readFile(`${base.pathname}.json`, 'utf8'));
+    const { data, info } = await sharp(`${base.pathname}.webp`).raw().toBuffer({ resolveWithObject: true });
+    assert.equal(info.channels, 4);
+    assert.equal(info.width, meta.columns * meta.width);
+    assert.equal(info.height, meta.rows * meta.height);
+    assert.equal(meta.heights.length, 8);
+    const feet = [];
+    for (let cell = 0; cell < 8; cell++) {
+      let bottom = 0, opaque = 0;
+      for (let y = 0; y < meta.height; y++) for (let x = 0; x < meta.width; x++) {
+        const alpha = data[(((Math.floor(cell / 4) * meta.height + y) * info.width + cell % 4 * meta.width + x) * 4) + 3];
+        if (x === 0 || x === meta.width - 1 || y === 0 || y === meta.height - 1) assert.equal(alpha, 0, `${name}:${cell} touches gutter`);
+        if (alpha > 128) { bottom = y; opaque++; }
+      }
+      assert.ok(opaque > 300, `${name}:${cell} is empty`);
+      feet.push(bottom);
+    }
+    for (const row of name === 'gnomes' ? [0, 1] : [0]) {
+      const baseline = feet.slice(row * 4, row * 4 + 4);
+      assert.ok(Math.max(...baseline) - Math.min(...baseline) <= 8, `${name}: feet jump between poses`);
+      assert.ok(Math.max(...baseline) <= meta.baseline + 2);
+    }
+  }
 });
 
 test('lowest lane and name plate stay above the action dock in portrait, tall and landscape views', () => {
