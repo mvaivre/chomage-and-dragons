@@ -45,8 +45,11 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
 
   // Chrome may close a modal on Escape without firing cancel when it opened right after
   // another one closed; onClose keeps the game state in step with the browser either way.
+  // The check on `open` ignores the close queued by a development-only remount (StrictMode),
+  // which has already reopened the dialog by the time the event fires.
   return <dialog ref={dialog} className={`mini-game mini-game--${kind}`} aria-labelledby="mini-game-title" aria-describedby="mini-game-instructions"
-    onKeyDown={onKeyDown} onCancel={event => { event.preventDefault(); onLeave(); }} onClose={onLeave}>
+    onKeyDown={onKeyDown} onCancel={event => { event.preventDefault(); onLeave(); }}
+    onClose={event => { if (!event.currentTarget.open) onLeave(); }}>
     <button type="button" className="mini-game__close" onClick={onLeave} aria-label="Fermer le mini-jeu">×</button>
     <header>
       <p className="mini-game__eyebrow">{eyebrow}</p>
