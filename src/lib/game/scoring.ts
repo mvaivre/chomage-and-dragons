@@ -10,7 +10,8 @@ export function stepsFor(kind: ActionKind): number {
 }
 
 export function stepsForEvent(event: GameEvent): number {
-  return stepsFor(event.kind) * (event.kind === "candidature" && event.journeyMultiplier === 2 ? 2 : 1);
+  const legacyDouble = event.kind === "candidature" && event.journeyMultiplier === 2 ? stepsFor(event.kind) : 0;
+  return stepsFor(event.kind) + legacyDouble + (event.journeyBonus ?? 0);
 }
 
 /** Replay the journal: ordinary setbacks never revoke an earned chest. Undo does. */

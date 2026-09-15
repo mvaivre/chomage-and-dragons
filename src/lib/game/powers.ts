@@ -1,4 +1,5 @@
-import type { PowerCast, PowerKind } from "@/lib/data/types";
+import type { GameState, PowerCast, PowerKind } from "@/lib/data/types";
+import { BONUS_POWER_SLOT_BASE, wonChestGames } from "@/lib/game/mini-games";
 
 export interface PowerDefinition {
   kind: PowerKind;
@@ -58,18 +59,32 @@ export function powerForSlot(slot: number): PowerKind {
   return POWER_CYCLE[slot % POWER_CYCLE.length];
 }
 
+/** A jackpot's loot is drawn from the attempt id, so it never changes on reload. */
+export function bonusPowerKind(attemptId: string): PowerKind {
+  let hash = 0;
+  for (let i = 0; i < attemptId.length; i++) hash = (hash * 31 + attemptId.charCodeAt(i)) >>> 0;
+  return POWER_CYCLE[hash % POWER_CYCLE.length];
+}
+
 export function availablePowers(
   playerId: string,
   earnedChests: number,
   casts: PowerCast[],
+  miniGames: GameState["miniGames"] = [],
 ): AvailablePower[] {
   const opened = earnedChests;
   const spent = new Set(
     casts.filter((cast) => cast.playerId === playerId).map((cast) => cast.slot),
   );
-
-  return Array.from({ length: opened }, (_, slot) => ({
+  const chests = Array.from({ length: opened }, (_, slot) => ({
     slot,
     kind: powerForSlot(slot),
-  })).filter((power) => !spent.has(power.slot));
+  }));
+  // Jackpots add loot on top of the chest cycle; losing the chest to undo loses it too.
+  const jackpots = wonChestGames({ miniGames }, playerId, earnedChests).map((attempt) => ({
+    slot: BONUS_POWER_SLOT_BASE + attempt.slot,
+    kind: bonusPowerKind(attempt.id),
+  }));
+
+  return [...chests, ...jackpots].filter((power) => !spent.has(power.slot));
 }

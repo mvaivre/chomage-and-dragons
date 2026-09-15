@@ -29,6 +29,18 @@ export const JOURNEY_STEPS = {
   embauche: 0,
 } as const;
 
+/**
+ * Pas bonus gagnés aux mini-jeux, par action décorée. Seuls les pas de voyage
+ * bougent : les points du classement n'y touchent jamais.
+ */
+export const MINI_GAME_BONUS = {
+  candidature: 2,
+  refus: 1,
+  entretien: 1,
+  rejetApresEntretien: 2,
+  embauche: 0,
+} as const;
+
 /** Un coffre et un nouveau rang tous les dix pas, quelle que soit l'action. */
 export const STEPS_PER_LEVEL = 10;
 

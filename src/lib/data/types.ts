@@ -30,19 +30,40 @@ export interface GameEvent {
   kind: ActionKind;
   /** Instant ISO. Sert au score annuel, au classement mensuel et au facteur temps. */
   at: string;
-  /** Only the candidature mini-game can double travel; ranking points stay unchanged. */
+  /** Legacy: the first pigeon game doubled application travel. Kept for old journals. */
   journeyMultiplier?: 2;
+  /** Extra journey steps won in mini-games. Ranking points never change. */
+  journeyBonus?: number;
+  miniGameId?: string;
+  /** Legacy pointer of the first pigeon game, migrated into miniGameId on load. */
   pigeonFlightId?: string;
 }
 
-export type PigeonResult = "hit" | "miss" | "skipped";
+export type MiniGameKind = "pigeon" | "keywords" | "stamp" | "quiz" | "ghosting" | "slots";
+export type MiniGameResult = "won" | "lost" | "skipped";
+/**
+ * One attempt per action ordinal (or per chest): undo, re-entry and reloads find
+ * the same attempt again instead of granting a replay.
+ */
+export interface MiniGameAttempt {
+  id: string;
+  playerId: string;
+  kind: MiniGameKind;
+  /** The action it decorates, or the chest whose double bottom it opens. */
+  action: ActionKind | "chest";
+  slot: number;
+  /** The event that unlocked it; a chest attempt keeps the event that earned the chest. */
+  eventId: string;
+  result: "pending" | MiniGameResult;
+}
+
+/** Legacy save format of the first pigeon game, migrated on load. */
 export interface PigeonFlight {
   id: string;
   playerId: string;
-  /** Application ordinal survives undo/re-entry without granting a fresh attempt. */
   slot: number;
   eventId: string;
-  result: "pending" | PigeonResult;
+  result: "pending" | "hit" | "miss" | "skipped";
 }
 
 export type PowerKind =
@@ -71,5 +92,7 @@ export interface GameState {
   players: Player[];
   events: GameEvent[];
   casts: PowerCast[];
+  miniGames?: MiniGameAttempt[];
+  /** Legacy, converted into miniGames when a save is loaded. */
   pigeonFlights?: PigeonFlight[];
 }

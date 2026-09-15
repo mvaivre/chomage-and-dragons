@@ -58,13 +58,39 @@ function migrateCharacters(state: GameState): GameState {
   };
 }
 
+/** The first pigeon game kept its own list; every mini-game now shares one. */
+export function migrateMiniGames(state: GameState): GameState {
+  if (!state.pigeonFlights?.length) {
+    const { pigeonFlights: _legacy, ...rest } = state;
+    void _legacy;
+    return rest;
+  }
+  const known = new Set((state.miniGames ?? []).map(attempt => attempt.id));
+  const migrated = state.pigeonFlights.filter(flight => !known.has(flight.id)).map(flight => ({
+    id: flight.id,
+    playerId: flight.playerId,
+    kind: "pigeon" as const,
+    action: "candidature" as const,
+    slot: flight.slot,
+    eventId: flight.eventId,
+    result: flight.result === "hit" ? "won" as const : flight.result === "miss" ? "lost" as const : flight.result,
+  }));
+  const { pigeonFlights: _legacy, ...rest } = state;
+  void _legacy;
+  return {
+    ...rest,
+    miniGames: [...state.miniGames ?? [], ...migrated],
+    events: state.events.map(event => event.pigeonFlightId && !event.miniGameId ? { ...event, miniGameId: event.pigeonFlightId } : event),
+  };
+}
+
 function parse(raw: string): GameState | null {
   try {
     const parsed = JSON.parse(raw) as GameState;
     if (!Array.isArray(parsed.players) || !Array.isArray(parsed.events)) {
       return null;
     }
-    return migrateCharacters({ ...parsed, casts: parsed.casts ?? [] });
+    return migrateMiniGames(migrateCharacters({ ...parsed, casts: parsed.casts ?? [] }));
   } catch {
     return null;
   }

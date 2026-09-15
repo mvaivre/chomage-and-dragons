@@ -53,6 +53,8 @@ src/
       Effects.tsx        Pigeon, éclair, cocktail, trophée, coffre et farces
       lanes.ts           Répartition des personnages à égalité
     hud/                  Interface DOM : actions, classements, sélection, récompenses
+      mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
+                         puis un composant par jeu et le dessin canvas du pigeon
   hooks/useGame.ts        État du jeu et actions
   lib/
     config.ts             ⚙️ Réglages : saison, points, pondérations
@@ -60,6 +62,13 @@ src/
       types.ts            Joueur et événement
       local-store.ts      ⚠️ SEUL module à remplacer pour passer à Neon
     game/                 Logique pure : score, niveaux, calendrier, classements, chemin
+      mini-games.ts      Réservation d'une tentative par action ou par coffre, bonus de pas
+      pigeon-flight.ts   Parcours du pigeon : génération, physique, collisions
+      keyword-rain.ts    Pluie de mots-clés : annonce, pièges, panier
+      stamp-desk.ts      Tapis roulant des preuves de recherches et tampon
+      personality-quiz.ts  Banque de questions et distribution par tentative
+      ghosting.ts        Quatorze jours de silence : faux « écrit… » et vrai message
+      slot-machine.ts    Rouleaux de la machine à sous du coffre
 ```
 
 Deux fichiers portent l'essentiel des décisions structurantes :
@@ -80,6 +89,20 @@ Prototype local. Fonctionne :
 - **les 5 actions officielles** avec leurs animations : pigeon voyageur 🕊️,
   éclair et personnage électrocuté ⚡😵, confettis et cocktail 🍸,
   LEGENDARY REJECTION 💀, grande célébration 🏆
+- des **mini-jeux facultatifs** qui décorent les actions, une seule tentative
+  chacun, jamais rejouée après annulation ou rechargement, et qui ne touchent
+  qu'aux pas de voyage ou au butin, jamais aux points :
+  - candidature : **le pigeon à reculons** (tape pour battre des ailes, dix tours,
+    trois plumes) en alternance avec **le CV à mots-clés** (glisse le CV sous les
+    mots de l'annonce, évite les fautes de goût), ×2 sur les pas ;
+  - refus : **le Tampon de l'ORP**, tamponne dix dossiers de preuves de recherches
+    sous l'œil du gnome, +1 pas ;
+  - entretien : **le Test de personnalité**, cinq questions, la bonne réponse est
+    celle du recruteur, le recul passe de −3 à −2 pas ;
+  - rejet après entretien : **Ne relance pas**, quatorze jours de silence, réponds
+    au vrai message et jamais aux points de suspension, +2 pas ;
+  - coffre : **Salaire selon expérience**, la machine à sous du double fond,
+    trois CHF pour un butin de plus.
 - l'**annulation** de la dernière action, pour le clic de trop
 - les **coffres** 🧰 aux paliers de 10 pas
 - les **classements** : Saison (Légende du Chômage), Mois (Couronne du mois,
@@ -108,7 +131,9 @@ d'environnement n'est requise tant que la base de données n'est pas branchée.
 ### Vérification des parcours du jeu
 
 `pnpm test` couvre le barème, la progression et les coffres acquis, la projection et
-les sprites. Les actions retirées du journal par Annuler retirent aussi les gains
+les sprites, ainsi que les mini-jeux : chaque parcours, tapis, pluie de mots ou machine
+à sous générés restent gagnables par un pilote automatique à toutes les cadences
+d'affichage, et la réservation d'une tentative survit à l'annulation et au rechargement. Les actions retirées du journal par Annuler retirent aussi les gains
 qu’elles avaient débloqués ; un entretien ordinaire conserve les coffres acquis.
 
 Pour les tests dans un vrai navigateur :

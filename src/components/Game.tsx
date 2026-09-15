@@ -8,7 +8,7 @@ import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
 import { ActionBar } from "@/components/hud/ActionBar";
-import { PigeonGame } from "@/components/hud/PigeonGame";
+import { MiniGame } from "@/components/hud/mini-games/MiniGame";
 import {
   ActionReward,
   type RewardMoment,
@@ -25,13 +25,14 @@ import { TitleScreen } from "@/components/hud/TitleScreen";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame } from "@/hooks/useGame";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
-import type { ActionKind, PowerCast, PowerKind, PigeonResult } from "@/lib/data/types";
+import type { ActionKind, MiniGameKind, MiniGameResult, PowerCast, PowerKind } from "@/lib/data/types";
 import {
   POWERS,
   powerForSlot,
   type AvailablePower,
 } from "@/lib/game/powers";
 import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
+import { MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
@@ -74,6 +75,14 @@ const DEV_VIEWPOINTS = BIOMES.slice(0, -1).map((biome, index) => ({
   progress: biome.to,
 }));
 
+interface MiniGameOffer {
+  attemptId: string;
+  eventId: string;
+  kind: MiniGameKind;
+  action: ActionKind | "chest";
+  resolved?: boolean;
+}
+
 interface Notice {
   title: string;
   body: string;
@@ -92,7 +101,7 @@ export function Game() {
     crowns,
     freeCharacters,
     addEvent,
-    finishPigeon,
+    finishMiniGame,
     castPower,
     markCastSeen,
     settleShots,
@@ -106,7 +115,9 @@ export function Game() {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
-  const [pigeonOffer, setPigeonOffer] = useState<{ eventId: string; resolved?: boolean } | null>(null);
+  const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
+  const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
+  const [devMiniGame, setDevMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
@@ -136,13 +147,20 @@ export function Game() {
   const identity = me ? meId : null;
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
-  const pigeonVisible = Boolean(pigeonOffer && (pigeonOffer.resolved ||
+  const miniGameVisible = Boolean(devMiniGame) || Boolean(miniGameOffer && (miniGameOffer.resolved ||
     (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen)));
   const handleRewardDone = useCallback(() => {
-    if (rewardMoments[0]?.type === "chest") setPowerAttention(value => value + 1);
+    if (rewardMoments[0]?.type === "chest") {
+      setPowerAttention(value => value + 1);
+      // The chest's double bottom opens once the loot is put away and no other game waits.
+      if (!miniGameOffer && pendingChestGame.current) {
+        setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
+        pendingChestGame.current = null;
+      }
+    }
     setRewardMoments(moments => moments.slice(1));
     actionInFlight.current = false;
-  }, [rewardMoments]);
+  }, [rewardMoments, miniGameOffer]);
 
   useEffect(() => {
     if (!actionFeedback) return;
@@ -169,7 +187,7 @@ export function Game() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       // The native mini-game dialog owns Escape, Space, Enter and focus.
-      if (pigeonVisible) return;
+      if (miniGameVisible) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -203,7 +221,7 @@ export function Game() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, pigeonVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, miniGameVisible]);
 
   useEffect(
     () => () => {
@@ -280,13 +298,14 @@ export function Game() {
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
-      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || pigeonOffer) return;
+      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
       setOverview(false);
 
-      const { event, offerPigeon } = addEvent(me.id, kind);
-      if (offerPigeon) setPigeonOffer({ eventId: event.id });
+      const { event, offer, chestGame } = addEvent(me.id, kind);
+      if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
+      pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
       const origin = heroOrigin(me, meIndex);
 
       const queued: Effect[] = [
@@ -332,29 +351,44 @@ export function Game() {
 
       setEffects(previous => [...previous, ...queued]);
       const steps = stepsForEvent(event);
-      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyMultiplier === 2 ? " ×2" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
+      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, pigeonOffer],
+    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer],
   );
 
-  const handlePigeonResult = useCallback((result: PigeonResult) => {
-    if (!pigeonOffer || !me || !finishPigeon(pigeonOffer.eventId, result)) return;
-    setPigeonOffer(offer => offer ? { ...offer, resolved: true } : null);
-    if (result !== "hit") return;
+  const handleMiniGameResult = useCallback((result: MiniGameResult) => {
+    if (!miniGameOffer || !me) return;
+    const { changed, chestGame } = finishMiniGame(miniGameOffer.attemptId, result);
+    if (!changed) return;
+    setMiniGameOffer(offer => offer ? { ...offer, resolved: true } : null);
+    if (result !== "won") return;
+    const copy = MINI_GAMES[miniGameOffer.kind];
+    if (miniGameOffer.action === "chest") {
+      setPowerAttention(value => value + 1);
+      setActionFeedback({ id: `${miniGameOffer.attemptId}-bonus`, text: copy.winFeedback });
+      return;
+    }
     actionInFlight.current = true;
     setAwaitingTravel(true);
-    const bonus = stepsFor("candidature");
-    const afterChest = Math.max(me.earnedChests, Math.floor((me.journeySteps + bonus) / STEPS_PER_LEVEL));
-    if (afterChest > me.earnedChests) {
+    const bonus = miniGameBonus(miniGameOffer.action);
+    if (chestGame) {
+      const afterChest = me.earnedChests + 1;
       const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
-      pendingChestEffect.current = { id: `${pigeonOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
-      setRewardMoments([{ id: `${pigeonOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
+      pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
+      setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
+      pendingChestGame.current = chestGame.offer ? { attemptId: chestGame.attemptId, eventId: miniGameOffer.eventId } : null;
     }
-    setActionFeedback({ id: `${pigeonOffer.eventId}-bonus`, kind: "candidature", text: `Livraison à reculons ×2 · +${bonus} pas bonus` });
-  }, [pigeonOffer, me, finishPigeon]);
+    setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: `${copy.winFeedback} · +${bonus} pas bonus` });
+  }, [miniGameOffer, me, finishMiniGame]);
 
-  const handlePigeonDone = useCallback(() => { setPigeonOffer(null); }, []);
+  const handleMiniGameDone = useCallback(() => {
+    setMiniGameOffer(null);
+    if (pendingChestGame.current) {
+      setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
+      pendingChestGame.current = null;
+    }
+  }, []);
 
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
@@ -395,13 +429,13 @@ export function Game() {
   );
 
   const handleUndo = useCallback(() => {
-    if (!me || actionInFlight.current || rewardMoments.length > 0 || pigeonOffer) return;
+    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
-  }, [me, undoLast, rewardMoments.length, pigeonOffer]);
+  }, [me, undoLast, rewardMoments.length, miniGameOffer]);
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
@@ -430,7 +464,8 @@ export function Game() {
     chestAnimationId.current = null;
     setAwaitingTravel(false);
     setRewardMoments([]);
-    setPigeonOffer(null);
+    setMiniGameOffer(null);
+    pendingChestGame.current = null;
     setEffects([]);
     setActionFeedback(null);
     setOverview(false);
@@ -475,7 +510,7 @@ export function Game() {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox) || pigeonVisible}
+        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -514,6 +549,10 @@ export function Game() {
               </select>
               <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
                 {Object.entries({ pigeon: "Candidature", lightning: "Refus", cocktail: "Entretien", legendary: "Rejet", trophy: "Embauche", chest: "Coffre", fireCurse: "Feu", dragonDrop: "Dragon", paperStorm: "Paperasse", frogCurse: "Crapaud" }).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setDevMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
+                <option value="">Mini-jeu (entraînement)…</option>
+                {Object.values(MINI_GAMES).map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
               </select>
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
@@ -602,7 +641,8 @@ export function Game() {
                   registerOpen ||
                   !sceneReady ||
                   rewardMoments.length > 0 ||
-                  pigeonOffer !== null ||
+                  miniGameOffer !== null ||
+                  devMiniGame !== null ||
                   awaitingTravel ||
                   shotInbox !== null
                 }
@@ -640,7 +680,8 @@ export function Game() {
         />
       ) : null}
 
-      {pigeonVisible && pigeonOffer ? <PigeonGame key={pigeonOffer.eventId} onResolve={handlePigeonResult} onDone={handlePigeonDone} /> : null}
+      {devMiniGame ? <MiniGame key={devMiniGame.seed} kind={devMiniGame.kind} seedId={devMiniGame.seed} practice onResolve={() => {}} onDone={() => setDevMiniGame(null)} /> :
+        miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone} /> : null}
 
       {shotInbox ? (
         <ShotInbox

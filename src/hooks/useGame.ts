@@ -6,16 +6,17 @@ import type {
   ActionKind,
   GameEvent,
   GameState,
+  MiniGameKind,
+  MiniGameResult,
   PowerCast,
   PowerKind,
-  PigeonResult,
 } from "@/lib/data/types";
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
-import { reservePigeonFlight, resolvePigeonFlight } from "@/lib/game/pigeon-flight";
+import { reserveChestGame, reserveMiniGame, resolveMiniGame } from "@/lib/game/mini-games";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -56,6 +57,20 @@ export interface PlayerView {
   hiredAt?: string;
 }
 
+/** A chest crossed by this change gets its slot-machine attempt reserved in the same save. */
+function reserveCrossedChest(previous: GameState, next: GameState, playerId: string, eventId: string) {
+  const before = journeyProgress(previous.events.filter((e) => e.playerId === playerId)).earnedChests;
+  const after = journeyProgress(next.events.filter((e) => e.playerId === playerId)).earnedChests;
+  if (after <= before) return { state: next, chestGame: null };
+  const reserved = reserveChestGame(next, playerId, after - 1, eventId);
+  return { state: reserved.state, chestGame: { attemptId: reserved.attempt.id, offer: reserved.offer } };
+}
+
+export interface ChestGameOffer {
+  attemptId: string;
+  offer: boolean;
+}
+
 export function useGame() {
   // Lecture directe : ce composant n'est jamais rendu côté serveur (voir
   // GameBoardLoader), donc localStorage est disponible dès le premier rendu.
@@ -73,10 +88,13 @@ export function useGame() {
       at: new Date().toISOString(),
     };
 
-    const reservation = reservePigeonFlight(state, event);
-    const next = {
+    const reservation = reserveMiniGame(state, event);
+    const crossed = reserveCrossedChest(state, {
       ...reservation.state,
       events: [...state.events, reservation.event],
+    }, playerId, event.id);
+    const next: GameState = {
+      ...crossed.state,
       // Une embauche sort le personnage de la course active, sans toucher au score.
       players:
         kind === "embauche"
@@ -89,15 +107,18 @@ export function useGame() {
     saveState(next);
     setState(next);
 
-    return { event: reservation.event, offerPigeon: reservation.offerPigeon };
+    return { event: reservation.event, offer: reservation.offer as MiniGameKind | null, chestGame: crossed.chestGame as ChestGameOffer | null };
   }, [state]);
 
-  const finishPigeon = useCallback((eventId: string, result: PigeonResult) => {
-    const next = resolvePigeonFlight(state, eventId, result);
-    if (next === state) return false;
-    saveState(next);
-    setState(next);
-    return true;
+  /** Returns whether anything changed, and a newly crossed chest's slot-machine offer. */
+  const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult) => {
+    const resolved = resolveMiniGame(state, attemptId, result);
+    if (resolved === state) return { changed: false, chestGame: null as ChestGameOffer | null };
+    const attempt = resolved.miniGames?.find((a) => a.id === attemptId);
+    const crossed = attempt ? reserveCrossedChest(state, resolved, attempt.playerId, attempt.eventId) : { state: resolved, chestGame: null };
+    saveState(crossed.state);
+    setState(crossed.state);
+    return { changed: true, chestGame: crossed.chestGame as ChestGameOffer | null };
   }, [state]);
 
   const castPower = useCallback(
@@ -207,7 +228,7 @@ export function useGame() {
       casts: prev.casts.filter(
         (cast) => cast.playerId !== playerId && cast.targetPlayerId !== playerId,
       ),
-      pigeonFlights: prev.pigeonFlights?.filter(f => f.playerId !== playerId),
+      miniGames: prev.miniGames?.filter((attempt) => attempt.playerId !== playerId),
     }));
   }, []);
 
@@ -257,7 +278,7 @@ export function useGame() {
             rejetApresEntretien: 0,
             embauche: 0,
           } as Record<ActionKind, number>),
-        availablePowers: availablePowers(player.id, earnedChests, state.casts),
+        availablePowers: availablePowers(player.id, earnedChests, state.casts, state.miniGames),
         shotsOwed: state.casts.filter(
           (cast) =>
             cast.kind === "shot" &&
@@ -267,7 +288,7 @@ export function useGame() {
         hiredAt: player.hiredAt,
       };
     });
-  }, [state.players, state.events, state.casts, seasonStandings, monthStandings]);
+  }, [state.players, state.events, state.casts, state.miniGames, seasonStandings, monthStandings]);
 
   const totals = useMemo(() => collectiveTotals(state.events), [state]);
 
@@ -304,7 +325,7 @@ export function useGame() {
     crowns,
     freeCharacters,
     addEvent,
-    finishPigeon,
+    finishMiniGame,
     castPower,
     markCastSeen,
     settleShots,
