@@ -572,7 +572,7 @@ function Company({
 
       {shared && inviteUrl ? (
         <div className="mt-3 border border-parchment-ink/20 bg-parchment/40 p-3 text-sm">
-          <p className="text-parchment-ink">Invite tes ami·es avec ce lien. Le mot de passe, tu le donnes de vive voix.</p>
+          <p className="text-[0.62rem] tracking-widest text-parchment-ink/55 uppercase">Lien d’invitation</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code className="min-w-0 flex-1 truncate text-xs text-parchment-ink/70" title={inviteUrl}>{inviteUrl}</code>
             <button

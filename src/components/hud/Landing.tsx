@@ -45,9 +45,6 @@ export function Landing() {
       <header className="text-center">
         <p className="engrave text-xs opacity-70">Saison 2026</p>
         <h1 className="font-display text-4xl tracking-wide text-gold-light sm:text-5xl">Chômage &amp; Dragons</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm text-parchment/75">
-          Un groupe d’ami·es, un mot de passe, et chaque refus fait avancer. La partie est commune, chacun joue son personnage depuis son appareil.
-        </p>
       </header>
 
       {known.length > 0 ? (
@@ -89,22 +86,20 @@ export function Landing() {
           <button type="submit" disabled={!canCreate} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed disabled:opacity-50">
             {busy ? "Création…" : "Créer et entrer"}
           </button>
-          <p className="text-xs text-parchment/55">Le mot de passe se transmet de vive voix. Le lien d’invitation, lui, se partage.</p>
         </form>
       </section>
 
       <section className="frame riveted rise w-full max-w-md p-5">
         <h2 className="engrave text-center text-sm">Rejoindre un groupe</h2>
         <div className="gold-rule mx-auto mt-3 mb-4 w-32" />
-        <p className="text-sm text-parchment/75">Tu as reçu un lien d’invitation ? Ouvre-le. Sinon, colle-le ici, ou tape le code du groupe.</p>
-        <form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); open(); }}>
-          <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="les-chomeurs-magnifiques-1a2b3c" autoComplete="off" aria-label="Lien ou code du groupe"
+        <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); open(); }}>
+          <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Lien ou code du groupe" autoComplete="off" aria-label="Lien ou code du groupe"
             className="min-w-0 flex-1 border border-gold-dim bg-black/45 px-3 py-2 text-sm text-parchment outline-none placeholder:text-parchment/25 focus:border-gold-light" />
           <button type="submit" disabled={!code.trim()} className="slot px-4 py-2 font-display text-sm tracking-widest text-gold-light disabled:opacity-50">Ouvrir</button>
         </form>
       </section>
 
-      <Link href="/local" className="text-xs text-parchment/45 underline-offset-2 hover:underline">Mode solo sur cet appareil, sans groupe</Link>
+      <Link href="/local" className="text-xs text-parchment/45 underline-offset-2 hover:underline">Mode solo</Link>
     </main>
   );
 }

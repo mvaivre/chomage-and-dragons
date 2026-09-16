@@ -32,7 +32,6 @@ export function JoinGroup({ slug, name }: { slug: string; name: string }) {
       <header className="text-center">
         <p className="engrave text-xs opacity-70">Invitation</p>
         <h1 className="font-display text-4xl tracking-wide text-gold-light">{name}</h1>
-        <p className="mt-2 max-w-sm text-sm text-parchment/75">On t’attend dans ce groupe. Entre le mot de passe qu’on t’a donné, puis forge ton personnage.</p>
       </header>
       <form className="frame riveted rise grid w-full max-w-sm gap-3 p-5" onSubmit={(event) => { event.preventDefault(); void join(); }}>
         <label className="block">

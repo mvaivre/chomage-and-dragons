@@ -260,12 +260,8 @@ function Forge({
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="1234"
-                aria-describedby="pin-hint"
                 className="mt-1 w-full border border-gold-dim bg-black/45 px-3 py-2 font-display text-lg tracking-[0.3em] text-parchment outline-none placeholder:text-parchment/25 focus:border-gold-light"
               />
-              <span id="pin-hint" className="mt-1 block text-xs text-parchment/50">
-                Ton personnage est lié à cet appareil. Le PIN sert à le reprendre sur un autre.
-              </span>
             </label>
           ) : null}
 
@@ -333,9 +329,6 @@ export function ClaimDialog({
         onSubmit={(event) => { event.preventDefault(); void submit(); }}
       >
         <h2 id="claim-title" className="engrave text-center text-sm">Reprendre {player?.name ?? "ce personnage"}</h2>
-        <p className="text-sm text-parchment/75">
-          Ce personnage est lié à un autre appareil. Entre son code PIN pour le jouer ici ; l’autre appareil devra le reprendre à son tour.
-        </p>
         <label className="block">
           <span className="engrave text-[0.65rem] opacity-70">Code PIN</span>
           <input

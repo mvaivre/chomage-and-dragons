@@ -765,7 +765,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div className="absolute inset-0 z-[45] flex items-center justify-center bg-black/80 px-4">
           <div className="frame riveted rise grid w-full max-w-sm gap-3 p-5 text-center">
             <p className="engrave text-sm">Session expirée</p>
-            <p className="text-sm text-parchment/75">Le groupe demande à nouveau son mot de passe.</p>
             <Link href={`/g/${slug}/rejoindre`} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light">Entrer le mot de passe</Link>
           </div>
         </div>
@@ -777,7 +776,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           freeCharacters={freeCharacters}
           groupName={groupName}
           requirePin={Boolean(store)}
-          message={identityRevoked ? "Ton personnage a été repris sur un autre appareil. Choisis-le et entre son code PIN pour le rejouer ici." : null}
+          message={identityRevoked ? "Ton personnage a été repris sur un autre appareil." : null}
           onPick={handlePick}
           onCreate={handleCreate}
         />
