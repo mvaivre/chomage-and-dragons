@@ -17,6 +17,8 @@
 | Authentification | Mot de passe par groupe, sans comptes ; jeton par appareil et PIN par personnage | ✅ tranché (09/2026) |
 | Temps réel | Non en v1 : sondage toutes les 8 s | ✅ tranché (09/2026) |
 | Mutations | Un réducteur pur partagé appareil/serveur (`lib/game/reducer.ts`) | ✅ tranché (09/2026) |
+| État d'un groupe | Une valeur JSON versionnée par groupe, écriture conditionnelle sur la version avec relance, journal d'actions append-only | ✅ tranché (09/2026) |
+| Accès base | Client HTTP Neon, SQL brut, schéma créé au premier appel ; base mémoire sans `DATABASE_URL` | ✅ tranché (09/2026) |
 
 ## Rendu de la carte : Pixi.js 8 (2D)
 
@@ -140,6 +142,17 @@ Ce que ça résout gratuitement :
    l'affichage, recharger la page relance le tirage et le mini-boss RH disparaît quand
    on veut le montrer. Le tirage doit être **déterministe** (dérivé du joueur + de la
    date) ou **enregistré une seule fois** dans le journal.
+
+## Pièges rencontrés avec les groupes
+
+- En production, Next regroupe les route handlers et les pages dans des bundles
+  distincts : un singleton au niveau d'un module existe donc en plusieurs exemplaires.
+  La base mémoire et le secret de session de secours vivent sur `globalThis`.
+- Le client HTTP de Neon n'offre pas de transaction interactive : pas de `SELECT … FOR
+  UPDATE`. L'écriture conditionnelle `UPDATE … WHERE version = $n` avec relance sur
+  l'état frais rend le même service, sans WebSocket.
+- Le `next-route-announcer` porte un `role="alert"` vide : les tests ciblent les
+  alertes de leurs formulaires.
 
 ## Stratégie de démarrage (à valider)
 

@@ -21,9 +21,11 @@ import {
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
-import { TitleScreen } from "@/components/hud/TitleScreen";
+import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { PowerArtwork } from "@/components/hud/Artwork";
-import { useGame } from "@/hooks/useGame";
+import { useGame, type GameMode } from "@/hooks/useGame";
+import { RemoteStore } from "@/lib/data/remote-store";
+import Link from "next/link";
 import { clearSession, loadSession, saveSession } from "@/lib/data/session";
 import type { ActionKind, MiniGameKind, MiniGameResult, PowerCast, PowerKind } from "@/lib/data/types";
 import {
@@ -89,8 +91,18 @@ interface Notice {
   powerKind?: PowerKind;
 }
 
-export function Game() {
+export function Game({ slug = null }: { slug?: string | null }) {
+  // A group's game lives on the server; without a slug this device plays alone.
+  const store = useMemo(() => (slug ? new RemoteStore(slug) : null), [slug]);
+  const mode = useMemo<GameMode>(() => (store ? { kind: "remote", store } : { kind: "local" }), [store]);
+  const scope = slug ?? "local";
   const {
+    loaded,
+    groupName,
+    remoteMe,
+    syncError,
+    clearSyncError,
+    claim,
     players,
     events,
     casts,
@@ -108,9 +120,12 @@ export function Game() {
     undoLast,
     addPlayer,
     removePlayer,
-  } = useGame();
+  } = useGame(mode);
 
-  const [meId, setMeId] = useState<string | null>(loadSession);
+  const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
+  const [claiming, setClaiming] = useState<string | null>(null);
+  // This component never renders on the server, so the origin is known at once.
+  const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -139,7 +154,13 @@ export function Game() {
   const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
 
-  const meIndex = players.findIndex((p) => p.id === meId);
+  // The server's word on who this device plays wins: a character claimed elsewhere drops out here.
+  const identityRevoked = Boolean(store && loaded && meId && remoteMe !== meId);
+  const sessionLost = syncError?.status === 401;
+  const shownNotice: Notice | null = notice ?? (syncError && !sessionLost
+    ? { title: syncError.status === 403 ? "Appareil non reconnu" : syncError.status === 0 ? "Hors ligne" : "Synchronisation", body: syncError.message }
+    : null);
+  const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
   const me = meIndex === -1 ? null : players[meIndex];
 
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
@@ -478,40 +499,60 @@ export function Game() {
     setEffectFocusId(null);
   }, []);
 
-  const handlePick = useCallback((playerId: string) => {
+  const enter = useCallback((playerId: string) => {
     resetPresentation();
     shownCasts.current.clear();
     setShotInbox(null);
     setSceneReady(false);
-    saveSession(playerId);
+    saveSession(playerId, scope);
     setMeId(playerId);
-  }, [resetPresentation]);
+  }, [resetPresentation, scope]);
+
+  // In a group, a character belongs to one device: any other one has to show its PIN first.
+  const handlePick = useCallback((playerId: string) => {
+    if (store && remoteMe !== playerId) { setClaiming(playerId); return; }
+    enter(playerId);
+  }, [store, remoteMe, enter]);
+
+  const handleClaim = useCallback(async (playerId: string, pin: string) => {
+    await claim(playerId, pin);
+    setClaiming(null);
+    enter(playerId);
+  }, [claim, enter]);
 
   const handleCreate = useCallback(
-    (name: string, characterId: string) => {
-      resetPresentation();
-      const id = addPlayer(name, characterId);
-      shownCasts.current.clear();
-      setShotInbox(null);
-      setSceneReady(false);
-      saveSession(id);
-      setMeId(id);
+    (name: string, characterId: string, pin?: string) => {
+      const id = addPlayer(name, characterId, pin);
+      if (!id) {
+        setNotice({ title: "Personnage refusé", body: "Ce nom ou cette classe ne passe pas. Essaie autre chose." });
+        return;
+      }
+      enter(id);
     },
-    [addPlayer, resetPresentation],
+    [addPlayer, enter],
   );
 
   const handleChangeIdentity = useCallback(() => {
     resetPresentation();
     shownCasts.current.clear();
     setShotInbox(null);
-    clearSession();
+    clearSession(scope);
     setMeId(null);
     setRegisterOpen(false);
-  }, [resetPresentation]);
+  }, [resetPresentation, scope]);
+
 
   const canUndo = Boolean(
     me && events.some((event) => event.playerId === me.id),
   );
+  if (!loaded) {
+    return (
+      <main className="flex h-full w-full items-center justify-center bg-ink-deep">
+        <p className="engrave animate-pulse text-sm">Chargement de la partie…</p>
+      </main>
+    );
+  }
+
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep">
       <GameCanvas
@@ -671,7 +712,9 @@ export function Game() {
           totals={totals}
           freeCharacters={freeCharacters}
           meId={identity}
-          onAddPlayer={addPlayer}
+          groupName={groupName}
+          inviteUrl={inviteUrl}
+          onAddPlayer={store ? null : addPlayer}
           onRemovePlayer={removePlayer}
           onChangeIdentity={handleChangeIdentity}
           onClose={() => setRegisterOpen(false)}
@@ -701,19 +744,29 @@ export function Game() {
         />
       ) : null}
 
-      {notice ? (
+      {shownNotice ? (
         <div className="toast-notice rise absolute left-1/2 z-[25] w-[min(92vw,38rem)] -translate-x-1/2">
           <div className="hud-panel toast-notice__panel">
-            {notice.powerKind ? (
-              <PowerArtwork kind={notice.powerKind} className="toast-notice__art" />
+            {shownNotice.powerKind ? (
+              <PowerArtwork kind={shownNotice.powerKind} className="toast-notice__art" />
             ) : null}
             <div>
-              <p className="font-display text-2xl text-gold-light">{notice.title}</p>
-              <p className="mt-1 text-base text-parchment/75">{notice.body}</p>
+              <p className="font-display text-2xl text-gold-light">{shownNotice.title}</p>
+              <p className="mt-1 text-base text-parchment/75">{shownNotice.body}</p>
             </div>
-            <button type="button" onClick={() => setNotice(null)}>
+            <button type="button" onClick={() => { setNotice(null); clearSyncError(); }}>
               J’ai compris
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {sessionLost && slug ? (
+        <div className="absolute inset-0 z-[45] flex items-center justify-center bg-black/80 px-4">
+          <div className="frame riveted rise grid w-full max-w-sm gap-3 p-5 text-center">
+            <p className="engrave text-sm">Session expirée</p>
+            <p className="text-sm text-parchment/75">Le groupe demande à nouveau son mot de passe.</p>
+            <Link href={`/g/${slug}/rejoindre`} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light">Entrer le mot de passe</Link>
           </div>
         </div>
       ) : null}
@@ -722,10 +775,20 @@ export function Game() {
         <TitleScreen
           players={players}
           freeCharacters={freeCharacters}
+          groupName={groupName}
+          requirePin={Boolean(store)}
+          message={identityRevoked ? "Ton personnage a été repris sur un autre appareil. Choisis-le et entre son code PIN pour le rejouer ici." : null}
           onPick={handlePick}
           onCreate={handleCreate}
         />
       )}
+      {claiming ? (
+        <ClaimDialog
+          player={players.find((player) => player.id === claiming) ?? null}
+          onSubmit={(pin) => handleClaim(claiming, pin)}
+          onCancel={() => setClaiming(null)}
+        />
+      ) : null}
     </main>
   );
 }

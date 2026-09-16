@@ -212,7 +212,11 @@ interface OverlayProps {
   totals: { counts: Record<ActionKind, number>; score: number; total: number };
   freeCharacters: Character[];
   meId: string | null;
-  onAddPlayer: (name: string, characterId: string) => void;
+  /** The group's name and invitation link; both null when the device plays alone. */
+  groupName?: string | null;
+  inviteUrl?: string | null;
+  /** Enrolling others from one device only makes sense in solo mode: null in a group. */
+  onAddPlayer: ((name: string, characterId: string) => void) | null;
   onRemovePlayer: (id: string) => void;
   onChangeIdentity: () => void;
   onClose: () => void;
@@ -227,6 +231,8 @@ export function LeaderboardOverlay({
   totals,
   freeCharacters,
   meId,
+  groupName = null,
+  inviteUrl = null,
   onAddPlayer,
   onRemovePlayer,
   onChangeIdentity,
@@ -318,6 +324,8 @@ export function LeaderboardOverlay({
           players={players}
           freeCharacters={freeCharacters}
           meId={meId}
+          groupName={groupName}
+          inviteUrl={inviteUrl}
           onAddPlayer={onAddPlayer}
           onRemovePlayer={onRemovePlayer}
           onChangeIdentity={onChangeIdentity}
@@ -515,6 +523,8 @@ function Company({
   players,
   freeCharacters,
   meId,
+  groupName,
+  inviteUrl,
   onAddPlayer,
   onRemovePlayer,
   onChangeIdentity,
@@ -522,27 +532,59 @@ function Company({
   players: PlayerView[];
   freeCharacters: Character[];
   meId: string | null;
-  onAddPlayer: (name: string, characterId: string) => void;
+  groupName: string | null;
+  inviteUrl: string | null;
+  onAddPlayer: ((name: string, characterId: string) => void) | null;
   onRemovePlayer: (id: string) => void;
   onChangeIdentity: () => void;
 }) {
   const [name, setName] = useState("");
   const [characterId, setCharacterId] = useState(freeCharacters[0]?.id ?? "");
+  const [copied, setCopied] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const shared = onAddPlayer === null;
 
   const ready = name.trim().length > 0 && characterId !== "";
 
   const submit = () => {
-    if (!ready) return;
+    if (!ready || !onAddPlayer) return;
     onAddPlayer(name, characterId);
     setName("");
     setCharacterId(freeCharacters.find((c) => c.id !== characterId)?.id ?? "");
   };
 
+  const copyInvite = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copie ce lien :", inviteUrl);
+    }
+  };
+
   return (
     <section className="mt-7 border-t border-parchment-ink/20 pt-5">
       <h3 className="font-display text-sm tracking-widest text-parchment-ink/80 uppercase">
-        La compagnie
+        {groupName ? `La compagnie · ${groupName}` : "La compagnie"}
       </h3>
+
+      {shared && inviteUrl ? (
+        <div className="mt-3 border border-parchment-ink/20 bg-parchment/40 p-3 text-sm">
+          <p className="text-parchment-ink">Invite tes ami·es avec ce lien. Le mot de passe, tu le donnes de vive voix.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <code className="min-w-0 flex-1 truncate text-xs text-parchment-ink/70" title={inviteUrl}>{inviteUrl}</code>
+            <button
+              type="button"
+              onClick={() => void copyInvite()}
+              className="border border-parchment-ink/30 bg-parchment-ink/8 px-3 py-1.5 font-display text-xs tracking-widest text-parchment-ink transition-colors hover:bg-parchment-ink/15"
+            >
+              {copied ? "Copié !" : "Copier le lien"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <ul className="mt-3 flex flex-wrap gap-2">
         {players.map((player) => (
@@ -556,20 +598,25 @@ function Company({
                 toi
               </span>
             ) : null}
-            <button
-              type="button"
-              onClick={() => onRemovePlayer(player.id)}
-              aria-label={`Retirer ${player.name} de la partie`}
-              title="Retirer de la partie, avec tout son journal"
-              className="text-parchment-ink/35 transition-colors hover:text-blood"
-            >
-              ×
-            </button>
+            {!shared || player.id === meId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!shared) { onRemovePlayer(player.id); return; }
+                  if (leaving) onRemovePlayer(player.id); else setLeaving(true);
+                }}
+                aria-label={shared ? (leaving ? "Confirmer mon départ, avec tout mon journal" : "Quitter la partie") : `Retirer ${player.name} de la partie`}
+                title={shared ? "Quitter la partie, avec tout ton journal" : "Retirer de la partie, avec tout son journal"}
+                className={shared ? "border border-blood/40 px-2 py-0.5 text-[0.65rem] tracking-widest text-blood uppercase" : "text-parchment-ink/35 transition-colors hover:text-blood"}
+              >
+                {shared ? (leaving ? "Confirmer ?" : "Quitter") : "×"}
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
 
-      {freeCharacters.length > 0 ? (
+      {shared ? null : freeCharacters.length > 0 ? (
         <div className="mt-4 flex flex-wrap items-end gap-2">
           <label className="min-w-40 flex-1">
             <span className="block text-[0.62rem] tracking-widest text-parchment-ink/55 uppercase">

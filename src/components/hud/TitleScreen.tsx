@@ -18,13 +18,22 @@ import { CrownArtwork } from "./Artwork";
 interface TitleScreenProps {
   players: PlayerView[];
   freeCharacters: Character[];
+  /** The group's name, when the game is shared. */
+  groupName?: string | null;
+  /** In a group, a character needs a PIN so its player can reclaim it on another device. */
+  requirePin?: boolean;
+  /** Something the player should read before choosing, such as a lost character. */
+  message?: string | null;
   onPick: (playerId: string) => void;
-  onCreate: (name: string, characterId: string) => void;
+  onCreate: (name: string, characterId: string, pin?: string) => void;
 }
 
 export function TitleScreen({
   players,
   freeCharacters,
+  groupName = null,
+  requirePin = false,
+  message = null,
   onPick,
   onCreate,
 }: TitleScreenProps) {
@@ -41,6 +50,12 @@ export function TitleScreen({
             Dragons
           </h1>
           <div className="gold-rule mx-auto mt-4 w-64" />
+          {groupName ? (
+            <p className="mt-3 font-display text-xl tracking-wide text-gold-light">{groupName}</p>
+          ) : null}
+          {message ? (
+            <p role="status" className="mx-auto mt-3 max-w-md border border-gold-dim bg-black/40 px-3 py-2 text-sm text-parchment/85">{message}</p>
+          ) : null}
           <p className="mt-4 max-w-xl font-body text-base text-parchment/75 italic">
             Chaque tentative te fait avancer. Huit contrées séparent la Plaine de la
             Poisse de la Taverne du Triomphe — même les refus deviennent du terrain gagné.
@@ -50,6 +65,7 @@ export function TitleScreen({
         {forging ? (
           <Forge
             freeCharacters={freeCharacters}
+            requirePin={requirePin}
             canGoBack={players.length > 0}
             onBack={() => setForging(false)}
             onCreate={onCreate}
@@ -139,20 +155,25 @@ function Roster({
 
 function Forge({
   freeCharacters,
+  requirePin,
   canGoBack,
   onBack,
   onCreate,
 }: {
   freeCharacters: Character[];
+  requirePin: boolean;
   canGoBack: boolean;
   onBack: () => void;
-  onCreate: (name: string, characterId: string) => void;
+  onCreate: (name: string, characterId: string, pin?: string) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
 
   const character = freeCharacters[index] ?? null;
-  const ready = name.trim().length > 0 && character !== null;
+  const pinOk = !requirePin || /^\d{4,6}$/.test(pin);
+  const ready = name.trim().length > 0 && character !== null && pinOk;
+  const create = () => { if (ready && character) onCreate(name, character.id, requirePin ? pin : undefined); };
 
   const move = (step: number) => {
     if (freeCharacters.length === 0) return;
@@ -219,15 +240,34 @@ function Forge({
               value={name}
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && ready) {
-                  onCreate(name, character.id);
-                }
+                if (event.key === "Enter") create();
               }}
               maxLength={18}
               placeholder="Mika"
               className="mt-1 w-full border border-gold-dim bg-black/45 px-3 py-2 font-display text-lg tracking-wide text-parchment outline-none placeholder:text-parchment/25 focus:border-gold-light"
             />
           </label>
+
+          {requirePin ? (
+            <label className="block">
+              <span className="engrave text-[0.65rem] opacity-70">Code PIN, 4 à 6 chiffres</span>
+              <input
+                value={pin}
+                onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") create();
+                }}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="1234"
+                aria-describedby="pin-hint"
+                className="mt-1 w-full border border-gold-dim bg-black/45 px-3 py-2 font-display text-lg tracking-[0.3em] text-parchment outline-none placeholder:text-parchment/25 focus:border-gold-light"
+              />
+              <span id="pin-hint" className="mt-1 block text-xs text-parchment/50">
+                Ton personnage est lié à cet appareil. Le PIN sert à le reprendre sur un autre.
+              </span>
+            </label>
+          ) : null}
 
           <div className="flex gap-2">
             {canGoBack ? (
@@ -241,7 +281,7 @@ function Forge({
             ) : null}
             <button
               type="button"
-              onClick={() => onCreate(name, character.id)}
+              onClick={create}
               disabled={!ready}
               className="slot flex-1 px-4 py-2.5 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed"
             >
@@ -251,5 +291,71 @@ function Forge({
         </div>
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ reprise */
+
+/** A character from another device: its PIN binds it here and unbinds it there. */
+export function ClaimDialog({
+  player,
+  onSubmit,
+  onCancel,
+}: {
+  player: PlayerView | null;
+  onSubmit: (pin: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = /^\d{4,6}$/.test(pin) && !busy;
+
+  const submit = async () => {
+    if (!ready) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSubmit(pin);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Le serveur a trébuché.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 z-[40] flex items-center justify-center bg-black/70 px-4">
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="claim-title"
+        className="frame riveted rise grid w-full max-w-sm gap-3 p-5"
+        onSubmit={(event) => { event.preventDefault(); void submit(); }}
+      >
+        <h2 id="claim-title" className="engrave text-center text-sm">Reprendre {player?.name ?? "ce personnage"}</h2>
+        <p className="text-sm text-parchment/75">
+          Ce personnage est lié à un autre appareil. Entre son code PIN pour le jouer ici ; l’autre appareil devra le reprendre à son tour.
+        </p>
+        <label className="block">
+          <span className="engrave text-[0.65rem] opacity-70">Code PIN</span>
+          <input
+            value={pin}
+            onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="off"
+            autoFocus
+            aria-label="Code PIN"
+            className="mt-1 w-full border border-gold-dim bg-black/45 px-3 py-2 font-display text-lg tracking-[0.3em] text-parchment outline-none focus:border-gold-light"
+          />
+        </label>
+        {error ? <p role="alert" className="text-sm text-blood">{error}</p> : null}
+        <div className="flex gap-2">
+          <button type="button" onClick={onCancel} className="slot px-4 py-2.5 text-xs tracking-widest text-parchment/70">Annuler</button>
+          <button type="submit" disabled={!ready} className="slot flex-1 px-4 py-2.5 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed disabled:opacity-50">
+            {busy ? "Vérification…" : "Reprendre"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

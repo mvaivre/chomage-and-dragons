@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { localStore } from "@/lib/data/local-store";
+import { RemoteError, type RemoteStore } from "@/lib/data/remote-store";
 import type {
   ActionKind,
   GameState,
@@ -13,7 +14,7 @@ import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
-import { applyAction, type ActionContext, type ChestGameOffer } from "@/lib/game/reducer";
+import { applyAction, type ActionContext, type GameAction } from "@/lib/game/reducer";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -56,6 +57,13 @@ export interface PlayerView {
 
 export type { ChestGameOffer } from "@/lib/game/reducer";
 
+/** Solo on this device, or a group whose game lives on the server. */
+export type GameMode = { kind: "local" } | { kind: "remote"; store: RemoteStore };
+
+const LOCAL: GameMode = { kind: "local" };
+const EMPTY: GameState = { players: [], events: [], casts: [] };
+const POLL_MS = 8000;
+
 /** Identifiers and timestamps are fixed before the reducer runs, so a re-run gives the same answer. */
 function freshContext(): ActionContext {
   const id = crypto.randomUUID();
@@ -63,74 +71,137 @@ function freshContext(): ActionContext {
   return { id: () => id, now: () => now };
 }
 
-export function useGame() {
+export function useGame(mode: GameMode = LOCAL) {
+  const remote = mode.kind === "remote" ? mode.store : null;
   // Lecture directe : ce composant n'est jamais rendu côté serveur (voir
   // GameBoardLoader), donc localStorage est disponible dès le premier rendu.
-  const [state, setState] = useState<GameState>(localStore.load);
+  const [state, setState] = useState<GameState>(() => (remote ? EMPTY : localStore.load()));
+  const [loaded, setLoaded] = useState(!remote);
+  const [groupName, setGroupName] = useState<string | null>(null);
+  const [remoteMe, setRemoteMe] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<{ status: number; message: string } | null>(null);
+  const version = useRef(0);
+  const inflight = useRef(0);
 
   useEffect(() => {
-    localStore.save(state);
-  }, [state]);
+    if (!remote) localStore.save(state);
+  }, [remote, state]);
+
+  const adopt = useCallback((snapshot: { state: GameState; version: number; name?: string; me?: string | null }) => {
+    version.current = snapshot.version;
+    setState(snapshot.state);
+    if (snapshot.name !== undefined) setGroupName(snapshot.name);
+    if (snapshot.me !== undefined) setRemoteMe(snapshot.me);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (!remote || inflight.current > 0) return;
+    try {
+      const snapshot = version.current ? await remote.poll(version.current) : await remote.load();
+      if (snapshot) adopt(snapshot);
+      setLoaded(true);
+    } catch (error) {
+      setSyncError(error instanceof RemoteError ? { status: error.status, message: error.message } : { status: 0, message: "Le serveur ne répond pas." });
+    }
+  }, [remote, adopt]);
+
+  // First load, then a poll every few seconds and whenever the tab comes back.
+  useEffect(() => {
+    if (!remote) return;
+    void refresh();
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, POLL_MS);
+    const onVisible = () => { if (!document.hidden) void refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [remote, refresh]);
+
+  /**
+   * Apply on the device first, so the interface answers at once, then send the
+   * same action with the same ids to the server, whose state supersedes ours.
+   */
+  const commit = useCallback(<A extends GameAction>(base: GameState, action: A, context: ActionContext, extras: { pin?: string } = {}) => {
+    const applied = applyAction(base, action, context);
+    if (applied.state !== base) {
+      if (!remote) localStore.save(applied.state);
+      setState(applied.state);
+    }
+    if (remote && applied.state !== base) {
+      // A new character is this device's from the start; the token confirms it shortly after.
+      if (action.type === "addPlayer") setRemoteMe(context.id());
+      inflight.current += 1;
+      void remote.dispatch(action, context, extras).then((server) => {
+        inflight.current -= 1;
+        // Only the last answer of a burst is adopted: earlier ones would lack the later actions.
+        if (inflight.current === 0) adopt({ state: server.state, version: server.version });
+      }).catch((error: unknown) => {
+        inflight.current -= 1;
+        setSyncError(error instanceof RemoteError ? { status: error.status, message: error.message } : { status: 0, message: "Le serveur ne répond pas." });
+        if (inflight.current === 0) void remote.load().then(adopt).catch(() => {});
+      });
+    }
+    return applied;
+  }, [remote, adopt]);
 
   const addEvent = useCallback((playerId: string, kind: ActionKind) => {
-    const { state: next, result } = applyAction(state, { type: "addEvent", playerId, kind }, freshContext());
-    // Persist the reservation synchronously, including before an immediate reload.
-    localStore.save(next);
-    setState(next);
-    return result;
-  }, [state]);
+    return commit(state, { type: "addEvent", playerId, kind }, freshContext()).result;
+  }, [state, commit]);
 
   /** Returns whether anything changed, and a newly crossed chest's slot-machine offer. */
   const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult) => {
-    const applied = applyAction(state, { type: "finishMiniGame", attemptId, result }, freshContext());
-    if (!applied.result.changed) return applied.result;
-    localStore.save(applied.state);
-    setState(applied.state);
-    return applied.result;
-  }, [state]);
+    return commit(state, { type: "finishMiniGame", attemptId, result }, freshContext()).result;
+  }, [state, commit]);
 
   const castPower = useCallback(
     (playerId: string, targetPlayerId: string, kind: PowerKind, slot: number) => {
-      const context = freshContext();
-      const action = { type: "castPower" as const, playerId, targetPlayerId, kind, slot };
-      setState((prev) => applyAction(prev, action, context).state);
-      return applyAction(state, action, context).result.cast;
+      return commit(state, { type: "castPower", playerId, targetPlayerId, kind, slot }, freshContext()).result.cast;
     },
-    [state],
+    [state, commit],
   );
 
   const markCastSeen = useCallback((castId: string) => {
-    const context = freshContext();
-    setState((prev) => applyAction(prev, { type: "markCastSeen", castId }, context).state);
-  }, []);
+    commit(state, { type: "markCastSeen", castId }, freshContext());
+  }, [state, commit]);
 
   const settleShots = useCallback((castIds: string[]) => {
-    const context = freshContext();
-    setState((prev) => applyAction(prev, { type: "settleShots", castIds }, context).state);
-  }, []);
+    commit(state, { type: "settleShots", castIds }, freshContext());
+  }, [state, commit]);
 
   /**
    * Retire la dernière action de ce joueur : le clic de trop.
    * Sans `kind`, retire la plus récente quelle qu'elle soit.
    */
   const undoLast = useCallback((playerId: string, kind?: ActionKind) => {
-    const context = freshContext();
-    setState((prev) => applyAction(prev, { type: "undoLast", playerId, kind }, context).state);
-  }, []);
+    commit(state, { type: "undoLast", playerId, kind }, freshContext());
+  }, [state, commit]);
 
-  /** Renvoie l'identifiant créé, dont l'appelant a besoin pour ouvrir la session. */
-  const addPlayer = useCallback((name: string, characterId: string) => {
+  /**
+   * Renvoie l'identifiant créé, dont l'appelant a besoin pour ouvrir la session.
+   * In a group the PIN is required: it lets the player reclaim the character elsewhere.
+   */
+  const addPlayer = useCallback((name: string, characterId: string, pin?: string) => {
     const context = freshContext();
-    const action = { type: "addPlayer" as const, name, characterId };
-    setState((prev) => applyAction(prev, action, context).state);
-    return context.id();
-  }, []);
+    const applied = commit(state, { type: "addPlayer", name, characterId }, context, pin ? { pin } : {});
+    return applied.result.player ? context.id() : null;
+  }, [state, commit]);
 
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
-    const context = freshContext();
-    setState((prev) => applyAction(prev, { type: "removePlayer", playerId }, context).state);
-  }, []);
+    commit(state, { type: "removePlayer", playerId }, freshContext());
+  }, [state, commit]);
+
+  /** Bind an existing character to this device with its PIN. */
+  const claim = useCallback(async (playerId: string, pin: string) => {
+    if (!remote) return;
+    await remote.claim(playerId, pin);
+    setRemoteMe(playerId);
+  }, [remote]);
+
+  const clearSyncError = useCallback(() => setSyncError(null), []);
 
   const monthKeyNow = currentMonthKey();
 
@@ -215,6 +286,13 @@ export function useGame() {
   const freeCharacters = CHARACTERS.filter((c) => !takenCharacters.has(c.id));
 
   return {
+    loaded,
+    groupName,
+    remoteMe,
+    syncError,
+    clearSyncError,
+    refresh,
+    claim,
     players,
     events: state.events,
     casts: state.casts,

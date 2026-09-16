@@ -45,7 +45,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
         casts: [],
       }));
     }, { kinds });
-    await page.goto(url);
+    await page.goto(`${url}/local`);
     await ready(page);
     return { context, page, errors };
   }
@@ -178,7 +178,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.locator('.action-button--candidature').click();
       await page.locator('dialog[open].mini-game--pigeon').waitFor();
       assert.equal(await page.locator('.mini-game').evaluate(n => n.scrollWidth > n.clientWidth), false);
-      assert.equal(await page.locator('.mini-game__arena').getAttribute('data-status'), 'ready');
+      await page.waitForFunction(() => document.querySelector('.mini-game__arena')?.dataset.status === 'ready');
       await page.keyboard.press('Escape');
       await ready(page);
       assert.match(await page.locator('.journey-card__stats').innerText(), /2/);
@@ -293,5 +293,92 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.equal(await page.locator('.mini-game').count(), 0);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
+  });
+
+  await t.test('a group is created, joined by invitation with the password, and played from two devices', async () => {
+    const host = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const guest = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const errors = [];
+    try {
+      const alice = await host.newPage();
+      alice.setDefaultTimeout(30_000);
+      alice.on('pageerror', error => errors.push(error.message));
+      await alice.goto(url);
+      await alice.getByLabel('Nom du groupe').fill('Les Chômeurs Magnifiques');
+      await alice.getByLabel('Mot de passe du groupe').fill('dragon');
+      await alice.getByLabel('Encore une fois').fill('dragon');
+      await alice.getByRole('button', { name: 'Créer et entrer' }).click();
+      await alice.waitForURL(/\/g\/les-chomeurs-magnifiques-[0-9a-f]{6}$/);
+      const slug = new URL(alice.url()).pathname.split('/')[2];
+      // Alice forges her character with a PIN and logs an application.
+      await alice.getByPlaceholder('Mika').fill('Alice');
+      await alice.getByPlaceholder('1234').fill('2468');
+      await alice.getByRole('button', { name: 'Entrer dans la partie' }).click();
+      await ready(alice);
+      await alice.locator('.action-button--candidature').click();
+      await alice.locator('dialog[open].mini-game--pigeon').waitFor();
+      await alice.keyboard.press('Escape');
+      await ready(alice);
+      assert.match(await alice.locator('.journey-card__stats').innerText(), /2/);
+      // Two software-rendered scenes at once starve each other: Alice's page rests while Bob plays.
+      await alice.goto('about:blank');
+
+      // Bob opens the invitation: the game is out of reach until the password is right.
+      const bob = await guest.newPage();
+      bob.setDefaultTimeout(30_000);
+      bob.on('pageerror', error => errors.push(error.message));
+      await bob.goto(`${url}/g/${slug}`);
+      await bob.waitForURL(/\/rejoindre$/);
+      assert.match(await bob.locator('h1').innerText(), /Chômeurs Magnifiques/);
+      await bob.getByLabel('Mot de passe du groupe').fill('licorne');
+      await bob.getByRole('button', { name: 'Entrer dans le groupe' }).click();
+      await bob.locator('form [role="alert"]').waitFor();
+      assert.match(await bob.locator('form [role="alert"]').innerText(), /Mauvais mot de passe/);
+      await bob.getByLabel('Mot de passe du groupe').fill('dragon');
+      await bob.getByRole('button', { name: 'Entrer dans le groupe' }).click();
+      await bob.waitForURL(new RegExp(`/g/${slug}$`));
+      // Alice is already on the roster; Bob forges his own character.
+      await bob.getByRole('button', { name: 'Nouvelle âme en peine' }).click();
+      await bob.getByPlaceholder('Mika').fill('Bob');
+      await bob.getByPlaceholder('1234').fill('1357');
+      await bob.getByRole('button', { name: 'Entrer dans la partie' }).click();
+      await ready(bob);
+      await bob.locator('.action-button--refus').click();
+      await bob.locator('dialog[open].mini-game--stamp').waitFor();
+      await bob.keyboard.press('Escape');
+      await ready(bob);
+      assert.match(await bob.locator('.journey-card__stats').innerText(), /3/);
+
+      // The server holds both journals; Alice's device sees Bob when it comes back.
+      const snapshot = await bob.evaluate(async slug => (await fetch(`/api/groups/${slug}`)).json(), slug);
+      assert.deepEqual(snapshot.state.players.map(p => p.name), ['Alice', 'Bob']);
+      assert.deepEqual(snapshot.state.events.map(e => e.kind), ['candidature', 'refus']);
+      assert.equal(snapshot.state.miniGames.length, 2);
+
+      // A device without the token cannot act for a character: the API refuses.
+      const refused = await bob.evaluate(async ({ slug, playerId }) => {
+        const response = await fetch(`/api/groups/${slug}/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: { type: 'addEvent', playerId, kind: 'refus' } }) });
+        return response.status;
+      }, { slug, playerId: snapshot.state.players[0].id });
+      assert.equal(refused, 403);
+
+      // Bob reclaims Alice's character with her PIN on his device; her device loses it.
+      await bob.evaluate(() => localStorage.removeItem(Object.keys(localStorage).find(k => k.startsWith('louchomage:moi:'))));
+      await bob.reload();
+      await bob.getByRole('button', { name: /Alice/ }).first().click();
+      await bob.getByLabel('Code PIN').fill('0000');
+      await bob.getByRole('button', { name: 'Reprendre' }).click();
+      await bob.locator('[role="dialog"] [role="alert"]').waitFor();
+      assert.match(await bob.locator('[role="dialog"] [role="alert"]').innerText(), /PIN/);
+      await bob.getByLabel('Code PIN').fill('2468');
+      await bob.getByRole('button', { name: 'Reprendre' }).click();
+      await ready(bob);
+      assert.match(await bob.locator('.journey-card').innerText(), /Alice/);
+      await bob.goto('about:blank');
+      await alice.goto(`${url}/g/${slug}`);
+      await alice.waitForFunction(() => document.body.innerText.includes('repris sur un autre appareil'), null, { timeout: 30_000 });
+      assert.match(await alice.locator('body').innerText(), /Bob/, 'the roster now lists Bob too');
+      assert.deepEqual(errors, []);
+    } finally { await host.close(); await guest.close(); }
   });
 });

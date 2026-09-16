@@ -40,6 +40,10 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 ```
 src/
   app/                    Routage et styles globaux
+    page.tsx              Accueil : créer un groupe, rejoindre par lien ou code
+    g/[slug]/             La partie d'un groupe, et sa page « rejoindre » (mot de passe)
+    local/                Mode solo sur cet appareil, sans serveur
+    api/groups/           Créer, rejoindre, lire l'état, appliquer une action, reprendre un personnage
   components/
     GameLoader.tsx        Chargement navigateur-seulement (canvas + stockage local)
     Game.tsx              Scène + interface + file d'animations
@@ -55,13 +59,21 @@ src/
     hud/                  Interface DOM : actions, classements, sélection, récompenses
       mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
                          puis un composant par jeu et le dessin canvas du pigeon
-  hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur
+  hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur, sur
+                          l'appareil d'abord, puis sur le serveur pour un groupe
   lib/
     config.ts             ⚙️ Réglages : saison, points, pondérations
     data/
       types.ts            Joueur et événement
       store.ts            Contrat du magasin : charger, sauver, réinitialiser
-      local-store.ts      Magasin navigateur du prototype et du développement sans base
+      local-store.ts      Magasin navigateur du mode solo
+      remote-store.ts     Client de l'API des groupes, jeton d'appareil compris
+      session.ts          Qui joue sur cet appareil, par groupe ; groupes connus
+    server/               Côté serveur uniquement
+      db.ts               Contrat de base de données : Neon en production, mémoire sinon
+      auth.ts             Mots de passe et PIN hachés, jetons d'appareil, cookie signé
+      groups.ts           Créer, rejoindre, autoriser et appliquer une action, reprendre
+      http.ts             Plomberie des route handlers
     game/                 Logique pure : score, niveaux, calendrier, classements, chemin
       reducer.ts         Toutes les mutations d'une partie, pures et déterministes,
                          partagées entre l'appareil et le serveur
@@ -124,17 +136,39 @@ partagées** entre joueur·euses, et deux onglets ouverts sur le jeu s'écrasent
 mutuellement. C'est acceptable pour valider les mécaniques, pas pour jouer à
 plusieurs. Le passage à Neon résout les deux.
 
+## Groupes d'ami·es
+
+Un groupe a un nom et un mot de passe. Son lien d'invitation, `/g/<code>/rejoindre`,
+se partage ; le mot de passe se transmet de vive voix. Chaque personnage est lié à
+l'appareil qui l'a créé par un jeton secret : on ne joue que pour soi. Un code PIN de
+4 à 6 chiffres, choisi à la création, permet de reprendre son personnage sur un autre
+appareil, ce qui le retire du précédent. Un même appareil peut appartenir à plusieurs
+groupes.
+
+L'état d'un groupe vit sur le serveur, en une seule valeur JSON versionnée, plus un
+journal des actions. Chaque appareil applique une action localement pour répondre tout
+de suite, l'envoie avec les mêmes identifiants, et adopte la réponse du serveur. Un
+sondage toutes les huit secondes ramène les actions des autres.
+
 ## Déploiement
 
-Rien à configurer pour l'instant : le projet est un site Next.js standard, donc
-`git push` sur une branche connectée à Vercel suffit. Aucune variable
-d'environnement n'est requise tant que la base de données n'est pas branchée.
+Le projet est un site Next.js standard : `git push` sur une branche connectée à Vercel
+déploie. Deux variables d'environnement, voir `.env.example` :
+
+- `DATABASE_URL`, injectée par l'intégration Neon du Marketplace Vercel. Le schéma est
+  créé au premier appel, sans migration à lancer.
+- `SESSION_SECRET`, un secret aléatoire qui signe les cookies de session des groupes.
+
+Sans `DATABASE_URL`, les groupes vivent en mémoire et disparaissent avec le processus :
+c'est le mode du développement et des tests. Le mode solo, `/local`, ne touche jamais
+au serveur.
 
 
 ### Vérification des parcours du jeu
 
 `pnpm test` couvre le barème, la progression et les coffres acquis, la projection et
-les sprites, ainsi que les mini-jeux : chaque parcours, tapis, pluie de mots ou machine
+les sprites, le réducteur des mutations, la couche des groupes sur base mémoire
+(mots de passe, jetons, autorisation, écritures concurrentes), ainsi que les mini-jeux : chaque parcours, tapis, pluie de mots ou machine
 à sous générés restent gagnables par un pilote automatique à toutes les cadences
 d'affichage, et la réservation d'une tentative survit à l'annulation et au rechargement. Les actions retirées du journal par Annuler retirent aussi les gains
 qu’elles avaient débloqués ; un entretien ordinaire conserve les coffres acquis.

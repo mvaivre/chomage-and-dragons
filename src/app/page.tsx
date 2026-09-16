@@ -1,5 +1,5 @@
-import { GameLoader } from "@/components/GameLoader";
+import { LandingLoader } from "@/components/LandingLoader";
 
 export default function Page() {
-  return <GameLoader />;
+  return <LandingLoader />;
 }

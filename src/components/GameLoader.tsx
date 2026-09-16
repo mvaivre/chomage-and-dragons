@@ -16,6 +16,7 @@ const Game = dynamic(() => import("./Game").then((m) => m.Game), {
   ),
 });
 
-export function GameLoader() {
-  return <Game />;
+/** `slug` names the group whose game lives on the server; without it, the device plays alone. */
+export function GameLoader({ slug = null }: { slug?: string | null }) {
+  return <Game slug={slug} />;
 }
