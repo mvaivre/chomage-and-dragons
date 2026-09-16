@@ -2855,7 +2855,7 @@ html, body { height: 100%; height: 100dvh; }
 .chat__header small { color: #cbbf9d; font-size: 0.8rem; }
 .chat__avatar { width: 56px; height: 56px; margin: -8px -6px -8px -10px; }
 .chat__day { margin-left: auto; font-family: var(--font-display); font-size: 1.3rem; color: var(--janky-yellow); }
-.chat__log { display: grid; gap: 6px; align-content: end; min-height: 150px; max-height: 170px; overflow: hidden; mask-image: linear-gradient(transparent, #000 34px); }
+.chat__log { display: grid; gap: 6px; align-content: end; height: 190px; overflow: hidden; mask-image: linear-gradient(transparent, #000 34px); }
 .chat__bubble { justify-self: start; width: fit-content; max-width: 82%; margin: 0; padding: 6px 10px; border: 2px solid var(--janky-ink); border-radius: 12px 12px 12px 3px; background: var(--janky-paper); color: var(--janky-ink); font-size: 0.9rem; line-height: 1.25; }
 .chat__bubble--me { justify-self: end; border-radius: 12px 12px 3px 12px; background: #cfe1e3; }
 .chat__bubble--typing { display: flex; gap: 4px; align-items: center; min-height: 30px; }
@@ -2865,11 +2865,22 @@ html, body { height: 100%; height: 100dvh; }
 @keyframes chat-dot { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-4px); opacity: 1; } }
 .chat__bubble--real { border-color: var(--janky-yellow); box-shadow: 0 0 0 3px var(--janky-yellow); animation: chat-pop 220ms cubic-bezier(0.2, 1.4, 0.5, 1); }
 @keyframes chat-pop { from { transform: scale(0.7); } to { transform: scale(1); } }
+.chat__bubble--real { position: relative; padding-bottom: 12px; }
 .chat__croak { margin-right: 6px; font-family: var(--font-display); font-size: 1.1rem; color: var(--janky-red); }
-.chat__relance { justify-self: center; min-height: 44px; padding: 6px 14px; border: 3px dashed var(--janky-red); background: transparent; color: var(--janky-paper-light); font-size: 0.95rem; touch-action: manipulation; }
-.chat__relance:hover { background: rgb(206 77 72 / 0.15); }
-.mini-game[data-reduced="true"] .chat__bubble--typing span, .mini-game[data-reduced="true"] .chat__bubble--real { animation: none; }
-@media (prefers-reduced-motion: reduce) { .chat__bubble--typing span, .chat__bubble--real, .mini-game__prompt, .mini-game__stamp { animation: none; } }
+.chat__window { position: absolute; left: 6px; right: 6px; bottom: 4px; height: 5px; background: var(--janky-red); transform-origin: left; animation: chat-window linear forwards; }
+@keyframes chat-window { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.chat__composer { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: stretch; padding-top: 8px; border-top: 2px solid #4a4c48; }
+.chat__draft { display: flex; align-items: center; height: 48px; padding: 4px 10px; border: 2px solid #4a4c48; background: #2b2d2c; color: #cbbf9d; font-size: 0.9rem; line-height: 1.2; overflow: hidden; }
+.chat__send { min-width: 128px; min-height: 48px; padding: 6px 14px; border: 3px solid var(--janky-ink); background: var(--janky-paper); color: var(--janky-ink); font-family: var(--font-display); font-size: 1.2rem; box-shadow: 3px 3px #151513; touch-action: manipulation; }
+.chat__send:disabled { opacity: 0.55; box-shadow: none; }
+.chat__send[data-hot="true"] { background: var(--janky-yellow); animation: chat-hot 420ms ease-in-out infinite alternate; }
+@keyframes chat-hot { from { box-shadow: 3px 3px #151513, 0 0 0 0 rgb(239 189 60 / 0.8); } to { box-shadow: 3px 3px #151513, 0 0 0 12px rgb(239 189 60 / 0); } }
+.chat[data-hot="true"] { box-shadow: inset 0 0 0 4px var(--janky-yellow); }
+@media (prefers-reduced-motion: reduce) { .chat__bubble--typing span, .chat__bubble--real, .chat__send[data-hot="true"], .mini-game__prompt, .mini-game__stamp { animation: none; } }
+@media (max-width: 420px) {
+  .chat__composer { grid-template-columns: 1fr; }
+  .chat__log { height: 170px; }
+}
 @media (max-width: 480px) {
   .quiz__answers { grid-template-columns: 1fr; }
   .quiz__scene { grid-template-columns: 64px 1fr; }

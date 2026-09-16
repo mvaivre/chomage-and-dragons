@@ -270,9 +270,8 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.locator('.action-button--rejetApresEntretien').click();
       await page.locator('.mini-game--ghosting').waitFor();
       await page.getByRole('button', {name: 'Attendre (14 jours)'}).click();
-      await page.getByRole('button', {name: 'Relancer (juste un petit message…)'}).waitFor();
       await page.waitForFunction(() => document.querySelector('.chat')?.dataset.status === 'message', null, {timeout: 20_000});
-      await page.getByRole('button', {name: 'Répondre'}).click();
+      await page.locator('.chat__send').click();
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('+8 pas'));
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       // Ten steps: the first chest, then its double bottom.

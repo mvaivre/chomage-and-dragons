@@ -8,7 +8,7 @@ export const GHOSTING = {
   /** The real message lands somewhere in this range. */
   messageAt: [9000, 14000] as const,
   /** How long the player has to answer once it landed. */
-  windowMs: 1000,
+  windowMs: 1500,
   fakes: [3, 5] as const,
   fakeMs: [700, 1600] as const,
   /** Milliseconds of waiting per displayed day. */

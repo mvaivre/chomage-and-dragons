@@ -9,34 +9,49 @@ import { PowerArtwork } from "../Artwork";
 import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
 
 type GhostingStatus = "ready" | GhostingPhase | "won" | "lost";
-type Loss = "early" | "late" | "relance";
+type Loss = "early" | "late";
 
 const HISTORY = [
   { me: false, text: "Merci pour ce cinquième entretien, très enrichissant." },
   { me: true, text: "Merci à vous ! Toujours très motivé·e." },
   { me: true, text: "Petit rappel bienveillant : avez-vous une réponse ?" },
-  { me: true, text: "Re-bonjour ! Juste pour savoir." },
 ];
+const DRAFT_RELANCE = "Re-bonjour ! Juste pour savoir si vous avez avancé… 🙂";
+const DRAFT_REPLY = "OUI ! Je suis là, je suis disponible, je signe !";
+const REAL_MESSAGE = "Bonne nouvelle : vous avez été sélectionné·e ! Confirmez-nous vite votre intérêt.";
 
-/** Fourteen days of silence: answer the real message, never the dots. */
+/**
+ * Fourteen days of silence after the fifth round. The recruiter pretends to
+ * type, several times. One button, one rule: press Répondre only when the
+ * golden message has landed, and within the window.
+ */
 export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
   const [schedule] = useState(() => generateGhosting(seedFrom(seedId)));
   const [status, setStatus] = useState<GhostingStatus>("ready");
   const [day, setDay] = useState(1);
   const [loss, setLoss] = useState<Loss | null>(null);
+  /** The recruiter's last word and the stamp arrive a beat after the outcome, so both messages get read. */
+  const [revealed, setRevealed] = useState(false);
   const [outcome, setOutcome] = useState<MiniGameResult | null>(null);
   const resolved = useRef<MiniGameResult | null>(null);
   const elapsed = useRef(0);
   const running = useRef(false);
   const log = useRef<HTMLDivElement>(null);
+  const sendButton = useRef<HTMLButtonElement>(null);
+  const timeouts = useRef<number[]>([]);
   const base = JOURNEY_STEPS.rejetApresEntretien;
   const bonus = MINI_GAME_BONUS.rejetApresEntretien;
+  const finished = status === "won" || status === "lost";
+  const waiting = !finished && status !== "ready";
+
+  useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
 
   const settle = useCallback((result: MiniGameResult) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
     onResolve(result);
+    timeouts.current.push(window.setTimeout(() => setRevealed(true), 1100));
   }, [onResolve]);
 
   const lose = useCallback((why: Loss) => {
@@ -48,7 +63,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
 
   // The wait: a frame loop tracking visible time and the recruiter's typing bursts.
   useEffect(() => {
-    if (status === "ready" || status === "won" || status === "lost") return;
+    if (!waiting) return;
     running.current = true;
     let previous = performance.now();
     let raf = 0;
@@ -67,37 +82,37 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", syncVisibility); };
-  }, [status === "ready" || status === "won" || status === "lost", schedule, lose]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [waiting, schedule, lose]);
 
-  useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [status]);
+  useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [status, revealed]);
+  useEffect(() => { if (waiting) sendButton.current?.focus(); }, [waiting]);
 
   const reply = useCallback(() => {
-    if (status === "ready") { setStatus("waiting"); return; }
-    if (status === "won" || status === "lost") return;
+    if (!waiting) return;
     const verdict = ghostingVerdict(schedule, elapsed.current);
     if (verdict === "won") { running.current = false; setStatus("won"); settle("won"); }
     else lose(verdict);
-  }, [status, schedule, settle, lose]);
+  }, [waiting, schedule, settle, lose]);
 
   const leave = () => {
     if (!resolved.current) settle("skipped");
     onDone();
   };
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (status === "won" || status === "lost" || event.repeat || !ACTION_KEYS.has(event.key)) return;
-    if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close, .chat__relance")) return;
+    if (!waiting || event.repeat || !ACTION_KEYS.has(event.key)) return;
+    if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     event.preventDefault();
     reply();
   };
 
   const won = outcome === "won";
-  const finished = status === "won" || status === "lost";
+  const hot = status === "message";
   const instructions = finished
-    ? won ? "Recruteur attrapé au vol : impossible de te ghoster. Le rejet légendaire vaut deux pas de plus."
-      : loss === "early" ? "Trop insistant·e. « Nous avons retenu un autre profil. »" : loss === "late" ? "Message vu, jamais répondu. Ghosté·e en retour." : "Relance envoyée. Silence radio définitif."
+    ? won ? "Répondu à temps : impossible de te ghoster. Deux pas de plus."
+      : loss === "early" ? "Trop tôt. Tu as répondu aux points de suspension, pas à un message." : "Trop tard. Le message est arrivé, ta réponse non."
     : status === "ready"
-      ? "Cinq entretiens, puis plus rien depuis quatorze jours. Le recruteur va écrire… ou pas. Réponds seulement quand un vrai message tombe, jamais avant."
-      : status === "message" ? "MAINTENANT ! Réponds !" : "Ne relance pas. Les points de suspension mentent. Attends le croassement.";
+      ? `Il va faire semblant d’écrire, plusieurs fois. N’appuie sur Répondre qu’à l’arrivée du message doré : ${GHOSTING.windowMs / 1000} s pour réagir.`
+      : hot ? "C’EST LE VRAI ! Appuie sur Répondre !" : "Attends. Les points de suspension ne comptent pas.";
 
   return <MiniGameShell kind="ghosting" eyebrow={`${practice ? "Entraînement · " : ""}Sans nouvelles depuis 14 jours · +${base} pas acquis`} title="Ne relance pas"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status === "ready" || finished ? status : "wait"}
@@ -107,27 +122,39 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
       <span className="mini-game__score">Fenêtre : <b>{GHOSTING.windowMs / 1000} s</b></span>
     </>}
     status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span></> :
-      <span>{status === "ready" ? "Une seule tentative · un seul vrai message · réponds dans la seconde" : status === "typing" ? "Il écrit… ou il fait semblant." : status === "message" ? "CROÂ ! C’est le vrai !" : "Silence. Ne tape pas."}</span>}
+      <span>{status === "ready" ? "Une seule tentative · un seul vrai message · encadré doré" : status === "typing" ? "Il écrit… ou il fait semblant. N’appuie pas." : hot ? "MAINTENANT !" : "Silence. N’appuie pas."}</span>}
     primary={{
-      label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Répondre",
-      onClick: () => finished ? onDone() : reply(),
+      label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Réponds dans le chat ↑",
+      disabled: waiting,
+      onClick: () => finished ? onDone() : setStatus("waiting"),
     }}
     skip={!finished ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
-    <div className="mini-game__arena mini-game__arena--panel chat" data-status={status}>
+    <div className="mini-game__arena mini-game__arena--panel chat" data-status={status} data-hot={hot}>
       <div className="chat__header">
         <PowerArtwork kind="crapaud" className="chat__avatar" />
-        <div><strong>Cabinet Crapaud &amp; Associés</strong><small>{status === "typing" ? "écrit…" : status === "message" ? "en ligne" : "vu il y a 14 jours"}</small></div>
+        <div><strong>Cabinet Crapaud &amp; Associés</strong><small>{status === "typing" ? "écrit…" : hot || status === "won" ? "en ligne" : "vu il y a 14 jours"}</small></div>
         <span className="chat__day">J+{day}</span>
       </div>
       <div ref={log} className="chat__log">
         {HISTORY.map((line, i) => <p key={i} className={`chat__bubble ${line.me ? "chat__bubble--me" : ""}`}>{line.text}</p>)}
         {status === "typing" ? <p className="chat__bubble chat__bubble--typing" aria-label="Le recruteur écrit"><span /><span /><span /></p> : null}
-        {status === "message" || status === "won" ? <p className="chat__bubble chat__bubble--real"><b className="chat__croak">CROÂ !</b> Bonne nouvelle : nous avons une réponse pour vous.</p> : null}
-        {status === "won" ? <p className="chat__bubble chat__bubble--me">Je suis là ! Je réponds ! Vous ne pouvez plus me ghoster.</p> : null}
-        {status === "lost" ? <p className="chat__bubble chat__bubble--real">{loss === "early" ? "Nous avons retenu un autre profil. Bonne continuation." : loss === "late" ? "Bon, tant pis. Bonne continuation." : "Vu."}</p> : null}
+        {hot || status === "won" || loss === "late" ? <p className="chat__bubble chat__bubble--real">
+          <b className="chat__croak">CROÂ !</b> {REAL_MESSAGE}
+          {hot ? <span className="chat__window" style={{ animationDuration: `${GHOSTING.windowMs}ms` }} aria-hidden /> : null}
+        </p> : null}
+        {status === "won" ? <p className="chat__bubble chat__bubble--me">{DRAFT_REPLY}</p> : null}
+        {loss === "early" ? <p className="chat__bubble chat__bubble--me">{DRAFT_RELANCE}</p> : null}
+        {status === "won" && revealed ? <p className="chat__bubble">Parfait. Contrat en préparation. (Pour de vrai, cette fois.)</p> : null}
+        {loss === "early" && revealed ? <p className="chat__bubble">Suite à votre relance, nous avons retenu un autre profil. Bonne continuation.</p> : null}
+        {loss === "late" && revealed ? <p className="chat__bubble">Sans réponse de votre part, le poste est parti. Bonne continuation.</p> : null}
       </div>
-      {!finished && status !== "ready" ? <button type="button" className="chat__relance" onClick={() => lose("relance")}>Relancer (juste un petit message…)</button> : null}
-      {finished ? <span className="mini-game__stamp" aria-hidden>{won ? "ATTRAPÉ ! +2 PAS" : "GHOSTÉ·E"}</span> : null}
+      <div className="chat__composer">
+        <span className="chat__draft">{hot || status === "won" ? DRAFT_REPLY : DRAFT_RELANCE}</span>
+        <button ref={sendButton} type="button" className="chat__send" data-hot={hot} disabled={!waiting} onClick={reply}>
+          {hot ? "RÉPONDRE !" : "Répondre"}
+        </button>
+      </div>
+      {finished && revealed ? <span className="mini-game__stamp" aria-hidden>{won ? "ATTRAPÉ ! +2 PAS" : loss === "early" ? "TROP TÔT" : "TROP TARD"}</span> : null}
     </div>
   </MiniGameShell>;
 }
