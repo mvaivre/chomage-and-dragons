@@ -55,13 +55,16 @@ src/
     hud/                  Interface DOM : actions, classements, sélection, récompenses
       mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
                          puis un composant par jeu et le dessin canvas du pigeon
-  hooks/useGame.ts        État du jeu et actions
+  hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur
   lib/
     config.ts             ⚙️ Réglages : saison, points, pondérations
     data/
       types.ts            Joueur et événement
-      local-store.ts      ⚠️ SEUL module à remplacer pour passer à Neon
+      store.ts            Contrat du magasin : charger, sauver, réinitialiser
+      local-store.ts      Magasin navigateur du prototype et du développement sans base
     game/                 Logique pure : score, niveaux, calendrier, classements, chemin
+      reducer.ts         Toutes les mutations d'une partie, pures et déterministes,
+                         partagées entre l'appareil et le serveur
       mini-games.ts      Réservation d'une tentative par action ou par coffre, bonus de pas
       pigeon-flight.ts   Parcours du pigeon : génération, physique, collisions
       keyword-rain.ts    Pluie de mots-clés : annonce, pièges, panier

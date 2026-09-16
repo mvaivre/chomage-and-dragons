@@ -14,8 +14,9 @@
 | Rendu de la carte | **Pixi.js 8** via **@pixi/react 8** (2D) | ✅ tranché |
 | ~~Three.js / 3D~~ | Abandonné après prototype — voir plus bas | ❌ écarté |
 | Forme des données | **Journal d'événements** (append-only), pas de compteurs | ✅ recommandé |
-| Authentification | Code d'accès partagé, pas de comptes | 🔶 à valider |
-| Temps réel | Non en v1 (rafraîchissement périodique suffit) | 🔶 à valider |
+| Authentification | Mot de passe par groupe, sans comptes ; jeton par appareil et PIN par personnage | ✅ tranché (09/2026) |
+| Temps réel | Non en v1 : sondage toutes les 8 s | ✅ tranché (09/2026) |
+| Mutations | Un réducteur pur partagé appareil/serveur (`lib/game/reducer.ts`) | ✅ tranché (09/2026) |
 
 ## Rendu de la carte : Pixi.js 8 (2D)
 

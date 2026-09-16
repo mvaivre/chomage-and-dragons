@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadState, saveState } from "@/lib/data/local-store";
+import { localStore } from "@/lib/data/local-store";
 import type {
   ActionKind,
-  GameEvent,
   GameState,
-  MiniGameKind,
   MiniGameResult,
-  PowerCast,
   PowerKind,
 } from "@/lib/data/types";
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
@@ -16,7 +13,7 @@ import { CHARACTERS } from "@/lib/game/characters";
 import { availablePowers, type AvailablePower } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
-import { reserveChestGame, reserveMiniGame, resolveMiniGame } from "@/lib/game/mini-games";
+import { applyAction, type ActionContext, type ChestGameOffer } from "@/lib/game/reducer";
 import {
   collectiveTotals,
   eventsInMonth,
@@ -57,123 +54,59 @@ export interface PlayerView {
   hiredAt?: string;
 }
 
-/** A chest crossed by this change gets its slot-machine attempt reserved in the same save. */
-function reserveCrossedChest(previous: GameState, next: GameState, playerId: string, eventId: string) {
-  const before = journeyProgress(previous.events.filter((e) => e.playerId === playerId)).earnedChests;
-  const after = journeyProgress(next.events.filter((e) => e.playerId === playerId)).earnedChests;
-  if (after <= before) return { state: next, chestGame: null };
-  const reserved = reserveChestGame(next, playerId, after - 1, eventId);
-  return { state: reserved.state, chestGame: { attemptId: reserved.attempt.id, offer: reserved.offer } };
-}
+export type { ChestGameOffer } from "@/lib/game/reducer";
 
-export interface ChestGameOffer {
-  attemptId: string;
-  offer: boolean;
+/** Identifiers and timestamps are fixed before the reducer runs, so a re-run gives the same answer. */
+function freshContext(): ActionContext {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  return { id: () => id, now: () => now };
 }
 
 export function useGame() {
   // Lecture directe : ce composant n'est jamais rendu côté serveur (voir
   // GameBoardLoader), donc localStorage est disponible dès le premier rendu.
-  const [state, setState] = useState<GameState>(loadState);
+  const [state, setState] = useState<GameState>(localStore.load);
 
   useEffect(() => {
-    saveState(state);
+    localStore.save(state);
   }, [state]);
 
   const addEvent = useCallback((playerId: string, kind: ActionKind) => {
-    const event: GameEvent = {
-      id: crypto.randomUUID(),
-      playerId,
-      kind,
-      at: new Date().toISOString(),
-    };
-
-    const reservation = reserveMiniGame(state, event);
-    const crossed = reserveCrossedChest(state, {
-      ...reservation.state,
-      events: [...state.events, reservation.event],
-    }, playerId, event.id);
-    const next: GameState = {
-      ...crossed.state,
-      // Une embauche sort le personnage de la course active, sans toucher au score.
-      players:
-        kind === "embauche"
-          ? state.players.map((p) =>
-              p.id === playerId && !p.hiredAt ? { ...p, hiredAt: event.at } : p,
-            )
-          : state.players,
-    };
+    const { state: next, result } = applyAction(state, { type: "addEvent", playerId, kind }, freshContext());
     // Persist the reservation synchronously, including before an immediate reload.
-    saveState(next);
+    localStore.save(next);
     setState(next);
-
-    return { event: reservation.event, offer: reservation.offer as MiniGameKind | null, chestGame: crossed.chestGame as ChestGameOffer | null };
+    return result;
   }, [state]);
 
   /** Returns whether anything changed, and a newly crossed chest's slot-machine offer. */
   const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult) => {
-    const resolved = resolveMiniGame(state, attemptId, result);
-    if (resolved === state) return { changed: false, chestGame: null as ChestGameOffer | null };
-    const attempt = resolved.miniGames?.find((a) => a.id === attemptId);
-    const crossed = attempt ? reserveCrossedChest(state, resolved, attempt.playerId, attempt.eventId) : { state: resolved, chestGame: null };
-    saveState(crossed.state);
-    setState(crossed.state);
-    return { changed: true, chestGame: crossed.chestGame as ChestGameOffer | null };
+    const applied = applyAction(state, { type: "finishMiniGame", attemptId, result }, freshContext());
+    if (!applied.result.changed) return applied.result;
+    localStore.save(applied.state);
+    setState(applied.state);
+    return applied.result;
   }, [state]);
 
   const castPower = useCallback(
     (playerId: string, targetPlayerId: string, kind: PowerKind, slot: number) => {
-      const cast: PowerCast = {
-        id: crypto.randomUUID(),
-        playerId,
-        targetPlayerId,
-        kind,
-        slot,
-        at: new Date().toISOString(),
-      };
-
-      setState((prev) => {
-        const validPlayers =
-          playerId !== targetPlayerId &&
-          prev.players.some((player) => player.id === playerId) &&
-          prev.players.some((player) => player.id === targetPlayerId);
-        const slotIsFree = !prev.casts.some(
-          (existing) => existing.playerId === playerId && existing.slot === slot,
-        );
-
-        return validPlayers && slotIsFree
-          ? { ...prev, casts: [...prev.casts, cast] }
-          : prev;
-      });
-
-      return cast;
+      const context = freshContext();
+      const action = { type: "castPower" as const, playerId, targetPlayerId, kind, slot };
+      setState((prev) => applyAction(prev, action, context).state);
+      return applyAction(state, action, context).result.cast;
     },
-    [],
+    [state],
   );
 
   const markCastSeen = useCallback((castId: string) => {
-    setState((prev) => ({
-      ...prev,
-      casts: prev.casts.map((cast) =>
-        cast.id === castId && !cast.seenAt
-          ? { ...cast, seenAt: new Date().toISOString() }
-          : cast,
-      ),
-    }));
+    const context = freshContext();
+    setState((prev) => applyAction(prev, { type: "markCastSeen", castId }, context).state);
   }, []);
 
   const settleShots = useCallback((castIds: string[]) => {
-    const ids = new Set(castIds);
-    const at = new Date().toISOString();
-
-    setState((prev) => ({
-      ...prev,
-      casts: prev.casts.map((cast) =>
-        cast.kind === "shot" && ids.has(cast.id) && !cast.settledAt
-          ? { ...cast, seenAt: cast.seenAt ?? at, settledAt: at }
-          : cast,
-      ),
-    }));
+    const context = freshContext();
+    setState((prev) => applyAction(prev, { type: "settleShots", castIds }, context).state);
   }, []);
 
   /**
@@ -181,55 +114,22 @@ export function useGame() {
    * Sans `kind`, retire la plus récente quelle qu'elle soit.
    */
   const undoLast = useCallback((playerId: string, kind?: ActionKind) => {
-    setState((prev) => {
-      const index = prev.events.findLastIndex(
-        (e) => e.playerId === playerId && (kind === undefined || e.kind === kind),
-      );
-      if (index === -1) return prev;
-
-      const events = [...prev.events];
-      events.splice(index, 1);
-
-      const stillHired = events.some(
-        (e) => e.playerId === playerId && e.kind === "embauche",
-      );
-
-      return {
-        ...prev,
-        events,
-        players: prev.players.map((p) =>
-          p.id === playerId && !stillHired ? { ...p, hiredAt: undefined } : p,
-        ),
-      };
-    });
+    const context = freshContext();
+    setState((prev) => applyAction(prev, { type: "undoLast", playerId, kind }, context).state);
   }, []);
 
   /** Renvoie l'identifiant créé, dont l'appelant a besoin pour ouvrir la session. */
   const addPlayer = useCallback((name: string, characterId: string) => {
-    const player = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      characterId,
-      // Arriver en cours de saison ne donne aucun point rétroactif : la vraie
-      // chance de victoire est la Couronne du mois, qui repart de zéro.
-      joinedAt: new Date().toISOString(),
-    };
-
-    setState((prev) => ({ ...prev, players: [...prev.players, player] }));
-    return player.id;
+    const context = freshContext();
+    const action = { type: "addPlayer" as const, name, characterId };
+    setState((prev) => applyAction(prev, action, context).state);
+    return context.id();
   }, []);
 
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
-    setState((prev) => ({
-      ...prev,
-      players: prev.players.filter((p) => p.id !== playerId),
-      events: prev.events.filter((e) => e.playerId !== playerId),
-      casts: prev.casts.filter(
-        (cast) => cast.playerId !== playerId && cast.targetPlayerId !== playerId,
-      ),
-      miniGames: prev.miniGames?.filter((attempt) => attempt.playerId !== playerId),
-    }));
+    const context = freshContext();
+    setState((prev) => applyAction(prev, { type: "removePlayer", playerId }, context).state);
   }, []);
 
   const monthKeyNow = currentMonthKey();

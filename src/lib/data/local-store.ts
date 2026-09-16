@@ -1,4 +1,5 @@
 import { CHARACTERS } from "@/lib/game/characters";
+import type { GameStore } from "./store";
 import type { GameState } from "./types";
 
 /**
@@ -132,3 +133,6 @@ export function resetState(): GameState {
   }
   return EMPTY;
 }
+
+/** The browser-only store of the prototype, and of development without a database. */
+export const localStore: GameStore = { load: loadState, save: saveState, reset: resetState };

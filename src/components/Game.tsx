@@ -304,6 +304,12 @@ export function Game() {
       setOverview(false);
 
       const { event, offer, chestGame } = addEvent(me.id, kind);
+      if (!event) {
+        // Refused by the rules (unknown or hired player): nothing to animate.
+        actionInFlight.current = false;
+        setAwaitingTravel(false);
+        return;
+      }
       if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
       pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
       const origin = heroOrigin(me, meIndex);
