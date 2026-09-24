@@ -54,9 +54,13 @@ src/
       Hero.tsx            Illustrations des joueurs, déplacements et effets
       textures.ts        Cache partagé des textures et des images d'animation
       projection.ts      Projection des couches et budget du framebuffer
-      Effects.tsx        Pigeon, éclair, cocktail, trophée, coffre et farces
+      Effects.tsx        Moteur des réactions : entrée, impact, sortie, accessoires
+      reactions.ts       Chorégraphies des réactions et de leurs variantes
+      fx.ts, FxLayer.tsx Particules et éclairs procéduraux, en pool
+      AmbientWeather.tsx Météo de chaque contrée
       lanes.ts           Répartition des personnages à égalité
-    hud/                  Interface DOM : actions, classements, sélection, récompenses
+    hud/                  Interface DOM : actions, classements, sélection, récompenses,
+                          moment d'action, chronique, défi du jour, album
       mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
                          puis un composant par jeu et le dessin canvas du pigeon
   hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur, sur
@@ -84,6 +88,13 @@ src/
       personality-quiz.ts  Banque de questions et distribution par tentative
       ghosting.ts        Quatorze jours de silence : faux « écrit… » et vrai message
       slot-machine.ts    Rouleaux de la machine à sous du coffre
+      variants.ts        Les mises en scène de chaque action et leur rareté
+      scores.ts          Score de chaque partie, records du groupe
+      daily.ts           Défi du jour : un jeu et un parcours par jour de Zurich
+      tales.ts           Récits : coups de chance, mini-boss RH, absurdités
+      streak.ts          Série hebdomadaire
+      daylight.ts        Lumière du jour à Zurich
+    client/               Navigateur uniquement : son synthétisé, préchargement, lumière
 ```
 
 Deux fichiers portent l'essentiel des décisions structurantes :
@@ -95,15 +106,26 @@ Deux fichiers portent l'essentiel des décisions structurantes :
 
 ## État actuel
 
-Prototype local. Fonctionne :
+Jouable en groupe d'ami·es, en ligne. Fonctionne :
 
 - huit contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
   reliées par sept lieux de transition
 - quinze personnages illustrés, partagés entre le jeu et l'écran de sélection
 - un cadrage adapté au bureau, au portrait et au paysage sur mobile
-- **les 5 actions officielles** avec leurs animations : pigeon voyageur 🕊️,
-  éclair et personnage électrocuté ⚡😵, confettis et cocktail 🍸,
-  LEGENDARY REJECTION 💀, grande célébration 🏆
+- **les 5 actions officielles**, chacune mise en scène comme un moment : la caméra
+  se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
+  (éclair, flash, secousse, confettis, onde de choc, ralenti), les points volent
+  jusqu'à leur compteur, les pas défilent pendant la marche, une bannière annonce
+  chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton pour couper
+- **dix-neuf mises en scène** tirées selon leur rareté (six sur dix classiques, trois
+  rares, une légendaire), identiques pour tout le groupe : l'escadrille de pigeons,
+  l'orage, le grand NON, le tapis rouge, la fanfare des gnomes, le météore, le
+  crapaud qui lit la lettre, quarante-sept lettres, l'ascension vers la taverne…
+- les **récits** du pitch, une action sur huit : coup de chance, mini-boss RH ou
+  absurdité du recrutement, purement narratifs
+- un **monde vivant** : l'heure réelle de Zurich (aube, soir doré, nuit étoilée),
+  la météo de chaque contrée (pollen, feuilles, lucioles, neige, sable, braises),
+  des gnomes qui acclament le passage du héros
 - des **mini-jeux facultatifs** qui décorent les actions, une seule tentative
   chacun, jamais rejouée après annulation ou rechargement, et qui ne touchent
   qu'aux pas de voyage ou au butin, jamais aux points :
@@ -118,6 +140,10 @@ Prototype local. Fonctionne :
     au vrai message et jamais aux points de suspension, +2 pas ;
   - coffre : **Salaire selon expérience**, la machine à sous du double fond,
     trois CHF pour un butin de plus.
+
+  Chaque défi arrive en carte d'invitation une fois le moment joué. Chaque partie
+  garde un score, le groupe un record par jeu, et un **défi du jour** propose le même
+  parcours à toute la compagnie, une fois par jour, avec son classement.
 - l'**annulation** de la dernière action, pour le clic de trop
 - les **coffres** 🧰 aux paliers de 10 pas
 - les **classements** : Saison (Légende du Chômage), Mois (Couronne du mois,
@@ -125,16 +151,14 @@ Prototype local. Fonctionne :
 - le **Scoreboard collectif** de la compagnie
 - l'**ajout et le retrait de joueur·euses** avec choix du personnage
 - le ciel et les silhouettes de fond qui suivent la palette du biome
+- la **vie du groupe** : une chronique des actions de chacun·e, des saluts en un
+  emoji (👏 🍺 🔥 😂 🫂), les actions des ami·es jouées en direct sur leur héros,
+  et au retour un récapitulatif de ce qui s'est passé pendant ton absence
+- une **série hebdomadaire** 🔥 et un **album** : mises en scène vues, récits vécus,
+  contrées traversées, meilleurs scores
 
-Pas encore fait : les événements aléatoires narratifs (chance / mini-boss RH),
-et la base de données partagée.
-
-### Limite du prototype
-
-Les données vivent dans le stockage local du navigateur : elles ne sont **pas
-partagées** entre joueur·euses, et deux onglets ouverts sur le jeu s'écrasent
-mutuellement. C'est acceptable pour valider les mécaniques, pas pour jouer à
-plusieurs. Le passage à Neon résout les deux.
+Pour revoir une mise en scène ou un moment précis en développement :
+`?debug&variant=storm`, `?debug&tale=boss`, `?debug&hour=22` sur l'adresse du jeu.
 
 ## Groupes d'ami·es
 

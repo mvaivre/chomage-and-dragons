@@ -246,3 +246,38 @@ Annuler, indexées par joueur et rang de candidature : rétablir cette candidatu
 réutilise le résultat, sans nouvelle tentative. Annuler retire tous ses pas, bonus
 compris. Une tentative non résolue interrompue par un rechargement conserve seulement la base.
 Les anciennes sauvegardes sans ces champs gardent leur progression d’origine.
+
+## Le moment d'action — septembre 2026
+
+Une action se joue en temps : la caméra se rapproche (zoom autour de la ligne du sol,
+héros recentré), le héros réagit sur place avant de marcher (`REACTION_HOLD`), puis
+la réaction entre, frappe et sort. Elle suit la position en direct du héros
+(`scene.heroes`) et se place dans la bande visible du monde, entre le HUD du haut et
+le dock d'actions : au-dessus de la tête quand la place suffit, à côté sinon. L'horloge
+du monde (`worldDelta`) connaît le gel d'impact et le ralenti ; les particules et les
+héros la suivent, l'interface non.
+
+Les effets sont procéduraux : quelques textures peintes une fois sur de petits
+canvas, des sprites en pool (au plus 520, dont 60 pour la météo), des éclairs tracés
+dans un `Graphics`. Le calque des moments (`MomentOverlay`) porte le flash, les bandes
+de cinéma, les points qui volent jusqu'au compteur et les bannières ; il est sous le
+HUD, sauf les récits, qui se lisent au-dessus.
+
+Les mises en scène sont décrites dans `reactions.ts` : entrée, impact, sortie, copies
+volantes, traînées, bulles, accessoires ancrés dans le monde (tapis, cratère, fanfare,
+cordes) et effets dans le temps. `?debug&variant=<id>` force une variante.
+
+Le son est synthétisé en WebAudio : aucun fichier. Ouvrir la sortie audio coûte environ
+190 ms ; c'est fait au premier geste sur la page, jamais pendant un moment.
+
+### Mesures, build de production, vrai GPU (Apple M1 Max)
+
+| Situation | Avant | Après |
+| --- | --- | --- |
+| Fil principal au repos, bureau | 8,7 % | 3,5 % |
+| Fil principal au repos, téléphone simulé, CPU ×4 | 14,7 % | 3,6 % |
+| Pire image à la première action | 309 ms | aucune au-dessus de 34 ms sur le vrai parcours |
+| Pire image au décollage du pigeon | 417 ms | 10 ms |
+
+Les mesures headless demandent `--use-angle=metal --enable-gpu --ignore-gpu-blocklist` :
+sans WebGL, Pixi passe en rendu Canvas 2D et les chiffres ne veulent rien dire.
