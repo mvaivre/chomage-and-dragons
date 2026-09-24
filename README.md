@@ -60,7 +60,7 @@ src/
       AmbientWeather.tsx Météo de chaque contrée
       lanes.ts           Répartition des personnages à égalité
     hud/                  Interface DOM : actions, classements, sélection, récompenses,
-                          moment d'action, chronique, défi du jour, album
+                          moment d'action, défi du jour, nouvelles, album
       mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
                          puis un composant par jeu et le dessin canvas du pigeon
   hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur, sur
@@ -151,9 +151,11 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
 - le **Scoreboard collectif** de la compagnie
 - l'**ajout et le retrait de joueur·euses** avec choix du personnage
 - le ciel et les silhouettes de fond qui suivent la palette du biome
-- la **vie du groupe** : une chronique des actions de chacun·e, des saluts en un
-  emoji (👏 🍺 🔥 😂 🫂), les actions des ami·es jouées en direct sur leur héros,
-  et au retour un récapitulatif de ce qui s'est passé pendant ton absence
+- la **vie du groupe** : les actions des ami·es jouées en direct sur leur héros,
+  annoncées par une carte où on les salue en un emoji (👏 🍺 🔥 😂 🫂), et au
+  retour un récapitulatif de ce qui s'est passé pendant ton absence
+- le **défi du jour** toujours visible dans le HUD : un tap pour jouer, puis le
+  classement du jour
 - une **série hebdomadaire** 🔥 et un **album** : mises en scène vues, récits vécus,
   contrées traversées, meilleurs scores
 

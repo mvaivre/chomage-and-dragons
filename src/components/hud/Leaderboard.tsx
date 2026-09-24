@@ -7,7 +7,6 @@ import type { ActionKind } from "@/lib/data/types";
 import { monthLabel } from "@/lib/game/calendar";
 import { characterById, type Character } from "@/lib/game/characters";
 import { ACTION_LABELS, ACTION_ORDER, type Standing } from "@/lib/game/standings";
-import { ScrollIcon } from "./icons";
 import {
   ActionArtwork,
   ChestArtwork,
@@ -64,6 +63,12 @@ function toRows(standings: Standing[], players: PlayerView[]): Row[] {
 
 /* ------------------------------------------------------------------ compact */
 
+/** « de septembre », « d’avril » : the month without its year. */
+function monthOf(key: string): string {
+  const month = monthLabel(key).replace(/\s\d{4}$/, "");
+  return /^[aeiouâéèô]/i.test(month) ? `d’${month}` : `de ${month}`;
+}
+
 interface CompactProps {
   players: PlayerView[];
   monthStandings: Standing[];
@@ -98,14 +103,10 @@ export function CompactLeaderboard({
       </div>
 
       <div className="leaderboard-card__desktop">
-        <header className="flex items-start justify-between gap-3">
-          <div>
-            <p className="leaderboard-card__kicker">La tournée de {monthLabel(monthKeyNow)}</p>
-            <h2>Couronne du mois</h2>
-          </div>
+        <header className="flex items-center justify-between gap-3">
+          <h2>Couronne {monthOf(monthKeyNow)}</h2>
           <CrownArtwork className="leaderboard-crown-art" />
         </header>
-        <p className="leaderboard-card__prize">Le premier se fait offrir un verre.</p>
 
         {top.length === 0 ? (
           <p className="py-3 text-sm text-parchment-ink/55 italic">
@@ -119,11 +120,6 @@ export function CompactLeaderboard({
             {meOutside ? <CompactRow row={meOutside} isMe /> : null}
           </ul>
         )}
-
-        <p className="leaderboard-card__footer">
-          <ScrollIcon className="h-4 w-4" />
-          Ouvrir le classement
-        </p>
       </div>
     </button>
   );

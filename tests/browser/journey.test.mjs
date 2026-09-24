@@ -429,7 +429,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     } finally { await host.close(); await guest.close(); }
   });
 
-  await t.test('friends see each other live, cheer from the chronicle, and get a recap after an absence', async () => {
+  await t.test('friends see each other live, cheer from the news card, and get a recap after an absence', async () => {
     const host = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     const guest = await browser.newContext();
     const errors = [];
@@ -459,14 +459,14 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       const live = await act('refus');
       await alice.evaluate(() => window.dispatchEvent(new Event('focus')));
       await alice.locator('.news-toast', { hasText: 'Bob' }).waitFor({ timeout: 15_000 });
-      // A cheer from the chronicle reaches the server; one per friend and per action.
-      await alice.locator('.chronicle-button').click();
-      await alice.locator('.chronicle__item').first().locator('.chronicle__react button', { hasText: '🍺' }).click();
-      await alice.waitForFunction(() => document.querySelector('.chronicle__count')?.textContent?.includes('🍺'));
+      // A cheer from the news card reaches the server; one per friend and per action.
+      const toast = alice.locator('.news-toast', { hasText: 'Bob' });
+      await toast.locator('.news-toast__react button', { hasText: '🍺' }).click();
+      assert.equal(await toast.locator('.news-toast__react button[aria-pressed="true"]').innerText(), '🍺');
+      assert.equal(await toast.locator('.news-toast__react button:disabled').count(), 4);
       await alice.waitForTimeout(800);
       const state = await (await bob.request.get(`${url}/api/groups/${slug}`)).json();
       assert.deepEqual(state.state.cheers.map(c => [c.emoji, c.eventId]), [['🍺', live.result.event.id]]);
-      await alice.locator('.chronicle__close').click();
       // Away, then back: the recap names what happened.
       await alice.goto('about:blank');
       await act('candidature');
@@ -483,18 +483,22 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
   await t.test('the daily challenge is played once, ranked, and scores become records', async () => {
     const { context, page, errors } = await fixture(0);
     try {
-      await page.locator('.chronicle-button').click();
-      await page.locator('.daily__play').click();
+      // Today's challenge sits in the HUD and starts in one tap.
+      await page.locator('.daily-button').click();
       const dialog = page.locator('dialog[open].mini-game');
       await dialog.waitFor();
       // Opening today's game spends the day's attempt: leaving records zero, no replay.
       await page.getByRole('button', { name: 'Fermer le mini-jeu' }).click();
       await page.locator('.daily__done').waitFor();
-      assert.equal(await page.locator('.daily__play').count(), 0);
+      await page.locator('.daily__close').click();
+      assert.equal(await page.locator('.daily-button[data-done="true"]').count(), 1);
+      await page.locator('.daily-button').click();
+      assert.equal(await page.locator('dialog[open].mini-game').count(), 0, 'no replay once played');
+      await page.locator('.daily__done').waitFor();
       const runs = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')).daily);
       assert.deepEqual(runs.map(r => [r.score, Boolean(r.pending)]), [[0, false]]);
       // A played game stores its score on the attempt: the record shows on the next invitation.
-      await page.locator('.chronicle__close').click();
+      await page.locator('.daily__close').click();
       await page.locator('.action-button--refus').click();
       await playGame(page);
       await page.getByRole('button', {name: 'Lancer le tapis'}).click();
@@ -516,7 +520,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.ok(saved.miniGames[0].score > 0, 'the attempt keeps its score');
       await page.locator('.action-button--refus').click();
       await page.locator('.mini-game-invite__record').waitFor();
-      assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record à battre : \d+ pts · Mika/);
+      assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record : \d+ pts · Mika/);
       await page.locator('.mini-game-invite__pass').click();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }

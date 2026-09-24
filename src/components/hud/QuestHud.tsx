@@ -2,7 +2,7 @@
 
 import type { PlayerView } from "@/hooks/useGame";
 import { STEPS_PER_LEVEL } from "@/lib/config";
-import { characterById } from "@/lib/game/characters";
+import { characterArt, characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
 import { biomeAt, worldXFor } from "@/lib/game/world";
 import { useEffect, useState } from "react";
@@ -55,22 +55,21 @@ function QuestCard({ me, seasonRank, timing, streak }: { me: PlayerView; seasonR
   return (
     <section className="journey-card pointer-events-auto" aria-label="Ton voyage">
       <div className="journey-card__identity">
-        <p className="journey-card__kicker">Ton aventure</p>
+        {/* eslint-disable-next-line @next/next/no-img-element -- small local alpha WebP, already optimized */}
+        <img className="journey-card__portrait" src={characterArt(me.characterId)} alt="" width={208} height={293} />
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="truncate font-display text-2xl text-parchment">{me.name}</h2>
+          <h2 className="truncate font-display text-2xl text-parchment" title={character.name}>{me.name}</h2>
           <span className="journey-card__level">
             Niv. {me.level}
           </span>
           {streak >= 2 ? <span className="journey-card__streak" title={`${streak} semaines d’affilée avec au moins une action`}>🔥 {streak}</span> : null}
         </div>
         <span className="journey-card__mobile-score" data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown} pts</span>
-        <p className="journey-card__class">{character.name}</p>
       </div>
 
       <div className="journey-card__main">
         <div className="journey-card__summary">
           <div className="min-w-0">
-            <p className="journey-card__kicker">En ce moment</p>
             <p className="journey-card__place font-display text-xl text-gold-light">{zone.name}</p>
           </div>
           <dl className="journey-card__stats">

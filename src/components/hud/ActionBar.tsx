@@ -56,9 +56,8 @@ interface ActionBarProps {
   canUndo: boolean;
   /** Un personnage engagé a quitté la course : plus rien à déclarer. */
   hired: boolean;
-  /** Une chronique est ouverte : on la lit avant de déclarer autre chose. */
+  /** Un moment, un défi ou un panneau est en cours : on le termine avant de déclarer autre chose. */
   locked: boolean;
-  lastActionLabel: string | null;
   feedback: string | null;
   feedbackKind?: ActionKind;
 }
@@ -69,7 +68,6 @@ export function ActionBar({
   canUndo,
   hired,
   locked,
-  lastActionLabel,
   feedback,
   feedbackKind,
 }: ActionBarProps) {
@@ -99,13 +97,9 @@ export function ActionBar({
 
   return (
     <div className="action-dock pointer-events-auto">
-      <p className="action-dock__prompt" data-feedback={Boolean(feedback)} role="status" aria-live="polite">
+      <p className="action-dock__prompt" data-feedback={Boolean(feedback)} data-empty={!feedback && !hired} role="status" aria-live="polite">
         {feedback && feedbackKind ? <ActionArtwork kind={feedbackKind} className="action-dock__feedback-art" /> : null}
-        <span>{feedback ?? (hired
-          ? "Quête accomplie — ta place à la taverne est réservée."
-          : lastActionLabel
-            ? `Dernier exploit : ${lastActionLabel}`
-            : "Transforme ta recherche en voyage")}</span>
+        <span>{feedback ?? (hired ? "Quête accomplie — ta place à la taverne est réservée." : "")}</span>
       </p>
 
       <div className="action-dock__bar">

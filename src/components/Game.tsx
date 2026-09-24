@@ -34,8 +34,7 @@ import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
-import { Chronicle } from "@/components/hud/Chronicle";
-import { DailyChallenge } from "@/components/hud/DailyChallenge";
+import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { Album } from "@/components/hud/Album";
 import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
@@ -255,14 +254,15 @@ export function Game({ slug = null }: { slug?: string | null }) {
     revision: number;
   } | null>(null);
   const shownCasts = useRef(new Set<string>());
-  // The group's life: a chronicle, live news of friends, and a recap after an absence.
-  const [chronicleOpen, setChronicleOpen] = useState(false);
+  // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
+  const [dailySheetOpen, setDailySheetOpen] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
   // Today's challenge: the same game and course for everyone in the group.
   const today = zurichDay();
   const todayGame = useMemo(() => dailyChallenge(today), [today]);
   const [dailyOpen, setDailyOpen] = useState(false);
+  const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
   const chestAnimationId = useRef<string | null>(null);
@@ -286,7 +286,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen && !chronicleOpen && !dailyOpen && !recap)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
@@ -526,12 +526,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const index = seasonStandings.findIndex((s) => s.playerId === identity);
     return index === -1 ? null : index + 1;
   }, [seasonStandings, identity]);
-
-  const lastActionLabel = useMemo(() => {
-    if (!me) return null;
-    const index = events.findLastIndex((e) => e.playerId === me.id);
-    return index === -1 ? null : ACTION_LABELS_ONE[events[index].kind];
-  }, [events, me]);
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
@@ -817,10 +811,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined}>
+    <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || chronicleOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={overview || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -913,6 +907,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
             <div className="hud-journey">
               <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
               <div className="hud-controls">
+                <DailyButton kind={todayGame.kind} runs={todayRuns} meId={identity}
+                  onPlay={() => { if (!me || awaitingTravel || miniGameOffer || rewardMoments.length) return; startDaily(me.id, today, todayGame.kind); setDailyOpen(true); }}
+                  onOpen={() => setDailySheetOpen(true)} />
                 <PowerDeck
                   me={me}
                   players={players}
@@ -920,10 +917,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
-                <button type="button" className="chronicle-button pointer-events-auto" onClick={() => setChronicleOpen(true)} aria-label="Ouvrir la chronique de la compagnie">
-                  <span aria-hidden>📜</span>
-                  <span>Chronique</span>
-                </button>
                 <button
                   type="button"
                   className="company-camera pointer-events-auto"
@@ -963,7 +956,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   awaitingTravel ||
                   shotInbox !== null
                 }
-                lastActionLabel={lastActionLabel}
                 feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
                 feedbackKind={actionFeedback?.kind}
               />
@@ -972,17 +964,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
         </div>
       ) : null}
 
-      {news.length && !chronicleOpen ? <div className="news-stack" aria-live="polite">
-        {news.map((item) => <NewsToast key={item.id} item={item} players={players} onOpen={() => { setNews([]); setChronicleOpen(true); }} />)}
+      {news.length && !dailySheetOpen ? <div className="news-stack" aria-live="polite">
+        {news.map((item) => <NewsToast key={item.id} item={item} players={players} onCheer={handleCheer} />)}
       </div> : null}
-      {chronicleOpen ? <Chronicle events={events} players={players} cheers={cheers} meId={identity} onCheer={handleCheer} onClose={() => setChronicleOpen(false)}
-        daily={<DailyChallenge kind={todayGame.kind} runs={dailyRanking(daily, today)} players={players} meId={identity} onPlay={() => { if (me) startDaily(me.id, today, todayGame.kind); setChronicleOpen(false); setDailyOpen(true); }} />} /> : null}
+      {dailySheetOpen ? <DailySheet kind={todayGame.kind} runs={todayRuns} players={players} meId={identity} onClose={() => setDailySheetOpen(false)} /> : null}
       {dailyOpen && me ? <MiniGame key={todayGame.seedId} kind={todayGame.kind} seedId={todayGame.seedId}
-        record={(() => { const top = dailyRanking(daily, today).find((run) => !run.pending); return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
+        record={(() => { const top = todayRuns.find((run) => !run.pending); return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
         onResolve={(result, score) => { recordDaily(me.id, today, todayGame.kind, result === "skipped" ? 0 : score ?? 0); }}
-        onDone={() => { setDailyOpen(false); setChronicleOpen(true); }} /> : null}
-      {recap && me && !chronicleOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
-        onClose={() => setRecap(null)} onOpen={() => { setRecap(null); setChronicleOpen(true); }} /> : null}
+        onDone={() => { setDailyOpen(false); setDailySheetOpen(true); }} /> : null}
+      {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
+        onClose={() => setRecap(null)} /> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay
