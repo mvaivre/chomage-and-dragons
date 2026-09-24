@@ -10,7 +10,7 @@ import {
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
-import { markMotion, resetScene, scene } from "./scene";
+import { depthLight, markMotion, resetScene, scene } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
@@ -137,19 +137,27 @@ function CameraRig({
   return <pixiContainer eventMode="none" ref={root}>{cameraReady ? children : null}</pixiContainer>;
 }
 
-/** Une couche qui défile à sa propre vitesse. */
+/** Une couche qui défile à sa propre vitesse, éclairée selon sa profondeur. */
 function Layer({
   factor,
+  shade,
   children,
 }: {
   factor: number;
+  /** How much the night reaches this plane: 1 far away, near 0 for the heroes. */
+  shade: number;
   children: React.ReactNode;
 }) {
   const ref = useRef<Container>(null);
+  const lit = useRef({ night: -1, warm: -1 });
 
   useTick(() => {
     const node = ref.current;
     if (!node) return;
+    if (lit.current.night !== scene.night || lit.current.warm !== scene.warm) {
+      lit.current = { night: scene.night, warm: scene.warm };
+      node.tint = depthLight(shade);
+    }
     // Le pivot au centre de la fenêtre évite que les couches lentes dérivent vers
     // le bord gauche du canvas au fil du voyage.
     node.x = parallaxX(0, scene.camera.x, scene.camera.viewW, factor);
@@ -293,7 +301,7 @@ function WorldScene({
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <Sky />
 
-      <Layer factor={FAR_FACTOR}>
+      <Layer factor={FAR_FACTOR} shade={1.0}>
         <LandscapeBase factor={FAR_FACTOR} channel="far" />
         <BiomeArtLayer
           channel="far"
@@ -304,7 +312,7 @@ function WorldScene({
         />
       </Layer>
 
-      <Layer factor={BACKGROUND_FACTOR}>
+      <Layer factor={BACKGROUND_FACTOR} shade={0.88}>
         <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
         <BiomeArtLayer
           channel="back"
@@ -315,26 +323,26 @@ function WorldScene({
         />
       </Layer>
 
-      <Layer factor={MIDGROUND_FACTOR}>
+      <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
       </Layer>
 
-      <Layer factor={1}>
+      <Layer factor={1} shade={0.62}>
         <TransitionLandmarks />
       </Layer>
 
       <PaperMotes />
 
-      <Layer factor={1}>
+      <Layer factor={1} shade={0.5}>
         <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
-      <Layer factor={MIDGROUND_FACTOR}>
+      <Layer factor={MIDGROUND_FACTOR} shade={0.66}>
         <BackgroundGnomes factor={MIDGROUND_FACTOR} />
       </Layer>
 
-      <Layer factor={1}>
+      <Layer factor={1} shade={0.14}>
         {previewAt !== null && players[0] ? <Hero
           key={`preview-${previewAt}`}
           player={{ ...players.find(player => player.id === meId) ?? players[0], characterId: devHero.characterId, id: "visual-preview", name: "Repère visuel", position: previewAt / WORLD_LENGTH }}
@@ -356,11 +364,11 @@ function WorldScene({
         ))}
       </Layer>
 
-      <Layer factor={NEAR_FOREGROUND_FACTOR}>
+      <Layer factor={NEAR_FOREGROUND_FACTOR} shade={0.58}>
         <NearForegroundLayer factor={NEAR_FOREGROUND_FACTOR} />
       </Layer>
 
-      <Layer factor={1}>
+      <Layer factor={1} shade={0.0}>
         {effects.map((effect) => {
           return (
             <EffectView

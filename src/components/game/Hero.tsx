@@ -8,6 +8,7 @@ import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/c
 import { seededRandom } from "@/lib/rng";
 import { slopeAt, surfaceAt, worldXFor } from "@/lib/game/world";
 import { markMotion, scene, worldDelta } from "./scene";
+import { fxTexture } from "./fx";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
@@ -114,6 +115,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const labelRoot = useRef<Container>(null);
   const selfMarker = useRef<Container>(null);
   const selfGlow = useRef<Graphics>(null);
+  const lantern = useRef<Sprite>(null);
 
   const target = worldXFor(player.position) + lane.dx;
   const at = useRef(target);
@@ -292,6 +294,14 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       selfMarker.current.scale.set(1);
       selfMarker.current.y = -HERO_HEIGHT - 16 - (scene.reducedMotion ? 0 : Math.abs(Math.sin(phase.current * 1.3)) * 6);
     }
+    if (lantern.current) {
+      const glow = scene.night * 0.55 + scene.warm * 0.12;
+      lantern.current.visible = glow > 0.02;
+      if (lantern.current.visible) {
+        lantern.current.alpha = glow * (isMe ? 0.5 : 0.32) * (scene.reducedMotion ? 1 : 0.94 + Math.sin(phase.current * 2.7) * 0.06);
+        lantern.current.scale.set(440 / 48, 300 / 48);
+      }
+    }
     if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
     const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : moving ? "walk" : actionTimer.current > 0
@@ -327,6 +337,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
 
   return (
     <pixiContainer ref={root} x={target} scale={lane.scale}>
+      <pixiSprite ref={lantern} texture={fxTexture("dot")} anchor={0.5} y={-60} blendMode="add" tint={0xffc98a} alpha={0} visible={false} />
       {isMe ? <pixiGraphics ref={selfGlow} draw={drawSelfGlow} /> : null}
       <pixiGraphics draw={drawShadow} />
 

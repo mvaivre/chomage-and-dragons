@@ -103,6 +103,23 @@ export function worldDelta(elapsedMS: number): number {
   return now < scene.slowUntil ? seconds * scene.slowScale : seconds;
 }
 
+const NIGHT_COLOR = 0x3f4c8c;
+const DUSK_COLOR = 0xffc896;
+
+function mix(a: number, b: number, t: number): number {
+  const channel = (shift: number) => Math.round(((a >> shift) & 0xff) + ((((b >> shift) & 0xff) - ((a >> shift) & 0xff)) * t));
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
+
+/**
+ * The light of one depth plane: 1 for the far hills, which sink into the night,
+ * down to almost 0 for the heroes, who must stay readable. Dusk warms the same way.
+ */
+export function depthLight(shade: number): number {
+  const night = mix(0xffffff, NIGHT_COLOR, scene.night * shade);
+  return mix(night, DUSK_COLOR, scene.warm * 0.45 * shade * (1 - scene.night));
+}
+
 /** Screen pixels of a world point on the foreground plane, as the camera sees it now. */
 export function worldToScreen(x: number, y: number): { x: number; y: number } {
   const { camera } = scene;

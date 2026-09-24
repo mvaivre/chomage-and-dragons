@@ -3034,12 +3034,10 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 }
 
 /* ------------------------------------------------------------------ lumière du jour */
-.daylight-veil { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-.daylight-veil i { position: absolute; inset: 0; }
-.daylight-veil__warm { background: linear-gradient(180deg, #ffb27a 0%, #ffd2a0 55%, #e8925a 100%); mix-blend-mode: multiply; opacity: calc(var(--warm) * 0.42); }
-.daylight-veil__night { background: linear-gradient(180deg, #24336c 0%, #3a4d8a 55%, #222b58 100%); mix-blend-mode: multiply; opacity: calc(var(--night) * 0.5); }
-/* Lights of the night shine through the veil: a soft screen glow above it. */
-.daylight-veil::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 65%, rgb(255 214 140 / 0.10), transparent 60%); mix-blend-mode: screen; opacity: var(--night); }
+.daylight-veil {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: var(--night);
+  background: radial-gradient(ellipse 75% 70% at 45% 58%, transparent 55%, rgb(8 12 36 / 0.55) 100%);
+}
 
 /* ------------------------------------------------------------------ chronique et nouvelles */
 .chronicle-button {
