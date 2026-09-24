@@ -54,11 +54,14 @@ WORLD_ART.cascade.back = `${ART_ROOT}/cascade-back-v2.webp`;
 WORLD_ART.plaine.back = `${ART_ROOT}/plaine-back-animated.webp`;
 WORLD_ART.taverne.mid = `${ART_ROOT}/taverne-mid-animated.webp`;
 
+/** The widest land, in world units: its farthest copy of scenery sits half of it from its centre. */
+const HALF_SPAN = Math.max(...BIOMES.map((biome) => biome.to - biome.from)) * WORLD_LENGTH / 2;
+
 /** Only materialize the nearby copies of the itinerary, at each layer's depth. */
 export function useLayerBiomes(factor: number, width: number) {
   const measure = () => {
     const center = scene.camera.x + scene.camera.viewW / 2;
-    const reach = (scene.camera.viewW / 2 + width / 2 + 400) / factor;
+    const reach = (scene.camera.viewW / 2 + width / 2 + 400) / factor + HALF_SPAN;
     const first = Math.max(0, Math.floor((center - reach) / WORLD_LENGTH));
     const last = Math.max(0, Math.floor((center + reach) / WORLD_LENGTH));
     const visible: number[] = [];
@@ -145,6 +148,18 @@ function LayerSprite({
 
 type ArtChannel = keyof BiomeArt;
 
+/**
+ * Copies of each land's scenery along its length, at the same density as when a
+ * land was half as long. The far hills are wide enough to fill it alone.
+ */
+const COPIES: Record<ArtChannel, number> = { far: 1, back: 2, mid: 2 };
+
+/** Evenly spread centres of a land's copies, in world units. */
+function copyCentres(index: number, cycleOffset: number, copies: number): number[] {
+  const biome = BIOMES[index];
+  return Array.from({ length: copies }, (_, copy) => cycleOffset + (biome.from + (biome.to - biome.from) * (copy + 0.5) / copies) * WORLD_LENGTH);
+}
+
 /** Load the projected visible interval, which is wider for distant layers. */
 function BiomeArtLayerLayer({
   channel,
@@ -165,23 +180,25 @@ function BiomeArtLayerLayer({
     <pixiContainer>
       {indices.flatMap(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
-        const center = cycleOffset + ((biome.from + biome.to) * WORLD_LENGTH) / 2;
-        const offsets = index === 0 && cycleOffset === 0 ? [-width * 0.8 / factor, 0] : [0];
-        return offsets.map(offset => (
-          <LayerSprite
-            key={`${channel}-${cycleOffset}-${biome.id}-${offset}`}
-            url={WORLD_ART[biome.id][channel]}
-            factor={factor}
-            bottom={bottom}
-            width={width}
-            alpha={alpha}
-            worldX={center + offset}
-            mirror={(index % 2 === 1) !== (offset !== 0)}
-            tint={channel === "back" && biome.id === "plaine" ? 0xdad8d0 : 0xffffff}
-          >
-            {channel === "back" && biome.id === "plaine" ? <WindmillLife worldX={center + offset} factor={factor} /> : null}
-          </LayerSprite>
-        ));
+        return copyCentres(index, cycleOffset, COPIES[channel]).flatMap((center, copy) => {
+          // The very start of the world is extended by a mirrored copy to its left.
+          const offsets = index === 0 && cycleOffset === 0 && copy === 0 ? [-width * 0.8 / factor, 0] : [0];
+          return offsets.map(offset => (
+            <LayerSprite
+              key={`${channel}-${cycleOffset}-${biome.id}-${copy}-${offset}`}
+              url={WORLD_ART[biome.id][channel]}
+              factor={factor}
+              bottom={bottom}
+              width={width}
+              alpha={alpha}
+              worldX={center + offset}
+              mirror={((index + copy) % 2 === 1) !== (offset !== 0)}
+              tint={channel === "back" && biome.id === "plaine" ? 0xdad8d0 : 0xffffff}
+            >
+              {channel === "back" && biome.id === "plaine" ? <WindmillLife worldX={center + offset} factor={factor} /> : null}
+            </LayerSprite>
+          ));
+        });
       })}
     </pixiContainer>
   );
@@ -193,23 +210,23 @@ function MidgroundLayerLayer({ factor }: { factor: number }) {
 
   return (
     <pixiContainer>
-      {indices.map(({ index, offset: cycleOffset }) => {
+      {indices.flatMap(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
-        const center = cycleOffset + ((biome.from + biome.to) * WORLD_LENGTH) / 2;
-        return (
+        return copyCentres(index, cycleOffset, COPIES.mid).map((center, copy) => (
           <LayerSprite
-            key={`mid-${cycleOffset}-${biome.id}`}
+            key={`mid-${cycleOffset}-${biome.id}-${copy}`}
             url={WORLD_ART[biome.id].mid}
             factor={factor}
             bottom={GROUND_Y + 100}
             width={820}
             alpha={1}
             worldX={center}
+            mirror={copy % 2 === 1}
             tint={biome.id === "taverne" ? 0xdad8d0 : 0xffffff}
           >
             {biome.id === "taverne" ? <TavernLife worldX={center} factor={factor} /> : null}
           </LayerSprite>
-        );
+        ));
       })}
     </pixiContainer>
   );

@@ -150,7 +150,7 @@ victoire. Le skater roule et la fée bat des ailes au repos. Les petits habitant
 le chemin tamponnent, bâillent, picorent et volent ; six reflets suivent les cascades.
 Les atlas sont partagés, sans nouvelle texture à chaque pose.
 
-Les coffres statiques et animés utilisent `JourneyChest` et `chestXForStep`. Le voyage continue au-delà des 80 pas : les paysages se répètent, avec uniquement
+Les coffres statiques et animés utilisent `JourneyChest` et `chestXForStep`. Une traversée compte 200 pas (`JOURNEY_TARGET`) et 30 240 unités ; le voyage continue au-delà : les paysages se répètent, avec uniquement
 les occurrences visibles chargées. La caméra, le sol et les coffres suivent la distance
 absolue ; chaque palier de dix pas possède son propre coffre. L’embauche mène à la
 prochaine taverne. Son état vidé

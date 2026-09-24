@@ -14,14 +14,12 @@ export const VIEW = { width: 1280, height: 720 } as const;
 export const WALKABLE_GROUND_Y = 602;
 
 /**
- * Longueur totale du voyage. Un seul point représente maintenant un vrai morceau
- * de pays, assez long pour lire le déplacement et découvrir plusieurs détails.
+ * Longueur d'une traversée : 42 modules de 720 unités. Un pas en vaut environ 150,
+ * assez pour lire chaque déplacement ; chaque contrée répète ses décors pour
+ * remplir sa longueur. Les bitmaps source font 1536 px de large : ils sont
+ * toujours réduits, jamais agrandis.
  */
-/**
- * Le monde visuel est composé de 21 modules de 720 unités. Les bitmaps source
- * font 1536 px de large : ils sont donc toujours réduits, jamais agrandis.
- */
-export const WORLD_LENGTH = 15120;
+export const WORLD_LENGTH = 30240;
 
 export interface BiomePalette {
   /** Dégradé du ciel, du haut vers l'horizon. */

@@ -44,8 +44,12 @@ export const MINI_GAME_BONUS = {
 /** Un coffre et un nouveau rang tous les dix pas, quelle que soit l'action. */
 export const STEPS_PER_LEVEL = 10;
 
-/** Quatre-vingts pas par traversée ; le voyage continue jusqu’à l’embauche. */
-export const JOURNEY_TARGET = 80;
+/**
+ * Deux cents pas par traversée, soit environ un mois de recherche active : le
+ * paysage change assez lentement pour que chaque contrée compte. Le voyage
+ * continue jusqu’à l’embauche.
+ */
+export const JOURNEY_TARGET = 200;
 
 /** Titres allitératifs des rangs, sans supposer que quelqu'un décroche un entretien. */
 export const LEVEL_TITLES = [
