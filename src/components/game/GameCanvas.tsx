@@ -26,6 +26,7 @@ import {
 import { Hero, VisibleHero } from "./Hero";
 import { AmbientLife, BackgroundGnomes } from "./AmbientLife";
 import { laneFor } from "./lanes";
+import { FxLayer } from "./FxLayer";
 import type { HeroMotion } from "./animation";
 import { frameComposition, parallaxX, renderResolution } from "./projection";
 import "./extendPixi";
@@ -33,8 +34,6 @@ import "./extendPixi";
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
 const REST_SURFACE = GROUND_Y;
 
-/** Le personnage suivi se tient à cette fraction de la largeur visible. */
-const FOLLOW_ANCHOR = 0.36;
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
@@ -77,16 +76,23 @@ function CameraRig({
     if (width <= 0 || height <= 0) return;
 
     const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, GROUND_Y);
-    const baseScale = composition.scale;
-    camera.scale = baseScale;
+    // The moment of an action leans in: zoom about the ground line, hero nearer the centre.
+    const lean = scene.reducedMotion ? 1 : Math.min(1, dt * 3.2);
+    scene.zoom += (scene.zoomTarget - scene.zoom) * lean;
+    scene.anchor += (scene.anchorTarget - scene.anchor) * lean;
+    if (Math.abs(scene.zoomTarget - scene.zoom) > 0.002) markMotion();
+    const groundScreenY = composition.screenOffsetY + GROUND_Y * composition.scale;
+    camera.scale = composition.scale * scene.zoom;
     camera.viewW = width / camera.scale;
     camera.viewH = height / camera.scale;
-    camera.screenOffsetY = composition.screenOffsetY;
+    camera.screenOffsetY = groundScreenY - GROUND_Y * camera.scale;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
     const focusEase = 1 - Math.exp(-scene.focusSpeed * dt);
-    scene.focus = scene.reducedMotion ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
+    // Walking heroes set a high focus speed: then the focus is the hero itself, and only
+    // the camera's own follow smooths the ride, so a long run to the tavern stays framed.
+    scene.focus = scene.reducedMotion || scene.focusSpeed >= 10 ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
     if (!freeCamera && !scene.dragging && scene.pan !== 0) {
@@ -96,7 +102,7 @@ function CameraRig({
 
     const wanted = (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
-      : scene.focus - camera.viewW * FOLLOW_ANCHOR) + scene.pan;
+      : scene.focus - camera.viewW * scene.anchor) + scene.pan;
     const maxX = Math.max(0, Math.max(WORLD_LENGTH, scene.targetFocus + camera.viewW) + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
@@ -111,7 +117,7 @@ function CameraRig({
       if (firstFrame) setCameraReady(true);
       ready.current = true;
     } else {
-      const horizontalFollow = scene.focusSpeed > 2 ? 12 : 4.5;
+      const horizontalFollow = scene.focusSpeed >= 10 ? 16 : scene.focusSpeed > 2 ? 12 : 4.5;
       camera.x += (clamped - camera.x) * Math.min(1, dt * horizontalFollow);
       camera.y += (wantedY - camera.y) * Math.min(1, dt * 3);
       if (Math.abs(clamped - camera.x) > 0.5 || Math.abs(wantedY - camera.y) > 0.5 || scene.dragging || scene.shake > 0) markMotion();
@@ -157,6 +163,10 @@ const ACTIVE_FPS = 60;
 const CALM_FPS = 30;
 
 function configureRenderer(app: PixiApplication) {
+  // Diagnostics only: `?debug` exposes the Pixi application to the console and the tests.
+  if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
+    (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
+  }
   // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
   scene.lowPower = app.renderer.type === RendererType.CANVAS;
   const active = scene.lowPower ? CALM_FPS : ACTIVE_FPS;
@@ -270,10 +280,11 @@ function WorldScene({
   devHero,
   pendingChestStep,
 }: SceneProps) {
-  // Les plus en avant dans la profondeur sont dessinés en dernier.
+  // Les plus en avant dans la profondeur sont dessinés en dernier, et toujours soi
+  // devant : dans une foule au même pas, on ne perd jamais son personnage.
   const ordered = players
     .map((player, index) => ({ player, lane: laneFor(index) }))
-    .sort((a, b) => a.lane.dy - b.lane.dy);
+    .sort((a, b) => (a.player.id === meId ? 1 : 0) - (b.player.id === meId ? 1 : 0) || a.lane.dy - b.lane.dy);
   return (
     <>
     <RenderLifecycle paused={paused} />
@@ -354,10 +365,13 @@ function WorldScene({
             <Animation
               key={effect.id}
               origin={effect.origin}
+              playerId={effect.playerId}
+              loud={effect.loud}
               onDone={() => onEffectDone(effect.id)}
             />
           );
         })}
+        <FxLayer />
       </Layer>
     </CameraRig>
     </>

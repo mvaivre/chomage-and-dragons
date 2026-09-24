@@ -53,10 +53,18 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
   // The next game can replace the declined one in the same commit, so the element itself is tracked.
   async function declineGames(page, count = 1) {
     for (let i = 0; i < count; i++) {
-      const dialog = await page.locator('dialog[open].mini-game').elementHandle();
-      await page.getByRole('button', { name: 'Fermer le mini-jeu' }).click();
-      await dialog.waitForElementState('hidden');
+      const invite = await page.locator('.mini-game-invite').elementHandle();
+      await page.locator('.mini-game-invite__pass').click();
+      await invite.waitForElementState('hidden');
     }
+  }
+  // Each game is offered by a card once the action's moment has played out.
+  const playGame = page => page.locator('.mini-game-invite__play').click();
+  const passGame = async page => { await page.locator('.mini-game-invite').waitFor(); await page.keyboard.press('Escape'); };
+  // Counters climb during the moment: wait for the value instead of reading it at once.
+  async function statsMatch(page, pattern, message) {
+    await page.waitForFunction(source => new RegExp(source).test(document.querySelector('.journey-card__stats')?.innerText ?? ''), pattern.source, { timeout: 8000 }).catch(() => {});
+    assert.match(await page.locator('.journey-card__stats').innerText(), pattern, message);
   }
 
   await t.test('ordinary actions move directly; setbacks keep earned loot; undo restores travel', async () => {
@@ -71,7 +79,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.locator('.action-button--entretien').click();
       await declineGames(page);
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /107/);
+      await statsMatch(page, /107/);
       assert.match(await page.locator('.power-menu__trigger').innerText(), /11/);
       await page.locator('.action-button--refus').click();
       await declineGames(page);
@@ -83,7 +91,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.getByRole('button', { name: 'Continuer l’aventure' }).click();
       await page.locator('.action-undo').click();
       await ready(page); // Requires the return journey to finish, including zero step delta.
-      assert.match(await page.locator('.journey-card__stats').innerText(), /107/);
+      await statsMatch(page, /107/);
       assert.equal(await page.locator('.reward-modal').count(), 0);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
@@ -107,11 +115,15 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.equal(overflow, false);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.locator('.company-camera').click();
+      // Park the pointer away from the map's buttons: their hover styling is not the world.
+      await page.mouse.move(160, 460);
       assert.equal(await page.locator('.hud-layer').isVisible(), false);
-      await page.waitForTimeout(300);
+      // The points of the undone interview may still be flying to their counter.
+      await page.waitForFunction(() => !document.querySelector('.moment-layer > *'));
+      await page.waitForTimeout(400);
       const before = await page.locator('canvas').screenshot();
       await page.waitForTimeout(600);
-      assert.deepEqual(await page.locator('canvas').screenshot(), before);
+      assert.ok(Buffer.compare(await page.locator('canvas').screenshot(), before) === 0, 'the world stays still behind the map');
       await page.keyboard.press('Escape');
       assert.equal(await page.getByRole('button', { name: 'Fermer la carte' }).count(), 0);
       await ready(page);
@@ -138,6 +150,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     try {
       await page.setViewportSize({width: 390, height: 844});
       await page.locator('.action-button--candidature').click();
+      await playGame(page);
       await page.getByRole('button', {name: 'Décoller !'}).waitFor();
       assert.equal(await page.locator('dialog[open]').count(), 1);
       assert.match(await page.locator('.mini-game__counter').innerText(), /0 \/ 10/);
@@ -146,26 +159,25 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.equal(await fly(page), 'delivered');
       assert.match(await page.locator('.mini-game__counter').innerText(), /10 \/ 10/);
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('×2 · +4 pas'));
-      assert.match(await page.locator('.journey-card__stats').innerText(), /10/);
+      await statsMatch(page, /10/);
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await page.getByRole('button', {name: 'Ranger le butin'}).click();
       // The chest's double bottom: a slot machine, declined here.
-      await page.locator('dialog[open].mini-game--slots').waitFor();
-      await page.keyboard.press('Escape');
+      await passGame(page);
       await ready(page);
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')));
       assert.equal(saved.events.at(-1).journeyBonus, 2);
       assert.deepEqual(saved.miniGames.map(a => [a.kind, a.result]), [['pigeon', 'won'], ['slots', 'skipped']]);
       await page.locator('.action-undo').click();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /6/);
+      await statsMatch(page, /6/);
       await page.locator('.action-button--candidature').click();
       await page.getByRole('button', {name: 'Ranger le butin'}).click();
       await ready(page);
       assert.equal(await page.locator('.mini-game').count(), 0, 'neither game is replayed');
       await page.reload();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /10/);
+      await statsMatch(page, /10/);
       assert.equal(await page.locator('.mini-game').count(), 0);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
@@ -176,12 +188,11 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     try {
       await page.setViewportSize({width: 320, height: 568});
       await page.locator('.action-button--candidature').click();
-      await page.locator('dialog[open].mini-game--pigeon').waitFor();
-      assert.equal(await page.locator('.mini-game').evaluate(n => n.scrollWidth > n.clientWidth), false);
-      await page.waitForFunction(() => document.querySelector('.mini-game__arena')?.dataset.status === 'ready');
+      await page.locator('.mini-game-invite').waitFor();
+      assert.equal(await page.locator('.mini-game-invite').evaluate(n => n.scrollWidth > n.clientWidth), false);
       await page.keyboard.press('Escape');
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /2/);
+      await statsMatch(page, /2/);
       assert.equal(await page.locator('.leaderboard-sheet').count(), 0, 'Escape stays inside the dialog');
       await page.locator('.action-undo').click();
       await ready(page);
@@ -189,24 +200,25 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await ready(page);
       assert.equal(await page.locator('.mini-game').count(), 0);
       await page.locator('.action-button--candidature').click(); // Second application: the keyword rain.
-      await page.locator('dialog[open].mini-game--keywords').waitFor();
-      await page.keyboard.press('Escape');
+      await passGame(page);
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /4/);
+      await statsMatch(page, /4/);
       await page.emulateMedia({reducedMotion: 'no-preference'});
       await page.locator('.action-button--candidature').click();
+      await playGame(page);
       await page.getByRole('button', {name: 'Décoller !'}).click(); // Then never flap again: three ground hits.
       await page.waitForFunction(() => document.querySelector('.mini-game__arena')?.dataset.status === 'crashed');
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('2 pas conservés'));
       assert.equal(await page.locator('.mini-game__feather[data-lost="true"]').count(), 3);
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /6/);
+      await statsMatch(page, /6/);
       await page.locator('.action-button--candidature').click();
+      await playGame(page);
       await page.locator('.mini-game--keywords').waitFor();
       await page.reload(); // Interrupt an unresolved game: preserve base, consume attempt.
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /8/);
+      await statsMatch(page, /8/);
       assert.equal(await page.locator('.mini-game').count(), 0);
       await page.locator('.action-undo').click();
       await ready(page);
@@ -235,6 +247,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     const { context, page, errors } = await fixture(0);
     try {
       await page.locator('.action-button--refus').click();
+      await playGame(page);
       await page.locator('.mini-game--stamp').waitFor();
       await page.getByRole('button', {name: 'Lancer le tapis'}).click();
       assert.equal(await page.evaluate(() => new Promise(resolve => {
@@ -251,9 +264,10 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('+4 pas'));
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /4/);
+      await statsMatch(page, /4/);
 
       await page.locator('.action-button--entretien').click();
+      await playGame(page);
       await page.locator('.mini-game--quiz').waitFor();
       await page.getByRole('button', {name: 'Commencer l’entretien'}).click();
       for (let i = 0; i < 5; i++) {
@@ -265,9 +279,10 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('-2 pas au lieu de -3'));
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /2/);
+      await statsMatch(page, /2/);
 
       await page.locator('.action-button--rejetApresEntretien').click();
+      await playGame(page);
       await page.locator('.mini-game--ghosting').waitFor();
       await page.getByRole('button', {name: 'Attendre (14 jours)'}).click();
       await page.waitForFunction(() => document.querySelector('.chat')?.dataset.status === 'message', null, {timeout: 20_000});
@@ -276,13 +291,14 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       // Ten steps: the first chest, then its double bottom.
       await page.getByRole('button', {name: 'Ranger le butin'}).click();
+      await playGame(page);
       await page.locator('.mini-game--slots').waitFor();
       await page.getByRole('button', {name: 'Lancer les rouleaux'}).click();
       assert.equal(await playByRule(page), 'won');
       await page.waitForFunction(() => document.querySelector('.mini-game__result')?.textContent?.includes('Jackpot'));
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
-      assert.match(await page.locator('.journey-card__stats').innerText(), /10/);
+      await statsMatch(page, /10/);
       assert.match(await page.locator('.power-menu__trigger').innerText(), /2/, 'the chest loot plus the jackpot');
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')));
       assert.deepEqual(saved.events.map(e => [e.kind, e.journeyBonus]), [['refus', 1], ['entretien', 1], ['rejetApresEntretien', 2]]);
@@ -316,10 +332,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await alice.getByRole('button', { name: 'Entrer dans la partie' }).click();
       await ready(alice);
       await alice.locator('.action-button--candidature').click();
-      await alice.locator('dialog[open].mini-game--pigeon').waitFor();
-      await alice.keyboard.press('Escape');
+      await passGame(alice);
       await ready(alice);
-      assert.match(await alice.locator('.journey-card__stats').innerText(), /2/);
+      await statsMatch(alice, /2/);
       // Two software-rendered scenes at once starve each other: Alice's page rests while Bob plays.
       await alice.goto('about:blank');
 
@@ -344,10 +359,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await bob.getByRole('button', { name: 'Entrer dans la partie' }).click();
       await ready(bob);
       await bob.locator('.action-button--refus').click();
-      await bob.locator('dialog[open].mini-game--stamp').waitFor();
-      await bob.keyboard.press('Escape');
+      await passGame(bob);
       await ready(bob);
-      assert.match(await bob.locator('.journey-card__stats').innerText(), /3/);
+      await statsMatch(bob, /3/);
 
       // A poll answered after an action must not undo it. Alice acts first through the API,
       // so Bob's next poll returns a full but older state; it is delayed while Bob acts.

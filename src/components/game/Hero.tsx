@@ -7,7 +7,7 @@ import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
 import { seededRandom } from "@/lib/rng";
 import { slopeAt, surfaceAt, worldXFor } from "@/lib/game/world";
-import { markMotion, scene } from "./scene";
+import { markMotion, scene, worldDelta } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
@@ -31,6 +31,11 @@ function hash(text: string): number {
 
 /** Hauteur du personnage, unités monde. Le repère local a les pieds en (0, 0). */
 export const HERO_HEIGHT = 164;
+/**
+ * Seconds a hero reacts on the spot before walking: the pose, the stun and the
+ * impact of the reaction all land before the journey starts.
+ */
+export const REACTION_HOLD = { candidature: 0.75, refus: 0.95, entretien: 0.85, rejetApresEntretien: 1.35, embauche: 1.1 } as const;
 const STRIDE_DURATION = 0.32;
 
 interface TravelLeg {
@@ -57,6 +62,12 @@ function drawPlate(g: Graphics, width: number, isMe: boolean) {
 }
 
 /** Flèche dorée : c'est toi. */
+function drawSelfGlow(g: Graphics) {
+  g.clear();
+  g.ellipse(0, 2, 58, 13).fill({ color: 0xffd76c, alpha: 0.28 });
+  g.ellipse(0, 2, 40, 9).fill({ color: 0xfff1bd, alpha: 0.35 });
+}
+
 function drawMarker(g: Graphics) {
   g.clear();
   g.poly([-9, -10, 9, -10, 0, 4], true).fill(GOLD_LIGHT);
@@ -102,6 +113,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const elapsed = useRef(0);
   const labelRoot = useRef<Container>(null);
   const selfMarker = useRef<Container>(null);
+  const selfGlow = useRef<Graphics>(null);
 
   const target = worldXFor(player.position) + lane.dx;
   const at = useRef(target);
@@ -141,33 +153,33 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       actionKind.current = "candidature";
       actionTimer.current = 1;
       actionDuration.current = 1;
-      movementDelay.current = 0.16;
+      movementDelay.current = REACTION_HOLD.candidature;
     }
     if (player.counts.entretien > before.entretien) {
       actionKind.current = "candidature";
       actionTimer.current = 1.15;
       actionDuration.current = 1.15;
-      movementDelay.current = 0.16;
+      movementDelay.current = REACTION_HOLD.entretien;
     }
     if (player.counts.refus > before.refus) {
       actionKind.current = "refus";
       actionTimer.current = 1.25;
       actionDuration.current = 1.25;
-      movementDelay.current = 0.16;
+      movementDelay.current = REACTION_HOLD.refus;
       stun.current = 1;
     }
     if (player.counts.rejetApresEntretien > before.rejetApresEntretien) {
       actionKind.current = "rejet";
       actionTimer.current = 1.75;
       actionDuration.current = 1.75;
-      movementDelay.current = 0.16;
+      movementDelay.current = REACTION_HOLD.rejetApresEntretien;
       stun.current = 1.25;
     }
     if (justHired) {
       actionKind.current = "embauche";
       actionTimer.current = 2;
       actionDuration.current = 2;
-      movementDelay.current = 0.16;
+      movementDelay.current = REACTION_HOLD.embauche;
     }
 
     seen.current = {
@@ -182,7 +194,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     // These are timed poses and travel interpolation, not a physics simulation.
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
-    const dt = ticker.elapsedMS / 1000;
+    const dt = worldDelta(ticker.elapsedMS);
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
@@ -277,8 +289,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     }
     if (selfMarker.current) {
       selfMarker.current.scale.set(1);
-      selfMarker.current.y = -HERO_HEIGHT - 16;
+      selfMarker.current.y = -HERO_HEIGHT - 16 - (scene.reducedMotion ? 0 : Math.abs(Math.sin(phase.current * 1.3)) * 6);
     }
+    if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
     const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
@@ -313,6 +326,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
 
   return (
     <pixiContainer ref={root} x={target} scale={lane.scale}>
+      {isMe ? <pixiGraphics ref={selfGlow} draw={drawSelfGlow} /> : null}
       <pixiGraphics draw={drawShadow} />
 
       <pixiContainer ref={rig}>

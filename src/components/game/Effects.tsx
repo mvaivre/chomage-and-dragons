@@ -1,129 +1,179 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import type { Sprite, Text } from "pixi.js";
+import { sfx } from "@/lib/client/sound";
 import { useSceneTick as useTick } from "./useSceneTick";
-import type { Container, Graphics, Sprite, Text } from "pixi.js";
-import { POINTS } from "@/lib/config";
-import { ACTION_ART, POWER_ART } from "@/lib/game/art";
-import { markMotion, scene } from "./scene";
 import { useDirectTexture } from "./textures";
 import { JourneyChest } from "./JourneyChest";
-import { GOLD_LIGHT, TAG_STYLE } from "./style";
+import { fx } from "./fx";
+import { CHOREOGRAPHIES, type ReactionKind } from "./reactions";
+import { markMotion, scene, worldDelta } from "./scene";
+import { displayFont, SHOUT_STYLE } from "./style";
 
-export type EffectKind = "pigeon" | "lightning" | "cocktail" | "legendary" | "trophy" | "chest" | "fireCurse" | "dragonDrop" | "paperStorm" | "frogCurse";
+export type EffectKind = ReactionKind | "chest";
 export interface Effect {
   id: string;
   kind: EffectKind;
+  /** Where it starts; a reaction then follows its player's hero. */
   origin: { x: number; y: number };
+  playerId?: string;
+  /** Only your own actions make noise. */
+  loud?: boolean;
 }
 export interface EffectProps {
   origin: { x: number; y: number };
+  playerId?: string;
+  loud?: boolean;
   onDone: () => void;
 }
 
-type IllustratedKind = Exclude<EffectKind, "chest">;
-interface Reaction {
-  art: string;
-  duration: number;
-  label?: string;
-  points?: number;
-  motion: "fly" | "stamp" | "rise" | "fall" | "hop";
-  celebrate?: boolean;
-}
-const REACTIONS: Record<IllustratedKind, Reaction> = {
-  pigeon: { art: ACTION_ART.candidature, duration: 2200, points: POINTS.candidature, motion: "fly" },
-  lightning: { art: ACTION_ART.refus, duration: 1600, points: POINTS.refus, motion: "stamp" },
-  cocktail: { art: ACTION_ART.entretien, duration: 2200, points: POINTS.entretien, motion: "rise", celebrate: true },
-  legendary: { art: ACTION_ART.rejetApresEntretien, duration: 2500, points: POINTS.rejetApresEntretien, motion: "stamp", label: "REJET LÉGENDAIRE" },
-  trophy: { art: ACTION_ART.embauche, duration: 3000, motion: "rise", label: "ENGAGÉ·E !", celebrate: true },
-  fireCurse: { art: POWER_ART.feuSacré, duration: 2300, motion: "rise", label: "FEU SACRÉ" },
-  dragonDrop: { art: POWER_ART.fienteDragon, duration: 2200, motion: "fall", label: "CADEAU DU DRAGON" },
-  paperStorm: { art: POWER_ART.paperasse, duration: 2300, motion: "fall", label: "PAPERASSE !" },
-  frogCurse: { art: POWER_ART.crapaud, duration: 2100, motion: "hop", label: "BISE LINKEDIN" },
-};
+/** Height of a hero, from the feet to the top of the head, world units. */
+const HERO_TOP = 164;
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
+const easeOutBack = (t: number) => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-const COLORS = [0xd94f4f, 0xe8b84b, 0x4fa3d1, 0x63b96a, 0xb96ac9];
-const drawConfetti = (g: Graphics) => {
-  g.clear();
-  for (let i = 0; i < 24; i++) {
-    const angle = i * 2.39996;
-    const distance = 18 + Math.sqrt(i / 24) * 125;
-    g.rect(Math.cos(angle) * distance, Math.sin(angle) * distance * 0.55, 3 + i % 3, 5)
-      .fill(COLORS[i % COLORS.length]);
-  }
-};
-
-/** Artwork stays cached; the ticker changes transforms, never redraws figurative art. */
-function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: IllustratedKind }) {
-  const reaction = REACTIONS[kind];
-  const texture = useDirectTexture(reaction.art);
+/**
+ * A reaction in three beats: the art enters, the impact fires its effects and
+ * sound, then the art leaves. It follows the hero it celebrates, so walking away
+ * never leaves it behind; the camera leans in meanwhile (see Game).
+ */
+function Reaction({ kind, origin, playerId, loud = false, onDone }: EffectProps & { kind: ReactionKind }) {
+  const choreography = CHOREOGRAPHIES[kind];
+  const texture = useDirectTexture(choreography.art);
   const art = useRef<Sprite>(null);
-  const caption = useRef<Text>(null);
-  const points = useRef<Text>(null);
-  const confetti = useRef<Container>(null);
+  const label = useRef<Text>(null);
   const elapsed = useRef(0);
+  const impacted = useRef(false);
   const finished = useRef(false);
-  useTick(ticker => {
+  const follow = useRef({ x: origin.x, y: origin.y });
+
+  useTick((ticker) => {
     markMotion();
-    elapsed.current += ticker.elapsedMS;
-    const ordinary = ["pigeon", "lightning", "cocktail", "legendary"].includes(kind);
-    // Actions happen only a few times a week: let each illustrated reaction read.
-    const duration = scene.reducedMotion ? 900 : reaction.duration;
-    const t = Math.min(1, elapsed.current / duration);
-    const fade = Math.min(1, t / 0.08, (1 - t) / 0.22);
-    const pop = scene.reducedMotion ? 1 : Math.min(1, t / 0.18);
-    const x = Math.max(scene.camera.x + 100, Math.min(scene.camera.x + scene.camera.viewW - 100, origin.x));
-    if (art.current && texture) {
-      const node = art.current;
-      const fly = !scene.reducedMotion && reaction.motion === "fly";
-      node.x = x + (ordinary ? 115 : 0) + (fly ? t * t * 320 : scene.reducedMotion ? 0 : Math.sin(t * 24) * (1 - t) * (reaction.motion === "stamp" ? 5 : 0));
-      node.y = origin.y - (ordinary ? 100 : 180) - (scene.reducedMotion ? 0 : fly ? t * 135 : reaction.motion === "fall" ? (1 - pop) * 160 : t * 25)
-        - (!scene.reducedMotion && reaction.motion === "hop" ? Math.abs(Math.sin(t * Math.PI * 3)) * 30 : 0);
-      node.scale.set(((ordinary ? 136 : 150) / texture.height) * (0.8 + pop * 0.2));
-      if (kind === "pigeon") node.scale.x *= -1; // The courier flies backwards, beak opposite its route.
-      node.rotation = scene.reducedMotion ? 0 : fly ? -0.15 + Math.sin(t * 28) * 0.08 : Math.sin(t * 12) * 0.035;
-      node.alpha = fade;
+    const dt = worldDelta(ticker.elapsedMS);
+    // The timeline never waits for the art: impact, sound and light stay in step with
+    // the hero and the HUD; the illustration simply joins when it has loaded.
+    elapsed.current += dt * 1000;
+    const t = elapsed.current;
+    const c = choreography;
+    const calm = scene.reducedMotion;
+
+    const live = playerId ? scene.heroes.get(playerId) : undefined;
+    const target = live ?? origin;
+    const catchUp = Math.min(1, dt * 12);
+    follow.current.x += (target.x - follow.current.x) * catchUp;
+    follow.current.y += (target.y - follow.current.y) * catchUp;
+    const head = follow.current.y - HERO_TOP;
+    // The world is only visible in a band between the top HUD and the action dock.
+    // Above the head when it fits, else beside the hero at head height; always inside.
+    const { camera } = scene;
+    const bandTop = camera.y + (scene.topInset + 10 - camera.screenOffsetY) / camera.scale;
+    const labelSpace = "label" in c && c.label ? 62 : 0;
+    const bandHeight = follow.current.y - bandTop;
+    const size = Math.max(90, Math.min(c.size, bandHeight - labelSpace - 24));
+    const above = head - bandTop >= size + c.lift + labelSpace;
+    const x0 = above ? follow.current.x : follow.current.x + 80 + size / 2;
+    const rest = above ? head - c.lift - size / 2 : Math.max(bandTop + labelSpace + size / 2, head + 20);
+
+    if (!impacted.current && t >= c.impact) {
+      impacted.current = true;
+      c.onImpact({ x: follow.current.x, feet: follow.current.y, head, viewLeft: camera.x, viewWidth: camera.viewW, viewTop: bandTop, loud });
     }
-    if (caption.current) {
-      caption.current.x = x;
-      caption.current.y = origin.y - 205 - (scene.reducedMotion ? 0 : t * 10);
-      caption.current.alpha = fade;
+
+    let x = x0;
+    let y = rest;
+    let scale = 1;
+    let alpha = 1;
+    let rotation = 0;
+    const enter = clamp(t / c.impact);
+    if (calm) alpha = Math.min(1, t / 200);
+    else if (c.enter === "pop") { scale = Math.max(0, easeOutBack(enter)); alpha = Math.min(1, enter * 3); }
+    else if (c.enter === "drop") { y = rest - (1 - enter * enter) * 320; alpha = Math.min(1, enter * 4); }
+    else if (c.enter === "rise") { y = rest + (1 - easeOutCubic(enter)) * 140; scale = 0.55 + 0.45 * easeOutBack(enter); alpha = enter; }
+    else { scale = 2.8 - 1.8 * enter * enter; y = rest - (1 - enter) * 160; alpha = Math.min(1, enter * 2.5); }
+
+    const since = (t - c.impact) / 1000;
+    if (since >= 0 && !calm) {
+      // A springy squash after the impact, then a gentle bob.
+      scale *= 1 + Math.exp(-since * 6) * Math.sin(since * 26) * 0.14;
+      y += Math.sin(since * 3.2) * 6;
     }
-    if (points.current) {
-      points.current.x = x - 75;
-      points.current.y = origin.y - 145 - (scene.reducedMotion ? 0 : t * 35);
-      points.current.alpha = fade;
+
+    const exitLength = c.exit === "fly" ? c.duration - c.impact - 700 : 650;
+    const leave = clamp((t - (c.duration - exitLength)) / exitLength);
+    if (calm) alpha *= 1 - leave;
+    else if (c.exit === "fly") {
+      const f = leave * leave;
+      x += f * 1100;
+      y -= f * 620;
+      rotation = -0.3 * leave;
+      scale *= 1 + Math.sin(t / 45) * 0.12 * Math.min(1, leave * 4);
+      alpha *= 1 - clamp((leave - 0.85) / 0.15);
+    } else if (c.exit === "fall") { y += leave * leave * 320; rotation = leave * 0.9; alpha *= 1 - leave; }
+    else if (c.exit === "fade") { alpha *= 1 - leave; scale *= 1 + leave * 0.12; }
+    else { y -= leave * 140; alpha *= 1 - leave; }
+
+    const node = art.current;
+    if (node && texture) {
+      node.position.set(x, y);
+      const base = size / texture.height;
+      // The courier flies backwards: beak opposite to its route.
+      node.scale.set(base * scale * (kind === "pigeon" ? -1 : 1), base * scale);
+      node.rotation = rotation;
+      node.alpha = alpha;
     }
-    if (confetti.current) {
-      confetti.current.visible = !scene.reducedMotion;
-      confetti.current.position.set(x, origin.y - 220 + t * t * 150);
-      confetti.current.scale.set(0.4 + t * 1.2);
-      confetti.current.rotation = t * 0.3;
-      confetti.current.alpha = fade * (1 - t);
+    const text = label.current;
+    if (text) {
+      const shown = clamp((t - c.impact) / 220);
+      text.position.set(x0, rest - size / 2 - 34 - (calm ? 0 : (1 - shown) * 24));
+      text.scale.set(calm ? 1 : 0.6 + 0.4 * easeOutBack(shown));
+      text.alpha = shown * (1 - clamp((t - (c.duration - 500)) / 500));
     }
-    if (t >= 1 && !finished.current) { finished.current = true; onDone(); }
+    if (t >= c.duration && !finished.current) { finished.current = true; onDone(); }
   });
+
   return <pixiContainer>
-    {reaction.celebrate ? <pixiContainer ref={confetti} alpha={0}><pixiGraphics draw={drawConfetti} /></pixiContainer> : null}
-    {texture ? <pixiSprite ref={art} texture={texture} anchor={0.5} x={origin.x} y={origin.y - 225} scale={240 / texture.height} alpha={0} /> : null}
-    {reaction.label ? <pixiText ref={caption} text={reaction.label} anchor={0.5} alpha={0} style={{ ...TAG_STYLE, fontSize: 22, fontWeight: "700", fill: GOLD_LIGHT, wordWrap: true, wordWrapWidth: 290, align: "center" }} /> : null}
-    {reaction.points !== undefined ? <pixiText ref={points} text={reaction.points > 0 ? `+${reaction.points}` : `${reaction.points}`} alpha={0} anchor={0.5} style={{ ...TAG_STYLE, fontSize: 32, fontWeight: "700", fill: reaction.points > 0 ? GOLD_LIGHT : 0xff9a8a }} /> : null}
+    {texture ? <pixiSprite ref={art} texture={texture} anchor={0.5} x={origin.x} y={origin.y - 300} alpha={0} /> : null}
+    {"label" in choreography && choreography.label ? <pixiText ref={label} text={choreography.label} anchor={0.5} alpha={0}
+      style={{ ...SHOUT_STYLE, fontFamily: displayFont(), fontSize: 50, fill: choreography.labelColor ?? 0xf5e8bd }} /> : null}
   </pixiContainer>;
 }
 
-function ChestEffect({ origin, onDone }: EffectProps) {
-  return <JourneyChest x={origin.x} y={origin.y} opening onDone={onDone} />;
+/** The chest on the road opens with light, sparks and its little melody. */
+function ChestEffect({ origin, loud = true, onDone }: EffectProps) {
+  useEffect(() => {
+    if (loud) sfx.chest();
+    const timer = window.setTimeout(() => {
+      fx.burst({ preset: "glow", x: origin.x, y: origin.y - 50, count: 1 });
+      fx.burst({ preset: "sparks", x: origin.x, y: origin.y - 50, count: 30 });
+      fx.burst({ preset: "stars", x: origin.x, y: origin.y - 70, count: 14 });
+    }, 520);
+    return () => window.clearTimeout(timer);
+  }, [origin.x, origin.y, loud]);
+  return <JourneyChest x={origin.x} y={origin.y} opening big onDone={onDone} />;
 }
 
-export const EFFECT_COMPONENTS: Record<EffectKind, (props: EffectProps) => React.ReactElement> = {
-  pigeon: props => <IllustratedEffect {...props} kind="pigeon" />,
-  lightning: props => <IllustratedEffect {...props} kind="lightning" />,
-  cocktail: props => <IllustratedEffect {...props} kind="cocktail" />,
-  legendary: props => <IllustratedEffect {...props} kind="legendary" />,
-  trophy: props => <IllustratedEffect {...props} kind="trophy" />,
-  chest: ChestEffect,
-  fireCurse: props => <IllustratedEffect {...props} kind="fireCurse" />,
-  dragonDrop: props => <IllustratedEffect {...props} kind="dragonDrop" />,
-  paperStorm: props => <IllustratedEffect {...props} kind="paperStorm" />,
-  frogCurse: props => <IllustratedEffect {...props} kind="frogCurse" />,
+const reaction = (kind: ReactionKind) => function ReactionEffect(props: EffectProps) {
+  return <Reaction {...props} kind={kind} />;
 };
+
+export const EFFECT_COMPONENTS: Record<EffectKind, (props: EffectProps) => React.ReactElement> = {
+  pigeon: reaction("pigeon"),
+  lightning: reaction("lightning"),
+  cocktail: reaction("cocktail"),
+  legendary: reaction("legendary"),
+  trophy: reaction("trophy"),
+  chest: ChestEffect,
+  fireCurse: reaction("fireCurse"),
+  dragonDrop: reaction("dragonDrop"),
+  paperStorm: reaction("paperStorm"),
+  frogCurse: reaction("frogCurse"),
+};
+
+/** How long each reaction lasts, for the moment's timeline in Game. */
+export function reactionTiming(kind: EffectKind): { impact: number; duration: number } {
+  if (kind === "chest") return { impact: 520, duration: 1300 };
+  const { impact, duration } = CHOREOGRAPHIES[kind];
+  return { impact, duration };
+}

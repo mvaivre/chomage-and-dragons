@@ -55,6 +55,56 @@ export interface Scene {
   lowPower: boolean;
   /** Live feet position of every hero, so effects can follow the one they celebrate. */
   heroes: Map<string, { x: number; y: number }>;
+  /** Camera zoom around the ground line; the moment of an action leans in. */
+  zoom: number;
+  zoomTarget: number;
+  /** Where the followed hero sits across the screen, as a fraction of its width. */
+  anchor: number;
+  anchorTarget: number;
+  /** World clock: frozen for a hit-stop, slowed for a legendary moment. */
+  freezeUntil: number;
+  slowUntil: number;
+  slowScale: number;
+}
+
+/** Leaning in on the hero, then back to the travelling frame. */
+export const FOLLOW_ANCHOR = 0.36;
+export function leanIn(zoom: number, anchor = 0.46): void {
+  scene.zoomTarget = zoom;
+  scene.anchorTarget = anchor;
+}
+export function leanOut(): void {
+  scene.zoomTarget = 1;
+  scene.anchorTarget = FOLLOW_ANCHOR;
+}
+
+/** A brief freeze at the instant of impact. */
+export function hitStop(ms: number): void {
+  if (scene.reducedMotion) return;
+  scene.freezeUntil = Math.max(scene.freezeUntil, performance.now() + ms);
+}
+
+export function slowMotion(scale: number, ms: number): void {
+  if (scene.reducedMotion) return;
+  scene.slowScale = scale;
+  scene.slowUntil = performance.now() + ms;
+}
+
+/** Seconds of world time in this frame, after hit-stop and slow motion. */
+export function worldDelta(elapsedMS: number): number {
+  const now = performance.now();
+  if (now < scene.freezeUntil) return 0;
+  const seconds = elapsedMS / 1000;
+  return now < scene.slowUntil ? seconds * scene.slowScale : seconds;
+}
+
+/** Screen pixels of a world point on the foreground plane, as the camera sees it now. */
+export function worldToScreen(x: number, y: number): { x: number; y: number } {
+  const { camera } = scene;
+  return {
+    x: (x - camera.x) * camera.scale,
+    y: (y - camera.y) * camera.scale + camera.screenOffsetY,
+  };
 }
 
 /** Called by anything that animates on purpose, from its ticker callback. */
@@ -84,6 +134,13 @@ export const scene: Scene = {
   lastMotion: 0,
   lowPower: false,
   heroes: new Map(),
+  zoom: 1,
+  zoomTarget: 1,
+  anchor: 0.36,
+  anchorTarget: 0.36,
+  freezeUntil: 0,
+  slowUntil: 0,
+  slowScale: 1,
 };
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
@@ -105,6 +162,12 @@ export function resetScene(): void {
   scene.dragging = false;
   scene.lastMotion = 0;
   scene.heroes.clear();
+  scene.zoom = 1;
+  scene.zoomTarget = 1;
+  scene.anchor = FOLLOW_ANCHOR;
+  scene.anchorTarget = FOLLOW_ANCHOR;
+  scene.freezeUntil = 0;
+  scene.slowUntil = 0;
 }
 
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */

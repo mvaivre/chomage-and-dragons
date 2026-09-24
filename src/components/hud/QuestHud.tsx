@@ -5,7 +5,16 @@ import { STEPS_PER_LEVEL } from "@/lib/config";
 import { characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
 import { biomeAt, worldXFor } from "@/lib/game/world";
+import { useEffect, useState } from "react";
+import { sfx } from "@/lib/client/sound";
 import { ChestArtwork, CrownArtwork } from "./Artwork";
+import { LANDED_EVENT, useTween } from "./Moment";
+
+/** When the counters climb during an action's moment; null updates at once. */
+export interface HudTiming {
+  steps: { delay: number; duration: number };
+  points: { delay: number; duration: number };
+}
 
 /**
  * La fiche du joueur, en haut à gauche.
@@ -17,10 +26,24 @@ interface QuestHudProps {
   me: PlayerView | null;
   /** Rang dans la saison, 1 pour le/la meneur·euse. */
   seasonRank: number | null;
+  timing?: HudTiming | null;
 }
 
-export function QuestHud({ me, seasonRank }: QuestHudProps) {
+export function QuestHud({ me, seasonRank, timing = null }: QuestHudProps) {
   if (!me) return null;
+  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} />;
+}
+
+function QuestCard({ me, seasonRank, timing }: { me: PlayerView; seasonRank: number | null; timing: HudTiming | null }) {
+  // Steps climb while the hero walks; points when the flying number lands.
+  const steps = useTween(me.journeySteps, timing?.steps ?? null, sfx.tick);
+  const points = useTween(me.score, timing?.points ?? null);
+  const [landed, setLanded] = useState(0);
+  useEffect(() => {
+    const onLanded = () => setLanded((count) => count + 1);
+    window.addEventListener(LANDED_EVENT, onLanded);
+    return () => window.removeEventListener(LANDED_EVENT, onLanded);
+  }, []);
 
   const character = characterById(me.characterId);
   const zone = biomeAt(worldXFor(me.position));
@@ -37,7 +60,7 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
             Niv. {me.level}
           </span>
         </div>
-        <span className="journey-card__mobile-score">{me.score} pts</span>
+        <span className="journey-card__mobile-score" data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown} pts</span>
         <p className="journey-card__class">{character.name}</p>
       </div>
 
@@ -50,11 +73,11 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
           <dl className="journey-card__stats">
             <div>
               <dt>Voyage</dt>
-              <dd>{me.journeySteps}</dd>
+              <dd data-bump={steps.bump % 2}>{steps.shown}</dd>
             </div>
             <div>
               <dt>Points</dt>
-              <dd>{me.score}</dd>
+              <dd data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown}</dd>
             </div>
             <div>
               <dt>Rang</dt>
@@ -77,7 +100,10 @@ export function QuestHud({ me, seasonRank }: QuestHudProps) {
             Prochain butin dans {remaining} pas
           </span>
           <div className="journey-card__meter">
-            <div style={{ width: `${(filled / STEPS_PER_LEVEL) * 100}%` }} />
+            <div style={{
+              width: `${(filled / STEPS_PER_LEVEL) * 100}%`,
+              transition: timing ? `width ${timing.steps.duration}ms linear ${timing.steps.delay}ms` : undefined,
+            }} />
           </div>
         </div>
       </div>

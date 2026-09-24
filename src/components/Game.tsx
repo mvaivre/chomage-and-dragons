@@ -30,6 +30,15 @@ import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
+import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
+import { moment, MomentOverlay } from "@/components/hud/Moment";
+import { SoundToggle } from "@/components/hud/SoundToggle";
+import type { HudTiming } from "@/components/hud/QuestHud";
+import { reactionTiming } from "@/components/game/Effects";
+import { REACTION_HOLD } from "@/components/game/Hero";
+import { fx } from "@/components/game/fx";
+import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
+import { sfx } from "@/lib/client/sound";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
@@ -90,8 +99,19 @@ interface MiniGameOffer {
   eventId: string;
   kind: MiniGameKind;
   action: ActionKind | "chest";
+  /** The player chose to play: the invitation card gives way to the game. */
+  accepted?: boolean;
   resolved?: boolean;
 }
+
+/** The light that fills the screen at the instant of impact. */
+const FLASH: Record<ActionKind, { color: string; strength: number }> = {
+  candidature: { color: "#fff6dc", strength: 0.22 },
+  refus: { color: "#d8ecff", strength: 0.75 },
+  entretien: { color: "#ffe7a8", strength: 0.35 },
+  rejetApresEntretien: { color: "#ffd76c", strength: 0.85 },
+  embauche: { color: "#fff1bd", strength: 0.6 },
+};
 
 interface Notice {
   title: string;
@@ -144,6 +164,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
+  /** An action's moment is playing: the camera leans in and the HUD steps back. */
+  const [momentActive, setMomentActive] = useState(false);
+  const [hudTiming, setHudTiming] = useState<HudTiming | null>(null);
+  const momentTimers = useRef<number[]>([]);
+  const pendingBanner = useRef<{ kicker: string; title: string } | null>(null);
+  const lastAction = useRef<ActionKind | null>(null);
+  const schedule = useCallback((ms: number, run: () => void) => { momentTimers.current.push(window.setTimeout(run, ms)); }, []);
   const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
@@ -191,8 +218,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const identity = me ? meId : null;
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
-  const miniGameVisible = Boolean(devMiniGame) || Boolean(miniGameOffer && (miniGameOffer.resolved ||
+  const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
     (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen)));
+  // First an invitation card, then the game itself once the player accepts.
+  const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
+  const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
@@ -215,6 +245,24 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleTravelDone = useCallback(
     (playerId: string) => {
       if (playerId !== identity) return;
+      // The hero has arrived: the camera steps back, the HUD returns, a new land is announced.
+      schedule(350, () => { leanOut(); setMomentActive(false); });
+      const banner = pendingBanner.current;
+      if (banner) { pendingBanner.current = null; moment.cue({ type: "banner", ...banner }); }
+      if (lastAction.current === "embauche") {
+        lastAction.current = null;
+        const hero = scene.heroes.get(playerId);
+        if (hero) {
+          [[-180, -250, 0, 0xffd76c], [160, -280, 0.35, 0x9fd4ff], [0, -320, 0.7, 0xff9a8a], [-60, -230, 1.05, 0xb8e08a]].forEach(([dx, dy, delay, color]) => {
+            fx.burst({ preset: "firework", x: hero.x + dx, y: hero.y + dy, count: 50, colors: [color, 0xffffff], delay });
+            schedule(delay * 1000, sfx.firework);
+          });
+          fx.burst({ preset: "confetti", x: hero.x, y: hero.y - 180, count: 90 });
+        }
+        // Let the fireworks play before the reward card covers the world.
+        schedule(2300, () => { setAwaitingTravel(false); actionInFlight.current = false; });
+        return;
+      }
       const chestEffect = pendingChestEffect.current;
       if (chestEffect) {
         pendingChestEffect.current = null;
@@ -225,13 +273,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setAwaitingTravel(false);
       actionInFlight.current = false;
     },
-    [identity],
+    [identity, schedule],
   );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      // The native mini-game dialog owns Escape, Space, Enter and focus.
-      if (miniGameVisible) return;
+      // The native mini-game dialog owns Escape, Space, Enter and focus; the invitation owns Escape.
+      if (miniGameVisible || inviteVisible) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -265,7 +313,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, miniGameVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible]);
 
   useEffect(
     () => () => {
@@ -305,6 +353,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
           id: cast.id,
           kind: POWER_EFFECT_FOR[cast.kind],
           origin,
+          playerId: me.id,
+          loud: true,
         })),
       ]);
       for (const cast of pranks) markCastSeen(cast.id);
@@ -359,7 +409,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       const origin = heroOrigin(me, meIndex);
 
       const queued: Effect[] = [
-        { id: event.id, kind: EFFECT_FOR[kind], origin },
+        { id: event.id, kind: EFFECT_FOR[kind], origin, playerId: me.id, loud: true },
       ];
       pendingChestEffect.current = null;
 
@@ -400,11 +450,33 @@ export function Game({ slug = null }: { slug?: string | null }) {
       }
 
       setEffects(previous => [...previous, ...queued]);
+
+      // The moment: lean in, impact, points flying to their counter, then the walk.
+      sfx.press();
+      const legendary = kind === "rejetApresEntretien" || kind === "embauche";
+      const { impact, duration } = reactionTiming(EFFECT_FOR[kind]);
+      const hold = REACTION_HOLD[kind] * 1000;
+      const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
+      leanIn(legendary ? 1.14 : 1.08, 0.42);
+      setMomentActive(true);
+      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 }, points: { delay: impact + 1500, duration: 300 } });
+      if (legendary) moment.cue({ type: "letterbox", ms: duration });
+      schedule(impact, () => {
+        moment.cue({ type: "flash", ...FLASH[kind] });
+        const hero = scene.heroes.get(me.id) ?? origin;
+        // Points rise from the hero's shoulder, inside the visible band, then fly to their counter.
+        if (POINTS[kind] !== 0) moment.cue({ type: "points", value: POINTS[kind], from: worldToScreen(hero.x - 70, hero.y - 130) });
+      });
+      pendingBanner.current = beforeZone.id !== afterZone.id
+        ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
+        : null;
+      lastAction.current = kind;
+
       const steps = stepsForEvent(event);
       setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer],
+    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, schedule],
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult) => {
@@ -440,6 +512,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
     }
   }, []);
 
+  // Passing on the invitation records a skip, exactly like closing the game.
+  const handlePassMiniGame = useCallback(() => {
+    handleMiniGameResult("skipped");
+    handleMiniGameDone();
+  }, [handleMiniGameResult, handleMiniGameDone]);
+
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
@@ -461,6 +539,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
           id: `${cast.id}-preview`,
           kind: POWER_EFFECT_FOR[power.kind],
           origin: heroOrigin(target, targetIndex),
+          playerId: target.id,
+          loud: true,
         },
       ]);
       setNotice({
@@ -509,6 +589,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }, []);
 
   const resetPresentation = useCallback(() => {
+    momentTimers.current.forEach((timer) => window.clearTimeout(timer));
+    momentTimers.current = [];
+    leanOut();
+    setMomentActive(false);
+    setHudTiming(null);
+    pendingBanner.current = null;
     actionInFlight.current = false;
     pendingChestEffect.current = null;
     chestAnimationId.current = null;
@@ -577,7 +663,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-ink-deep">
+    <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
         paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
@@ -596,6 +682,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       <div className="vignette absolute inset-0 z-[3]" />
       <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
+      <MomentOverlay />
 
       {DEV_BUILD && !overview ? (
         <aside className="dev-explorer" data-open={devExplore}>
@@ -669,7 +756,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={overview} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud me={me} seasonRank={seasonRank} />
+              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} />
               <div className="hud-controls">
                 <PowerDeck
                   me={me}
@@ -677,6 +764,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   attentionToken={powerAttention}
                   onCast={handleCast}
                 />
+                <SoundToggle />
                 <button
                   type="button"
                   className="company-camera pointer-events-auto"
@@ -753,6 +841,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
       ) : null}
 
       {devMiniGame ? <MiniGame key={devMiniGame.seed} kind={devMiniGame.kind} seedId={devMiniGame.seed} practice onResolve={() => {}} onDone={() => setDevMiniGame(null)} /> :
+        inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action}
+          onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
+          onPass={handlePassMiniGame} /> :
         miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone} /> : null}
 
       {shotInbox ? (

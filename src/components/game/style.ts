@@ -43,3 +43,16 @@ export const SHOUT_STYLE: TextStyleOptions = {
   letterSpacing: 4,
   stroke: { color: 0x2a0d0d, width: 7, join: "round" },
 };
+
+let display: string | null = null;
+/**
+ * The title font as the page actually named it: next/font gives families
+ * generated names, which a canvas can only reach through the CSS variable.
+ */
+export function displayFont(): string {
+  if (display) return display;
+  if (typeof document === "undefined") return SERIF;
+  const family = getComputedStyle(document.documentElement).getPropertyValue("--font-pirata").trim();
+  display = family ? `${family}, Georgia, serif` : SERIF;
+  return display;
+}

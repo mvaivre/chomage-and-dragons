@@ -14,8 +14,8 @@ const drawGlint = (g: Graphics) => {
 };
 
 /** Closed and opening chests share the same size, baseline and contact shadow. */
-export function JourneyChest({ x, y, opened = false, opening = false, onDone }: {
-  x: number; y: number; opened?: boolean; opening?: boolean; onDone?: () => void;
+export function JourneyChest({ x, y, opened = false, opening = false, big = false, onDone }: {
+  x: number; y: number; opened?: boolean; opening?: boolean; big?: boolean; onDone?: () => void;
 }) {
   const texture = useDirectTexture("/art/world-v3/runtime/chest-journey.webp");
   const frames = texture ? atlasFrames(texture, 5, 1) : null;
@@ -31,6 +31,9 @@ export function JourneyChest({ x, y, opened = false, opening = false, onDone }: 
     if (sprite.current && frames) {
       sprite.current.texture = frames[t < 0.2 ? 0 : t < 0.4 ? 1 : t < 0.84 ? 2 : 4];
       sprite.current.x = !scene.reducedMotion && t < 0.2 ? Math.sin(t * 120) * 2 : 0;
+      // An opening chest grows for its moment, then settles back on the road.
+      const pop = big && !scene.reducedMotion ? Math.sin(Math.min(1, t) * Math.PI) * 0.22 : 0;
+      sprite.current.scale.set(0.34 * (1 + pop));
     }
     if (glint.current) glint.current.alpha = Math.sin(Math.min(1, t) * Math.PI) * 0.7;
     if (t >= 1 && !finished.current) { finished.current = true; onDone?.(); }
