@@ -428,4 +428,55 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.deepEqual(errors, []);
     } finally { await host.close(); await guest.close(); }
   });
+
+  await t.test('friends see each other live, cheer from the chronicle, and get a recap after an absence', async () => {
+    const host = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const guest = await browser.newContext();
+    const errors = [];
+    try {
+      const alice = await host.newPage();
+      alice.setDefaultTimeout(30_000);
+      alice.on('pageerror', error => errors.push(error.message));
+      await alice.goto(url);
+      await alice.getByLabel('Nom du groupe').fill('Les Social');
+      await alice.getByLabel('Mot de passe du groupe').fill('dragon');
+      await alice.getByLabel('Encore une fois').fill('dragon');
+      await alice.getByRole('button', { name: 'Créer et entrer' }).click();
+      await alice.waitForURL(/\/g\//);
+      const slug = new URL(alice.url()).pathname.split('/')[2];
+      await alice.getByPlaceholder('Mika').fill('Alice');
+      await alice.getByPlaceholder('1234').fill('2468');
+      await alice.getByRole('button', { name: 'Entrer dans la partie' }).click();
+      await ready(alice);
+      // Bob plays through the API from another device.
+      const bob = await guest.newPage();
+      await bob.goto(`${url}/g/${slug}/rejoindre`);
+      assert.equal((await bob.request.post(`${url}/api/groups/${slug}/join`, { data: { password: 'dragon' } })).status(), 200);
+      const joined = await (await bob.request.post(`${url}/api/groups/${slug}/actions`, { data: { action: { type: 'addPlayer', name: 'Bob', characterId: 'paladin' }, pin: '1357' } })).json();
+      const act = kind => bob.request.post(`${url}/api/groups/${slug}/actions`, { headers: { 'x-player-token': joined.deviceToken }, data: { action: { type: 'addEvent', playerId: joined.result.player.id, kind } } }).then(r => r.json());
+      await alice.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await alice.waitForFunction(() => document.body.innerText.includes('Bob'));
+      const live = await act('refus');
+      await alice.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await alice.locator('.news-toast', { hasText: 'Bob' }).waitFor({ timeout: 15_000 });
+      // A cheer from the chronicle reaches the server; one per friend and per action.
+      await alice.locator('.chronicle-button').click();
+      await alice.locator('.chronicle__item').first().locator('.chronicle__react button', { hasText: '🍺' }).click();
+      await alice.waitForFunction(() => document.querySelector('.chronicle__count')?.textContent?.includes('🍺'));
+      await alice.waitForTimeout(800);
+      const state = await (await bob.request.get(`${url}/api/groups/${slug}`)).json();
+      assert.deepEqual(state.state.cheers.map(c => [c.emoji, c.eventId]), [['🍺', live.result.event.id]]);
+      await alice.locator('.chronicle__close').click();
+      // Away, then back: the recap names what happened.
+      await alice.goto('about:blank');
+      await act('candidature');
+      await act('rejetApresEntretien');
+      await alice.goto(`${url}/g/${slug}`);
+      await alice.locator('.recap').waitFor({ timeout: 20_000 });
+      assert.match(await alice.locator('.recap h2').innerText(), /2 actions/);
+      await alice.locator('.recap__close').click();
+      await ready(alice);
+      assert.deepEqual(errors, []);
+    } finally { await host.close(); await guest.close(); }
+  });
 });

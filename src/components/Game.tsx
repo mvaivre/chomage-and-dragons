@@ -34,6 +34,10 @@ import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
+import { Chronicle } from "@/components/hud/Chronicle";
+import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
+import { loadSeen, saveSeen } from "@/lib/client/seen";
+import type { CheerEmoji, Cheer, GameEvent } from "@/lib/data/types";
 import type { HudTiming } from "@/components/hud/QuestHud";
 import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
@@ -148,6 +152,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
     players,
     events,
     casts,
+    cheers,
+    cheer,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -212,6 +218,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
     revision: number;
   } | null>(null);
   const shownCasts = useRef(new Set<string>());
+  // The group's life: a chronicle, live news of friends, and a recap after an absence.
+  const [chronicleOpen, setChronicleOpen] = useState(false);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
+  const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
   const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
@@ -393,6 +404,67 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     return () => window.clearTimeout(timeout);
   }, [casts, me, meIndex, players, markCastSeen]);
+
+  // News of the others. The first look after arriving is compared with what this
+  // device saw last time: the difference is a recap. Afterwards, anything new is live.
+  useEffect(() => {
+    if (!me || !loaded) return;
+    const others = events.filter((e) => e.playerId !== me.id);
+    const received = cheers.filter((c) => events.some((e) => e.id === c.eventId && e.playerId === me.id) && c.playerId !== me.id);
+    if (!seenRef.current) {
+      const stored = loadSeen(`${scope}:${me.id}`);
+      const seenEvents = new Set(stored?.events ?? others.map((e) => e.id));
+      const seenCheers = new Set(stored?.cheers ?? received.map((c) => c.id));
+      seenRef.current = { events: seenEvents, cheers: seenCheers };
+      const missedEvents = others.filter((e) => !seenEvents.has(e.id));
+      const missedCheers = received.filter((c) => !seenCheers.has(c.id));
+      // Shown after this commit: the effect only reads what this device remembers.
+      if (stored && (missedEvents.length || missedCheers.length)) queueMicrotask(() => setRecap({ events: missedEvents, cheers: missedCheers }));
+    } else {
+      const fresh: NewsItem[] = [
+        ...others.filter((e) => !seenRef.current!.events.has(e.id)).map((event) => ({ id: event.id, kind: "event" as const, event })),
+        ...received.filter((c) => !seenRef.current!.cheers.has(c.id)).map((c) => ({ id: c.id, kind: "cheer" as const, cheer: c })),
+      ];
+      if (fresh.length) {
+        queueMicrotask(() => setNews((items) => [...items, ...fresh].slice(-3)));
+        const liveEvent = fresh.find((item) => item.kind === "event")?.event;
+        if (liveEvent) {
+          // A friend's action plays in the world too, quietly, on their own hero.
+          const index = players.findIndex((p) => p.id === liveEvent.playerId);
+          const player = players[index];
+          if (player) {
+            const variant = variantFor(liveEvent.id, liveEvent.kind);
+            const kind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[liveEvent.kind]) as EffectKind;
+            const effect = { id: `news-${liveEvent.id}`, kind, origin: heroOrigin(player, index), playerId: player.id, loud: false };
+            queueMicrotask(() => {
+              setEffects((previous) => [...previous, effect]);
+              // A glance at the friend who acted, unless you are busy with your own moment.
+              if (actionInFlight.current) return;
+              if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
+              setEffectFocusId(player.id);
+              focusTimeout.current = window.setTimeout(() => { setEffectFocusId(null); focusTimeout.current = null; }, 3400);
+            });
+          }
+          sfx.chime();
+        } else sfx.coin();
+      }
+    }
+    for (const e of others) seenRef.current.events.add(e.id);
+    for (const c of received) seenRef.current.cheers.add(c.id);
+    saveSeen(`${scope}:${me.id}`, { events: [...seenRef.current.events], cheers: [...seenRef.current.cheers], at: new Date().toISOString() });
+  }, [events, cheers, me, loaded, scope, players]);
+
+  useEffect(() => {
+    if (!news.length) return;
+    const timer = window.setTimeout(() => setNews((items) => items.slice(1)), 5200);
+    return () => window.clearTimeout(timer);
+  }, [news]);
+
+  const handleCheer = useCallback((eventId: string, emoji: CheerEmoji) => {
+    if (!me) return;
+    cheer(me.id, eventId, emoji);
+    sfx.press();
+  }, [me, cheer]);
 
   const seasonRank = useMemo(() => {
     const index = seasonStandings.findIndex((s) => s.playerId === identity);
@@ -629,6 +701,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }, []);
 
   const enter = useCallback((playerId: string) => {
+    seenRef.current = null;
     resetPresentation();
     shownCasts.current.clear();
     setShotInbox(null);
@@ -686,7 +759,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={overview || registerOpen || chronicleOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -786,6 +859,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
+                <button type="button" className="chronicle-button pointer-events-auto" onClick={() => setChronicleOpen(true)} aria-label="Ouvrir la chronique de la compagnie">
+                  <span aria-hidden>📜</span>
+                  <span>Chronique</span>
+                </button>
                 <button
                   type="button"
                   className="company-camera pointer-events-auto"
@@ -833,6 +910,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
           ) : null}
         </div>
       ) : null}
+
+      {news.length && !chronicleOpen ? <div className="news-stack" aria-live="polite">
+        {news.map((item) => <NewsToast key={item.id} item={item} players={players} onOpen={() => { setNews([]); setChronicleOpen(true); }} />)}
+      </div> : null}
+      {chronicleOpen ? <Chronicle events={events} players={players} cheers={cheers} meId={identity} onCheer={handleCheer} onClose={() => setChronicleOpen(false)} /> : null}
+      {recap && me && !chronicleOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
+        onClose={() => setRecap(null)} onOpen={() => { setRecap(null); setChronicleOpen(true); }} /> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay

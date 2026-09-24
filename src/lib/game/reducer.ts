@@ -1,4 +1,6 @@
-import type { ActionKind, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import type { ActionKind, Cheer, CheerEmoji, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
+
+export const CHEER_EMOJIS: readonly CheerEmoji[] = ["👏", "🍺", "🔥", "😂", "🫂"];
 import { CHARACTERS } from "@/lib/game/characters";
 import { reserveChestGame, reserveMiniGame, resolveMiniGame } from "@/lib/game/mini-games";
 import { journeyProgress } from "@/lib/game/scoring";
@@ -19,7 +21,8 @@ export type GameAction =
   | { type: "settleShots"; castIds: string[] }
   | { type: "undoLast"; playerId: string; kind?: ActionKind }
   | { type: "addPlayer"; name: string; characterId: string }
-  | { type: "removePlayer"; playerId: string };
+  | { type: "removePlayer"; playerId: string }
+  | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji };
 
 export interface ActionContext {
   /** A fresh identifier for anything the action creates. */
@@ -42,6 +45,7 @@ export interface ActionResults {
   undoLast: { removed: GameEvent | null; rejected?: string };
   addPlayer: { player: Player | null; rejected?: string };
   removePlayer: { rejected?: string };
+  cheer: { cheer: Cheer | null; rejected?: string };
 }
 
 export type ActionResult<A extends GameAction> = ActionResults[A["type"]];
@@ -116,9 +120,10 @@ function undoLast(state: GameState, action: Extract<GameAction, { type: "undoLas
   if (index === -1) return { state, result: { removed: null, rejected: "nothing to undo" } };
   const events = [...state.events];
   const [removed] = events.splice(index, 1);
+  const cheers = state.cheers?.filter((c) => c.eventId !== removed.id);
   const stillHired = events.some((e) => e.playerId === action.playerId && e.kind === "embauche");
   return {
-    state: { ...state, events, players: state.players.map((p) => (p.id === action.playerId && !stillHired ? { ...p, hiredAt: undefined } : p)) },
+    state: { ...state, events, ...(cheers ? { cheers } : {}), players: state.players.map((p) => (p.id === action.playerId && !stillHired ? { ...p, hiredAt: undefined } : p)) },
     result: { removed },
   };
 }
@@ -134,6 +139,24 @@ function addPlayer(state: GameState, action: Extract<GameAction, { type: "addPla
   return { state: { ...state, players: [...state.players, player] }, result: { player } };
 }
 
+/**
+ * One cheer per friend and per action; cheering again changes the emoji, and
+ * the same emoji twice takes it back. Nobody cheers their own action.
+ */
+function cheer(state: GameState, action: Extract<GameAction, { type: "cheer" }>, context: ActionContext) {
+  const event = state.events.find((e) => e.id === action.eventId);
+  if (!event) return { state, result: { cheer: null, rejected: "unknown event" } };
+  if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { cheer: null, rejected: "unknown player" } };
+  if (event.playerId === action.playerId) return { state, result: { cheer: null, rejected: "own action" } };
+  if (!CHEER_EMOJIS.includes(action.emoji)) return { state, result: { cheer: null, rejected: "unknown emoji" } };
+  const cheers = state.cheers ?? [];
+  const previous = cheers.find((c) => c.eventId === action.eventId && c.playerId === action.playerId);
+  const others = cheers.filter((c) => c !== previous);
+  if (previous?.emoji === action.emoji) return { state: { ...state, cheers: others }, result: { cheer: null } };
+  const created: Cheer = { id: context.id(), eventId: action.eventId, playerId: action.playerId, emoji: action.emoji, at: context.now() };
+  return { state: { ...state, cheers: [...others, created] }, result: { cheer: created } };
+}
+
 /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
 function removePlayer(state: GameState, action: Extract<GameAction, { type: "removePlayer" }>) {
   if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { rejected: "unknown player" } };
@@ -144,6 +167,7 @@ function removePlayer(state: GameState, action: Extract<GameAction, { type: "rem
       events: state.events.filter((e) => e.playerId !== action.playerId),
       casts: state.casts.filter((cast) => cast.playerId !== action.playerId && cast.targetPlayerId !== action.playerId),
       miniGames: state.miniGames?.filter((attempt) => attempt.playerId !== action.playerId),
+      cheers: state.cheers?.filter((c) => c.playerId !== action.playerId && state.events.some((e) => e.id === c.eventId && e.playerId !== action.playerId)),
     },
     result: {},
   };
@@ -159,5 +183,6 @@ export function applyAction<A extends GameAction>(state: GameState, action: A, c
     case "undoLast": return undoLast(state, action) as { state: GameState; result: ActionResult<A> };
     case "addPlayer": return addPlayer(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "removePlayer": return removePlayer(state, action) as { state: GameState; result: ActionResult<A> };
+    case "cheer": return cheer(state, action, context) as { state: GameState; result: ActionResult<A> };
   }
 }

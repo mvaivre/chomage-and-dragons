@@ -88,10 +88,21 @@ export interface PowerCast {
   settledAt?: string;
 }
 
+/** A friend's cheer on an action: one emoji per friend and per action. */
+export type CheerEmoji = "👏" | "🍺" | "🔥" | "😂" | "🫂";
+export interface Cheer {
+  id: string;
+  eventId: string;
+  playerId: string;
+  emoji: CheerEmoji;
+  at: string;
+}
+
 export interface GameState {
   players: Player[];
   events: GameEvent[];
   casts: PowerCast[];
+  cheers?: Cheer[];
   miniGames?: MiniGameAttempt[];
   /** Legacy, converted into miniGames when a save is loaded. */
   pigeonFlights?: PigeonFlight[];

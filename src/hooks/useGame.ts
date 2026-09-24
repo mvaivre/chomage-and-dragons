@@ -6,6 +6,7 @@ import { RemoteError, type RemoteStore } from "@/lib/data/remote-store";
 import type {
   ActionKind,
   GameState,
+  CheerEmoji,
   MiniGameResult,
   PowerKind,
 } from "@/lib/data/types";
@@ -191,6 +192,11 @@ export function useGame(mode: GameMode = LOCAL) {
     return applied.result.player ? context.id() : null;
   }, [state, commit]);
 
+  /** A friend's cheer on someone else's action; the same emoji twice takes it back. */
+  const cheer = useCallback((playerId: string, eventId: string, emoji: CheerEmoji) => {
+    commit(state, { type: "cheer", playerId, eventId, emoji }, freshContext());
+  }, [state, commit]);
+
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
     commit(state, { type: "removePlayer", playerId }, freshContext());
@@ -298,6 +304,9 @@ export function useGame(mode: GameMode = LOCAL) {
     players,
     events: state.events,
     casts: state.casts,
+    cheers: state.cheers ?? [],
+    miniGames: state.miniGames ?? [],
+    cheer,
     monthKeyNow,
     seasonStandings,
     monthStandings,

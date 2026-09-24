@@ -118,3 +118,22 @@ test('the reducer is deterministic: the same action on the same state gives the 
   assert.notEqual(a.state, state, 'a new state object');
   assert.deepEqual(state, withPlayers(), 'the input is never mutated');
 });
+
+test('friends cheer an action once each, can change or take back their emoji, never their own', () => {
+  let state = withPlayers();
+  state = log(state, 'mika', 'refus', 'r1').state;
+  const own = applyAction(state, { type: 'cheer', playerId: 'mika', eventId: 'r1', emoji: '👏' }, fixedContext('c0', T0));
+  assert.equal(own.result.rejected, 'own action');
+  const first = applyAction(state, { type: 'cheer', playerId: 'lou', eventId: 'r1', emoji: '👏' }, fixedContext('c1', T0));
+  assert.deepEqual(first.state.cheers.map(c => [c.playerId, c.emoji]), [['lou', '👏']]);
+  const changed = applyAction(first.state, { type: 'cheer', playerId: 'lou', eventId: 'r1', emoji: '🍺' }, fixedContext('c2', T0));
+  assert.deepEqual(changed.state.cheers.map(c => [c.id, c.emoji]), [['c2', '🍺']], 'one cheer per friend and per action');
+  const back = applyAction(changed.state, { type: 'cheer', playerId: 'lou', eventId: 'r1', emoji: '🍺' }, fixedContext('c3', T0));
+  assert.deepEqual(back.state.cheers, [], 'the same emoji twice takes it back');
+  assert.equal(applyAction(state, { type: 'cheer', playerId: 'lou', eventId: 'nope', emoji: '👏' }, fixedContext('x', T0)).result.rejected, 'unknown event');
+  assert.equal(applyAction(state, { type: 'cheer', playerId: 'lou', eventId: 'r1', emoji: '💩' }, fixedContext('x', T0)).result.rejected, 'unknown emoji');
+  const undone = applyAction(changed.state, { type: 'undoLast', playerId: 'mika' }, fixedContext('x', T0));
+  assert.deepEqual(undone.state.cheers, [], 'undoing an action removes its cheers');
+  const gone = applyAction(changed.state, { type: 'removePlayer', playerId: 'lou' }, fixedContext('x', T0));
+  assert.deepEqual(gone.state.cheers, [], 'a leaving friend takes their cheers');
+});

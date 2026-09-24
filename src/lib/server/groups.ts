@@ -105,7 +105,8 @@ export function authorize(state: GameState, action: GameAction, tokenPlayer: str
     case "addEvent":
     case "undoLast":
     case "castPower":
-    case "removePlayer": return own(action.playerId);
+    case "removePlayer":
+    case "cheer": return own(action.playerId);
     case "finishMiniGame": {
       const attempt = state.miniGames?.find((a) => a.id === action.attemptId);
       if (!attempt) throw new GroupError(404, "Tentative inconnue.");
@@ -134,7 +135,7 @@ export function validateContext(context: unknown, now = new Date()): ActionConte
   return { id: () => id, now: () => at };
 }
 
-const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer"]);
+const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer"]);
 
 export function validateAction(action: unknown): GameAction {
   const given = action as { type?: unknown } | null;
