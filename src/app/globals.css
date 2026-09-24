@@ -3026,7 +3026,12 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 /* A storm darkens the world for its duration. */
 .moment-shade { position: absolute; inset: 0; background: var(--shade); opacity: 0; animation: moment-shade var(--hold) ease-in-out forwards; }
 @keyframes moment-shade { 0% { opacity: 0; } 15% { opacity: var(--opacity); } 80% { opacity: var(--opacity); } 100% { opacity: 0; } }
-@media (max-width: 600px) { .moment-badge { top: 19%; } }
+/* On a phone the badge is one line, tucked under the top HUD, clear of the title. */
+@media (max-width: 600px) {
+  .moment-badge { top: 18%; grid-auto-flow: column; align-items: baseline; gap: 8px; padding: 3px 12px 4px; border-width: 2px; box-shadow: 3px 3px 0 #151513; }
+  .moment-badge small { font-size: 0.62rem; letter-spacing: 0.12em; white-space: nowrap; }
+  .moment-badge strong { font-size: 1.05rem; white-space: nowrap; }
+}
 
 /* ------------------------------------------------------------------ lumière du jour */
 .daylight-veil { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
@@ -3049,7 +3054,7 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
   background: rgb(10 8 6 / 0.72); backdrop-filter: blur(2px);
 }
 .chronicle, .recap {
-  width: min(96vw, 40rem); max-height: min(86vh, 48rem); overflow: auto; padding: 18px 20px;
+  box-sizing: border-box; width: min(100%, 40rem); max-height: min(86vh, 48rem); overflow: auto; padding: 18px 20px;
   border: 3px solid var(--janky-ink); background: var(--janky-charcoal); color: var(--janky-paper-light);
   box-shadow: 8px 8px 0 #151513; animation: panel-in 320ms cubic-bezier(0.2, 1.2, 0.4, 1);
 }
@@ -3151,3 +3156,9 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 .album__bests span { padding: 2px 8px; background: #232524; color: #d8cda9; }
 @media (prefers-reduced-motion: reduce) { .moment-tale { animation-duration: 4000ms; } }
 .moment-top { position: absolute; inset: 0; z-index: 26; pointer-events: none; }
+@media (max-width: 420px) {
+  .chronicle, .recap { padding: 14px 12px; }
+  .daily__head { flex-wrap: wrap; }
+  .daily__play { width: 100%; }
+  .chronicle__react { margin-left: 0; }
+}

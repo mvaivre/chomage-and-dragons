@@ -189,19 +189,31 @@ function Reaction({ kind, origin, playerId, loud = false, onDone }: EffectProps 
       fx.burst({ preset: c.trail.preset, x, y: y + size * 0.2, count: c.trail.count ?? 1, power: 0.6 });
     }
 
+    // Titles and bubbles stay inside the screen, and a title too wide for a phone shrinks.
+    const viewLeft = camera.x + 12;
+    const viewRight = camera.x + camera.viewW - 12;
+    const inside = (cx: number, half: number) => Math.max(viewLeft + half, Math.min(viewRight - half, cx));
+    // On a narrow screen a speech bubble takes the title's place: it says it better.
+    const narrow = viewRight - viewLeft < 600;
+    const titleY = rest - size / 2 - 34;
     const text = label.current;
     if (text) {
       const shown = clamp((t - c.impact) / 220);
-      text.position.set(x0, rest - size / 2 - 34 - (calm ? 0 : (1 - shown) * 24));
-      text.scale.set(calm ? 1 : 0.6 + 0.4 * easeOutBack(shown));
-      text.alpha = shown * (1 - clamp((t - (c.duration - 500)) / 500));
+      const natural = text.getLocalBounds().width;
+      const fit = Math.min(1, (viewRight - viewLeft) / Math.max(1, natural));
+      const grow = calm ? 1 : 0.6 + 0.4 * easeOutBack(shown);
+      text.scale.set(fit * grow);
+      text.position.set(inside(x0, (natural * fit) / 2), rest - size / 2 - 34 - (calm ? 0 : (1 - shown) * 24));
+      text.alpha = (c.bubble && narrow ? 0 : 1) * shown * (1 - clamp((t - (c.duration - 500)) / 500));
     }
     const speech = bubble.current;
     if (speech) {
       const shown = clamp((since - 250) / 250);
-      speech.position.set(x0 - size / 2 - 150, rest - 30);
+      const room = viewRight - viewLeft;
+      const bubbleScale = Math.min(1, room / 300);
+      speech.position.set(narrow ? inside(x0, 142 * bubbleScale) : inside(x0 - size / 2 - 150, 142 * bubbleScale), narrow ? titleY - 20 : rest - 30);
       speech.alpha = shown * (1 - clamp((t - (c.duration - 500)) / 500));
-      speech.scale.set(calm ? 1 : 0.7 + 0.3 * easeOutBack(shown));
+      speech.scale.set(bubbleScale * (calm ? 1 : 0.7 + 0.3 * easeOutBack(shown)));
     }
 
     // Props drawn in the world, anchored where the impact happened.
