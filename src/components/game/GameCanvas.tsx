@@ -11,7 +11,7 @@ import {
   WORLD_LENGTH,
 } from "@/lib/game/world";
 import { markMotion, resetScene, scene } from "./scene";
-import { EFFECT_COMPONENTS, type Effect } from "./Effects";
+import { EffectView, type Effect } from "./Effects";
 import { Sky } from "./Backdrop";
 import {
   BiomeArtLayer,
@@ -360,10 +360,10 @@ function WorldScene({
 
       <Layer factor={1}>
         {effects.map((effect) => {
-          const Animation = EFFECT_COMPONENTS[effect.kind];
           return (
-            <Animation
+            <EffectView
               key={effect.id}
+              kind={effect.kind}
               origin={effect.origin}
               playerId={effect.playerId}
               loud={effect.loud}

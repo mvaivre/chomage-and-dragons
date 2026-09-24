@@ -35,10 +35,12 @@ import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import type { HudTiming } from "@/components/hud/QuestHud";
 import { reactionTiming } from "@/components/game/Effects";
+import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
 import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
 import { sfx } from "@/lib/client/sound";
+import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
@@ -78,6 +80,17 @@ const EFFECT_FOR: Record<ActionKind, EffectKind> = {
   rejetApresEntretien: "legendary",
   embauche: "trophy",
 };
+
+/** Diagnostics only: `?debug&variant=storm` forces a staging, to review each one. */
+function forcedVariant(kind: ActionKind) {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const id = params.has("debug") ? params.get("variant") : null;
+  return id ? VARIANTS[kind].find((variant) => variant.id === id) ?? null : null;
+}
+
+/** Every staging the scene knows, to guard against a variant without a choreography. */
+const REACTION_KINDS = CHOREOGRAPHIES;
 
 const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
   shot: "cocktail",
@@ -408,8 +421,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
       pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
       const origin = heroOrigin(me, meIndex);
 
+      // The staging is drawn from the event id: every friend sees the same variant.
+      const variant = forcedVariant(kind) ?? variantFor(event.id, kind);
+      const reactionKind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[kind]) as EffectKind;
       const queued: Effect[] = [
-        { id: event.id, kind: EFFECT_FOR[kind], origin, playerId: me.id, loud: true },
+        { id: event.id, kind: reactionKind, origin, playerId: me.id, loud: true },
       ];
       pendingChestEffect.current = null;
 
@@ -453,8 +469,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       // The moment: lean in, impact, points flying to their counter, then the walk.
       sfx.press();
-      const legendary = kind === "rejetApresEntretien" || kind === "embauche";
-      const { impact, duration } = reactionTiming(EFFECT_FOR[kind]);
+      const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
+      const { impact, duration } = reactionTiming(reactionKind);
+      if (variant.rarity !== "common") schedule(impact + 250, () => moment.cue({ type: "badge", rarity: variant.rarity as "rare" | "legendary", name: variant.name }));
+      if (reactionKind === "storm" || reactionKind === "refusalAvalanche") moment.cue({ type: "shade", color: "#0b1526", opacity: 0.42, ms: duration });
       const hold = REACTION_HOLD[kind] * 1000;
       const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
       leanIn(legendary ? 1.14 : 1.08, 0.42);
@@ -705,7 +723,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 <option value="idle">Repos</option><option value="walk">Marche</option><option value="send">Lettre</option><option value="hurt">Réaction</option><option value="celebrate">Victoire</option>
               </select>
               <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
-                {Object.entries({ pigeon: "Candidature", lightning: "Refus", cocktail: "Entretien", legendary: "Rejet", trophy: "Embauche", chest: "Coffre", fireCurse: "Feu", dragonDrop: "Dragon", paperStorm: "Paperasse", frogCurse: "Crapaud" }).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
               <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setDevMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
                 <option value="">Mini-jeu (entraînement)…</option>

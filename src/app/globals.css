@@ -3006,3 +3006,24 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
   box-shadow: 3px 3px 0 #151513;
 }
 .sound-toggle[aria-pressed="false"] { opacity: 0.75; }
+
+/* A rare or legendary variant names itself under the moment's banner. */
+.moment-badge {
+  position: absolute; left: 50%; top: 13%; display: grid; justify-items: center; gap: 1px; padding: 6px 18px 8px;
+  transform: translateX(-50%); border: 3px solid var(--janky-ink); background: #3b2f5c; color: #f1e6ff;
+  box-shadow: 4px 4px 0 #151513; animation: moment-badge 3000ms ease-in-out forwards; text-align: center;
+}
+.moment-badge[data-rarity="legendary"] { background: linear-gradient(135deg, #7a4d10, #d4a53f 45%, #7a4d10); color: #fff6d6; }
+.moment-badge small { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.85; }
+.moment-badge strong { font-family: var(--font-display); font-size: clamp(1.3rem, 3vw, 1.8rem); line-height: 1.05; }
+@keyframes moment-badge {
+  0% { opacity: 0; transform: translate(-50%, -12px) scale(0.8); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+  20% { transform: translate(-50%, 0) scale(1); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+/* A storm darkens the world for its duration. */
+.moment-shade { position: absolute; inset: 0; background: var(--shade); opacity: 0; animation: moment-shade var(--hold) ease-in-out forwards; }
+@keyframes moment-shade { 0% { opacity: 0; } 15% { opacity: var(--opacity); } 80% { opacity: var(--opacity); } 100% { opacity: 0; } }
+@media (max-width: 600px) { .moment-badge { top: 19%; } }

@@ -367,3 +367,25 @@ test('month keys follow Zurich time and are cached per instant', () => {
   assert.deepEqual(eventsInMonth(events, '2026-09').map(e => e.id), ['b', 'c']);
   assert.equal(eventMonthKey('2026-08-31T21:59:00Z'), '2026-08', 'a cached answer stays right');
 });
+
+const { VARIANTS, variantFor, RARITY_ODDS } = await import('../src/lib/game/variants.ts');
+test('variants are drawn from the event id with the promised rarity odds', () => {
+  for (const [action, variants] of Object.entries(VARIANTS)) {
+    assert.ok(variants.length >= 3, `${action} has several stagings`);
+    assert.equal(new Set(variants.map(v => v.id)).size, variants.length);
+    assert.ok(variants.every(v => v.action === action));
+  }
+  const counts = { common: 0, rare: 0, legendary: 0 };
+  const seen = new Set();
+  for (let i = 0; i < 6000; i++) {
+    const variant = variantFor(`event-${i}`, 'refus');
+    counts[variant.rarity]++;
+    seen.add(variant.id);
+  }
+  for (const rarity of ['common', 'rare', 'legendary']) {
+    const share = counts[rarity] / 6000;
+    assert.ok(Math.abs(share - RARITY_ODDS[rarity]) < 0.025, `${rarity}: ${share}`);
+  }
+  assert.equal(seen.size, VARIANTS.refus.length, 'every variant can happen');
+  assert.deepEqual(variantFor('abc', 'candidature'), variantFor('abc', 'candidature'), 'the same event shows the same variant everywhere');
+});
