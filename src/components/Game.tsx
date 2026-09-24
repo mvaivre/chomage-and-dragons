@@ -33,6 +33,7 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
+import { startMusic, steerMusic } from "@/lib/client/music";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { Album } from "@/components/hud/Album";
@@ -263,6 +264,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const todayGame = useMemo(() => dailyChallenge(today), [today]);
   const [dailyOpen, setDailyOpen] = useState(false);
   const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
+  // Discreet music follows the hero's land and steps back under a mini-game.
+  useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
   const chestAnimationId = useRef<string | null>(null);
@@ -290,6 +293,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
+  const musicLand = me ? biomeAt(worldXFor(me.position)).id : "plaine";
+  useEffect(() => steerMusic(musicLand, miniGameVisible || dailyOpen), [musicLand, miniGameVisible, dailyOpen]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);

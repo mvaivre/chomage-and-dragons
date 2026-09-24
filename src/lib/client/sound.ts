@@ -67,6 +67,14 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
   return context && master ? { ctx: context, out: master } : null;
 }
 
+/**
+ * The shared output for the music, once the first gesture has created the
+ * context: the music never pays for that creation itself.
+ */
+export function audioOutput(): { ctx: AudioContext; out: GainNode } | null {
+  return context ? audio() : null;
+}
+
 function whiteNoise(ctx: AudioContext): AudioBuffer {
   if (noise) return noise;
   noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);

@@ -94,7 +94,7 @@ src/
       tales.ts           Récits : coups de chance, mini-boss RH, absurdités
       streak.ts          Série hebdomadaire
       daylight.ts        Lumière du jour à Zurich
-    client/               Navigateur uniquement : son synthétisé, préchargement, lumière
+    client/               Navigateur uniquement : son et musique synthétisés, préchargement, lumière
 ```
 
 Deux fichiers portent l'essentiel des décisions structurantes :
@@ -116,7 +116,11 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
   (éclair, flash, secousse, confettis, onde de choc, ralenti), les points volent
   jusqu'à leur compteur, les pas défilent pendant la marche, une bannière annonce
-  chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton pour couper
+  chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton à trois états
+  (musique et effets, effets seuls, silence)
+- une **musique d'ambiance discrète**, composée en direct : une humeur par contrée
+  (luth de la plaine, flûte du bois, harpe du marais, cloches du pont, gigue de la
+  taverne…), plus lente et plus rare la nuit, en retrait pendant les mini-jeux
 - **vingt-sept mises en scène** tirées selon leur rareté (six sur dix classiques, trois
   rares, une légendaire), identiques pour tout le groupe, dont trois classiques par
   action : le piqué du pigeon, la douche froide, la porte claquée, le café tiède,

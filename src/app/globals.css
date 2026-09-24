@@ -3013,7 +3013,7 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
   border: 3px solid var(--janky-ink); background: var(--janky-paper); color: var(--janky-ink); font-size: 1.1rem;
   box-shadow: 3px 3px 0 #151513;
 }
-.sound-toggle[aria-pressed="false"] { opacity: 0.75; }
+.sound-toggle[data-state="none"] { opacity: 0.75; }
 
 /* A rare or legendary variant names itself under the moment's banner. */
 .moment-badge {
