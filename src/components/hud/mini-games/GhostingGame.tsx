@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { GHOSTING, generateGhosting, ghostingPhase, ghostingVerdict, waitingDay, type GhostingPhase } from "@/lib/game/ghosting";
@@ -56,6 +57,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
 
   const lose = useCallback((why: Loss) => {
     running.current = false;
+    sfx.sad();
     setLoss(why);
     setStatus("lost");
     settle("lost");
@@ -85,12 +87,14 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
   }, [waiting, schedule, lose]);
 
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [status, revealed]);
+  // An audible cue for the real message: fair on a phone held at arm's length.
+  useEffect(() => { if (status === "message") sfx.croak(); }, [status]);
   useEffect(() => { if (waiting) sendButton.current?.focus(); }, [waiting]);
 
   const reply = useCallback(() => {
     if (!waiting) return;
     const verdict = ghostingVerdict(schedule, elapsed.current);
-    if (verdict === "won") { running.current = false; setStatus("won"); settle("won"); }
+    if (verdict === "won") { running.current = false; sfx.win(); setStatus("won"); settle("won"); }
     else lose(verdict);
   }, [waiting, schedule, settle, lose]);
 

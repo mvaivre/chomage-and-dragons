@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { ACTION_ART } from "@/lib/game/art";
 import { withImage as loadImage } from "@/lib/client/preload";
@@ -112,6 +113,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
       const effects = fx.current;
       const calm = reduced.current;
       if (event === "pass") {
+        sfx.pass();
         setPassed(towersPassed(s));
         const tower = [...s.towers].reverse().find(t => t.passed);
         if (tower && !calm) {
@@ -120,6 +122,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
           spawnParticles(effects, "spark", x, tower.gapY + tower.gapHeight / 2 + 8, 5);
         }
       } else if (event === "hit") {
+        sfx.hit();
         setFeathers(s.feathers);
         if (calm) return;
         effects.shakeUntil = now + 220;
@@ -131,6 +134,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
         effects.finishedAt = now;
         effects.finalY = s.y;
         setStatus("crashed");
+        sfx.sad();
         settleRef.current("lost");
         if (!calm) { spawnParticles(effects, "feather", scene.pigeonX, s.y, 10); later(680, () => spawnParticles(fx.current, "dust", scene.pigeonX, GROUND_Y, 10)); }
         later(calm ? 300 : 1000, () => setPhase("result"));
@@ -138,6 +142,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
         effects.finishedAt = now;
         effects.finalY = s.y;
         setStatus("delivered");
+        sfx.win();
         settleRef.current("won");
         if (!calm) later(620, () => spawnParticles(fx.current, "spark", scene.pigeonX + (current.mailboxX - current.distance), GROUND_Y / 2 - 20, 16));
         later(calm ? 300 : 1200, () => setPhase("result"));
@@ -179,6 +184,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
     if (phaseRef.current !== "play") return;
     const wasReady = sim.status === "ready";
     if (!flapPigeon(sim).length) return;
+    sfx.flap();
     if (wasReady) setStatus("flying");
     if (!reduced.current) spawnParticles(fx.current, "trail", view.current.pigeonX - 18, sim.y + 8, 2);
   }, [sim]);

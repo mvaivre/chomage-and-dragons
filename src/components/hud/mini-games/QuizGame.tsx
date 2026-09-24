@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { QUIZ, dealQuiz, quizPassed } from "@/lib/game/personality-quiz";
@@ -40,6 +41,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice }: MiniGameProps)
 
   const finish = useCallback((score: number) => {
     const passed = quizPassed(score);
+    if (passed) sfx.win(); else sfx.sad();
     setStatus(passed ? "won" : "lost");
     settle(passed ? "won" : "lost");
   }, [settle]);
@@ -49,6 +51,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice }: MiniGameProps)
     const good = choice === question.correct;
     const score = correct + (good ? 1 : 0);
     setChosen(choice);
+    if (good) sfx.pass(); else sfx.hit();
     setCorrect(score);
     setAside(choice === null ? SILENCE : good ? question.aside : "Hmm. Honnête. Dommage.");
     setStatus("reveal");

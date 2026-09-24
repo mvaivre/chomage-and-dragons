@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { seedFrom } from "@/lib/game/random";
 import { SLOTS, createSlotsSim, jackpotCount, slotsAutopilot, stepSlots, stopReel, type SlotsSim, type SlotsStatus } from "@/lib/game/slot-machine";
 import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
@@ -115,6 +116,9 @@ export function SlotsGame({ seedId, onResolve, onDone, practice }: MiniGameProps
   const tap = useCallback(() => {
     if (phaseRef.current !== "play") return;
     const events = stopReel(sim);
+    if (events.includes("stop")) sfx.stamp();
+    if (events.includes("won")) sfx.fanfare();
+    if (events.includes("lost")) sfx.sad();
     if (!events.length) return;
     setStatus(sim.status);
     setStopped(sim.current);

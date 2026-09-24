@@ -217,6 +217,11 @@ export const sfx = {
     tone({ freq: 110, to: 160, dur: 0.35, type: "sawtooth", gain: 0.08, vibrato: 20 });
     [0, 4, 7, 11, 14].forEach((note, i) => tone({ at: 0.35 + i * 0.06, freq: NOTE(note + 12), dur: 0.35, gain: 0.12 }));
   },
+  /** The recruiter-frog's croak, when the real message lands. */
+  croak() {
+    tone({ freq: 140, to: 95, dur: 0.22, type: "sawtooth", gain: 0.3, vibrato: 30, attack: 0.02 });
+    tone({ at: 0.24, freq: 150, to: 100, dur: 0.26, type: "sawtooth", gain: 0.3, vibrato: 30, attack: 0.02 });
+  },
   /** The mini-game invitation: two bright notes. */
   invite() {
     tone({ freq: NOTE(7), dur: 0.12, type: "triangle", gain: 0.16 });

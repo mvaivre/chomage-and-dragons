@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { RAIN, createRainSim, rainAutopilot, startRain, steerBasket, stepRain, wordScreenX, wordWidth, type RainEvent, type RainSim, type RainStatus } from "@/lib/game/keyword-rain";
@@ -118,9 +119,10 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice }: MiniGamePr
   useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
 
   const react = useCallback((event: RainEvent) => {
-    if (event === "caught") setCaught([...sim.caught]);
-    else if (event === "bad") setBad(sim.badCaught);
+    if (event === "caught") { sfx.coin(); setCaught([...sim.caught]); }
+    else if (event === "bad") { sfx.hit(); setBad(sim.badCaught); }
     else if (event === "won" || event === "lost") {
+      if (event === "won") sfx.win(); else sfx.sad();
       setStatus(event);
       settleRef.current(event);
       timeouts.current.push(window.setTimeout(() => setPhase("result"), 900));

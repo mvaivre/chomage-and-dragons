@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { DESK, beltSpeed, createDeskSim, deskAutopilot, dossierScreenX, nextDossier, slamStamp, stampedCount, stepDesk, type DeskEvent, type DeskSim, type DeskStatus } from "@/lib/game/stamp-desk";
@@ -157,18 +158,21 @@ export function StampGame({ seedId, onResolve, onDone, practice }: MiniGameProps
 
   const react = useCallback((event: DeskEvent, now: number) => {
     const effects = fx.current;
-    if (event === "stamp") setStamped(stampedCount(sim));
+    if (event === "stamp") { sfx.stamp(); setStamped(stampedCount(sim)); }
     else if (event === "void" || event === "late") {
+      sfx.hit();
       setMisses(sim.misses);
       effects.gnomeMood = "skeptical";
       effects.moodUntil = now + 900;
       if (event === "void") effects.splats.push({ x: DESK.stampX, at: now });
       else effects.lateAt = now;
     } else if (event === "won") {
+      sfx.win();
       setStatus("won");
       settleRef.current("won");
       later(900, () => setPhase("result"));
     } else if (event === "lost") {
+      sfx.sad();
       setStatus("lost");
       settleRef.current("lost");
       later(900, () => setPhase("result"));
