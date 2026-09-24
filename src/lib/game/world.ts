@@ -22,7 +22,6 @@ export const WALKABLE_GROUND_Y = 602;
  * font 1536 px de large : ils sont donc toujours réduits, jamais agrandis.
  */
 export const WORLD_LENGTH = 15120;
-export const WORLD_MODULE_COUNT = 21;
 
 export interface BiomePalette {
   /** Dégradé du ciel, du haut vers l'horizon. */

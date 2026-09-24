@@ -38,7 +38,6 @@ interface BiomeArt {
   far: string;
   back: string;
   mid: string;
-  front: string;
 }
 
 const WORLD_ART: Record<string, BiomeArt> = Object.fromEntries(
@@ -48,7 +47,6 @@ const WORLD_ART: Record<string, BiomeArt> = Object.fromEntries(
       far: `${ART_ROOT}/${biome.id}-far.webp`,
       back: `${ART_ROOT}/${biome.id}-back.webp`,
       mid: `${ART_ROOT}/${biome.id}-mid.webp`,
-      front: `${ART_ROOT}/${biome.id}-front.webp`,
     },
   ]),
 );

@@ -2,8 +2,8 @@
 
 La scène active utilise `GameCanvas.tsx`, `FlatWorld.tsx`, `Backdrop.tsx`, `Hero.tsx`
 et `textures.ts`. Le chargement Pixi reste exclusivement côté navigateur, via
-`GameLoader.tsx`. Les anciennes expériences graphiques et leurs assets restent
-disponibles pour comparaison ; leur traitement d'image n'est plus importé par la scène active.
+`GameLoader.tsx`. Les anciennes expériences graphiques (`world-v2`, `ParallaxWorld`, sprites procéduraux)
+ont été retirées en septembre 2026 ; elles restent dans l'historique git, commit `70f3210`.
 
 ## Profondeur et contact au sol
 
