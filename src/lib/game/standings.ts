@@ -1,6 +1,6 @@
 import type { ActionKind, GameEvent, Player } from "@/lib/data/types";
-import { monthKey } from "./calendar";
-import { pointsFor } from "./scoring";
+import { monthKey } from "@/lib/game/calendar";
+import { pointsFor } from "@/lib/game/scoring";
 
 export const ACTION_ORDER: ActionKind[] = [
   "candidature",
@@ -63,8 +63,23 @@ export function standings(events: GameEvent[], players: Player[]): Standing[] {
   return [...byPlayer.values()].sort((a, b) => b.score - a.score);
 }
 
+/**
+ * Formatting a date in the reference time zone is the costly part of every
+ * standing: each instant is formatted once, then remembered.
+ */
+const monthKeys = new Map<string, string>();
+export function eventMonthKey(at: string): string {
+  let key = monthKeys.get(at);
+  if (key === undefined) {
+    key = monthKey(new Date(at));
+    if (monthKeys.size > 20_000) monthKeys.clear();
+    monthKeys.set(at, key);
+  }
+  return key;
+}
+
 export function eventsInMonth(events: GameEvent[], key: string): GameEvent[] {
-  return events.filter((e) => monthKey(new Date(e.at)) === key);
+  return events.filter((e) => eventMonthKey(e.at) === key);
 }
 
 /**

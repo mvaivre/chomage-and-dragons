@@ -82,10 +82,8 @@ export function useGame(mode: GameMode = LOCAL) {
   const [syncError, setSyncError] = useState<{ status: number; message: string } | null>(null);
   const version = useRef(0);
   const inflight = useRef(0);
-
-  useEffect(() => {
-    if (!remote) localStore.save(state);
-  }, [remote, state]);
+  /** Counts the actions sent; a poll that overlapped one is stale and ignored. */
+  const commits = useRef(0);
 
   const adopt = useCallback((snapshot: { state: GameState; version: number; name?: string; me?: string | null }) => {
     version.current = snapshot.version;
@@ -96,9 +94,12 @@ export function useGame(mode: GameMode = LOCAL) {
 
   const refresh = useCallback(async () => {
     if (!remote || inflight.current > 0) return;
+    const started = commits.current;
     try {
       const snapshot = version.current ? await remote.poll(version.current) : await remote.load();
-      if (snapshot) adopt(snapshot);
+      // An action sent while this poll was in flight is newer than its answer:
+      // adopting it would walk the hero back until the action's own reply lands.
+      if (snapshot && commits.current === started && inflight.current === 0) adopt(snapshot);
       setLoaded(true);
     } catch (error) {
       setSyncError(error instanceof RemoteError ? { status: error.status, message: error.message } : { status: 0, message: "Le serveur ne répond pas." });
@@ -133,6 +134,7 @@ export function useGame(mode: GameMode = LOCAL) {
     if (remote && applied.state !== base) {
       // A new character is this device's from the start; the token confirms it shortly after.
       if (action.type === "addPlayer") setRemoteMe(context.id());
+      commits.current += 1;
       inflight.current += 1;
       void remote.dispatch(action, context, extras).then((server) => {
         inflight.current -= 1;

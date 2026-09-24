@@ -354,3 +354,16 @@ test('the personality test deals distinct questions whose corporate answer is fi
   assert.equal(quizPassed(QUIZ.needed - 1), false);
   assert.deepEqual(dealQuiz(7), dealQuiz(7), 'the same attempt always shows the same test');
 });
+
+const { eventsInMonth, eventMonthKey } = await import('../src/lib/game/standings.ts');
+test('month keys follow Zurich time and are cached per instant', () => {
+  const events = [
+    { id: 'a', kind: 'refus', at: '2026-08-31T21:59:00Z' },
+    { id: 'b', kind: 'refus', at: '2026-08-31T22:01:00Z' },
+    { id: 'c', kind: 'refus', at: '2026-09-15T12:00:00Z' },
+  ];
+  assert.equal(eventMonthKey('2026-08-31T22:01:00Z'), '2026-09', 'midnight in Zurich is 22:00 UTC in summer');
+  assert.deepEqual(eventsInMonth(events, '2026-08').map(e => e.id), ['a']);
+  assert.deepEqual(eventsInMonth(events, '2026-09').map(e => e.id), ['b', 'c']);
+  assert.equal(eventMonthKey('2026-08-31T21:59:00Z'), '2026-08', 'a cached answer stays right');
+});

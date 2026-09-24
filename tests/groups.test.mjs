@@ -25,6 +25,8 @@ test('a group is created with a hashed password and an unguessable slug; joining
   assert.match(group.slug, /^les-chomeurs-magnifiques-[0-9a-f]{6}$/);
   assert.notEqual(group.passwordHash, 'dragon');
   assert.equal((await db.loadState(group.id)).version, 1);
+  assert.equal(await db.loadVersion(group.id), 1);
+  assert.equal(await db.loadVersion('nope'), null);
   await rejects(createGroup(db, { name: 'X', password: 'dragon' }), 400, /nom/);
   await rejects(createGroup(db, { name: 'Bons amis', password: '123' }), 400, /mot de passe/);
   assert.equal((await joinGroup(db, group.slug, 'dragon')).id, group.id);

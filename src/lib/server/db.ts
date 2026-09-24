@@ -29,6 +29,8 @@ export interface Db {
   findGroupBySlug(slug: string): Promise<GroupRow | null>;
   findGroupById(id: string): Promise<GroupRow | null>;
   loadState(groupId: string): Promise<{ state: GameState; version: number } | null>;
+  /** Just the version, for polls that usually find nothing new. */
+  loadVersion(groupId: string): Promise<number | null>;
   /** Compare-and-set: false when someone else saved first. */
   saveState(groupId: string, expectedVersion: number, state: GameState, at: string): Promise<boolean>;
   appendAction(row: ActionRow): Promise<void>;
@@ -100,6 +102,9 @@ export function createMemoryDb(): Db {
       const row = states.get(groupId);
       return row ? { state: clone(row.state), version: row.version } : null;
     },
+    async loadVersion(groupId) {
+      return states.get(groupId)?.version ?? null;
+    },
     async saveState(groupId, expectedVersion, state) {
       const row = states.get(groupId);
       if (!row || row.version !== expectedVersion) return false;
@@ -165,6 +170,12 @@ export function createNeonDb(connectionString: string): Db {
       const rows = await sql.query("select state, version from game_states where group_id = $1", [groupId]);
       const row = rows[0] as { state: GameState; version: number } | undefined;
       return row ? { state: row.state, version: Number(row.version) } : null;
+    },
+    async loadVersion(groupId) {
+      await ensureSchema();
+      const rows = await sql.query("select version from game_states where group_id = $1", [groupId]);
+      const row = rows[0] as { version: number } | undefined;
+      return row ? Number(row.version) : null;
     },
     async saveState(groupId, expectedVersion, state, at) {
       const rows = await sql.query(

@@ -349,11 +349,44 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await ready(bob);
       assert.match(await bob.locator('.journey-card__stats').innerText(), /3/);
 
+      // A poll answered after an action must not undo it. Alice acts first through the API,
+      // so Bob's next poll returns a full but older state; it is delayed while Bob acts.
+      await alice.goto(`${url}/api/groups/${slug}`);
+      await alice.evaluate(async slug => {
+        const token = localStorage.getItem(`louchomage:jeton:${slug}`);
+        const game = await (await fetch(`/api/groups/${slug}`)).json();
+        const aliceId = game.state.players.find(p => p.name === 'Alice').id;
+        const response = await fetch(`/api/groups/${slug}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-player-token': token }, body: JSON.stringify({ action: { type: 'addEvent', playerId: aliceId, kind: 'refus' } }) });
+        if (!response.ok) throw new Error(`Alice could not act: ${response.status}`);
+      }, slug);
+      let delayed = false;
+      await bob.route(/\/api\/groups\/[^/]+\?version=/, async route => {
+        if (delayed) return route.continue();
+        delayed = true;
+        const response = await route.fetch();
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        await route.fulfill({ response });
+      });
+      await bob.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await bob.waitForTimeout(200);
+      await bob.locator('.action-button--candidature').click();
+      const travel = [];
+      for (let i = 0; i < 14; i++) {
+        travel.push(Number((await bob.locator('.journey-card__stats dd').first().innerText()).trim()));
+        await bob.waitForTimeout(300);
+      }
+      assert.equal(delayed, true, 'the delayed poll ran');
+      assert.ok(travel.every(steps => steps >= travel[0]), `the late poll rolled the action back: ${travel.join(' ')}`);
+      await bob.unroute(/\/api\/groups\/[^/]+\?version=/);
+      await bob.locator('dialog[open].mini-game, .mini-game-invite').first().waitFor();
+      await bob.keyboard.press('Escape');
+      await ready(bob);
+
       // The server holds both journals; Alice's device sees Bob when it comes back.
       const snapshot = await bob.evaluate(async slug => (await fetch(`/api/groups/${slug}`)).json(), slug);
       assert.deepEqual(snapshot.state.players.map(p => p.name), ['Alice', 'Bob']);
-      assert.deepEqual(snapshot.state.events.map(e => e.kind), ['candidature', 'refus']);
-      assert.equal(snapshot.state.miniGames.length, 2);
+      assert.deepEqual(snapshot.state.events.map(e => e.kind), ['candidature', 'refus', 'refus', 'candidature']);
+      assert.equal(snapshot.state.miniGames.length, 4);
 
       // A device without the token cannot act for a character: the API refuses.
       const refused = await bob.evaluate(async ({ slug, playerId }) => {
