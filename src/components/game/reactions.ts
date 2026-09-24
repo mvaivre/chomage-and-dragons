@@ -61,6 +61,28 @@ export const CHOREOGRAPHIES = {
       fx.burst({ preset: "stars", x: ctx.x, y: ctx.head - 60, count: 6 });
     },
   },
+  pigeonDive: {
+    art: ACTION_ART.candidature, size: 190, duration: 2500, impact: 340, enter: "drop", exit: "fly", lift: 60, rarity: "common",
+    trail: { preset: "feathers", every: 70 },
+    onImpact(ctx) {
+      quiet(ctx, sfx.whoosh);
+      quiet(ctx, sfx.coo);
+      fx.burst({ preset: "feathers", x: ctx.x, y: ctx.head - 40, count: 16, spreadX: 30 });
+      fx.burst({ preset: "puff", x: ctx.x, y: ctx.feet, count: 10, spreadX: 30 });
+      scene.shake = Math.max(scene.shake, 0.25);
+    },
+  },
+  sealedLetter: {
+    art: ACTION_ART.candidature, size: 200, duration: 2600, impact: 380, enter: "slam", exit: "fly", lift: 50, rarity: "common",
+    onImpact(ctx) {
+      quiet(ctx, sfx.stamp);
+      quiet(ctx, () => window.setTimeout(sfx.coo, 220));
+      fx.burst({ preset: "shockwave", x: ctx.x, y: ctx.head - 30, count: 1, power: 0.45, colors: [0xce4d48] });
+      fx.burst({ preset: "letters", x: ctx.x, y: ctx.head - 20, count: 7, power: 0.9 });
+      fx.burst({ preset: "stars", x: ctx.x, y: ctx.head - 50, count: 8 });
+      hitStop(70);
+    },
+  },
   lightning: {
     art: ACTION_ART.refus, size: 170, duration: 2500, impact: 380, enter: "drop", exit: "fall", lift: 40, rarity: "common",
     onImpact(ctx) {
@@ -144,6 +166,36 @@ export const CHOREOGRAPHIES = {
       }
     },
   },
+  coldShower: {
+    art: ACTION_ART.refus, size: 160, duration: 2900, impact: 360, enter: "drop", exit: "fall", lift: 70, rarity: "common",
+    onImpact(ctx) {
+      quiet(ctx, sfx.rain);
+      fx.burst({ preset: "cloud", x: ctx.x, y: ctx.head - 150, count: 16, spreadX: 80, spreadY: 18 });
+      fx.burst({ preset: "splash", x: ctx.x, y: ctx.head, count: 10 });
+    },
+    during(ctx, since, state) {
+      // The cloud keeps raining where the refusal struck, while the hero walks out from under it.
+      if (since > 1500) return;
+      const wave = Math.floor(since / 90);
+      if (wave > (state.wave ?? -1)) {
+        state.wave = wave;
+        fx.burst({ preset: "rain", x: ctx.x, y: ctx.head - 130, count: 8, spreadX: 75, spreadY: 10 });
+        if (wave % 3 === 0) fx.burst({ preset: "splash", x: ctx.x, y: ctx.feet, count: 3, spreadX: 50 });
+      }
+    },
+  },
+  slammedDoor: {
+    art: ACTION_ART.refus, size: 210, duration: 2800, impact: 420, enter: "slam", exit: "fall", lift: 30, rarity: "common",
+    bubble: "« Votre profil ne correspond pas à nos attentes. »",
+    onImpact(ctx) {
+      quiet(ctx, sfx.stamp);
+      quiet(ctx, sfx.hit);
+      fx.burst({ preset: "dust", x: ctx.x, y: ctx.feet, count: 18, spreadX: 30 });
+      fx.burst({ preset: "letters", x: ctx.x, y: ctx.head, count: 4, power: 0.7 });
+      scene.shake = Math.max(scene.shake, 0.6);
+      hitStop(100);
+    },
+  },
   storm: {
     art: ACTION_ART.refus, size: 170, duration: 3200, impact: 380, enter: "drop", exit: "fall", lift: 40, rarity: "rare", label: "L’ORAGE", labelColor: 0xcfe3ff,
     onImpact(ctx) {
@@ -191,6 +243,36 @@ export const CHOREOGRAPHIES = {
       fx.burst({ preset: "letters", x: ctx.x, y: ctx.head, count: 14, power: 1.2 });
     },
   },
+  coffee: {
+    art: ACTION_ART.entretien, size: 180, duration: 2800, impact: 320, enter: "rise", exit: "fade", lift: 60, rarity: "common",
+    bubble: "« Parlez-moi de vous. »",
+    onImpact(ctx) {
+      quiet(ctx, sfx.pop);
+      fx.burst({ preset: "smoke", x: ctx.x + 20, y: ctx.head - 40, count: 8, colors: [0xf2ede4, 0xd8d2c6] });
+      fx.burst({ preset: "stars", x: ctx.x, y: ctx.head - 60, count: 8 });
+    },
+    during(ctx, since, state) {
+      if (since > 700 && !state.steam) {
+        state.steam = 1;
+        fx.burst({ preset: "smoke", x: ctx.x + 20, y: ctx.head - 40, count: 6, colors: [0xf2ede4, 0xd8d2c6] });
+      }
+    },
+  },
+  spotlight: {
+    art: ACTION_ART.entretien, size: 190, duration: 2900, impact: 360, enter: "rise", exit: "rise", lift: 70, rarity: "common",
+    onImpact(ctx) {
+      quiet(ctx, sfx.chime);
+      fx.burst({ preset: "glow", x: ctx.x, y: ctx.head + 30, count: 1, power: 1.3, colors: [0xfff4d8] });
+      fx.burst({ preset: "stars", x: ctx.x, y: ctx.head - 30, count: 18, spreadX: 40 });
+      fx.burst({ preset: "confetti", x: ctx.x, y: ctx.head - 50, count: 30, power: 0.8 });
+    },
+    during(ctx, since, state) {
+      if (since > 650 && !state.again) {
+        state.again = 1;
+        fx.burst({ preset: "glow", x: ctx.x, y: ctx.head + 30, count: 1, colors: [0xfff4d8] });
+      }
+    },
+  },
   cocktailFireworks: {
     art: ACTION_ART.entretien, size: 190, duration: 3100, impact: 300, enter: "rise", exit: "fade", lift: 60, rarity: "rare", label: "SANTÉ !", labelColor: 0xffe7a8,
     onImpact(ctx) {
@@ -221,6 +303,30 @@ export const CHOREOGRAPHIES = {
     },
     during(ctx, since, state) {
       if (since > 900 && !state.again) { state.again = 1; quiet(ctx, sfx.fanfare); fx.burst({ preset: "confetti", x: ctx.x, y: ctx.head - 60, count: 60 }); }
+    },
+  },
+  formLetter: {
+    art: ACTION_ART.rejetApresEntretien, size: 220, duration: 3300, impact: 460, enter: "drop", exit: "rise", lift: 60, rarity: "common",
+    bubble: "« Malgré la qualité de votre candidature… »",
+    onImpact(ctx) {
+      quiet(ctx, sfx.stamp);
+      quiet(ctx, () => window.setTimeout(sfx.sad, 200));
+      fx.burst({ preset: "letters", x: ctx.x, y: ctx.head - 10, count: 12, power: 1.1 });
+      fx.burst({ preset: "letterRain", x: ctx.x, y: ctx.viewTop - 30, count: 16, spreadX: 240, spreadY: 30, delay: 0.3 });
+      scene.shake = Math.max(scene.shake, 0.5);
+      hitStop(110);
+    },
+  },
+  anvil: {
+    art: ACTION_ART.rejetApresEntretien, size: 220, duration: 3300, impact: 520, enter: "meteor", exit: "rise", lift: 50, rarity: "common",
+    prop: "crater",
+    onImpact(ctx) {
+      quiet(ctx, sfx.boom);
+      hitStop(130);
+      scene.shake = Math.max(scene.shake, 0.85);
+      fx.burst({ preset: "shockwave", x: ctx.x, y: ctx.feet - 10, count: 1, power: 0.8 });
+      fx.burst({ preset: "dust", x: ctx.x, y: ctx.feet, count: 24, spreadX: 40 });
+      fx.burst({ preset: "stars", x: ctx.x, y: ctx.head - 40, count: 10 });
     },
   },
   meteor: {

@@ -73,9 +73,9 @@ function FxLayerImpl() {
       sprite.alpha = 0;
       sprite.x = request.x + rand(-1, 1) * (request.spreadX ?? 0);
       sprite.y = request.y + rand(-1, 1) * (request.spreadY ?? 0);
-      sprite.rotation = rand(0, Math.PI * 2);
       if (!sprite.parent) container.addChild(sprite);
-      const angle = preset.angle + rand(-preset.spread, preset.spread);
+      const angle = (request.angle ?? preset.angle) + rand(-preset.spread, preset.spread);
+      sprite.rotation = preset.align ? angle : rand(0, Math.PI * 2);
       const speed = rand(preset.speed[0], preset.speed[1]) * power;
       particles.current.push({
         sprite, preset, power,

@@ -249,6 +249,21 @@ export const sfx = {
     tone({ freq: 140, to: 95, dur: 0.22, type: "sawtooth", gain: 0.3, vibrato: 30, attack: 0.02 });
     tone({ at: 0.24, freq: 150, to: 100, dur: 0.26, type: "sawtooth", gain: 0.3, vibrato: 30, attack: 0.02 });
   },
+  /** A cold shower from a small cloud. */
+  rain() {
+    hiss({ dur: 1.6, filter: "bandpass", freq: 3200, q: 0.6, gain: 0.16, attack: 0.25 });
+    hiss({ dur: 1.4, filter: "lowpass", freq: 700, gain: 0.12, attack: 0.3 });
+  },
+  /** A heavy landing at the end of a long run. */
+  land() {
+    tone({ freq: 120, to: 55, dur: 0.16, type: "sine", gain: 0.35, attack: 0.003 });
+    hiss({ dur: 0.12, filter: "lowpass", freq: 900, to: 300, gain: 0.25 });
+  },
+  /** Knocked back: a cartoon spring. */
+  boing() {
+    tone({ freq: 180, to: 520, dur: 0.22, type: "triangle", gain: 0.22, vibrato: 18, attack: 0.005 });
+    tone({ at: 0.18, freq: 480, to: 260, dur: 0.2, type: "triangle", gain: 0.14, vibrato: 14 });
+  },
   /** The mini-game invitation: two bright notes. */
   invite() {
     tone({ freq: NOTE(7), dur: 0.12, type: "triangle", gain: 0.16 });

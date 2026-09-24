@@ -117,10 +117,14 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   (éclair, flash, secousse, confettis, onde de choc, ralenti), les points volent
   jusqu'à leur compteur, les pas défilent pendant la marche, une bannière annonce
   chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton pour couper
-- **dix-neuf mises en scène** tirées selon leur rareté (six sur dix classiques, trois
-  rares, une légendaire), identiques pour tout le groupe : l'escadrille de pigeons,
-  l'orage, le grand NON, le tapis rouge, la fanfare des gnomes, le météore, le
-  crapaud qui lit la lettre, quarante-sept lettres, l'ascension vers la taverne…
+- **vingt-sept mises en scène** tirées selon leur rareté (six sur dix classiques, trois
+  rares, une légendaire), identiques pour tout le groupe, dont trois classiques par
+  action : le piqué du pigeon, la douche froide, la porte claquée, le café tiède,
+  l'enclume… puis l'escadrille, l'orage, le tapis rouge, la fanfare des gnomes, le
+  météore, le crapaud qui lit la lettre, quarante-sept lettres, l'ascension vers la taverne
+- des **allures** selon la distance : un trot rebondi pour quelques pas, un sprint avec
+  traînées de vitesse pour une longue course, un recul projeté pour un entretien ; la
+  poussière, les feuilles, les éclaboussures ou la neige suivent le sol de chaque contrée
 - les **récits** du pitch, une action sur huit : coup de chance, mini-boss RH ou
   absurdité du recrutement, purement narratifs
 - un **monde vivant** : l'heure réelle de Zurich (aube, soir doré, nuit étoilée),

@@ -6,9 +6,10 @@ import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
 import { seededRandom } from "@/lib/rng";
-import { slopeAt, surfaceAt, worldXFor } from "@/lib/game/world";
+import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
+import { sfx } from "@/lib/client/sound";
 import { markMotion, scene, worldDelta } from "./scene";
-import { fxTexture } from "./fx";
+import { fx, fxTexture } from "./fx";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
@@ -37,7 +38,12 @@ export const HERO_HEIGHT = 164;
  * impact of the reaction all land before the journey starts.
  */
 export const REACTION_HOLD = { candidature: 0.75, refus: 0.95, entretien: 0.85, rejetApresEntretien: 1.35, embauche: 1.1 } as const;
-const STRIDE_DURATION = 0.32;
+/**
+ * How a hero covers a leg: a bouncy trot for a few steps, a sprint for a long
+ * run, and for a setback a knock backwards before stumbling back, still facing
+ * the road ahead.
+ */
+type Gait = "trot" | "dash" | "knockback";
 
 interface TravelLeg {
   from: number;
@@ -45,6 +51,44 @@ interface TravelLeg {
   steps: number;
   index: number;
   elapsed: number;
+  gait: Gait;
+  /** Seconds since the last speed line. */
+  streak: number;
+}
+
+/** Seconds per step: a sprint winds up, a knockback flies, then both settle into their pace. */
+function strideFor(leg: TravelLeg): number {
+  if (leg.gait === "dash") return leg.index === 0 ? 0.3 : 0.19;
+  if (leg.gait === "knockback") return leg.index === 0 ? 0.52 : 0.27;
+  return 0.3;
+}
+
+/** Share of a step covered at progress p: the sprint starts slow, the knock starts fast. */
+function strideEase(leg: TravelLeg, p: number): number {
+  if (leg.index > 0) return p;
+  if (leg.gait === "dash") return p * p;
+  if (leg.gait === "knockback") return 1 - (1 - p) * (1 - p);
+  return p;
+}
+
+const WATER = new Set(["marais", "lac", "cascade"]);
+
+/** What a footfall kicks up, by land: dust, leaves, splashes, snow or sand. */
+function footfall(x: number, y: number, count: number, direction: 1 | -1) {
+  const land = biomeAt(((x % WORLD_LENGTH) + WORLD_LENGTH) % WORLD_LENGTH).id;
+  const angle = -Math.PI / 2 - direction * 0.5;
+  if (WATER.has(land)) {
+    fx.burst({ preset: "splash", x, y, count: count + 2, spreadX: 10, angle });
+    fx.burst({ preset: "puff", x, y, count: 1, colors: [0xcfe4ea, 0xa9c4c8] });
+    return;
+  }
+  const colors = land === "montagne" ? [0xffffff, 0xe6eef6, 0xcbd6e0]
+    : land === "desert" ? [0xe8cf96, 0xd8b476, 0xf3e0b4]
+      : land === "taverne" ? [0x8a7560, 0x6d5c4a, 0xa89178]
+        : land === "foret" ? [0xa08a64, 0x86734f, 0xbfae84]
+          : [0xcdb68d, 0xb59b72, 0xe0cfa8];
+  fx.burst({ preset: "puff", x, y, count, spreadX: 8, colors, angle });
+  if (land === "foret" && Math.random() < 0.5) fx.burst({ preset: "kickLeaves", x, y: y - 6, count: 2, angle });
 }
 
 const INK = 0x211b18;
@@ -132,6 +176,8 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   >(null);
   const actionTimer = useRef(0);
   const actionDuration = useRef(1);
+  /** 1 on the frame a leg ends, fading: the landing squash. */
+  const landing = useRef(0);
 
   const seen = useRef({
     target,
@@ -210,44 +256,71 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
         onTravelDone?.(player.id);
       } else if (next) {
         const direction = next.target >= at.current ? 1 : -1;
+        const gait: Gait = direction < 0 ? "knockback" : next.steps >= 5 ? "dash" : "trot";
         travel.current = {
           from: at.current,
           to: next.target,
           steps: Math.max(1, next.steps),
           index: 0,
           elapsed: 0,
+          gait,
+          streak: 0,
         };
         lastDirection.current = direction;
+        if (!scene.reducedMotion && root.current?.visible) {
+          const feet = surfaceAt(at.current) + 4 + lane.dy;
+          if (gait === "knockback") {
+            fx.burst({ preset: "stars", x: at.current, y: feet - HERO_HEIGHT, count: 7, power: 0.8 });
+            if (isMe) sfx.boing();
+          } else if (gait === "dash") {
+            footfall(at.current, feet, 6, direction);
+            if (isMe) sfx.whoosh();
+          }
+        }
       }
     }
 
     let moving = Boolean(travel.current);
     let strideProgress = 0;
     const activeTravel = travel.current;
+    const gait = activeTravel?.gait ?? null;
+    const legIndex = activeTravel?.index ?? 0;
+    const feetY = surfaceAt(at.current) + 4 + lane.dy;
+    const juicy = !scene.reducedMotion && Boolean(root.current?.visible);
     if (activeTravel) {
       activeTravel.elapsed += scene.reducedMotion ? dt * activeTravel.steps * 3 : dt;
       while (
-        activeTravel.elapsed >= STRIDE_DURATION &&
+        activeTravel.elapsed >= strideFor(activeTravel) &&
         activeTravel.index < activeTravel.steps
       ) {
-        activeTravel.elapsed -= STRIDE_DURATION;
+        activeTravel.elapsed -= strideFor(activeTravel);
         activeTravel.index += 1;
         at.current =
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
             activeTravel.steps;
-
+        if (juicy) footfall(at.current, feetY, activeTravel.gait === "dash" ? 4 : isMe ? 3 : 2, lastDirection.current);
       }
 
       if (activeTravel.index >= activeTravel.steps) {
         at.current = activeTravel.to;
         travel.current = null;
         moving = false;
+        landing.current = 1;
+        if (juicy) {
+          const heavy = activeTravel.gait !== "trot";
+          fx.burst({ preset: "puff", x: at.current, y: feetY, count: heavy ? 10 : 5, spreadX: 22 });
+          if (heavy) {
+            fx.burst({ preset: "shockwave", x: at.current, y: feetY - 6, count: 1, power: 0.28 });
+            if (isFocused) scene.shake = Math.max(scene.shake, 0.18);
+            if (isMe) sfx.land();
+          }
+        }
         onTravelDone?.(player.id);
       } else {
-        strideProgress = activeTravel.elapsed / STRIDE_DURATION;
-        // Keep a steady speed between steps; easing each footfall caused stop-start skating.
-        const eased = strideProgress;
+        strideProgress = activeTravel.elapsed / strideFor(activeTravel);
+        // A steady speed between steps, except where the gait itself accelerates or brakes.
+        const eased = strideEase(activeTravel, strideProgress);
         const start =
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
@@ -274,7 +347,26 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     if (isFocused && moving) scene.walkingUntil = performance.now() + 300;
     if (!previewMotion) scene.heroes.set(player.id, { x: at.current, y: surfaceAt(at.current) + 4 + lane.dy });
 
-    const hop = moving && !scene.reducedMotion ? Math.sin(strideProgress * Math.PI) * (character.id === "skater" ? 0 : 2) : 0;
+    // Speed lines stream behind a sprinter.
+    if (activeTravel && gait === "dash" && legIndex > 0 && juicy) {
+      activeTravel.streak += dt;
+      if (activeTravel.streak > 0.05) {
+        activeTravel.streak = 0;
+        fx.burst({ preset: "streak", x: at.current - lastDirection.current * 40, y: feetY - 30 - Math.random() * HERO_HEIGHT * 0.8, count: 1, angle: lastDirection.current > 0 ? Math.PI : 0 });
+      }
+    }
+    if (landing.current > 0) landing.current = Math.max(0, landing.current - dt / 0.22);
+
+    const arc = Math.sin(strideProgress * Math.PI);
+    const skater = character.id === "skater";
+    const hop = !moving || scene.reducedMotion ? 0
+      : gait === "knockback" && legIndex === 0 ? arc * 52
+        : gait === "knockback" ? arc * 5
+          : skater ? 0
+            : gait === "dash" ? arc * 6 : Math.abs(arc) * 10;
+    // Squash when a foot lands, stretch in the air, a firmer squash after a long run.
+    const footfallSquash = moving && !skater && strideProgress < 0.14 ? (1 - strideProgress / 0.14) * (gait === "dash" ? 0.05 : 0.07) : 0;
+    const squash = scene.reducedMotion ? 0 : footfallSquash + landing.current * 0.12 - (moving && !skater ? arc * 0.035 : 0);
     const speciesLift =
       character.hat === "fee" ? 10 + (scene.reducedMotion ? 0 : Math.sin(phase.current * 0.72) * 4) : 0;
 
@@ -304,10 +396,11 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     }
     if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
-    const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : moving ? "walk" : actionTimer.current > 0
+    const knocked = moving && gait === "knockback" && legIndex === 0;
+    const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : knocked ? "hurt" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
       : "idle");
-    const progress = previewMotion ? (elapsed.current % 2) / 2 : 1 - actionTimer.current / actionDuration.current;
+    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : 1 - actionTimer.current / actionDuration.current;
     const frame = characterFrame(character.id, motion, scene.reducedMotion ? 0 : elapsed.current, progress);
     if (art.current && poses) art.current.texture = poses[frame];
 
@@ -315,16 +408,22 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     if (body) {
       body.y = -hop - speciesLift;
       // Électrocuté : le personnage part en arrière et tremble.
-      body.rotation = scene.reducedMotion || character.id === "skater" ? 0 :
+      // A knocked-back hero tilts away from the blow; a sprinter leans into the run.
+      const lean = !moving ? 0
+        : gait === "knockback" ? (legIndex === 0 ? -0.42 * arc : Math.sin(phase.current * 1.7) * 0.06)
+          : gait === "dash" && legIndex > 0 ? 0.11 : 0;
+      body.rotation = scene.reducedMotion ? 0 :
+        character.id === "skater" ? lean * 0.6 :
         stun.current > 0 && !moving
           ? Math.sin(stun.current * 24) * 0.08 * stun.current
-          : slopeAt(at.current) * 0.5 +
-            (moving ? Math.sin(phase.current) * 0.015 : 0) +
+          : slopeAt(at.current) * 0.5 + lean +
+            (moving && gait === "trot" ? Math.sin(phase.current) * 0.03 : 0) +
             (actionKind.current === "candidature" ? Math.sin(actionTimer.current / actionDuration.current * Math.PI) * -0.08 : 0);
-      body.scale.y = 1;
+      body.scale.y = 1 - squash;
       // Animated sheets face right; static fallbacks declare their native direction.
+      // Pushed back, a hero keeps facing the road ahead.
       const facing = animation ? poseFacing(character.id, frame) : staticCharacterFacing(character.id);
-      body.scale.x = facing * (moving ? lastDirection.current : 1);
+      body.scale.x = facing * (moving && gait !== "knockback" ? lastDirection.current : 1) * (1 + squash * 0.6);
     }
   }});
 

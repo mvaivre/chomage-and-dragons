@@ -19,24 +19,32 @@ export interface Variant {
 export const VARIANTS: Record<ActionKind, Variant[]> = {
   candidature: [
     { id: "pigeon", action: "candidature", name: "Pigeon voyageur", rarity: "common" },
+    { id: "pigeonDive", action: "candidature", name: "Le piqué", rarity: "common" },
+    { id: "sealedLetter", action: "candidature", name: "Le pli cacheté", rarity: "common" },
     { id: "pigeonSquadron", action: "candidature", name: "L’escadrille", rarity: "rare" },
     { id: "pigeonRocket", action: "candidature", name: "Pigeon fusée", rarity: "rare" },
     { id: "pigeonReceipt", action: "candidature", name: "Accusé de réception", rarity: "legendary" },
   ],
   refus: [
     { id: "lightning", action: "refus", name: "Coup de foudre", rarity: "common" },
+    { id: "coldShower", action: "refus", name: "La douche froide", rarity: "common" },
+    { id: "slammedDoor", action: "refus", name: "La porte claquée", rarity: "common" },
     { id: "storm", action: "refus", name: "L’orage", rarity: "rare" },
     { id: "bigNo", action: "refus", name: "Le grand NON", rarity: "rare" },
     { id: "refusalAvalanche", action: "refus", name: "Avalanche de refus", rarity: "legendary" },
   ],
   entretien: [
     { id: "cocktail", action: "entretien", name: "Le cocktail", rarity: "common" },
+    { id: "coffee", action: "entretien", name: "Le café tiède", rarity: "common" },
+    { id: "spotlight", action: "entretien", name: "Sous les projecteurs", rarity: "common" },
     { id: "cocktailFireworks", action: "entretien", name: "Feu d’artifice de cocktails", rarity: "rare" },
     { id: "redCarpet", action: "entretien", name: "Tapis rouge", rarity: "rare" },
     { id: "gnomeBand", action: "entretien", name: "La fanfare des gnomes", rarity: "legendary" },
   ],
   rejetApresEntretien: [
     { id: "legendary", action: "rejetApresEntretien", name: "Le tampon légendaire", rarity: "common" },
+    { id: "formLetter", action: "rejetApresEntretien", name: "La lettre type", rarity: "common" },
+    { id: "anvil", action: "rejetApresEntretien", name: "L’enclume", rarity: "common" },
     { id: "meteor", action: "rejetApresEntretien", name: "Le météore", rarity: "rare" },
     { id: "frogReader", action: "rejetApresEntretien", name: "Le crapaud lit la lettre", rarity: "rare" },
     { id: "mythicRejection", action: "rejetApresEntretien", name: "Quarante-sept lettres", rarity: "legendary" },
