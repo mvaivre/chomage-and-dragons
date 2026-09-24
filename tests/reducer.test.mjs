@@ -137,3 +137,23 @@ test('friends cheer an action once each, can change or take back their emoji, ne
   const gone = applyAction(changed.state, { type: 'removePlayer', playerId: 'lou' }, fixedContext('x', T0));
   assert.deepEqual(gone.state.cheers, [], 'a leaving friend takes their cheers');
 });
+
+const { dailyChallenge, zurichDay, dailyRanking, DAILY_GAMES } = await import('../src/lib/game/daily.ts');
+test('the daily challenge is the same game for everyone, once a day, never the slot machine', () => {
+  assert.equal(zurichDay(new Date('2026-09-24T22:30:00Z')), '2026-09-25', 'the day turns at midnight in Zurich');
+  assert.deepEqual(dailyChallenge('2026-09-24'), dailyChallenge('2026-09-24'));
+  const kinds = new Set(Array.from({ length: 60 }, (_, i) => dailyChallenge(`2026-10-${String(i % 28 + 1).padStart(2, '0')}`).kind));
+  assert.ok(kinds.size >= 4 && [...kinds].every(k => DAILY_GAMES.includes(k)));
+  let state = withPlayers();
+  const day = '2026-09-24';
+  const kind = dailyChallenge(day).kind;
+  const first = applyAction(state, { type: 'dailyRun', playerId: 'mika', day, kind, score: 120.4 }, fixedContext('d1', T0));
+  assert.equal(first.result.run.score, 120);
+  const again = applyAction(first.state, { type: 'dailyRun', playerId: 'mika', day, kind, score: 999 }, fixedContext('d2', T0));
+  assert.equal(again.result.rejected, 'already played today');
+  const wrong = applyAction(first.state, { type: 'dailyRun', playerId: 'lou', day, kind: kind === 'quiz' ? 'stamp' : 'quiz', score: 10 }, fixedContext('d3', T0));
+  assert.equal(wrong.result.rejected, "not today's game");
+  state = applyAction(first.state, { type: 'dailyRun', playerId: 'lou', day, kind, score: 150 }, fixedContext('d4', '2026-09-24T11:00:00.000Z')).state;
+  assert.deepEqual(dailyRanking(state.daily, day).map(r => r.playerId), ['lou', 'mika']);
+  assert.equal(applyAction(state, { type: 'removePlayer', playerId: 'lou' }, fixedContext('x', T0)).state.daily.length, 1);
+});

@@ -74,12 +74,13 @@ export function reserveChestGame(state: GameState, playerId: string, chestIndex:
 }
 
 /** Award once. A stale or repeated result is harmless. */
-export function resolveMiniGame(state: GameState, attemptId: string, result: MiniGameResult): GameState {
+export function resolveMiniGame(state: GameState, attemptId: string, result: MiniGameResult, score?: number): GameState {
   const attempt = state.miniGames?.find(a => a.id === attemptId);
   if (!attempt || attempt.result !== "pending") return state;
+  const scored = result !== "skipped" && Number.isFinite(score) ? { score: Math.max(0, Math.min(100_000, Math.round(score!))) } : {};
   // An action game only settles on its still-present event; a stale result after undo is ignored.
   if (attempt.action !== "chest" && !state.events.some(e => e.id === attempt.eventId && e.kind === attempt.action)) return state;
-  const miniGames = state.miniGames?.map(a => a.id === attemptId ? { ...a, result } : a);
+  const miniGames = state.miniGames?.map(a => a.id === attemptId ? { ...a, result, ...scored } : a);
   if (result !== "won" || attempt.action === "chest") return { ...state, miniGames };
   return {
     ...state,

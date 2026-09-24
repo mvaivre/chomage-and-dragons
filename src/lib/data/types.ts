@@ -55,6 +55,8 @@ export interface MiniGameAttempt {
   /** The event that unlocked it; a chest attempt keeps the event that earned the chest. */
   eventId: string;
   result: "pending" | MiniGameResult;
+  /** Bragging rights, for records; never changes steps or points. */
+  score?: number;
 }
 
 /** Legacy save format of the first pigeon game, migrated on load. */
@@ -88,6 +90,17 @@ export interface PowerCast {
   settledAt?: string;
 }
 
+/** One run of the daily challenge: the same course for the whole group, once a day. */
+export interface DailyRun {
+  id: string;
+  /** Zurich calendar day, e.g. "2026-09-24". */
+  day: string;
+  playerId: string;
+  kind: MiniGameKind;
+  score: number;
+  at: string;
+}
+
 /** A friend's cheer on an action: one emoji per friend and per action. */
 export type CheerEmoji = "👏" | "🍺" | "🔥" | "😂" | "🫂";
 export interface Cheer {
@@ -103,6 +116,7 @@ export interface GameState {
   events: GameEvent[];
   casts: PowerCast[];
   cheers?: Cheer[];
+  daily?: DailyRun[];
   miniGames?: MiniGameAttempt[];
   /** Legacy, converted into miniGames when a save is loaded. */
   pigeonFlights?: PigeonFlight[];

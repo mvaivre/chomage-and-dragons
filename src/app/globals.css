@@ -3051,8 +3051,9 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 .chronicle, .recap {
   width: min(96vw, 40rem); max-height: min(86vh, 48rem); overflow: auto; padding: 18px 20px;
   border: 3px solid var(--janky-ink); background: var(--janky-charcoal); color: var(--janky-paper-light);
-  box-shadow: 8px 8px 0 #151513; animation: invite-in 320ms cubic-bezier(0.2, 1.2, 0.4, 1);
+  box-shadow: 8px 8px 0 #151513; animation: panel-in 320ms cubic-bezier(0.2, 1.2, 0.4, 1);
 }
+@keyframes panel-in { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: none; } }
 .chronicle__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .chronicle__kicker, .recap__kicker { margin: 0; font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--janky-yellow); }
 .chronicle h2, .recap h2 { margin: 2px 0 0; font-family: var(--font-display); font-size: 2rem; line-height: 1.1; }
@@ -3097,3 +3098,24 @@ main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 @keyframes news-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
 @media (max-width: 600px) { .news-stack { right: 8px; top: 30%; } .chronicle-button span:last-child { display: none; } }
 @media (prefers-reduced-motion: reduce) { .news-toast, .chronicle, .recap { animation: none; } }
+
+/* Scores and records. */
+.mini-game__score-line { display: grid; justify-items: center; gap: 1px; margin: 6px 0 0; }
+.mini-game__score-line b { font-family: var(--font-display); font-size: 1.35rem; color: #f5e8bd; }
+.mini-game__score-line span { font-size: 0.82rem; color: #cbbf9d; }
+.mini-game__score-line[data-record="true"] span { color: var(--janky-yellow); font-weight: 700; animation: record-glow 900ms ease-in-out 3 alternate; }
+@keyframes record-glow { from { text-shadow: none; } to { text-shadow: 0 0 12px rgb(239 189 60 / 0.8); } }
+.mini-game-invite__record { margin: 0; font-size: 0.82rem; color: #d8cda9; }
+
+/* Daily challenge, first in the chronicle. */
+.daily { margin-bottom: 14px; padding: 12px 14px; border: 3px solid var(--janky-ink); background: linear-gradient(135deg, #2f2a1a, #3a3321); box-shadow: 3px 3px #151513; }
+.daily__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.daily__kicker { margin: 0; font-size: 0.74rem; color: var(--janky-yellow); }
+.daily h3 { margin: 2px 0 0; font-family: var(--font-display); font-size: 1.5rem; }
+.daily__play { min-height: 44px; padding: 6px 14px; border: 3px solid var(--janky-ink); background: var(--janky-yellow); color: var(--janky-ink); font-family: var(--font-display); font-size: 1rem; box-shadow: 3px 3px #151513; }
+.daily__done { font-size: 0.85rem; color: #d8cda9; }
+.daily__ranking { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }
+.daily__ranking li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 3px 8px; background: rgb(0 0 0 / 0.2); }
+.daily__ranking li[data-me="true"] { outline: 2px solid rgb(239 189 60 / 0.5); }
+.daily__rank { text-align: center; font-family: var(--font-display); }
+.daily__empty { margin: 8px 0 0; font-size: 0.85rem; color: #cbbf9d; }

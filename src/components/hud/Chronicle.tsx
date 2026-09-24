@@ -25,13 +25,15 @@ export function relativeTime(at: string, now = Date.now()): string {
  * The group's chronicle: every friend's latest actions, their stagings, and the
  * cheers they received. Cheering someone is one tap on an emoji.
  */
-export function Chronicle({ events, players, cheers, meId, onCheer, onClose }: {
+export function Chronicle({ events, players, cheers, meId, onCheer, onClose, daily }: {
   events: GameEvent[];
   players: PlayerView[];
   cheers: Cheer[];
   meId: string | null;
   onCheer: (eventId: string, emoji: CheerEmoji) => void;
   onClose: () => void;
+  /** Today's challenge, shown first. */
+  daily?: React.ReactNode;
 }) {
   const byPlayer = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const recent = useMemo(() => [...events].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40), [events]);
@@ -50,6 +52,7 @@ export function Chronicle({ events, players, cheers, meId, onCheer, onClose }: {
         </div>
         <button type="button" className="chronicle__close" onClick={onClose} autoFocus>Fermer</button>
       </header>
+      {daily}
       {recent.length === 0 ? <p className="chronicle__empty">Rien encore. La première candidature ouvrira la chronique.</p> : null}
       <ol className="chronicle__list">
         {recent.map((event) => {

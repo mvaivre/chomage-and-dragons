@@ -5,7 +5,8 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { seedFrom } from "@/lib/game/random";
 import { SLOTS, createSlotsSim, jackpotCount, slotsAutopilot, stepSlots, stopReel, type SlotsSim, type SlotsStatus } from "@/lib/game/slot-machine";
-import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { slotsScore } from "@/lib/game/scores";
 import { useArenaCanvas, type ArenaView } from "./useArenaCanvas";
 
 const INK = "#28241a";
@@ -81,7 +82,7 @@ function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView
 }
 
 /** The chest's double bottom: stop the three reels on CHF. */
-export function SlotsGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const [sim] = useState<SlotsSim>(() => createSlotsSim(seedFrom(seedId)));
   const resolved = useRef<MiniGameResult | null>(null);
   const [phase, setPhase] = useState<"play" | "result">("play");
@@ -93,12 +94,15 @@ export function SlotsGame({ seedId, onResolve, onDone, practice }: MiniGameProps
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
+  const [score, setScore] = useState<number | null>(null);
   const settle = useCallback((result: MiniGameResult) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
-    onResolve(result);
-  }, [onResolve]);
+    const points = result === "skipped" ? undefined : slotsScore(sim);
+    if (points !== undefined) setScore(points);
+    onResolve(result, points);
+  }, [onResolve, sim]);
 
   const frame = useCallback((ctx: CanvasRenderingContext2D, view: ArenaView, dt: number, node: HTMLButtonElement) => {
     stepSlots(sim, dt);
@@ -152,7 +156,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice }: MiniGameProps
       <span className="mini-game__progress"><span style={{ width: `${stopped / SLOTS.reels * 100}%` }} /></span>
       <span className="mini-game__score">CHF : <b>{jackpotCount(sim)}</b></span>
     </>}
-    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><span>{won ? "Un pouvoir supplémentaire à lancer" : "Le coffre ne se retire jamais."}</span></> :
+    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><span>{won ? "Un pouvoir supplémentaire à lancer" : "Le coffre ne se retire jamais."}</span><ScoreLine score={score} unit="CHF" record={record} best={best} /></> :
       <span>{status === "ready" ? "Une seule tentative · trois arrêts · pas de retour" : "Touche l’image, Espace ou Entrée"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",

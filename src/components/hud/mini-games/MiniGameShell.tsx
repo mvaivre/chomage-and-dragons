@@ -72,8 +72,24 @@ export const ACTION_KEYS = new Set([" ", "Spacebar", "Enter", "ArrowUp"]);
 export interface MiniGameProps {
   /** Seeds the course, so a saved attempt always shows the same one. */
   seedId: string;
-  onResolve: (result: "won" | "lost" | "skipped") => void;
+  onResolve: (result: "won" | "lost" | "skipped", score?: number) => void;
   onDone: () => void;
   /** Development rehearsal: nothing is saved, the copy says so. */
   practice?: boolean;
+  /** The group's record and your best, to beat. */
+  record?: { score: number; holder: string } | null;
+  best?: number | null;
+}
+
+/** "Score · record" line under a finished game. */
+export function ScoreLine({ score, unit, record, best }: { score: number | null; unit: string; record?: { score: number; holder: string } | null; best?: number | null }) {
+  if (score === null) return null;
+  const newRecord = !record || score > record.score;
+  const newBest = best === null || best === undefined || score > best;
+  return <p className="mini-game__score-line" data-record={newRecord}>
+    <b>{score} {unit}</b>
+    {newRecord ? <span>Nouveau record de la compagnie !</span>
+      : newBest ? <span>Record perso · la compagnie : {record!.score} {unit} ({record!.holder})</span>
+      : <span>Record : {record!.score} {unit} ({record!.holder})</span>}
+  </p>;
 }

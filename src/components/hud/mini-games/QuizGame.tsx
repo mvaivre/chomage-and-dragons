@@ -7,13 +7,14 @@ import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { QUIZ, dealQuiz, quizPassed } from "@/lib/game/personality-quiz";
 import { ActionArtwork } from "../Artwork";
-import { MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { quizScore } from "@/lib/game/scores";
 
 type QuizStatus = "ready" | "question" | "reveal" | "won" | "lost";
 const SILENCE = "Le silence, c’est non.";
 
 /** Five questions, one corporate answer each, a few seconds to find it. */
-export function QuizGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const [questions] = useState(() => dealQuiz(seedFrom(seedId)));
   const [status, setStatus] = useState<QuizStatus>("ready");
   const [index, setIndex] = useState(0);
@@ -32,24 +33,28 @@ export function QuizGame({ seedId, onResolve, onDone, practice }: MiniGameProps)
   useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
   const later = (ms: number, run: () => void) => { timeouts.current.push(window.setTimeout(run, ms)); };
 
-  const settle = useCallback((result: MiniGameResult) => {
+  const [points, setPoints] = useState<number | null>(null);
+  const spare = useRef(0);
+  const settle = useCallback((result: MiniGameResult, score?: number) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
-    onResolve(result);
+    if (score !== undefined) setPoints(score);
+    onResolve(result, score);
   }, [onResolve]);
 
   const finish = useCallback((score: number) => {
     const passed = quizPassed(score);
     if (passed) sfx.win(); else sfx.sad();
     setStatus(passed ? "won" : "lost");
-    settle(passed ? "won" : "lost");
+    settle(passed ? "won" : "lost", quizScore(score, spare.current));
   }, [settle]);
 
   const answer = useCallback((choice: number | null) => {
     if (status !== "question") return;
     const good = choice === question.correct;
     const score = correct + (good ? 1 : 0);
+    if (good) spare.current += Math.max(0, (deadline.current - performance.now()) / 1000);
     setChosen(choice);
     if (good) sfx.pass(); else sfx.hit();
     setCorrect(score);
@@ -103,7 +108,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice }: MiniGameProps)
       <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }} /></span>
       <span className="mini-game__score"><b>{correct}</b> ✓ sur {QUIZ.needed} requises</span>
     </>}
-    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><span>{won ? `Recul réduit d’un pas grâce au mensonge` : "Le recul prévu. Rien de plus."}</span></> :
+    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><span>{won ? `Recul réduit d’un pas grâce au mensonge` : "Le recul prévu. Rien de plus."}</span><ScoreLine score={points} unit="pts" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${QUIZ.needed} bonnes réponses sur ${QUIZ.questions}` : status === "reveal" && aside ? `Le recruteur : « ${aside} »` : "La bonne réponse est celle du recruteur, pas la tienne."}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",

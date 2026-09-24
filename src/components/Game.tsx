@@ -35,6 +35,8 @@ import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { Chronicle } from "@/components/hud/Chronicle";
+import { DailyChallenge } from "@/components/hud/DailyChallenge";
+import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
 import type { CheerEmoji, Cheer, GameEvent } from "@/lib/data/types";
@@ -46,6 +48,7 @@ import { fx } from "@/components/game/fx";
 import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
 import { sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
+import { groupRecord, personalBest } from "@/lib/game/scores";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
@@ -154,6 +157,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     casts,
     cheers,
     cheer,
+    miniGames,
+    daily,
+    recordDaily,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -222,6 +228,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [chronicleOpen, setChronicleOpen] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
+  // Today's challenge: the same game and course for everyone in the group.
+  const today = zurichDay();
+  const todayGame = useMemo(() => dailyChallenge(today), [today]);
+  const [dailyOpen, setDailyOpen] = useState(false);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
   const chestAnimationId = useRef<string | null>(null);
@@ -460,6 +470,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
     return () => window.clearTimeout(timer);
   }, [news]);
 
+  /** The group's record for a game, named, to show what to beat. */
+  const recordFor = useCallback((kind: MiniGameKind) => {
+    const best = groupRecord(miniGames, kind);
+    if (!best || best.score === undefined) return null;
+    return { score: best.score, holder: players.find((p) => p.id === best.playerId)?.name ?? "?" };
+  }, [miniGames, players]);
+
   const handleCheer = useCallback((eventId: string, emoji: CheerEmoji) => {
     if (!me) return;
     cheer(me.id, eventId, emoji);
@@ -571,9 +588,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, schedule],
   );
 
-  const handleMiniGameResult = useCallback((result: MiniGameResult) => {
+  const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
     if (!miniGameOffer || !me) return;
-    const { changed, chestGame } = finishMiniGame(miniGameOffer.attemptId, result);
+    const { changed, chestGame } = finishMiniGame(miniGameOffer.attemptId, result, score);
     if (!changed) return;
     setMiniGameOffer(offer => offer ? { ...offer, resolved: true } : null);
     if (result !== "won") return;
@@ -759,7 +776,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || chronicleOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={overview || registerOpen || chronicleOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me && !overview)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -914,7 +931,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {news.length && !chronicleOpen ? <div className="news-stack" aria-live="polite">
         {news.map((item) => <NewsToast key={item.id} item={item} players={players} onOpen={() => { setNews([]); setChronicleOpen(true); }} />)}
       </div> : null}
-      {chronicleOpen ? <Chronicle events={events} players={players} cheers={cheers} meId={identity} onCheer={handleCheer} onClose={() => setChronicleOpen(false)} /> : null}
+      {chronicleOpen ? <Chronicle events={events} players={players} cheers={cheers} meId={identity} onCheer={handleCheer} onClose={() => setChronicleOpen(false)}
+        daily={<DailyChallenge kind={todayGame.kind} runs={dailyRanking(daily, today)} players={players} meId={identity} onPlay={() => { setChronicleOpen(false); setDailyOpen(true); }} />} /> : null}
+      {dailyOpen && me ? <MiniGame key={todayGame.seedId} kind={todayGame.kind} seedId={todayGame.seedId}
+        record={(() => { const top = dailyRanking(daily, today)[0]; return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
+        onResolve={(result, score) => { if (result !== "skipped" && score !== undefined) recordDaily(me.id, today, todayGame.kind, score); }}
+        onDone={() => { setDailyOpen(false); setChronicleOpen(true); }} /> : null}
       {recap && me && !chronicleOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} onOpen={() => { setRecap(null); setChronicleOpen(true); }} /> : null}
 
@@ -946,10 +968,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
       ) : null}
 
       {devMiniGame ? <MiniGame key={devMiniGame.seed} kind={devMiniGame.kind} seedId={devMiniGame.seed} practice onResolve={() => {}} onDone={() => setDevMiniGame(null)} /> :
-        inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action}
+        inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)}
           onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
           onPass={handlePassMiniGame} /> :
-        miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone} /> : null}
+        miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
+          record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
 
       {shotInbox ? (
         <ShotInbox

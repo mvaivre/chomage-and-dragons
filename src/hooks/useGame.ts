@@ -7,6 +7,7 @@ import type {
   ActionKind,
   GameState,
   CheerEmoji,
+  MiniGameKind,
   MiniGameResult,
   PowerKind,
 } from "@/lib/data/types";
@@ -155,8 +156,8 @@ export function useGame(mode: GameMode = LOCAL) {
   }, [state, commit]);
 
   /** Returns whether anything changed, and a newly crossed chest's slot-machine offer. */
-  const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult) => {
-    return commit(state, { type: "finishMiniGame", attemptId, result }, freshContext()).result;
+  const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult, score?: number) => {
+    return commit(state, { type: "finishMiniGame", attemptId, result, ...(score !== undefined ? { score } : {}) }, freshContext()).result;
   }, [state, commit]);
 
   const castPower = useCallback(
@@ -190,6 +191,11 @@ export function useGame(mode: GameMode = LOCAL) {
     const context = freshContext();
     const applied = commit(state, { type: "addPlayer", name, characterId }, context, pin ? { pin } : {});
     return applied.result.player ? context.id() : null;
+  }, [state, commit]);
+
+  /** Today's challenge run: once per friend and per day, on that day's game. */
+  const recordDaily = useCallback((playerId: string, day: string, kind: MiniGameKind, score: number) => {
+    commit(state, { type: "dailyRun", playerId, day, kind, score }, freshContext());
   }, [state, commit]);
 
   /** A friend's cheer on someone else's action; the same emoji twice takes it back. */
@@ -305,6 +311,8 @@ export function useGame(mode: GameMode = LOCAL) {
     events: state.events,
     casts: state.casts,
     cheers: state.cheers ?? [],
+    daily: state.daily ?? [],
+    recordDaily,
     miniGames: state.miniGames ?? [],
     cheer,
     monthKeyNow,

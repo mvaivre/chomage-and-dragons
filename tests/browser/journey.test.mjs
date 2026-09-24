@@ -479,4 +479,43 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.deepEqual(errors, []);
     } finally { await host.close(); await guest.close(); }
   });
+
+  await t.test('the daily challenge is played once, ranked, and scores become records', async () => {
+    const { context, page, errors } = await fixture(0);
+    try {
+      await page.locator('.chronicle-button').click();
+      await page.locator('.daily__play').click();
+      const dialog = page.locator('dialog[open].mini-game');
+      await dialog.waitFor();
+      // Whatever today's game is, leaving it records nothing and keeps the chance.
+      await page.getByRole('button', { name: 'Fermer le mini-jeu' }).click();
+      await page.locator('.daily__play').waitFor();
+      // A played game stores its score on the attempt: the record shows on the next invitation.
+      await page.locator('.chronicle__close').click();
+      await page.locator('.action-button--refus').click();
+      await playGame(page);
+      await page.getByRole('button', {name: 'Lancer le tapis'}).click();
+      await page.evaluate(() => new Promise(resolve => {
+        const arena = document.querySelector('.mini-game__arena');
+        let warmUp = 2;
+        const loop = () => {
+          const { status, next, armed } = arena.dataset;
+          if (status === 'won' || status === 'lost') return resolve(status);
+          if (warmUp-- <= 0 && next && Math.abs(Number(next)) <= 12 && armed === 'true') arena.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      }));
+      await page.locator('.mini-game__score-line[data-record="true"]').waitFor();
+      await page.getByRole('button', {name: 'Continuer le voyage'}).click();
+      await ready(page);
+      const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')));
+      assert.ok(saved.miniGames[0].score > 0, 'the attempt keeps its score');
+      await page.locator('.action-button--refus').click();
+      await page.locator('.mini-game-invite__record').waitFor();
+      assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record à battre : \d+ pts · Mika/);
+      await page.locator('.mini-game-invite__pass').click();
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
 });

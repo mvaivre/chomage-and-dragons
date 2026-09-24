@@ -7,7 +7,8 @@ import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { GHOSTING, generateGhosting, ghostingPhase, ghostingVerdict, waitingDay, type GhostingPhase } from "@/lib/game/ghosting";
 import { PowerArtwork } from "../Artwork";
-import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { ghostingScore } from "@/lib/game/scores";
 
 type GhostingStatus = "ready" | GhostingPhase | "won" | "lost";
 type Loss = "early" | "late";
@@ -26,7 +27,7 @@ const REAL_MESSAGE = "Bonne nouvelle : vous avez été sélectionné·e ! Confir
  * type, several times. One button, one rule: press Répondre only when the
  * golden message has landed, and within the window.
  */
-export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function GhostingGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const [schedule] = useState(() => generateGhosting(seedFrom(seedId)));
   const [status, setStatus] = useState<GhostingStatus>("ready");
   const [day, setDay] = useState(1);
@@ -47,11 +48,13 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
 
   useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
 
-  const settle = useCallback((result: MiniGameResult) => {
+  const [points, setPoints] = useState<number | null>(null);
+  const settle = useCallback((result: MiniGameResult, score?: number) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
-    onResolve(result);
+    if (score !== undefined) setPoints(score);
+    onResolve(result, score);
     timeouts.current.push(window.setTimeout(() => setRevealed(true), 1100));
   }, [onResolve]);
 
@@ -60,7 +63,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
     sfx.sad();
     setLoss(why);
     setStatus("lost");
-    settle("lost");
+    settle("lost", 0);
   }, [settle]);
 
   // The wait: a frame loop tracking visible time and the recruiter's typing bursts.
@@ -94,7 +97,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
   const reply = useCallback(() => {
     if (!waiting) return;
     const verdict = ghostingVerdict(schedule, elapsed.current);
-    if (verdict === "won") { running.current = false; sfx.win(); setStatus("won"); settle("won"); }
+    if (verdict === "won") { running.current = false; sfx.win(); setStatus("won"); settle("won", ghostingScore(elapsed.current - schedule.messageAt)); }
     else lose(verdict);
   }, [waiting, schedule, settle, lose]);
 
@@ -125,7 +128,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice }: MiniGamePr
       <span className="mini-game__progress"><span style={{ width: `${Math.min(100, day * GHOSTING.msPerDay / GHOSTING.messageAt[1] * 100)}%` }} /></span>
       <span className="mini-game__score">Fenêtre : <b>{GHOSTING.windowMs / 1000} s</b></span>
     </>}
-    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span></> :
+    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={points} unit="pts" record={record} best={best} /></> :
       <span>{status === "ready" ? "Une seule tentative · un seul vrai message · encadré doré" : status === "typing" ? "Il écrit… ou il fait semblant. N’appuie pas." : hot ? "MAINTENANT !" : "Silence. N’appuie pas."}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Réponds dans le chat ↑",

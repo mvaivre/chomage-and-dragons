@@ -6,7 +6,8 @@ import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { RAIN, createRainSim, rainAutopilot, startRain, steerBasket, stepRain, wordScreenX, wordWidth, type RainEvent, type RainSim, type RainStatus } from "@/lib/game/keyword-rain";
-import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { keywordsScore } from "@/lib/game/scores";
 import { pointerToLogical, useArenaCanvas, type ArenaView } from "./useArenaCanvas";
 
 const INK = "#28241a";
@@ -94,7 +95,7 @@ function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) 
 }
 
 /** The keyword rain: drag the CV under the words the ad asked for. */
-export function KeywordsGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const [sim] = useState<RainSim>(() => createRainSim(seedFrom(seedId)));
   const resolved = useRef<MiniGameResult | null>(null);
   const [phase, setPhase] = useState<"play" | "result">("play");
@@ -107,12 +108,15 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice }: MiniGamePr
   const bonus = MINI_GAME_BONUS.candidature;
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  const [score, setScore] = useState<number | null>(null);
   const settle = useCallback((result: MiniGameResult) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
-    onResolve(result);
-  }, [onResolve]);
+    const points = result === "skipped" ? undefined : keywordsScore(sim);
+    if (points !== undefined) setScore(points);
+    onResolve(result, points);
+  }, [onResolve, sim]);
   const settleRef = useRef(settle);
   useEffect(() => { settleRef.current = settle; }, [settle]);
   const timeouts = useRef<number[]>([]);
@@ -186,7 +190,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice }: MiniGamePr
         {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{word}</span>)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span></> :
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="pts" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${RAIN.required} mots à attraper · ${RAIN.badAllowed} faute tolérée` :
         status === "running" ? (bad > 0 ? "Le robot fronce ses diodes. Plus de faute !" : "Glisse sur l’image, ou flèches ← →") : won ? "Le robot tamponne…" : "Le robot déchiquette…"}</span>}
     primary={{

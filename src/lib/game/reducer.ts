@@ -1,4 +1,5 @@
-import type { ActionKind, Cheer, CheerEmoji, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import type { ActionKind, Cheer, CheerEmoji, DailyRun, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import { dailyChallenge } from "@/lib/game/daily";
 
 export const CHEER_EMOJIS: readonly CheerEmoji[] = ["👏", "🍺", "🔥", "😂", "🫂"];
 import { CHARACTERS } from "@/lib/game/characters";
@@ -15,14 +16,15 @@ import { journeyProgress } from "@/lib/game/scoring";
 
 export type GameAction =
   | { type: "addEvent"; playerId: string; kind: ActionKind }
-  | { type: "finishMiniGame"; attemptId: string; result: MiniGameResult }
+  | { type: "finishMiniGame"; attemptId: string; result: MiniGameResult; score?: number }
   | { type: "castPower"; playerId: string; targetPlayerId: string; kind: PowerKind; slot: number }
   | { type: "markCastSeen"; castId: string }
   | { type: "settleShots"; castIds: string[] }
   | { type: "undoLast"; playerId: string; kind?: ActionKind }
   | { type: "addPlayer"; name: string; characterId: string }
   | { type: "removePlayer"; playerId: string }
-  | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji };
+  | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji }
+  | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score: number };
 
 export interface ActionContext {
   /** A fresh identifier for anything the action creates. */
@@ -46,6 +48,7 @@ export interface ActionResults {
   addPlayer: { player: Player | null; rejected?: string };
   removePlayer: { rejected?: string };
   cheer: { cheer: Cheer | null; rejected?: string };
+  dailyRun: { run: DailyRun | null; rejected?: string };
 }
 
 export type ActionResult<A extends GameAction> = ActionResults[A["type"]];
@@ -82,7 +85,7 @@ function addEvent(state: GameState, action: Extract<GameAction, { type: "addEven
 }
 
 function finishMiniGame(state: GameState, action: Extract<GameAction, { type: "finishMiniGame" }>) {
-  const resolved = resolveMiniGame(state, action.attemptId, action.result);
+  const resolved = resolveMiniGame(state, action.attemptId, action.result, action.score);
   if (resolved === state) return { state, result: { changed: false, chestGame: null } };
   const attempt = resolved.miniGames?.find((a) => a.id === action.attemptId);
   const crossed = attempt ? reserveCrossedChest(state, resolved, attempt.playerId, attempt.eventId) : { state: resolved, chestGame: null };
@@ -157,6 +160,25 @@ function cheer(state: GameState, action: Extract<GameAction, { type: "cheer" }>,
   return { state: { ...state, cheers: [...others, created] }, result: { cheer: created } };
 }
 
+/** One run per friend and per day, on that day's game; the first score stands. */
+function dailyRun(state: GameState, action: Extract<GameAction, { type: "dailyRun" }>, context: ActionContext) {
+  if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { run: null, rejected: "unknown player" } };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(action.day)) return { state, result: { run: null, rejected: "bad day" } };
+  if (dailyChallenge(action.day).kind !== action.kind) return { state, result: { run: null, rejected: "not today's game" } };
+  if (!Number.isFinite(action.score) || action.score < 0 || action.score > 100_000) return { state, result: { run: null, rejected: "bad score" } };
+  if (state.daily?.some((run) => run.day === action.day && run.playerId === action.playerId)) return { state, result: { run: null, rejected: "already played today" } };
+  const run: DailyRun = { id: context.id(), day: action.day, playerId: action.playerId, kind: action.kind, score: Math.round(action.score), at: context.now() };
+  // Only the last five weeks are kept: the daily is about today.
+  const recent = (state.daily ?? []).filter((r) => r.day > shiftDay(action.day, -35));
+  return { state: { ...state, daily: [...recent, run] }, result: { run } };
+}
+
+function shiftDay(day: string, days: number): string {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
 function removePlayer(state: GameState, action: Extract<GameAction, { type: "removePlayer" }>) {
   if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { rejected: "unknown player" } };
@@ -167,6 +189,7 @@ function removePlayer(state: GameState, action: Extract<GameAction, { type: "rem
       events: state.events.filter((e) => e.playerId !== action.playerId),
       casts: state.casts.filter((cast) => cast.playerId !== action.playerId && cast.targetPlayerId !== action.playerId),
       miniGames: state.miniGames?.filter((attempt) => attempt.playerId !== action.playerId),
+      daily: state.daily?.filter((run) => run.playerId !== action.playerId),
       cheers: state.cheers?.filter((c) => c.playerId !== action.playerId && state.events.some((e) => e.id === c.eventId && e.playerId !== action.playerId)),
     },
     result: {},
@@ -184,5 +207,6 @@ export function applyAction<A extends GameAction>(state: GameState, action: A, c
     case "addPlayer": return addPlayer(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "removePlayer": return removePlayer(state, action) as { state: GameState; result: ActionResult<A> };
     case "cheer": return cheer(state, action, context) as { state: GameState; result: ActionResult<A> };
+    case "dailyRun": return dailyRun(state, action, context) as { state: GameState; result: ActionResult<A> };
   }
 }

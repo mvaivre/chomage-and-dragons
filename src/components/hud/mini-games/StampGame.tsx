@@ -6,7 +6,8 @@ import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
 import { DESK, beltSpeed, createDeskSim, deskAutopilot, dossierScreenX, nextDossier, slamStamp, stampedCount, stepDesk, type DeskEvent, type DeskSim, type DeskStatus } from "@/lib/game/stamp-desk";
-import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { stampScore } from "@/lib/game/scores";
 import { loadImage, useArenaCanvas, type ArenaView } from "./useArenaCanvas";
 
 const GNOME_SHEET = "/art/world-v3/animations/gnomes.webp";
@@ -126,7 +127,7 @@ function drawDesk(ctx: CanvasRenderingContext2D, sim: DeskSim, fx: DeskFx, view:
 }
 
 /** The regional office's stamping desk: tap when a folder sits under the stamp. */
-export function StampGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function StampGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const [sim] = useState<DeskSim>(() => createDeskSim(seedFrom(seedId)));
   const fx = useRef<DeskFx>({ gnomeMood: "bored", moodUntil: 0, splats: [], lateAt: -Infinity });
   const sheet = useRef<HTMLImageElement | null>(null);
@@ -143,12 +144,15 @@ export function StampGame({ seedId, onResolve, onDone, practice }: MiniGameProps
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { loadImage(GNOME_SHEET, image => { sheet.current = image; }); }, []);
 
+  const [score, setScore] = useState<number | null>(null);
   const settle = useCallback((result: MiniGameResult) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
-    onResolve(result);
-  }, [onResolve]);
+    const points = result === "skipped" ? undefined : stampScore(sim);
+    if (points !== undefined) setScore(points);
+    onResolve(result, points);
+  }, [onResolve, sim]);
   const settleRef = useRef(settle);
   useEffect(() => { settleRef.current = settle; }, [settle]);
 
@@ -228,7 +232,7 @@ export function StampGame({ seedId, onResolve, onDone, practice }: MiniGameProps
         {Array.from({ length: DESK.missesAllowed }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < misses} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de refus + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span></> :
+    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de refus + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="pts" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${DESK.dossiers} dossiers · ${DESK.missesAllowed} ratés tolérés` :
         status === "running" ? (misses > 0 ? `Le gnome : « ${GRUMBLES[(misses - 1) % GRUMBLES.length]} »` : "Touche l’image, Espace ou Entrée") : won ? "Le gnome relit tout…" : "Le gnome sort le formulaire de suspension…"}</span>}
     primary={{

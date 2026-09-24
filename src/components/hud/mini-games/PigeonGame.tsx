@@ -10,7 +10,8 @@ import {
   COURSE, courseSeed, createPigeonSim, flapPigeon, pigeonSpeed, pigeonTargetY, stepPigeon, towersPassed,
   type PigeonEvent, type PigeonSim, type PigeonStatus,
 } from "@/lib/game/pigeon-flight";
-import { ACTION_KEYS, MiniGameShell, type MiniGameProps } from "./MiniGameShell";
+import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
+import { pigeonScore } from "@/lib/game/scores";
 import { createFx, drawPigeonScene, GROUND_Y, pigeonScreenX, spawnParticles, updateParticles, type SceneAssets, type SceneView } from "./pigeon-scene";
 
 const FAR_LAYER = "/art/world-v3/runtime/plaine-far.webp";
@@ -21,7 +22,7 @@ const FAR_LAYER = "/art/world-v3/runtime/plaine-far.webp";
  * towers, reach the mailbox. Touch, mouse, Space and Enter all flap; the
  * simulation lives in pigeon-flight.ts and the drawing in pigeon-scene.ts.
  */
-export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProps) {
+export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
   const arena = useRef<HTMLButtonElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const progress = useRef<HTMLSpanElement>(null);
@@ -57,13 +58,16 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
   useEffect(() => { reduced.current = reducedMotion; }, [reducedMotion]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
+  const [score, setScore] = useState<number | null>(null);
   const settle = useCallback((result: MiniGameResult) => {
     if (resolved.current) return;
     resolved.current = result;
     setOutcome(result);
+    const points = result === "skipped" ? undefined : pigeonScore(sim);
+    if (points !== undefined) setScore(points);
     // Save before the landing animation, so reloading cannot replay the attempt.
-    onResolve(result);
-  }, [onResolve]);
+    onResolve(result, points);
+  }, [onResolve, sim]);
   const settleRef = useRef(settle);
   useEffect(() => { settleRef.current = settle; }, [settle]);
 
@@ -213,7 +217,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
         {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span></> :
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="m" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${COURSE.towers} tours · ${COURSE.feathers} plumes` :
         status === "flying" ? `${feathers} plume${feathers > 1 ? "s" : ""} · Touche l’image, Espace ou Entrée` : won ? "Livraison en cours…" : "Atterrissage forcé…"}</span>}
     primary={{
