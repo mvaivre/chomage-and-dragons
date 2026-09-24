@@ -405,3 +405,31 @@ test('the world follows the time of day in Zurich', () => {
     previous = next;
   }
 });
+
+const { taleFor, TALES, TALE_CHANCE } = await import('../src/lib/game/tales.ts');
+const { weeklyStreak, weekKey } = await import('../src/lib/game/streak.ts');
+test('tales are rare, stable per action and fit the action they follow', () => {
+  let told = 0;
+  for (let i = 0; i < 4000; i++) {
+    const kind = ['candidature', 'refus', 'entretien', 'rejetApresEntretien'][i % 4];
+    const tale = taleFor({ id: `e${i}`, kind });
+    if (!tale) continue;
+    told++;
+    assert.ok(!tale.after || tale.after.includes(kind), `${tale.id} after ${kind}`);
+  }
+  assert.ok(Math.abs(told / 4000 - TALE_CHANCE) < 0.02, `share ${told / 4000}`);
+  assert.deepEqual(taleFor({ id: 'x42', kind: 'refus' }), taleFor({ id: 'x42', kind: 'refus' }));
+  assert.equal(taleFor({ id: 'x42', kind: 'embauche' }), null);
+  assert.equal(new Set(TALES.map(t => t.id)).size, TALES.length);
+});
+
+test('the weekly streak counts Zurich weeks in a row and forgives the current week', () => {
+  assert.equal(weekKey('2026-09-24T10:00:00Z'), '2026-09-21', 'a Thursday belongs to the week of Monday 21');
+  assert.equal(weekKey('2026-09-20T22:30:00Z'), '2026-09-21', 'Sunday 22:30 UTC is already Monday in Zurich');
+  const now = new Date('2026-09-24T10:00:00Z');
+  const at = days => new Date(now.getTime() - days * 86_400_000).toISOString();
+  assert.equal(weeklyStreak([], now), 0);
+  assert.equal(weeklyStreak([{ at: at(0) }, { at: at(7) }, { at: at(14) }], now), 3);
+  assert.equal(weeklyStreak([{ at: at(7) }, { at: at(14) }], now), 2, 'this week is not over yet');
+  assert.equal(weeklyStreak([{ at: at(0) }, { at: at(14) }], now), 1, 'a missed week breaks it');
+});

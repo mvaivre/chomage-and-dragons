@@ -36,6 +36,7 @@ import { SoundToggle } from "@/components/hud/SoundToggle";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { Chronicle } from "@/components/hud/Chronicle";
 import { DailyChallenge } from "@/components/hud/DailyChallenge";
+import { Album } from "@/components/hud/Album";
 import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
@@ -49,6 +50,8 @@ import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
 import { sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
+import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
+import { weeklyStreak } from "@/lib/game/streak";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
@@ -95,6 +98,14 @@ function forcedVariant(kind: ActionKind) {
   const params = new URLSearchParams(window.location.search);
   const id = params.has("debug") ? params.get("variant") : null;
   return id ? VARIANTS[kind].find((variant) => variant.id === id) ?? null : null;
+}
+
+/** Diagnostics only: `?debug&tale=boss` tells a tale of that kind after the next action. */
+function forcedTale() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const kind = params.has("debug") ? params.get("tale") : null;
+  return kind ? TALES.find((tale) => tale.kind === kind) ?? null : null;
 }
 
 /** Every staging the scene knows, to guard against a variant without a choreography. */
@@ -195,6 +206,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [hudTiming, setHudTiming] = useState<HudTiming | null>(null);
   const momentTimers = useRef<number[]>([]);
   const pendingBanner = useRef<{ kicker: string; title: string } | null>(null);
+  const pendingTale = useRef<ReturnType<typeof taleFor>>(null);
   const lastAction = useRef<ActionKind | null>(null);
   const schedule = useCallback((ms: number, run: () => void) => { momentTimers.current.push(window.setTimeout(run, ms)); }, []);
   const actionInFlight = useRef(false);
@@ -285,6 +297,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
       schedule(350, () => { leanOut(); setMomentActive(false); });
       const banner = pendingBanner.current;
       if (banner) { pendingBanner.current = null; moment.cue({ type: "banner", ...banner }); }
+      const tale = pendingTale.current;
+      if (tale) {
+        pendingTale.current = null;
+        schedule(banner ? 2600 : 500, () => moment.cue({ type: "tale", kind: tale.kind, label: TALE_LABELS[tale.kind], title: tale.title, text: tale.text }));
+      }
       if (lastAction.current === "embauche") {
         lastAction.current = null;
         const hero = scene.heroes.get(playerId);
@@ -483,6 +500,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
     sfx.press();
   }, [me, cheer]);
 
+  const streak = useMemo(() => (me ? weeklyStreak(events.filter((e) => e.playerId === me.id)) : 0), [events, me]);
+
   const seasonRank = useMemo(() => {
     const index = seasonStandings.findIndex((s) => s.playerId === identity);
     return index === -1 ? null : index + 1;
@@ -576,6 +595,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         // Points rise from the hero's shoulder, inside the visible band, then fly to their counter.
         if (POINTS[kind] !== 0) moment.cue({ type: "points", value: POINTS[kind], from: worldToScreen(hero.x - 70, hero.y - 130) });
       });
+      pendingTale.current = forcedTale() ?? taleFor(event);
       pendingBanner.current = beforeZone.id !== afterZone.id
         ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
         : null;
@@ -704,6 +724,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setMomentActive(false);
     setHudTiming(null);
     pendingBanner.current = null;
+    pendingTale.current = null;
     actionInFlight.current = false;
     pendingChestEffect.current = null;
     chestAnimationId.current = null;
@@ -867,7 +888,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={overview} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} />
+              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
               <div className="hud-controls">
                 <PowerDeck
                   me={me}
@@ -952,6 +973,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           meId={identity}
           groupName={groupName}
           inviteUrl={inviteUrl}
+          album={me ? <Album me={me} events={events} miniGames={miniGames} /> : null}
           onAddPlayer={store ? null : addPlayer}
           onRemovePlayer={removePlayer}
           onChangeIdentity={handleChangeIdentity}

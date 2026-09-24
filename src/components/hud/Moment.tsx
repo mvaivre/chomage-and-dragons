@@ -18,7 +18,9 @@ export type MomentCue =
   /** The name of a rare or legendary variant, so the player knows it was special. */
   | { type: "badge"; rarity: "rare" | "legendary"; name: string }
   /** The sky darkens for a storm. */
-  | { type: "shade"; color: string; opacity: number; ms: number };
+  | { type: "shade"; color: string; opacity: number; ms: number }
+  /** A narrative random event, told after the journey. */
+  | { type: "tale"; kind: "luck" | "boss" | "absurd"; label: string; title: string; text: string };
 
 type Listener = (cue: MomentCue) => void;
 const listeners = new Set<Listener>();
@@ -81,6 +83,7 @@ export function MomentOverlay() {
   useEffect(() => {
     const listener: Listener = (cue) => {
       if (cue.type === "banner") sfx.chime();
+      if (cue.type === "tale") { if (cue.kind === "boss") sfx.boom(); else sfx.chime(); }
       if (cue.type === "badge" && cue.rarity === "legendary") sfx.fanfare();
       setLive((items) => [...items, { id: ++nextId, cue }]);
     };
@@ -89,8 +92,18 @@ export function MomentOverlay() {
   }, []);
   const remove = (id: number) => setLive((items) => items.filter((item) => item.id !== id));
 
-  return <div className="moment-layer" aria-hidden>
-    {live.map(({ id, cue }) => {
+  const tales = live.filter(({ cue }) => cue.type === "tale");
+  return <>
+  {/* Tales are read, not glanced at: above the HUD, like notices. */}
+  <div className="moment-top" aria-live="polite">
+    {tales.map(({ id, cue }) => cue.type === "tale" ? <div key={id} className="moment-tale" data-kind={cue.kind} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
+      <small>{cue.label}</small>
+      <strong>{cue.title}</strong>
+      <p>{cue.text}</p>
+    </div> : null)}
+  </div>
+  <div className="moment-layer" aria-hidden>
+    {live.filter(({ cue }) => cue.type !== "tale").map(({ id, cue }) => {
       if (cue.type === "points") return <FlyingPoints key={id} cue={cue} onDone={() => remove(id)} />;
       if (cue.type === "flash") return <div key={id} className="moment-flash" style={{ "--flash": cue.color, "--strength": cue.strength ?? 0.55 } as React.CSSProperties} onAnimationEnd={() => remove(id)} />;
       if (cue.type === "badge") return <div key={id} className="moment-badge" data-rarity={cue.rarity} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
@@ -99,12 +112,14 @@ export function MomentOverlay() {
       </div>;
       if (cue.type === "shade") return <div key={id} className="moment-shade" style={{ "--shade": cue.color, "--opacity": cue.opacity, "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={() => remove(id)} />;
       if (cue.type === "letterbox") return <div key={id} className="moment-letterbox" style={{ "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}><i /><i /></div>;
+      if (cue.type !== "banner") return null;
       return <div key={id} className="moment-banner" onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
         <small>{cue.kicker}</small>
         <strong>{cue.title}</strong>
       </div>;
     })}
-  </div>;
+  </div>
+  </>;
 }
 
 /**

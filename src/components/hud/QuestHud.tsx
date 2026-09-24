@@ -27,14 +27,16 @@ interface QuestHudProps {
   /** Rang dans la saison, 1 pour le/la meneur·euse. */
   seasonRank: number | null;
   timing?: HudTiming | null;
+  /** Weeks in a row with at least one action. */
+  streak?: number;
 }
 
-export function QuestHud({ me, seasonRank, timing = null }: QuestHudProps) {
+export function QuestHud({ me, seasonRank, timing = null, streak = 0 }: QuestHudProps) {
   if (!me) return null;
-  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} />;
+  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} streak={streak} />;
 }
 
-function QuestCard({ me, seasonRank, timing }: { me: PlayerView; seasonRank: number | null; timing: HudTiming | null }) {
+function QuestCard({ me, seasonRank, timing, streak }: { me: PlayerView; seasonRank: number | null; timing: HudTiming | null; streak: number }) {
   // Steps climb while the hero walks; points when the flying number lands.
   const steps = useTween(me.journeySteps, timing?.steps ?? null, sfx.tick);
   const points = useTween(me.score, timing?.points ?? null);
@@ -59,6 +61,7 @@ function QuestCard({ me, seasonRank, timing }: { me: PlayerView; seasonRank: num
           <span className="journey-card__level">
             Niv. {me.level}
           </span>
+          {streak >= 2 ? <span className="journey-card__streak" title={`${streak} semaines d’affilée avec au moins une action`}>🔥 {streak}</span> : null}
         </div>
         <span className="journey-card__mobile-score" data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown} pts</span>
         <p className="journey-card__class">{character.name}</p>

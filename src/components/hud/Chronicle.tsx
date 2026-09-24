@@ -9,6 +9,7 @@ import { stepsForEvent } from "@/lib/game/scoring";
 import { variantFor } from "@/lib/game/variants";
 import { characterById } from "@/lib/game/characters";
 import { ActionArtwork } from "./Artwork";
+import { taleFor } from "@/lib/game/tales";
 
 const TIME = new Intl.RelativeTimeFormat("fr", { numeric: "auto" });
 
@@ -75,6 +76,7 @@ export function Chronicle({ events, players, cheers, meId, onCheer, onClose, dai
                 <span>{relativeTime(event.at)}</span>
                 {player ? <span className="chronicle__class">{characterById(player.characterId).name}</span> : null}
               </p>
+              {(() => { const tale = taleFor(event); return tale ? <p className="chronicle__tale" data-kind={tale.kind}><b>{tale.title}.</b> {tale.text}</p> : null; })()}
               <div className="chronicle__cheers">
                 {counts.map(([emoji, list]) => <span key={emoji} className="chronicle__count" title={list.map((c) => byPlayer.get(c.playerId)?.name ?? "?").join(", ")}>{emoji} {list.length}</span>)}
                 {!own && meId ? <span className="chronicle__react" role="group" aria-label={`Réagir à l’action de ${player?.name ?? "cette personne"}`}>

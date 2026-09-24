@@ -215,6 +215,8 @@ interface OverlayProps {
   /** The group's name and invitation link; both null when the device plays alone. */
   groupName?: string | null;
   inviteUrl?: string | null;
+  /** The viewer's collection, shown under the standings. */
+  album?: React.ReactNode;
   /** Enrolling others from one device only makes sense in solo mode: null in a group. */
   onAddPlayer: ((name: string, characterId: string) => void) | null;
   onRemovePlayer: (id: string) => void;
@@ -233,6 +235,7 @@ export function LeaderboardOverlay({
   meId,
   groupName = null,
   inviteUrl = null,
+  album = null,
   onAddPlayer,
   onRemovePlayer,
   onChangeIdentity,
@@ -319,6 +322,8 @@ export function LeaderboardOverlay({
         </div>
 
         <Collective totals={totals} playerCount={players.length} />
+
+        {album}
 
         <Company
           players={players}
