@@ -38,7 +38,7 @@ export function TavernLife(props: LandmarkProps) {
     const t = time.current;
     if (chicken.current) chicken.current.texture = frames[crownedChickenFrame(t)];
     lamps.current.forEach((lamp, i) => { if (lamp) lamp.rotation = Math.sin(t * 1.4 + i * 2.3) * 0.025; });
-    halos.current.forEach((halo, i) => { if (halo) halo.alpha = 0.8 + Math.sin(t * 5.3 + i) * Math.sin(t * 8.7) * 0.2; });
+    halos.current.forEach((halo, i) => { if (halo) { halo.alpha = 0.8 + Math.sin(t * 5.3 + i) * Math.sin(t * 8.7) * 0.2; halo.scale.set(1 + scene.night * 0.8); } });
     if (flame.current) {
       flame.current.scale.y = 12 / parts.heights[5] * (1 + Math.sin(t * 8.2) * 0.1);
       flame.current.skew.x = Math.sin(t * 5.4) * 0.09;

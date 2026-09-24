@@ -17,6 +17,7 @@ interface Particle {
   phase: number;
   power: number;
   delay: number;
+  ambient: boolean;
 }
 
 interface Bolt extends BoltRequest {
@@ -26,6 +27,7 @@ interface Bolt extends BoltRequest {
 }
 
 const MAX_PARTICLES = 520;
+const MAX_AMBIENT = 60;
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 function jagged(x0: number, y0: number, x1: number, y1: number, segments: number, wander: number): Array<[number, number]> {
@@ -50,6 +52,7 @@ function FxLayerImpl() {
   const pool = useRef<Sprite[]>([]);
   const pending = useRef<Array<BurstRequest & { wait: number }>>([]);
   const liveBolts = useRef<Bolt[]>([]);
+  const ambient = useRef(0);
 
   const spawn = (request: BurstRequest) => {
     const container = root.current;
@@ -57,7 +60,9 @@ function FxLayerImpl() {
     const preset: Preset = PRESETS[request.preset];
     const power = request.power ?? 1;
     const count = scene.reducedMotion ? Math.ceil(request.count / 4) : request.count;
+    if (request.ambient && ambient.current + count > MAX_AMBIENT) return;
     for (let i = 0; i < count && particles.current.length < MAX_PARTICLES; i++) {
+      if (request.ambient) ambient.current += 1;
       const sprite = pool.current.pop() ?? new Sprite();
       sprite.texture = fxTexture(preset.texture);
       sprite.anchor.set(0.5);
@@ -81,6 +86,7 @@ function FxLayerImpl() {
         spin: rand(-preset.spin, preset.spin),
         phase: rand(0, Math.PI * 2),
         delay: 0,
+        ambient: Boolean(request.ambient),
       });
     }
   };
@@ -102,12 +108,14 @@ function FxLayerImpl() {
     }
 
     const live = particles.current;
-    if (live.length || liveBolts.current.length || pending.current.length) markMotion();
+    // Ambient life breathes at the calm frame rate; only effects demand full speed.
+    if (live.length - ambient.current > 0 || liveBolts.current.length || pending.current.some((request) => !request.ambient)) markMotion();
     for (let i = live.length - 1; i >= 0; i--) {
       const p = live[i];
       p.age += dt;
       const t = p.age / p.life;
       if (t >= 1) {
+        if (p.ambient) ambient.current -= 1;
         p.sprite.visible = false;
         pool.current.push(p.sprite);
         live[i] = live[live.length - 1];
@@ -127,7 +135,8 @@ function FxLayerImpl() {
       // Confetti twirl: flip the width with the rotation phase.
       if (p.preset.flutter && p.preset.texture === "square") p.sprite.scale.x *= Math.cos(p.age * 9 + p.phase);
       const fadeIn = Math.min(1, p.age / 0.06);
-      p.sprite.alpha = fadeIn * (p.preset.alpha[0] + (p.preset.alpha[1] - p.preset.alpha[0]) * t) * (t > 0.85 ? (1 - t) / 0.15 : 1);
+      p.sprite.alpha = fadeIn * (p.preset.alpha[0] + (p.preset.alpha[1] - p.preset.alpha[0]) * t) * (t > 0.85 ? (1 - t) / 0.15 : 1)
+        * (p.preset.blink ? 0.35 + 0.65 * Math.abs(Math.sin(p.age * 2.2 + p.phase)) : 1);
     }
 
     const g = bolts.current;

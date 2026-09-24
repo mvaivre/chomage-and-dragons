@@ -269,6 +269,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     if (stun.current > 0) stun.current = Math.max(0, stun.current - dt / 1.25);
     if (actionTimer.current > 0) actionTimer.current = Math.max(0, actionTimer.current - dt);
     if (moving || actionTimer.current > 0 || stun.current > 0) markMotion();
+    if (isFocused && moving) scene.walkingUntil = performance.now() + 300;
     if (!previewMotion) scene.heroes.set(player.id, { x: at.current, y: surfaceAt(at.current) + 4 + lane.dy });
 
     const hop = moving && !scene.reducedMotion ? Math.sin(strideProgress * Math.PI) * (character.id === "skater" ? 0 : 2) : 0;

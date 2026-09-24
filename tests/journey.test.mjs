@@ -389,3 +389,19 @@ test('variants are drawn from the event id with the promised rarity odds', () =>
   assert.equal(seen.size, VARIANTS.refus.length, 'every variant can happen');
   assert.deepEqual(variantFor('abc', 'candidature'), variantFor('abc', 'candidature'), 'the same event shows the same variant everywhere');
 });
+
+const { daylightAt, zurichHour } = await import('../src/lib/game/daylight.ts');
+test('the world follows the time of day in Zurich', () => {
+  assert.equal(zurichHour(new Date('2026-09-24T20:30:00Z')), 22.5, 'Zurich is two hours ahead in summer');
+  assert.equal(zurichHour(new Date('2026-12-24T20:30:00Z')), 21.5, 'and one in winter');
+  assert.ok(daylightAt(23).night > 0.99 && daylightAt(3).night > 0.99, 'night');
+  assert.ok(daylightAt(13).night < 0.01 && daylightAt(13).warm < 0.01, 'plain day at noon');
+  assert.ok(daylightAt(19.6).warm > 0.99, 'golden evening');
+  assert.ok(daylightAt(6.5).warm > 0.99, 'warm dawn');
+  let previous = daylightAt(0);
+  for (let hour = 0.25; hour <= 24; hour += 0.25) {
+    const next = daylightAt(hour);
+    assert.ok(Math.abs(next.night - previous.night) < 0.3 && Math.abs(next.warm - previous.warm) < 0.3, `smooth at ${hour}`);
+    previous = next;
+  }
+});

@@ -144,6 +144,27 @@ function hiss(opts: NoiseOptions): void {
 
 const NOTE = (semitones: number) => 523.25 * Math.pow(2, semitones / 12);
 
+/**
+ * Creating an AudioContext costs a couple of hundred milliseconds on some
+ * systems. Browsers allow it on the first user gesture anywhere on the page,
+ * so do it then, when nothing is animating, instead of on the first action.
+ */
+export function warmUpAudio(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const warm = () => {
+    remove();
+    // Let the gesture's own work finish first.
+    window.setTimeout(() => {
+      const a = audio();
+      if (a) whiteNoise(a.ctx);
+    }, 0);
+  };
+  const events = ["pointerdown", "keydown", "touchstart"] as const;
+  const remove = () => events.forEach((name) => window.removeEventListener(name, warm, true));
+  events.forEach((name) => window.addEventListener(name, warm, { capture: true, passive: true }));
+  return remove;
+}
+
 let lastTick = 0;
 
 /** The game's sound palette. Each call is fire-and-forget and silent when muted. */

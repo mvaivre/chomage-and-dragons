@@ -117,6 +117,8 @@ export interface Preset {
   flutter?: number;
   colors: number[];
   additive?: boolean;
+  /** Pulsing light, for fireflies and embers. */
+  blink?: boolean;
 }
 
 export const PRESETS = {
@@ -130,6 +132,12 @@ export const PRESETS = {
   letters: { texture: "letter", speed: [180, 480], angle: -Math.PI / 2, spread: 1.4, gravity: 560, drag: 0.3, life: [1.8, 2.6], size: [34, 34], aspect: 1.4, alpha: [1, 1], spin: 6, flutter: 40, colors: [0xffffff] },
   letterRain: { texture: "letter", speed: [20, 90], angle: Math.PI / 2, spread: 0.6, gravity: 220, drag: 0.4, life: [2.4, 3.6], size: [36, 36], aspect: 1.4, alpha: [1, 1], spin: 3, flutter: 80, colors: [0xffffff] },
   firework: { texture: "spark", speed: [260, 520], angle: 0, spread: Math.PI, gravity: 180, drag: 0.8, life: [0.9, 1.5], size: [20, 6], alpha: [1, 0], spin: 4, colors: [0xffffff], additive: true },
+  leaves: { texture: "feather", speed: [20, 60], angle: Math.PI / 2, spread: 0.6, gravity: 28, drag: 0.6, life: [5, 7], size: [18, 18], aspect: 0.45, alpha: [1, 1], spin: 2, flutter: 60, colors: [0x9fae52, 0xc9a13b, 0xb86a2e, 0x7c9a3a] },
+  snow: { texture: "dot", speed: [20, 50], angle: Math.PI / 2, spread: 0.4, gravity: 18, drag: 0.7, life: [6, 8], size: [8, 8], alpha: [0.95, 0.9], spin: 0, flutter: 35, colors: [0xffffff, 0xeaf2ff] },
+  pollen: { texture: "dot", speed: [5, 20], angle: -Math.PI / 2, spread: Math.PI, gravity: -3, drag: 0.8, life: [5, 8], size: [6, 6], alpha: [0.8, 0.8], spin: 0, flutter: 25, colors: [0xfff6c8, 0xffffff] },
+  fireflies: { texture: "dot", speed: [8, 25], angle: -Math.PI / 2, spread: Math.PI, gravity: 0, drag: 0.85, life: [4, 7], size: [22, 22], alpha: [1, 1], spin: 0, flutter: 30, colors: [0xeaff9a, 0xfff6a8], additive: true, blink: true },
+  sand: { texture: "dot", speed: [140, 220], angle: Math.PI, spread: 0.15, gravity: 10, drag: 0.95, life: [2.5, 4], size: [6, 6], alpha: [0.8, 0.5], spin: 0, colors: [0xe0c690, 0xcfae72] },
+  embers: { texture: "spark", speed: [20, 60], angle: -Math.PI / 2, spread: 0.6, gravity: -20, drag: 0.8, life: [2, 3], size: [9, 3], alpha: [1, 0.4], spin: 2, flutter: 20, colors: [0xffb62f, 0xff6a3d], additive: true, blink: true },
   glow: { texture: "dot", speed: [0, 0], angle: 0, spread: 0, gravity: 0, drag: 0, life: [0.5, 0.5], size: [60, 380], alpha: [0.9, 0], spin: 0, colors: [0xfff1bd], additive: true },
   shockwave: { texture: "ring", speed: [0, 0], angle: 0, spread: 0, gravity: 0, drag: 0, life: [0.55, 0.55], size: [30, 420], alpha: [0.95, 0], spin: 0, colors: [0xfff1bd] },
 } satisfies Record<string, Preset>;
@@ -149,6 +157,8 @@ export interface BurstRequest {
   /** Multiply speeds and sizes. */
   power?: number;
   delay?: number;
+  /** Background life: never forces full frame rate, capped in number. */
+  ambient?: boolean;
 }
 
 export interface BoltRequest {

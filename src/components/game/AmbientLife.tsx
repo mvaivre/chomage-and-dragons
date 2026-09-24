@@ -33,9 +33,11 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
     if (!scene.reducedMotion) time.current += Math.min(ticker.deltaMS, 60) / 1000;
     const t = time.current;
     const sequence = RESIDENT_FRAMES[kind];
-    node.texture = frames[kind === 2 ? gnomeFrame(variant, t) : kind * 4 + sequence[Math.floor(t * (kind === 1 ? 7 : 2)) % sequence.length]];
+    // Gnomes raise their mug, or hop with their broom, as your hero walks past.
+    const cheering = kind === 2 && !scene.reducedMotion && performance.now() < scene.walkingUntil && Math.abs(x - (scene.focus - scene.camera.x)) < 240;
+    node.texture = frames[kind === 2 ? (cheering ? (variant === 1 ? 4 : 2 + (Math.floor(t * 3.3) % 2)) : gnomeFrame(variant, t)) : kind * 4 + sequence[Math.floor(t * (kind === 1 ? 7 : 2)) % sequence.length]];
     node.x = worldX * factor + (kind === 1 ? Math.sin(t * 0.22) * 180 : kind === 0 ? Math.sin(t * 0.3) * 18 : 0);
-    node.y = WALKABLE_GROUND_Y + (kind === 1 ? -210 + Math.sin(t * 0.8) * 12 : kind === 2 ? 10 : -4);
+    node.y = WALKABLE_GROUND_Y + (kind === 1 ? -210 + Math.sin(t * 0.8) * 12 : kind === 2 ? 10 - (cheering ? Math.abs(Math.sin(t * 9)) * 9 : 0) : -4);
     if (kind === 1) node.scale.x = Math.abs(node.scale.x) * (Math.cos(t * 0.22) < 0 ? -1 : 1);
   });
   if (!frames) return null;

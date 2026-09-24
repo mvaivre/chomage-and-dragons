@@ -33,13 +33,14 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
+import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import type { HudTiming } from "@/components/hud/QuestHud";
 import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
 import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
-import { sfx } from "@/lib/client/sound";
+import { sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { PowerArtwork } from "@/components/hud/Artwork";
 import { useGame, type GameMode } from "@/hooks/useGame";
@@ -190,6 +191,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [overview, setOverview] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
+  useEffect(() => warmUpAudio(), []);
 
   // Once the world is up, warm what the next action will need: its reaction art,
   // the loot art, the mini-games' code and images. Actions are rare, so otherwise
@@ -700,6 +702,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       <div className="vignette absolute inset-0 z-[3]" />
       <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
+      <DaylightVeil />
       <MomentOverlay />
 
       {DEV_BUILD && !overview ? (

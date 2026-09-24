@@ -65,6 +65,11 @@ export interface Scene {
   freezeUntil: number;
   slowUntil: number;
   slowScale: number;
+  /** Real time of day in Zurich: 1 in full night, and the warmth of dawn and dusk. */
+  night: number;
+  warm: number;
+  /** Until when the followed hero is walking, for residents that cheer as it passes. */
+  walkingUntil: number;
 }
 
 /** Leaning in on the hero, then back to the travelling frame. */
@@ -141,6 +146,9 @@ export const scene: Scene = {
   freezeUntil: 0,
   slowUntil: 0,
   slowScale: 1,
+  night: 0,
+  warm: 0,
+  walkingUntil: 0,
 };
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */

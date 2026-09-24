@@ -12,7 +12,8 @@ import {
 } from "@/lib/game/world";
 import { markMotion, resetScene, scene } from "./scene";
 import { EffectView, type Effect } from "./Effects";
-import { Sky } from "./Backdrop";
+import { DaylightClock, Sky } from "./Backdrop";
+import { AmbientWeather } from "./AmbientWeather";
 import {
   BiomeArtLayer,
   GROUND_Y,
@@ -288,6 +289,7 @@ function WorldScene({
   return (
     <>
     <RenderLifecycle paused={paused} />
+    <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <Sky />
 
@@ -371,6 +373,7 @@ function WorldScene({
             />
           );
         })}
+        <AmbientWeather />
         <FxLayer />
       </Layer>
     </CameraRig>
