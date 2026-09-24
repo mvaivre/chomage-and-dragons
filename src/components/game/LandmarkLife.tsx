@@ -17,6 +17,12 @@ function inView({ worldX, factor }: LandmarkProps, margin = 800): boolean {
 }
 
 /** All poses and attachments use the clean plate's 960 × 549 coordinate system. */
+/** Lamp halos, drawn once per lamp height. */
+const HALO_DRAWS = [64, 103].map(height => (g: Graphics) => {
+  g.clear();
+  for (let ring = 3; ring > 0; ring--) g.ellipse(0, height * 0.7, height * (0.2 + ring * 0.13), height * (0.28 + ring * 0.12)).fill({ color: 0xffb62f, alpha: 0.035 });
+});
+
 export function TavernLife(props: LandmarkProps) {
   const source = useDirectTexture("/art/world-v3/animations/tavern-life.webp");
   const frames = source ? atlasFrames(source, 4, 2) : null;
@@ -51,10 +57,7 @@ export function TavernLife(props: LandmarkProps) {
     {Array.from({ length: 2 }, (_, i) => <pixiSprite key={`smoke-${i}`} ref={node => { smoke.current[i] = node; }} texture={frames[6]} anchor={{ x: 0.5, y: 312 / 320 }} alpha={0} />)}
     <pixiSprite ref={chicken} texture={frames[0]} x={487} y={309} anchor={{ x: 0.5, y: 312 / 320 }} scale={112 / parts.heights[0]} />
     {[{ x: 365, y: 251, height: 64 }, { x: 712, y: 171, height: 103 }].map(({ x, y, height }, i) => <pixiContainer key={i} ref={node => { lamps.current[i] = node; }} x={x} y={y}>
-      <pixiGraphics ref={node => { halos.current[i] = node; }} draw={g => {
-        g.clear();
-        for (let ring = 3; ring > 0; ring--) g.ellipse(0, height * 0.7, height * (0.2 + ring * 0.13), height * (0.28 + ring * 0.12)).fill({ color: 0xffb62f, alpha: 0.035 });
-      }} />
+      <pixiGraphics ref={node => { halos.current[i] = node; }} draw={HALO_DRAWS[i]} />
       <pixiSprite texture={frames[4]} anchor={{ x: 0.5, y: (312 - parts.heights[4]) / 320 }} scale={height / parts.heights[4]} />
     </pixiContainer>)}
     {/* The outside table is hidden by the verge; animate the visible doorway candle. */}

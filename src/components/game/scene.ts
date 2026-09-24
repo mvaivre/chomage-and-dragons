@@ -46,6 +46,20 @@ export interface Scene {
   exploreCenter: number | null;
   /** Vrai pendant un glisser : le recentrage attend que le joueur lâche. */
   dragging: boolean;
+  /**
+   * Last instant (performance.now) something moved on purpose: a hero walking, an
+   * effect playing, the camera travelling. Calm scenes render at a lower rate.
+   */
+  lastMotion: number;
+  /** True when Pixi fell back to its software renderer: fewer frames, lower density. */
+  lowPower: boolean;
+  /** Live feet position of every hero, so effects can follow the one they celebrate. */
+  heroes: Map<string, { x: number; y: number }>;
+}
+
+/** Called by anything that animates on purpose, from its ticker callback. */
+export function markMotion(): void {
+  scene.lastMotion = performance.now();
 }
 
 export const scene: Scene = {
@@ -67,6 +81,9 @@ export const scene: Scene = {
   pan: 0,
   exploreCenter: null,
   dragging: false,
+  lastMotion: 0,
+  lowPower: false,
+  heroes: new Map(),
 };
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
@@ -86,6 +103,8 @@ export function resetScene(): void {
   scene.pan = 0;
   scene.exploreCenter = null;
   scene.dragging = false;
+  scene.lastMotion = 0;
+  scene.heroes.clear();
 }
 
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */

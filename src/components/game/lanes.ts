@@ -15,7 +15,15 @@ export interface Lane {
   scale: number;
 }
 
+const lanes = new Map<number, Lane>();
+
 export function laneFor(index: number): Lane {
+  let lane = lanes.get(index);
+  if (!lane) lanes.set(index, lane = computeLane(index));
+  return lane;
+}
+
+function computeLane(index: number): Lane {
   const row = index % 3;
   // Le pas de 37 brise les régularités : sans lui, un joueur sur deux se retrouve
   // à la même place et l'étalement ne sert plus à rien.

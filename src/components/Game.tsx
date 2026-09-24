@@ -8,7 +8,15 @@ import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
 import { ActionBar } from "@/components/hud/ActionBar";
-import { MiniGame } from "@/components/hud/mini-games/MiniGame";
+import dynamic from "next/dynamic";
+import { retainTextures } from "@/components/game/textures";
+import { CHARACTER_ANIMATIONS } from "@/components/game/animation";
+import { decodedImage, whenIdle } from "@/lib/client/preload";
+import { ACTION_ART, MINI_GAME_IMAGES, POWER_ART } from "@/lib/game/art";
+
+/** Mini-games load on their own, fetched ahead of need once the world is up. */
+const loadMiniGames = () => import("@/components/hud/mini-games/MiniGame");
+const MiniGame = dynamic(() => loadMiniGames().then((m) => m.MiniGame), { ssr: false });
 import {
   ActionReward,
   type RewardMoment,
@@ -142,6 +150,18 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [overview, setOverview] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
+
+  // Once the world is up, warm what the next action will need: its reaction art,
+  // the loot art, the mini-games' code and images. Actions are rare, so otherwise
+  // every one of them would be a cold first display.
+  useEffect(() => {
+    if (!sceneReady) return;
+    return whenIdle(() => {
+      retainTextures([...Object.values(ACTION_ART), ...Object.values(POWER_ART)]);
+      for (const url of MINI_GAME_IMAGES) void decodedImage(url).catch(() => {});
+      void loadMiniGames();
+    });
+  }, [sceneReady]);
   const [devExplore, setDevExplore] = useState(false);
   const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
   const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
@@ -162,6 +182,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     : null);
   const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
   const me = meIndex === -1 ? null : players[meIndex];
+  // Your own hero gates the action bar: request its atlas before the scenery.
+  const myAtlas = me ? CHARACTER_ANIMATIONS[me.characterId]?.url : undefined;
+  useEffect(() => { if (myAtlas) retainTextures([myAtlas]); }, [myAtlas]);
 
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.

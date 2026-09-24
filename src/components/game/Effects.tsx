@@ -5,7 +5,7 @@ import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite, Text } from "pixi.js";
 import { POINTS } from "@/lib/config";
 import { ACTION_ART, POWER_ART } from "@/lib/game/art";
-import { scene } from "./scene";
+import { markMotion, scene } from "./scene";
 import { useDirectTexture } from "./textures";
 import { JourneyChest } from "./JourneyChest";
 import { GOLD_LIGHT, TAG_STYLE } from "./style";
@@ -64,6 +64,7 @@ function IllustratedEffect({ kind, origin, onDone }: EffectProps & { kind: Illus
   const elapsed = useRef(0);
   const finished = useRef(false);
   useTick(ticker => {
+    markMotion();
     elapsed.current += ticker.elapsedMS;
     const ordinary = ["pigeon", "lightning", "cocktail", "legendary"].includes(kind);
     // Actions happen only a few times a week: let each illustrated reaction read.

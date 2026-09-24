@@ -98,9 +98,4 @@ export function pointerToLogical(event: { clientX: number; clientY: number }, ar
   return { x: (event.clientX - rect.left) / view.scale - view.bleedX, y: (event.clientY - rect.top) / view.scale - view.bleedY };
 }
 
-export function loadImage(src: string, onLoad: (image: HTMLImageElement) => void) {
-  const image = new Image();
-  image.decoding = "async";
-  image.onload = () => onLoad(image);
-  image.src = src;
-}
+export { withImage as loadImage } from "@/lib/client/preload";

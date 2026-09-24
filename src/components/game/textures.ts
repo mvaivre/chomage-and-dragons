@@ -40,6 +40,19 @@ export function useDirectTexture(url: string): Texture | null {
   return result?.url === url && !result.texture.destroyed ? result.texture : null;
 }
 
+/**
+ * Load textures now and keep them for the session: the reaction art of the five
+ * actions and the loot, which must be ready the instant an action happens.
+ */
+export function retainTextures(urls: readonly string[]): void {
+  for (const url of urls) {
+    clearTimeout(timers.get(url));
+    timers.delete(url);
+    references.set(url, (references.get(url) ?? 0) + 1);
+    void Assets.load<Texture>(url).catch(() => {});
+  }
+}
+
 const frames = new WeakMap<Texture, Map<string, Texture[]>>();
 
 /** Frames share the source and are constructed only once per loaded atlas. */

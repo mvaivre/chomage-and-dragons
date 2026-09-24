@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { type Container, type Graphics } from "pixi.js";
 import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
@@ -80,6 +80,14 @@ export function useLayerBiomes(factor: number, width: number) {
   })) : [], [key]);
 }
 
+const shadows = new Map<number, (g: Graphics) => void>();
+/** One stable contact-shadow drawer per sprite width, so re-renders never redraw it. */
+function shadowFor(width: number) {
+  let draw = shadows.get(width);
+  if (!draw) shadows.set(width, draw = (g: Graphics) => { g.clear().ellipse(0, 0, width * 0.25, 4).fill({ color: 0x211b18, alpha: 0.2 }); });
+  return draw;
+}
+
 function LayerSprite({
   url,
   factor,
@@ -121,7 +129,7 @@ function LayerSprite({
       x={worldX * factor}
       y={bottom}
     >
-      {frame !== undefined ? <pixiGraphics draw={g => { g.clear().ellipse(0, 0, width * 0.25, 4).fill({ color: 0x211b18, alpha: 0.2 }); }} /> : null}
+      {frame !== undefined ? <pixiGraphics draw={shadowFor(width)} /> : null}
       <pixiContainer alpha={alpha} tint={tint} scale={{ x: mirror ? -1 : 1, y: 1 }}>
         <pixiSprite
           texture={texture}
@@ -138,7 +146,7 @@ function LayerSprite({
 type ArtChannel = keyof BiomeArt;
 
 /** Load the projected visible interval, which is wider for distant layers. */
-export function BiomeArtLayer({
+function BiomeArtLayerLayer({
   channel,
   factor,
   bottom,
@@ -180,7 +188,7 @@ export function BiomeArtLayer({
 }
 
 /** Le décor proche derrière le joueur reste ponctuel : il n'a aucune couture à tenir. */
-export function MidgroundLayer({ factor }: { factor: number }) {
+function MidgroundLayerLayer({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 820);
 
   return (
@@ -233,7 +241,7 @@ function TransitionLandmark({ boundaryIndex, offset }: { boundaryIndex: number; 
 }
 
 /** Landmark autonome derrière le joueur : il transforme la frontière en lieu. */
-export function TransitionLandmarks() {
+function TransitionLandmarksLayer() {
   const indices = useLayerBiomes(1, 1800);
   return <pixiContainer>{indices.filter(({ index }) => index < TRANSITION_ART.length)
     .map(({ index, offset }) => <TransitionLandmark key={`${offset}-${index}`} boundaryIndex={index} offset={offset} />)}</pixiContainer>;
@@ -342,7 +350,7 @@ export function FlatJourneyMarkers({ earnedChests, pendingChestStep, activeChest
   })}</pixiContainer>;
 }
 
-export function GroundLayer(props: JourneyMarkersProps) {
+function GroundLayerLayer(props: JourneyMarkersProps) {
   const tiles = useStripTiles(2048);
   return <pixiContainer>
     {tiles.map(index => <pixiGraphics key={index} x={-VIEW.width + index * 2048} draw={paintUnderworld} />)}
@@ -356,7 +364,7 @@ export function GroundLayer(props: JourneyMarkersProps) {
  * Deux occurrences espacées par biome donnent des passages devant la caméra sans
  * fabriquer un mur permanent. Leur base reste profondément sous le niveau des pieds.
  */
-export function NearForegroundLayer({ factor }: { factor: number }) {
+function NearForegroundLayerLayer({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 1800);
 
   return (
@@ -385,7 +393,7 @@ export function NearForegroundLayer({ factor }: { factor: number }) {
 
 /** A handful of cached shapes; only their transforms move in the ticker. */
 const drawMote = (g: Graphics) => { g.clear().circle(0, 0, 1.5).fill(0xf7e6b3); };
-export function PaperMotes() {
+function PaperMotesLayer() {
   const ref = useRef<Container>(null);
   const time = useRef(0);
   useTick((ticker) => {
@@ -420,7 +428,28 @@ function LandscapeTile({ factor, channel, offset }: { factor: number; channel: "
   return <pixiGraphics x={offset} draw={paint} />;
 }
 
-export function LandscapeBase({ factor, channel }: { factor: number; channel: "far" | "mid" }) {
+function LandscapeBaseLayer({ factor, channel }: { factor: number; channel: "far" | "mid" }) {
   const tiles = useStripTiles(2048, factor);
   return <pixiContainer>{tiles.map(index => <LandscapeTile key={index} factor={factor} channel={channel} offset={-VIEW.width + index * 2048} />)}</pixiContainer>;
 }
+
+/** Static scenery: re-rendered only when its own props change. */
+export const BiomeArtLayer = memo(BiomeArtLayerLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const MidgroundLayer = memo(MidgroundLayerLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const TransitionLandmarks = memo(TransitionLandmarksLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const GroundLayer = memo(GroundLayerLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const NearForegroundLayer = memo(NearForegroundLayerLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const PaperMotes = memo(PaperMotesLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const LandscapeBase = memo(LandscapeBaseLayer);

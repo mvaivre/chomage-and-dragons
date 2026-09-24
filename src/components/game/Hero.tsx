@@ -7,7 +7,7 @@ import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
 import { seededRandom } from "@/lib/rng";
 import { slopeAt, surfaceAt, worldXFor } from "@/lib/game/world";
-import { scene } from "./scene";
+import { markMotion, scene } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
@@ -256,6 +256,8 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
 
     if (stun.current > 0) stun.current = Math.max(0, stun.current - dt / 1.25);
     if (actionTimer.current > 0) actionTimer.current = Math.max(0, actionTimer.current - dt);
+    if (moving || actionTimer.current > 0 || stun.current > 0) markMotion();
+    if (!previewMotion) scene.heroes.set(player.id, { x: at.current, y: surfaceAt(at.current) + 4 + lane.dy });
 
     const hop = moving && !scene.reducedMotion ? Math.sin(strideProgress * Math.PI) * (character.id === "skater" ? 0 : 2) : 0;
     const speciesLift =

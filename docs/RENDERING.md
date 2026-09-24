@@ -43,7 +43,18 @@ visibles et une marge ; les répétitions alternées en miroir rendent leurs bor
 - Chargement des biomes selon leur projection, avec marge de préchargement ; libération
   des textures huit secondes après leur dernier utilisateur. Les sprites hors écran
   sont masqués, et le héros continue sa progression sans actualiser son dessin hors champ.
-- Plafond de 60 images/s et arrêt du ticker quand le document est masqué.
+- 60 images/s quand quelque chose bouge exprès (héros qui marche, effet, caméra), 30 quand
+  la scène ne fait que respirer, arrêt du ticker quand le document est masqué. Les composants
+  animés le signalent avec `markMotion()`. Sans WebGL, Pixi dessine en Canvas 2D sur le fil
+  principal : la scène passe alors à 30/20 images/s et à une densité de 1.
+- Le ciel est un aplat teinté sous un dégradé teinté : deux teintes par image au lieu de
+  192 bandes, recalculées seulement quand la caméra bouge.
+- Le canvas et les couches de décor sont mémoïsés : une mise à jour du HUD ne repasse pas
+  sur les quelque 350 nœuds Pixi. Les fonctions de dessin des `Graphics` sont stables.
+- Au repos, après le premier affichage, le jeu précharge les illustrations des réactions et
+  des butins (gardées toute la session), le code des mini-jeux et leurs images décodées.
+  Une action n'arrive que quelques fois par semaine : sans cela, chacune serait un premier
+  affichage qui saccade. L'atlas de son propre héros part avant le décor.
 - Framebuffer plafonné à trois millions de pixels, densité au plus 1,5 en largeur mobile
   et 2 ailleurs. Cela borne le coût des écrans Retina et ultralarges.
 - Un seul `ResizeObserver` redimensionne le renderer. Les notifications tardives après

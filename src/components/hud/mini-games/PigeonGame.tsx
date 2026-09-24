@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { ACTION_ART } from "@/lib/game/art";
+import { withImage as loadImage } from "@/lib/client/preload";
 import {
   COURSE, courseSeed, createPigeonSim, flapPigeon, pigeonSpeed, pigeonTargetY, stepPigeon, towersPassed,
   type PigeonEvent, type PigeonSim, type PigeonStatus,
@@ -13,12 +14,6 @@ import { createFx, drawPigeonScene, GROUND_Y, pigeonScreenX, spawnParticles, upd
 
 const FAR_LAYER = "/art/world-v3/runtime/plaine-far.webp";
 
-function loadImage(src: string, onLoad: (image: HTMLImageElement) => void) {
-  const image = new Image();
-  image.decoding = "async";
-  image.onload = () => onLoad(image);
-  image.src = src;
-}
 
 /**
  * The backwards courier's obstacle course: tap to beat the wings, thread the
@@ -97,10 +92,15 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
       canvasNode.height = Math.round(rect.height * dpr);
     };
     resize();
-    const observer = new ResizeObserver(resize);
+    const observer = new ResizeObserver(() => {
+      resize();
+      // A resize clears the canvas; repaint the final picture if drawing has stopped.
+      if (stopped) { ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0); drawPigeonScene(ctx, current, fx.current, scene, assets.current); }
+    });
     observer.observe(arenaNode);
     let previous = performance.now();
     let frame = 0;
+    let stopped = false;
     let hitStopUntil = 0;
     const timeouts: number[] = [];
     const later = (ms: number, run: () => void) => { timeouts.push(window.setTimeout(run, ms)); };
@@ -161,6 +161,9 @@ export function PigeonGame({ seedId, onResolve, onDone, practice }: MiniGameProp
       arenaNode.dataset.target = pigeonTargetY(current).toFixed(1);
       ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
       drawPigeonScene(ctx, current, fx.current, scene, assets.current);
+      // Once the landing has played out, the picture no longer changes: stop drawing.
+      const finished = current.status === "delivered" || current.status === "crashed";
+      if (finished && now - fx.current.finishedAt > 2400 && fx.current.particles.length === 0) { stopped = true; return; }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);

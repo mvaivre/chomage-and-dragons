@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Graphics, Sprite } from "pixi.js";
 import { BIOMES, WALKABLE_GROUND_Y, WORLD_LENGTH } from "@/lib/game/world";
@@ -14,6 +14,11 @@ import { AnimatedTuft } from "./LandmarkLife";
 const RESIDENT_FRAMES = [[0, 0, 1, 0, 2, 3], [0, 1, 2, 3], [0, 0, 1, 2, 0, 3], [0, 1, 2, 3]];
 
 /** A few inhabitants, drawn behind the path and animated only while visible. */
+const drawGnomeShadow = (g: Graphics) => { g.clear().ellipse(0, 0, 17, 3).fill({ color: 0x211b18, alpha: 0.24 }); };
+const drawGlint = (g: Graphics) => {
+  g.clear().ellipse(0, 0, 2, 11).fill(0xe9ffff).ellipse(3, -8, 1.5, 3).fill({ color: 0xe9ffff, alpha: 0.5 });
+};
+
 function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX: number; factor: number; variant?: number }) {
   const source = useDirectTexture(kind === 2 ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp");
   const frames = source ? atlasFrames(source, 4, kind === 2 ? 2 : 4) : null;
@@ -36,7 +41,7 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   if (!frames) return null;
   const scale = [0.18, 0.24, 0.26, 0.15][kind];
   return <pixiContainer>
-    {kind === 2 ? <pixiGraphics x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={g => { g.clear().ellipse(0, 0, 17, 3).fill({color: 0x211b18, alpha: 0.24}); }} /> : null}
+    {kind === 2 ? <pixiGraphics x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={drawGnomeShadow} /> : null}
     <pixiSprite ref={sprite} texture={frames[kind === 2 ? variant * 4 : kind * 4]} anchor={{ x: 0.5, y: 312 / 320 }} scale={scale} />
   </pixiContainer>;
 }
@@ -61,13 +66,11 @@ function WaterGlints({ worldX, factor }: { worldX: number; factor: number }) {
     });
   });
   return <pixiContainer x={worldX * factor} y={WALKABLE_GROUND_Y + 100}>
-    {Array.from({ length: 8 }, (_, index) => <pixiGraphics key={index} ref={node => { nodes.current[index] = node; }} alpha={0} draw={g => {
-      g.clear().ellipse(0, 0, 2, 11).fill(0xe9ffff).ellipse(3, -8, 1.5, 3).fill({color: 0xe9ffff, alpha: 0.5});
-    }} />)}
+    {Array.from({ length: 8 }, (_, index) => <pixiGraphics key={index} ref={node => { nodes.current[index] = node; }} alpha={0} draw={drawGlint} />)}
   </pixiContainer>;
 }
 
-export function AmbientLife({ factor }: { factor: number }) {
+function AmbientLifeLayer({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 1200);
   return <pixiContainer>{indices.flatMap(({ index, offset }) => {
     const biome = BIOMES[index];
@@ -79,7 +82,7 @@ export function AmbientLife({ factor }: { factor: number }) {
 }
 
 /** On the back edge of the road, after the grass fringe but before the player. */
-export function BackgroundGnomes({ factor }: { factor: number }) {
+function BackgroundGnomesLayer({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 1200);
   return <pixiContainer>{indices.map(({ index, offset }) => {
     const biome = BIOMES[index];
@@ -91,3 +94,9 @@ export function BackgroundGnomes({ factor }: { factor: number }) {
     </pixiContainer>;
   })}</pixiContainer>;
 }
+
+/** Static scenery: re-rendered only when its own props change. */
+export const AmbientLife = memo(AmbientLifeLayer);
+
+/** Static scenery: re-rendered only when its own props change. */
+export const BackgroundGnomes = memo(BackgroundGnomesLayer);

@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
-import type { Application as PixiApplication, Container, Sprite, TextureSource } from "pixi.js";
+import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
-import { resetScene, scene } from "./scene";
+import { markMotion, resetScene, scene } from "./scene";
 import { EFFECT_COMPONENTS, type Effect } from "./Effects";
 import { Sky } from "./Backdrop";
 import {
@@ -105,14 +105,16 @@ function CameraRig({
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
     if (firstFrame || scene.reducedMotion) {
+      if (camera.x !== clamped || camera.y !== wantedY) markMotion();
       camera.x = clamped;
       camera.y = wantedY;
+      if (firstFrame) setCameraReady(true);
       ready.current = true;
-      setCameraReady(true);
     } else {
       const horizontalFollow = scene.focusSpeed > 2 ? 12 : 4.5;
       camera.x += (clamped - camera.x) * Math.min(1, dt * horizontalFollow);
       camera.y += (wantedY - camera.y) * Math.min(1, dt * 3);
+      if (Math.abs(clamped - camera.x) > 0.5 || Math.abs(wantedY - camera.y) > 0.5 || scene.dragging || scene.shake > 0) markMotion();
     }
 
     node.scale.set(camera.scale);
@@ -150,8 +152,21 @@ function Layer({
   return <pixiContainer ref={ref}>{children}</pixiContainer>;
 }
 
+/** Frames per second when something moves, and when the scene is only breathing. */
+const ACTIVE_FPS = 60;
+const CALM_FPS = 30;
+
 function configureRenderer(app: PixiApplication) {
-  app.ticker.maxFPS = 60;
+  // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
+  scene.lowPower = app.renderer.type === RendererType.CANVAS;
+  const active = scene.lowPower ? CALM_FPS : ACTIVE_FPS;
+  const calm = scene.lowPower ? 20 : CALM_FPS;
+  app.ticker.maxFPS = active;
+  // Ambient life reads fine at half rate; walking, effects and the camera do not.
+  app.ticker.add(() => {
+    const wanted = performance.now() - scene.lastMotion < 700 ? active : calm;
+    if (Math.round(app.ticker.maxFPS) !== wanted) app.ticker.maxFPS = wanted;
+  }, undefined, -100);
   if (process.env.NODE_ENV !== "development") return;
   let samples: number[] = [];
   let elapsed = 0;
@@ -204,7 +219,9 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
       if (width <= 0 || height <= 0) return;
       const resolution = renderResolution(width, height, window.devicePixelRatio || 1);
       if (app.screen.width === width && app.screen.height === height && app.renderer.resolution === resolution) return;
-      app.renderer.resize(width, height, resolution);
+      app.renderer.resize(width, height, scene.lowPower ? Math.min(1, resolution) : resolution);
+      // A stopped ticker would leave the resized canvas blank until the next start.
+      if (!app.ticker.started) app.render();
     };
     const observer = new ResizeObserver(resize);
     if (host) observer.observe(host);
@@ -366,7 +383,7 @@ export interface GameCanvasProps {
   devCameraTarget?: { worldX: number; revision: number } | null;
 }
 
-export default function GameCanvas({
+function GameCanvas({
   onSceneReady,
   paused,
   players,
@@ -496,3 +513,6 @@ export default function GameCanvas({
     </div>
   );
 }
+
+/** The canvas re-renders only when its own props change, not with every HUD update. */
+export default memo(GameCanvas);

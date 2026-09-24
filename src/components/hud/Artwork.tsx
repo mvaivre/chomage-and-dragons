@@ -22,6 +22,7 @@ function Artwork({
       width={640}
       height={640}
       sizes="(max-width: 760px) 96px, 320px"
+      unoptimized
       priority={priority}
       draggable={false}
       className={`bitmap-art ${className}`}

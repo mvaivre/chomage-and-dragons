@@ -8,6 +8,13 @@ export const ACTION_ART: Record<ActionKind, string> = {
   rejetApresEntretien: "/art/world-v3/ui/action-rejet.webp",
   embauche: "/art/world-v3/ui/action-embauche.webp",
 };
+/** Images drawn by the mini-game canvases, decoded ahead of time. */
+export const MINI_GAME_IMAGES = [
+  "/art/world-v3/ui/action-candidature.webp",
+  "/art/world-v3/runtime/plaine-far.webp",
+  "/art/world-v3/animations/gnomes.webp",
+] as const;
+
 export const POWER_ART: Record<PowerKind, string> = {
   shot: "/art/world-v3/ui/power-shot.webp",
   feuSacré: "/art/world-v3/ui/power-fire.webp",

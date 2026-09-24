@@ -3,11 +3,14 @@
 import { useRef } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
-import { scene } from "./scene";
+import { markMotion, scene } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 
 const drawShadow = (g: Graphics) => {
   g.clear().ellipse(0, 0, 35, 8).fill({ color: 0x211b18, alpha: 0.32 });
+};
+const drawGlint = (g: Graphics) => {
+  g.clear().ellipse(0, 0, 27, 16).fill({ color: 0xffd76c, alpha: 0.18 });
 };
 
 /** Closed and opening chests share the same size, baseline and contact shadow. */
@@ -22,6 +25,7 @@ export function JourneyChest({ x, y, opened = false, opening = false, onDone }: 
   const finished = useRef(false);
   useTick(ticker => {
     if (!opening) return;
+    markMotion();
     elapsed.current += ticker.elapsedMS;
     const t = elapsed.current / (scene.reducedMotion ? 250 : 1300);
     if (sprite.current && frames) {
@@ -35,7 +39,7 @@ export function JourneyChest({ x, y, opened = false, opening = false, onDone }: 
     <pixiGraphics draw={drawShadow} />
     {frames ? <pixiSprite ref={sprite} texture={frames[opened ? 4 : 0]} anchor={{ x: 0.5, y: 312 / 320 }} scale={0.34} /> : null}
     {opening ? <pixiContainer ref={glint} alpha={0} y={-40}>
-      <pixiGraphics draw={g => { g.clear().ellipse(0, 0, 27, 16).fill({ color: 0xffd76c, alpha: 0.18 }); }} />
+      <pixiGraphics draw={drawGlint} />
     </pixiContainer> : null}
   </pixiContainer>;
 }
