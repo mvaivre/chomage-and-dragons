@@ -99,6 +99,8 @@ export interface DailyRun {
   kind: MiniGameKind;
   score: number;
   at: string;
+  /** Opened but not finished: the attempt is spent, the score not yet in. */
+  pending?: boolean;
 }
 
 /** A friend's cheer on an action: one emoji per friend and per action. */

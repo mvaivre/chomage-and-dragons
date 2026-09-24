@@ -50,6 +50,25 @@ export function slotsScore(sim: SlotsSim): number {
   return sim.reels.slice(0, SLOTS.reels).filter((reel) => paylineSymbol(reel) === "CHF").length;
 }
 
+/**
+ * The highest score each game can really produce, with some slack. A device
+ * sends its own score: anything above is clamped, so no one owns a record by
+ * forging a number.
+ */
+export const SCORE_CAPS: Record<MiniGameKind, number> = {
+  pigeon: 400,
+  keywords: 250,
+  stamp: DESK.dossiers * 10 + DESK.missesAllowed * 15,
+  quiz: QUIZ.questions * 20 + QUIZ.questions * QUIZ.secondsPerQuestion * 3,
+  ghosting: 100,
+  slots: SLOTS.reels,
+};
+
+export function clampScore(kind: MiniGameKind, score: unknown): number | undefined {
+  if (typeof score !== "number" || !Number.isFinite(score)) return undefined;
+  return Math.max(0, Math.min(SCORE_CAPS[kind] ?? 0, Math.round(score)));
+}
+
 /** The best score of the group for one game, and whose it is. */
 export function groupRecord(attempts: readonly MiniGameAttempt[], kind: MiniGameKind): MiniGameAttempt | null {
   let best: MiniGameAttempt | null = null;

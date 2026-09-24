@@ -1,4 +1,5 @@
 import { MINI_GAME_BONUS } from "@/lib/config";
+import { clampScore } from "@/lib/game/scores";
 import type { ActionKind, GameEvent, GameState, MiniGameAttempt, MiniGameKind, MiniGameResult } from "@/lib/data/types";
 
 /**
@@ -77,7 +78,8 @@ export function reserveChestGame(state: GameState, playerId: string, chestIndex:
 export function resolveMiniGame(state: GameState, attemptId: string, result: MiniGameResult, score?: number): GameState {
   const attempt = state.miniGames?.find(a => a.id === attemptId);
   if (!attempt || attempt.result !== "pending") return state;
-  const scored = result !== "skipped" && Number.isFinite(score) ? { score: Math.max(0, Math.min(100_000, Math.round(score!))) } : {};
+  const bounded = result !== "skipped" ? clampScore(attempt.kind, score) : undefined;
+  const scored = bounded !== undefined ? { score: bounded } : {};
   // An action game only settles on its still-present event; a stale result after undo is ignored.
   if (attempt.action !== "chest" && !state.events.some(e => e.id === attempt.eventId && e.kind === attempt.action)) return state;
   const miniGames = state.miniGames?.map(a => a.id === attemptId ? { ...a, result, ...scored } : a);

@@ -23,6 +23,7 @@ export function dailyChallenge(day: string, groupKey = "groupe"): { kind: MiniGa
   return { kind, seedId: `daily-${groupKey}-${day}` };
 }
 
+/** Finished runs of the day, best first; a run left unfinished counts as played at zero. */
 export function dailyRanking(runs: readonly DailyRun[], day: string): DailyRun[] {
   return runs.filter((run) => run.day === day).sort((a, b) => b.score - a.score || a.at.localeCompare(b.at));
 }

@@ -29,15 +29,17 @@ export function MiniGameInvite({ kind, action, record, onPlay, onPass }: {
 }) {
   const play = useRef<HTMLButtonElement>(null);
   const copy = MINI_GAMES[kind];
+  const pass = useRef(onPass);
+  useEffect(() => { pass.current = onPass; });
   useEffect(() => {
     sfx.invite();
     play.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); onPass(); }
+      if (event.key === "Escape") { event.preventDefault(); pass.current(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onPass]);
+  }, []);
   return <section className="mini-game-invite" role="dialog" aria-modal="false" aria-labelledby="mini-game-invite-title">
     <p className="mini-game-invite__kicker">{action === "chest" ? "Le coffre a un double fond" : "Défi facultatif"} · {copy.misery}</p>
     <h2 id="mini-game-invite-title">{copy.title}</h2>

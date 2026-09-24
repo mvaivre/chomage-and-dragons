@@ -1,5 +1,12 @@
 import type { ActionKind, Cheer, CheerEmoji, DailyRun, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
-import { dailyChallenge } from "@/lib/game/daily";
+import { dailyChallenge, zurichDay } from "@/lib/game/daily";
+import { clampScore } from "@/lib/game/scores";
+import { JOURNEY_STEPS } from "@/lib/config";
+
+const ACTION_KINDS = new Set(Object.keys(JOURNEY_STEPS));
+const POWER_KINDS = new Set(["shot", "feuSacré", "fienteDragon", "paperasse", "crapaud"]);
+const RESULTS = new Set(["won", "lost", "skipped"]);
+const isId = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 80;
 
 export const CHEER_EMOJIS: readonly CheerEmoji[] = ["👏", "🍺", "🔥", "😂", "🫂"];
 import { CHARACTERS } from "@/lib/game/characters";
@@ -24,7 +31,7 @@ export type GameAction =
   | { type: "addPlayer"; name: string; characterId: string }
   | { type: "removePlayer"; playerId: string }
   | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji }
-  | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score: number };
+  | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score?: number; start?: boolean };
 
 export interface ActionContext {
   /** A fresh identifier for anything the action creates. */
@@ -68,6 +75,8 @@ export function reserveCrossedChest(previous: GameState, next: GameState, player
 }
 
 function addEvent(state: GameState, action: Extract<GameAction, { type: "addEvent" }>, context: ActionContext) {
+  // The server applies actions sent by devices: nothing unknown enters the journal.
+  if (!ACTION_KINDS.has(action.kind)) return { state, result: { event: null, offer: null, chestGame: null, rejected: "unknown action" } };
   const player = state.players.find((p) => p.id === action.playerId);
   if (!player) return { state, result: { event: null, offer: null, chestGame: null, rejected: "unknown player" } };
   if (player.hiredAt) return { state, result: { event: null, offer: null, chestGame: null, rejected: "player already hired" } };
@@ -85,6 +94,7 @@ function addEvent(state: GameState, action: Extract<GameAction, { type: "addEven
 }
 
 function finishMiniGame(state: GameState, action: Extract<GameAction, { type: "finishMiniGame" }>) {
+  if (!isId(action.attemptId) || !RESULTS.has(action.result)) return { state, result: { changed: false, chestGame: null, rejected: "bad result" } };
   const resolved = resolveMiniGame(state, action.attemptId, action.result, action.score);
   if (resolved === state) return { state, result: { changed: false, chestGame: null } };
   const attempt = resolved.miniGames?.find((a) => a.id === action.attemptId);
@@ -94,6 +104,7 @@ function finishMiniGame(state: GameState, action: Extract<GameAction, { type: "f
 
 function castPower(state: GameState, action: Extract<GameAction, { type: "castPower" }>, context: ActionContext) {
   const cast: PowerCast = { id: context.id(), playerId: action.playerId, targetPlayerId: action.targetPlayerId, kind: action.kind, slot: action.slot, at: context.now() };
+  if (!POWER_KINDS.has(action.kind) || !Number.isInteger(action.slot) || action.slot < 0) return { state, result: { cast, accepted: false, rejected: "unknown loot" } };
   const validPlayers = action.playerId !== action.targetPlayerId &&
     state.players.some((player) => player.id === action.playerId) &&
     state.players.some((player) => player.id === action.targetPlayerId);
@@ -160,17 +171,31 @@ function cheer(state: GameState, action: Extract<GameAction, { type: "cheer" }>,
   return { state: { ...state, cheers: [...others, created] }, result: { cheer: created } };
 }
 
-/** One run per friend and per day, on that day's game; the first score stands. */
+/**
+ * One run per friend and per day, on that day's game. Opening the game reserves
+ * the run at zero (`start`); the score then lands once. Leaving, or reloading,
+ * keeps the reservation: the course cannot be replayed until it goes well.
+ */
 function dailyRun(state: GameState, action: Extract<GameAction, { type: "dailyRun" }>, context: ActionContext) {
   if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { run: null, rejected: "unknown player" } };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(action.day)) return { state, result: { run: null, rejected: "bad day" } };
-  if (dailyChallenge(action.day).kind !== action.kind) return { state, result: { run: null, rejected: "not today's game" } };
-  if (!Number.isFinite(action.score) || action.score < 0 || action.score > 100_000) return { state, result: { run: null, rejected: "bad score" } };
-  if (state.daily?.some((run) => run.day === action.day && run.playerId === action.playerId)) return { state, result: { run: null, rejected: "already played today" } };
-  const run: DailyRun = { id: context.id(), day: action.day, playerId: action.playerId, kind: action.kind, score: Math.round(action.score), at: context.now() };
-  // Only the last five weeks are kept: the daily is about today.
-  const recent = (state.daily ?? []).filter((r) => r.day > shiftDay(action.day, -35));
-  return { state: { ...state, daily: [...recent, run] }, result: { run } };
+  // The day is the action's own: a device cannot write into another day.
+  const day = zurichDay(new Date(context.now()));
+  if (action.day !== day) return { state, result: { run: null, rejected: "not today" } };
+  const kind = dailyChallenge(day).kind;
+  if (action.kind !== kind) return { state, result: { run: null, rejected: "not today's game" } };
+  const runs = state.daily ?? [];
+  const existing = runs.find((run) => run.day === day && run.playerId === action.playerId);
+  if (action.start) {
+    if (existing) return { state, result: { run: null, rejected: "already played today" } };
+    const run: DailyRun = { id: context.id(), day, playerId: action.playerId, kind, score: 0, at: context.now(), pending: true };
+    // Only the last five weeks are kept: the daily is about today.
+    const recent = runs.filter((r) => r.day > shiftDay(day, -35) && r.day <= day);
+    return { state: { ...state, daily: [...recent, run] }, result: { run } };
+  }
+  if (!existing || !existing.pending) return { state, result: { run: null, rejected: existing ? "already played today" : "not started" } };
+  const score = clampScore(kind, action.score) ?? 0;
+  const run: DailyRun = { ...existing, score, at: context.now(), pending: false };
+  return { state: { ...state, daily: runs.map((r) => (r === existing ? run : r)) }, result: { run } };
 }
 
 function shiftDay(day: string, days: number): string {

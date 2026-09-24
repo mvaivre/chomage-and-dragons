@@ -487,9 +487,12 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.locator('.daily__play').click();
       const dialog = page.locator('dialog[open].mini-game');
       await dialog.waitFor();
-      // Whatever today's game is, leaving it records nothing and keeps the chance.
+      // Opening today's game spends the day's attempt: leaving records zero, no replay.
       await page.getByRole('button', { name: 'Fermer le mini-jeu' }).click();
-      await page.locator('.daily__play').waitFor();
+      await page.locator('.daily__done').waitFor();
+      assert.equal(await page.locator('.daily__play').count(), 0);
+      const runs = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')).daily);
+      assert.deepEqual(runs.map(r => [r.score, Boolean(r.pending)]), [[0, false]]);
       // A played game stores its score on the attempt: the record shows on the next invitation.
       await page.locator('.chronicle__close').click();
       await page.locator('.action-button--refus').click();
@@ -515,6 +518,26 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.locator('.mini-game-invite__record').waitFor();
       assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record à battre : \d+ pts · Mika/);
       await page.locator('.mini-game-invite__pass').click();
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+
+  await t.test('winning a game whose bonus cannot move the hero never locks the action bar', async () => {
+    // One application (2 steps), then an interview: the journey is clamped at zero.
+    const { context, page, errors } = await fixture(2, 'no-preference', ['candidature']);
+    try {
+      await page.locator('.action-button--entretien').click();
+      await playGame(page);
+      await page.getByRole('button', {name: 'Commencer l’entretien'}).click();
+      for (let i = 0; i < 5; i++) {
+        await page.waitForFunction(i => document.querySelector('.quiz')?.dataset.status === 'question' && document.querySelector('.quiz')?.dataset.question === String(i), i);
+        const prompt = (await page.locator('.quiz__bubble p').innerText()).replace(/[«»]/g, '').trim();
+        await page.locator('.quiz__answer', {hasText: corporateAnswer(prompt)}).click();
+      }
+      await page.waitForFunction(() => document.querySelector('.quiz')?.dataset.status === 'won');
+      await page.getByRole('button', {name: 'Continuer le voyage'}).click();
+      await ready(page);
+      await statsMatch(page, /0/);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });

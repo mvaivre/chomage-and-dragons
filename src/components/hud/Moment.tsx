@@ -46,6 +46,8 @@ function reducedMotion(): boolean {
 
 function FlyingPoints({ cue, onDone }: { cue: Extract<MomentCue, { type: "points" }>; onDone: () => void }) {
   const node = useRef<HTMLSpanElement>(null);
+  const done = useRef(onDone);
+  useEffect(() => { done.current = onDone; });
   useEffect(() => {
     const element = node.current;
     if (!element) return;
@@ -70,10 +72,10 @@ function FlyingPoints({ cue, onDone }: { cue: Extract<MomentCue, { type: "points
     animation.onfinish = () => {
       window.dispatchEvent(new CustomEvent(LANDED_EVENT));
       sfx.coin();
-      onDone();
+      done.current();
     };
     return () => animation.cancel();
-  }, [cue, onDone]);
+  }, [cue]);
   const text = cue.value > 0 ? `+${cue.value}` : `${cue.value}`;
   return <span ref={node} className="moment-points" data-negative={cue.value < 0} aria-hidden>{text}<small>pts</small></span>;
 }

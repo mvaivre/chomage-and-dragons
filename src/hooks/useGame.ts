@@ -65,6 +65,8 @@ export type GameMode = { kind: "local" } | { kind: "remote"; store: RemoteStore 
 const LOCAL: GameMode = { kind: "local" };
 const EMPTY: GameState = { players: [], events: [], casts: [] };
 const POLL_MS = 8000;
+/** One shared empty list: a new [] on every render would re-run every effect that reads it. */
+const NONE: never[] = [];
 
 /** Identifiers and timestamps are fixed before the reducer runs, so a re-run gives the same answer. */
 function freshContext(): ActionContext {
@@ -157,7 +159,11 @@ export function useGame(mode: GameMode = LOCAL) {
 
   /** Returns whether anything changed, and a newly crossed chest's slot-machine offer. */
   const finishMiniGame = useCallback((attemptId: string, result: MiniGameResult, score?: number) => {
-    return commit(state, { type: "finishMiniGame", attemptId, result, ...(score !== undefined ? { score } : {}) }, freshContext()).result;
+    const applied = commit(state, { type: "finishMiniGame", attemptId, result, ...(score !== undefined ? { score } : {}) }, freshContext());
+    // Whether the hero has somewhere to walk: a bonus on a journey clamped at zero moves nothing.
+    const playerId = state.miniGames?.find((a) => a.id === attemptId)?.playerId;
+    const stepsOf = (s: GameState) => journeyProgress(s.events.filter((e) => e.playerId === playerId)).steps;
+    return { ...applied.result, moved: playerId ? stepsOf(applied.state) !== stepsOf(state) : false };
   }, [state, commit]);
 
   const castPower = useCallback(
@@ -196,6 +202,10 @@ export function useGame(mode: GameMode = LOCAL) {
   /** Today's challenge run: once per friend and per day, on that day's game. */
   const recordDaily = useCallback((playerId: string, day: string, kind: MiniGameKind, score: number) => {
     commit(state, { type: "dailyRun", playerId, day, kind, score }, freshContext());
+  }, [state, commit]);
+  /** Opening today's challenge spends the day's attempt, even if the game is left. */
+  const startDaily = useCallback((playerId: string, day: string, kind: MiniGameKind) => {
+    commit(state, { type: "dailyRun", playerId, day, kind, start: true }, freshContext());
   }, [state, commit]);
 
   /** A friend's cheer on someone else's action; the same emoji twice takes it back. */
@@ -310,10 +320,11 @@ export function useGame(mode: GameMode = LOCAL) {
     players,
     events: state.events,
     casts: state.casts,
-    cheers: state.cheers ?? [],
-    daily: state.daily ?? [],
+    cheers: state.cheers ?? NONE,
+    daily: state.daily ?? NONE,
+    startDaily,
     recordDaily,
-    miniGames: state.miniGames ?? [],
+    miniGames: state.miniGames ?? NONE,
     cheer,
     monthKeyNow,
     seasonStandings,

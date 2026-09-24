@@ -55,8 +55,9 @@ export function variantFor(eventId: string, action: ActionKind): Variant {
   const random = mulberry32(seedFrom(`variant:${eventId}`));
   const roll = random();
   const rarity: Rarity = roll < RARITY_ODDS.legendary ? "legendary" : roll < RARITY_ODDS.legendary + RARITY_ODDS.rare ? "rare" : "common";
-  const pool = VARIANTS[action].filter((variant) => variant.rarity === rarity);
-  const candidates = pool.length ? pool : VARIANTS[action];
+  const all = VARIANTS[action] ?? VARIANTS.candidature;
+  const pool = all.filter((variant) => variant.rarity === rarity);
+  const candidates = pool.length ? pool : all;
   return candidates[Math.floor(random() * candidates.length)];
 }
 

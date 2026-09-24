@@ -49,7 +49,13 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
   if (!context) {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
-    context = new Ctor();
+    try {
+      context = new Ctor();
+    } catch {
+      // No audio device: the game stays silent rather than failing an action.
+      muted = true;
+      return null;
+    }
     master = context.createGain();
     master.gain.value = 0.32;
     const limiter = context.createDynamicsCompressor();
@@ -57,7 +63,7 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
     limiter.ratio.value = 8;
     master.connect(limiter).connect(context.destination);
   }
-  if (context.state === "suspended") void context.resume();
+  if (context.state === "suspended") void context.resume().catch(() => {});
   return context && master ? { ctx: context, out: master } : null;
 }
 

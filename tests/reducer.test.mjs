@@ -139,21 +139,49 @@ test('friends cheer an action once each, can change or take back their emoji, ne
 });
 
 const { dailyChallenge, zurichDay, dailyRanking, DAILY_GAMES } = await import('../src/lib/game/daily.ts');
-test('the daily challenge is the same game for everyone, once a day, never the slot machine', () => {
+const { SCORE_CAPS } = await import('../src/lib/game/scores.ts');
+test('the daily challenge is the same game for everyone, reserved on open, played once a day', () => {
   assert.equal(zurichDay(new Date('2026-09-24T22:30:00Z')), '2026-09-25', 'the day turns at midnight in Zurich');
   assert.deepEqual(dailyChallenge('2026-09-24'), dailyChallenge('2026-09-24'));
   const kinds = new Set(Array.from({ length: 60 }, (_, i) => dailyChallenge(`2026-10-${String(i % 28 + 1).padStart(2, '0')}`).kind));
   assert.ok(kinds.size >= 4 && [...kinds].every(k => DAILY_GAMES.includes(k)));
   let state = withPlayers();
-  const day = '2026-09-24';
+  const day = '2026-09-16';
   const kind = dailyChallenge(day).kind;
-  const first = applyAction(state, { type: 'dailyRun', playerId: 'mika', day, kind, score: 120.4 }, fixedContext('d1', T0));
-  assert.equal(first.result.run.score, 120);
-  const again = applyAction(first.state, { type: 'dailyRun', playerId: 'mika', day, kind, score: 999 }, fixedContext('d2', T0));
-  assert.equal(again.result.rejected, 'already played today');
-  const wrong = applyAction(first.state, { type: 'dailyRun', playerId: 'lou', day, kind: kind === 'quiz' ? 'stamp' : 'quiz', score: 10 }, fixedContext('d3', T0));
-  assert.equal(wrong.result.rejected, "not today's game");
-  state = applyAction(first.state, { type: 'dailyRun', playerId: 'lou', day, kind, score: 150 }, fixedContext('d4', '2026-09-24T11:00:00.000Z')).state;
+  const run = (playerId, extra, id = 'x', now = T0) => applyAction(state, { type: 'dailyRun', playerId, day, kind, ...extra }, fixedContext(id, now));
+  assert.equal(run('mika', { score: 50 }).result.rejected, 'not started', 'a score needs an opened run');
+  state = run('mika', { start: true }, 'd1').state;
+  assert.equal(state.daily[0].pending, true);
+  assert.equal(run('mika', { start: true }).result.rejected, 'already played today', 'reopening is not a second chance');
+  state = run('mika', { score: 42.4 }, 'd2').state;
+  assert.deepEqual([state.daily[0].score, state.daily[0].pending], [42, false]);
+  assert.equal(run('mika', { score: 180 }).result.rejected, 'already played today', 'the first score stands');
+  assert.equal(applyAction(state, { type: 'dailyRun', playerId: 'lou', day: '9999-12-31', kind, start: true }, fixedContext('x', T0)).result.rejected, 'not today', 'no writing into another day');
+  assert.equal(applyAction(state, { type: 'dailyRun', playerId: 'lou', day: '2026-13-01', kind, start: true }, fixedContext('x', T0)).result.rejected, 'not today', 'an impossible day is refused, not thrown');
+  assert.equal(applyAction(state, { type: 'dailyRun', playerId: 'lou', day, kind: kind === 'quiz' ? 'stamp' : 'quiz', start: true }, fixedContext('x', T0)).result.rejected, "not today's game");
+  state = run('lou', { start: true }, 'd3', '2026-09-16T11:00:00.000Z').state;
+  state = run('lou', { score: 1e9 }, 'd4', '2026-09-16T11:05:00.000Z').state;
+  assert.equal(state.daily.find(r => r.playerId === 'lou').score, SCORE_CAPS[kind], 'scores are capped per game');
   assert.deepEqual(dailyRanking(state.daily, day).map(r => r.playerId), ['lou', 'mika']);
   assert.equal(applyAction(state, { type: 'removePlayer', playerId: 'lou' }, fixedContext('x', T0)).state.daily.length, 1);
 });
+
+test('the journal refuses what a device should never send', () => {
+  const state = withPlayers();
+  for (const [action, why] of [
+    [{ type: 'addEvent', playerId: 'mika', kind: 'x' }, 'unknown action'],
+    [{ type: 'addEvent', playerId: 'mika', kind: '__proto__' }, 'unknown action'],
+    [{ type: 'castPower', playerId: 'mika', targetPlayerId: 'lou', kind: 'nuke', slot: 0 }, 'unknown loot'],
+    [{ type: 'castPower', playerId: 'mika', targetPlayerId: 'lou', kind: 'shot', slot: -1 }, 'unknown loot'],
+    [{ type: 'finishMiniGame', attemptId: { evil: true }, result: 'won' }, 'bad result'],
+    [{ type: 'finishMiniGame', attemptId: 'a', result: 'jackpot' }, 'bad result'],
+  ]) {
+    const applied = applyAction(state, action, fixedContext('x', T0));
+    assert.equal(applied.state, state, why);
+    assert.equal(applied.result.rejected, why);
+  }
+  let played = log(state, 'mika', 'refus', 'r1').state;
+  played = applyAction(played, { type: 'finishMiniGame', attemptId: 'r1', result: 'won', score: 99999 }, fixedContext('x', T0)).state;
+  assert.ok(played.miniGames[0].score <= 145, 'a mini-game score is capped at what the game allows');
+});
+

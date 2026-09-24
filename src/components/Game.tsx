@@ -171,6 +171,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     miniGames,
     daily,
     recordDaily,
+    startDaily,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -208,9 +209,27 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const pendingBanner = useRef<{ kicker: string; title: string } | null>(null);
   const pendingTale = useRef<ReturnType<typeof taleFor>>(null);
   const lastAction = useRef<ActionKind | null>(null);
-  const schedule = useCallback((ms: number, run: () => void) => { momentTimers.current.push(window.setTimeout(run, ms)); }, []);
+  const schedule = useCallback((ms: number, run: () => void) => {
+    const timer = window.setTimeout(() => {
+      momentTimers.current = momentTimers.current.filter((id) => id !== timer);
+      run();
+    }, ms);
+    momentTimers.current.push(timer);
+  }, []);
+  useEffect(() => () => { momentTimers.current.forEach((timer) => window.clearTimeout(timer)); }, []);
   const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
+  // A safety net: whatever happens to the walk, the action bar never stays locked.
+  useEffect(() => {
+    if (!awaitingTravel) return;
+    const timer = window.setTimeout(() => {
+      setAwaitingTravel(false);
+      actionInFlight.current = false;
+      leanOut();
+      setMomentActive(false);
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [overview, setOverview] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
@@ -267,7 +286,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen && !chronicleOpen && !dailyOpen && !recap)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
@@ -440,8 +459,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const received = cheers.filter((c) => events.some((e) => e.id === c.eventId && e.playerId === me.id) && c.playerId !== me.id);
     if (!seenRef.current) {
       const stored = loadSeen(`${scope}:${me.id}`);
-      const seenEvents = new Set(stored?.events ?? others.map((e) => e.id));
-      const seenCheers = new Set(stored?.cheers ?? received.map((c) => c.id));
+      const older = (at: string) => Boolean(stored?.before) && at < stored!.before;
+      const seenEvents = new Set(stored ? [...stored.events, ...others.filter((e) => older(e.at)).map((e) => e.id)] : others.map((e) => e.id));
+      const seenCheers = new Set(stored ? [...stored.cheers, ...received.filter((c) => older(c.at)).map((c) => c.id)] : received.map((c) => c.id));
       seenRef.current = { events: seenEvents, cheers: seenCheers };
       const missedEvents = others.filter((e) => !seenEvents.has(e.id));
       const missedCheers = received.filter((c) => !seenCheers.has(c.id));
@@ -478,7 +498,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     }
     for (const e of others) seenRef.current.events.add(e.id);
     for (const c of received) seenRef.current.cheers.add(c.id);
-    saveSeen(`${scope}:${me.id}`, { events: [...seenRef.current.events], cheers: [...seenRef.current.cheers], at: new Date().toISOString() });
+    saveSeen(`${scope}:${me.id}`, { events: others, cheers: received });
   }, [events, cheers, me, loaded, scope, players]);
 
   useEffect(() => {
@@ -610,7 +630,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
     if (!miniGameOffer || !me) return;
-    const { changed, chestGame } = finishMiniGame(miniGameOffer.attemptId, result, score);
+    const { changed, chestGame, moved } = finishMiniGame(miniGameOffer.attemptId, result, score);
     if (!changed) return;
     setMiniGameOffer(offer => offer ? { ...offer, resolved: true } : null);
     if (result !== "won") return;
@@ -620,8 +640,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setActionFeedback({ id: `${miniGameOffer.attemptId}-bonus`, text: copy.winFeedback });
       return;
     }
-    actionInFlight.current = true;
-    setAwaitingTravel(true);
+    // Only a bonus that moves the hero waits for the walk; otherwise nothing would end it.
+    if (moved) {
+      actionInFlight.current = true;
+      setAwaitingTravel(true);
+    }
     const bonus = miniGameBonus(miniGameOffer.action);
     if (chestGame) {
       const afterChest = me.earnedChests + 1;
@@ -953,10 +976,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
         {news.map((item) => <NewsToast key={item.id} item={item} players={players} onOpen={() => { setNews([]); setChronicleOpen(true); }} />)}
       </div> : null}
       {chronicleOpen ? <Chronicle events={events} players={players} cheers={cheers} meId={identity} onCheer={handleCheer} onClose={() => setChronicleOpen(false)}
-        daily={<DailyChallenge kind={todayGame.kind} runs={dailyRanking(daily, today)} players={players} meId={identity} onPlay={() => { setChronicleOpen(false); setDailyOpen(true); }} />} /> : null}
+        daily={<DailyChallenge kind={todayGame.kind} runs={dailyRanking(daily, today)} players={players} meId={identity} onPlay={() => { if (me) startDaily(me.id, today, todayGame.kind); setChronicleOpen(false); setDailyOpen(true); }} />} /> : null}
       {dailyOpen && me ? <MiniGame key={todayGame.seedId} kind={todayGame.kind} seedId={todayGame.seedId}
-        record={(() => { const top = dailyRanking(daily, today)[0]; return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
-        onResolve={(result, score) => { if (result !== "skipped" && score !== undefined) recordDaily(me.id, today, todayGame.kind, score); }}
+        record={(() => { const top = dailyRanking(daily, today).find((run) => !run.pending); return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
+        onResolve={(result, score) => { recordDaily(me.id, today, todayGame.kind, result === "skipped" ? 0 : score ?? 0); }}
         onDone={() => { setDailyOpen(false); setChronicleOpen(true); }} /> : null}
       {recap && me && !chronicleOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} onOpen={() => { setRecap(null); setChronicleOpen(true); }} /> : null}
