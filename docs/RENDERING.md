@@ -15,8 +15,9 @@ ont été retirées en septembre 2026 ; elles restent dans l'historique git, com
 | 4 | Décor derrière les joueurs | 0,76 |
 | 5 | Repères de transition, derrière le sol | 1 |
 | 6 | Route, coffres, joueurs | 1 |
-| 7 | Petites décorations basses au premier plan | 1,12 |
-| 8 | Effets temporaires de gameplay | 1 |
+| 7 | Premier plan doux : talus et touffes encrées, légèrement floues | 1,32 |
+| 8 | Premier plan proche : silhouettes sombres très floues | 1,8 |
+| 9 | Effets temporaires de gameplay | 1 |
 
 Chaque couche utilise la même projection autour du centre de la caméra. Son calcul
 sert également à déterminer les biomes à charger : un paysage lointain peut rester
@@ -27,7 +28,16 @@ leur canal alpha sert au détourage. La profondeur vient de la palette et de la 
 sans rendre les montagnes translucides. Deux silhouettes continues sous les images
 évitent les trous entre îlots. Les extrémités du monde prolongent les paysages par miroir.
 Les grands repères de transition passent derrière les personnages. Le premier plan
-reste bas et peu dense, sans cacher leur corps.
+reste bas et peu dense, sans cacher leur corps : ses deux plans (`Foreground.tsx`) sont
+épinglés au bas de la fenêtre dégagée au-dessus du dock, quel que soit l'écran. Leurs
+touffes (herbes, fougères, roseaux, herbes sèches selon le biome) sont peintes une seule
+fois par biome sur de petits canvas, floutées par le navigateur, puis agrandies par le
+GPU ; la peinture se fait pendant les temps morts.
+
+L'éclairage suit la profondeur : chaque couche reçoit une teinte (`depthLight`) selon
+l'heure de Zurich. La nuit, les plans lointains bleuissent fortement, la route un peu,
+les héros presque pas, et une lueur chaude les suit ; seul un léger vignetage DOM
+assombrit les bords.
 
 Le niveau de marche est `WALKABLE_GROUND_Y`. Les personnages sont ancrés par les pieds,
 avec une ombre de contact, un bond pendant les déplacements et un léger écrasement à

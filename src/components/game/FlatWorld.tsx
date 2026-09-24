@@ -360,37 +360,6 @@ function GroundLayerLayer(props: JourneyMarkersProps) {
   </pixiContainer>;
 }
 
-/**
- * Deux occurrences espacées par biome donnent des passages devant la caméra sans
- * fabriquer un mur permanent. Leur base reste profondément sous le niveau des pieds.
- */
-function NearForegroundLayerLayer({ factor }: { factor: number }) {
-  const indices = useLayerBiomes(factor, 1800);
-
-  return (
-    <pixiContainer>
-      {indices.flatMap(({ index, offset: cycleOffset }) => {
-        const biome = BIOMES[index];
-        const span = (biome.to - biome.from) * WORLD_LENGTH;
-        const start = cycleOffset + biome.from * WORLD_LENGTH;
-        return [0.28, 0.78].map((ratio, occurrence) => (
-          <LayerSprite
-            key={`front-${cycleOffset}-${biome.id}-${occurrence}`}
-            url={`${ART_ROOT}/ground-props.webp`}
-            frame={index}
-            factor={factor}
-            bottom={GROUND_Y + 100}
-            width={152}
-            alpha={1}
-            worldX={start + span * ratio}
-            mirror={(index + occurrence) % 2 === 1}
-          />
-        ));
-      })}
-    </pixiContainer>
-  );
-}
-
 /** A handful of cached shapes; only their transforms move in the ticker. */
 const drawMote = (g: Graphics) => { g.clear().circle(0, 0, 1.5).fill(0xf7e6b3); };
 function PaperMotesLayer() {
@@ -444,9 +413,6 @@ export const TransitionLandmarks = memo(TransitionLandmarksLayer);
 
 /** Static scenery: re-rendered only when its own props change. */
 export const GroundLayer = memo(GroundLayerLayer);
-
-/** Static scenery: re-rendered only when its own props change. */
-export const NearForegroundLayer = memo(NearForegroundLayerLayer);
 
 /** Static scenery: re-rendered only when its own props change. */
 export const PaperMotes = memo(PaperMotesLayer);

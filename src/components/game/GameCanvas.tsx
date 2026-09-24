@@ -20,10 +20,10 @@ import {
   GroundLayer,
   LandscapeBase,
   MidgroundLayer,
-  NearForegroundLayer,
   PaperMotes,
   TransitionLandmarks,
 } from "./FlatWorld";
+import { CLOSE_PLANE, Foreground, NEAR_PLANE } from "./Foreground";
 import { Hero, VisibleHero } from "./Hero";
 import { AmbientLife, BackgroundGnomes } from "./AmbientLife";
 import { laneFor } from "./lanes";
@@ -38,7 +38,6 @@ const REST_SURFACE = GROUND_Y;
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
-const NEAR_FOREGROUND_FACTOR = 1.12;
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -141,11 +140,14 @@ function CameraRig({
 function Layer({
   factor,
   shade,
+  pinned = false,
   children,
 }: {
   factor: number;
   /** How much the night reaches this plane: 1 far away, near 0 for the heroes. */
   shade: number;
+  /** Foreground planes sit on the bottom of the clear window, whatever the screen's shape. */
+  pinned?: boolean;
   children: React.ReactNode;
 }) {
   const ref = useRef<Container>(null);
@@ -161,7 +163,8 @@ function Layer({
     // Le pivot au centre de la fenêtre évite que les couches lentes dérivent vers
     // le bord gauche du canvas au fil du voyage.
     node.x = parallaxX(0, scene.camera.x, scene.camera.viewW, factor);
-    node.y = -scene.camera.y * factor;
+    const { camera } = scene;
+    node.y = pinned ? camera.viewH - (scene.bottomInset + camera.screenOffsetY) / camera.scale : -camera.y * factor;
   });
 
   return <pixiContainer ref={ref}>{children}</pixiContainer>;
@@ -364,8 +367,11 @@ function WorldScene({
         ))}
       </Layer>
 
-      <Layer factor={NEAR_FOREGROUND_FACTOR} shade={0.58}>
-        <NearForegroundLayer factor={NEAR_FOREGROUND_FACTOR} />
+      <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
+        <Foreground plane={NEAR_PLANE} />
+      </Layer>
+      <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
+        <Foreground plane={CLOSE_PLANE} />
       </Layer>
 
       <Layer factor={1} shade={0.0}>
