@@ -1,0 +1,21 @@
+{
+  "columns": 1,
+  "rows": 1,
+  "width": 512,
+  "height": 512,
+  "baseline": 449,
+  "heights": [
+    330
+  ],
+  "tile": false,
+  "pivot": [
+    192,
+    206
+  ],
+  "bounds": [
+    105,
+    120,
+    390,
+    330
+  ]
+}

@@ -32,6 +32,9 @@ const MAJOR_PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
 const MINOR_PENTA = [0, 3, 5, 7, 10, 12, 15, 17];
 
 export const MOODS: Record<string, Mood> = {
+  // Keep eight degrees: a phrase begun outdoors must survive the change of room.
+  orp: { root: 60, scale: [0, 4, 7, 9, 12, 16, 19, 21], chords: [[0, 4, 7, 11], [2, 5, 9, 12], [0, 4, 7, 11], [-1, 2, 5, 9]], bpm: 66, density: 0.22, voice: "bell" },
+  factory: { root: 50, scale: [0, 0, 7, 12, 12, 19, 24, 24], chords: [[0, 7, 12], [0, 7, 12], [-2, 5, 10], [0, 7, 12]], bpm: 96, density: 0.6, voice: "lute", drum: true },
   plaine: { root: 62, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [0, 4, 7], [7, 11, 14]], bpm: 84, density: 0.42, voice: "lute" },
   foret: { root: 64, scale: [0, 2, 3, 7, 9, 10, 12, 14], chords: [[0, 3, 7], [5, 9, 12], [0, 3, 7], [-2, 2, 5]], bpm: 74, density: 0.36, voice: "flute" },
   marais: { root: 57, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [5, 8, 12], [0, 3, 7]], bpm: 64, density: 0.28, voice: "harp" },
@@ -362,7 +365,15 @@ export async function renderPreview(where: string, seconds: number, dark = 0): P
 }
 
 export function steerMusic(where: string, ducked: boolean): void {
+  setMusicPlace(where);
+  setMusicDucked(ducked);
+}
+
+export function setMusicPlace(where: string): void {
   land = where;
+}
+
+export function setMusicDucked(ducked: boolean): void {
   const nextDuck = ducked ? 0.3 : 1;
   if (nextDuck !== duck) {
     duck = nextDuck;

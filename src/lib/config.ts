@@ -11,15 +11,6 @@ export const SEASON = {
   label: "Saison 2026",
 } as const;
 
-/** Points par action, indépendants du nombre de pas parcourus. */
-export const POINTS = {
-  candidature: 1,
-  refus: 2,
-  entretien: -3,
-  rejetApresEntretien: 5,
-  embauche: 0,
-} as const;
-
 /** Pas de voyage par action. Un entretien ramène trois cases en arrière. */
 export const JOURNEY_STEPS = {
   candidature: 2,
@@ -30,8 +21,7 @@ export const JOURNEY_STEPS = {
 } as const;
 
 /**
- * Pas bonus gagnés aux mini-jeux, par action décorée. Seuls les pas de voyage
- * bougent : les points du classement n'y touchent jamais.
+ * Pas bonus gagnés aux mini-jeux, par action décorée. Ils comptent aussi au classement.
  */
 export const MINI_GAME_BONUS = {
   candidature: 2,

@@ -5,7 +5,7 @@ import type { ActionKind, GameEvent, GameState, MiniGameAttempt, MiniGameKind, M
 /**
  * Optional mini-games decorate the official actions. Each one is offered once
  * per action ordinal (or per chest) and only ever adds journey steps or loot:
- * the ranking points of the action stay exactly what the journal says.
+ * bonus steps also count in the journey standings.
  */
 
 export interface MiniGameCopy {

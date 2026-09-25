@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { JOURNEY_STEPS, POINTS } from "@/lib/config";
+import { JOURNEY_STEPS } from "@/lib/config";
 import type { ActionKind } from "@/lib/data/types";
 import { ActionArtwork } from "./Artwork";
 import { UndoIcon } from "./icons";
@@ -43,12 +43,6 @@ const SLOTS: Slot[] = [
     hint: "Fin de la course",
   },
 ];
-
-const formatPoints = (kind: ActionKind) => {
-  const value = POINTS[kind];
-  if (value === 0) return "±0";
-  return value > 0 ? `+${value}` : `${value}`;
-};
 
 interface ActionBarProps {
   onAction: (kind: ActionKind) => void;
@@ -121,9 +115,6 @@ export function ActionBar({
               {JOURNEY_STEPS[kind] === 0
                 ? "Arrivée"
                 : `${JOURNEY_STEPS[kind] > 0 ? "+" : ""}${JOURNEY_STEPS[kind]} pas`}
-            </span>
-            <span className={POINTS[kind] < 0 ? "text-coral" : "text-parchment/55"}>
-              {formatPoints(kind)} pt{Math.abs(POINTS[kind]) === 1 ? "" : "s"}
             </span>
           </button>
         ))}

@@ -1,0 +1,65 @@
+{
+  "columns": 4,
+  "rows": 2,
+  "width": 512,
+  "height": 512,
+  "baseline": 496,
+  "heights": [
+    205,
+    468,
+    461,
+    468,
+    486,
+    324,
+    437,
+    460
+  ],
+  "frames": [
+    {
+      "id": "belt",
+      "pivot": [
+        256,
+        395
+      ]
+    },
+    {
+      "id": "press"
+    },
+    {
+      "id": "press-head",
+      "pivot": [
+        256,
+        40
+      ]
+    },
+    {
+      "id": "shredder"
+    },
+    {
+      "id": "hopper",
+      "text": [
+        93,
+        113,
+        180,
+        58
+      ]
+    },
+    {
+      "id": "crate"
+    },
+    {
+      "id": "gear",
+      "pivot": [
+        256,
+        279
+      ]
+    },
+    {
+      "id": "lever",
+      "pivot": [
+        204,
+        430
+      ]
+    }
+  ]
+}

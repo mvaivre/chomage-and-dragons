@@ -127,6 +127,7 @@ function FxLayerImpl() {
       p.vy = p.vy * keep + p.preset.gravity * dt;
       p.sprite.x += p.vx * dt + (p.preset.flutter ? Math.sin(p.age * 6 + p.phase) * p.preset.flutter * dt : 0);
       p.sprite.y += p.vy * dt;
+      if (p.ambient) p.sprite.visible = !scene.reducedMotion && !scene.room;
       p.sprite.rotation += p.spin * dt;
       const size = (p.preset.size[0] + (p.preset.size[1] - p.preset.size[0]) * t) * p.power;
       const aspect = p.preset.aspect ?? 1;

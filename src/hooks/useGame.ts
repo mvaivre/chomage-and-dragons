@@ -19,7 +19,6 @@ import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
 import { applyAction, type ActionContext, type GameAction } from "@/lib/game/reducer";
 import {
   collectiveTotals,
-  eventsInMonth,
   soleLeader,
   standings,
   type Standing,
@@ -30,7 +29,7 @@ export interface Crown {
   monthKey: string;
   /** Null si personne n'a marqué, ou si le mois est à égalité. */
   playerId: string | null;
-  score: number;
+  steps: number;
   tied: boolean;
 }
 
@@ -38,10 +37,8 @@ export interface PlayerView {
   id: string;
   name: string;
   characterId: string;
-  /** Score cumulé depuis le début de la saison. */
-  score: number;
-  /** Score du mois en cours, remis à zéro le 1er. */
-  monthScore: number;
+  /** Progression nette du mois en cours. */
+  monthSteps: number;
   applications: number;
   /** Effort de voyage cumulé, toutes les actions positives pour le trajet comprises. */
   journeySteps: number;
@@ -53,7 +50,7 @@ export interface PlayerView {
   availablePowers: AvailablePower[];
   /** Shots reçus mais pas encore honorés. */
   shotsOwed: number;
-  /** Renseigné après une embauche : quitte la course, garde ses points. */
+  /** Renseigné après une embauche : quitte la course, garde ses pas. */
   hiredAt?: string;
 }
 
@@ -235,13 +232,13 @@ export function useGame(mode: GameMode = LOCAL) {
   );
 
   const monthStandings = useMemo<Standing[]>(
-    () => standings(eventsInMonth(state.events, monthKeyNow), state.players),
+    () => standings(state.events, state.players, monthKeyNow),
     [state, monthKeyNow],
   );
 
   const players = useMemo<PlayerView[]>(() => {
-    const monthScoreById = new Map(
-      monthStandings.map((s) => [s.playerId, s.score]),
+    const monthStepsById = new Map(
+      monthStandings.map((s) => [s.playerId, s.steps]),
     );
 
     return state.players.map((player) => {
@@ -255,14 +252,13 @@ export function useGame(mode: GameMode = LOCAL) {
         id: player.id,
         name: player.name,
         characterId: player.characterId,
-        score: standing?.score ?? 0,
-        monthScore: monthScoreById.get(player.id) ?? 0,
+        monthSteps: monthStepsById.get(player.id) ?? 0,
         applications,
         journeySteps: steps,
         earnedChests,
         level: levelFromSteps(steps),
         // Être engagé·e, c'est avoir atteint la taverne : le personnage s'y installe
-        // et cesse d'avancer, sans rien perdre de ses points.
+        // et cesse d'avancer, sans rien perdre de ses pas.
         position: player.hiredAt ? hiredPosition(steps) : racePosition(steps),
         counts:
           standing?.counts ??
@@ -294,13 +290,13 @@ export function useGame(mode: GameMode = LOCAL) {
   const crowns = useMemo<Crown[]>(
     () =>
       seasonMonthKeys().map((key) => {
-        const rows = standings(eventsInMonth(state.events, key), state.players);
+        const rows = standings(state.events, state.players, key);
         const leader = soleLeader(rows);
         return {
           monthKey: key,
           playerId: leader?.playerId ?? null,
-          score: rows[0]?.score ?? 0,
-          tied: rows.length > 1 && rows[0]?.score === rows[1]?.score,
+          steps: rows[0]?.steps ?? 0,
+          tied: rows.length > 1 && rows[0]?.steps === rows[1]?.steps,
         };
       }),
     [state],

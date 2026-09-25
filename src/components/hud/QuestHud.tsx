@@ -4,16 +4,15 @@ import type { PlayerView } from "@/hooks/useGame";
 import { STEPS_PER_LEVEL } from "@/lib/config";
 import { characterArt, characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
+import { interiorAt } from "@/lib/game/decor";
 import { biomeAt, worldXFor } from "@/lib/game/world";
-import { useEffect, useState } from "react";
 import { sfx } from "@/lib/client/sound";
 import { ChestArtwork, CrownArtwork } from "./Artwork";
-import { LANDED_EVENT, useTween } from "./Moment";
+import { useTween } from "./Moment";
 
 /** When the counters climb during an action's moment; null updates at once. */
 export interface HudTiming {
   steps: { delay: number; duration: number };
-  points: { delay: number; duration: number };
 }
 
 /**
@@ -24,6 +23,7 @@ export interface HudTiming {
 
 interface QuestHudProps {
   me: PlayerView | null;
+  laneOffset?: number;
   /** Rang dans la saison, 1 pour le/la meneur·euse. */
   seasonRank: number | null;
   timing?: HudTiming | null;
@@ -31,24 +31,16 @@ interface QuestHudProps {
   streak?: number;
 }
 
-export function QuestHud({ me, seasonRank, timing = null, streak = 0 }: QuestHudProps) {
+export function QuestHud({ me, seasonRank, timing = null, streak = 0, laneOffset = -80 }: QuestHudProps) {
   if (!me) return null;
-  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} streak={streak} />;
+  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} streak={streak} laneOffset={laneOffset} />;
 }
 
-function QuestCard({ me, seasonRank, timing, streak }: { me: PlayerView; seasonRank: number | null; timing: HudTiming | null; streak: number }) {
-  // Steps climb while the hero walks; points when the flying number lands.
+function QuestCard({ me, seasonRank, timing, streak, laneOffset }: { laneOffset: number; me: PlayerView; seasonRank: number | null; timing: HudTiming | null; streak: number }) {
+  // One counter follows the journey.
   const steps = useTween(me.journeySteps, timing?.steps ?? null, sfx.tick);
-  const points = useTween(me.score, timing?.points ?? null);
-  const [landed, setLanded] = useState(0);
-  useEffect(() => {
-    const onLanded = () => setLanded((count) => count + 1);
-    window.addEventListener(LANDED_EVENT, onLanded);
-    return () => window.removeEventListener(LANDED_EVENT, onLanded);
-  }, []);
-
   const character = characterById(me.characterId);
-  const zone = biomeAt(worldXFor(me.position));
+  const zone = interiorAt(worldXFor(me.position) + laneOffset) ?? biomeAt(worldXFor(me.position));
   const remaining = untilNextChest(me.journeySteps, me.earnedChests);
   const filled = Math.max(0, STEPS_PER_LEVEL - remaining);
 
@@ -64,7 +56,6 @@ function QuestCard({ me, seasonRank, timing, streak }: { me: PlayerView; seasonR
           </span>
           {streak >= 2 ? <span className="journey-card__streak" title={`${streak} semaines d’affilée avec au moins une action`}>🔥 {streak}</span> : null}
         </div>
-        <span className="journey-card__mobile-score" data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown} pts</span>
       </div>
 
       <div className="journey-card__main">
@@ -74,12 +65,8 @@ function QuestCard({ me, seasonRank, timing, streak }: { me: PlayerView; seasonR
           </div>
           <dl className="journey-card__stats">
             <div>
-              <dt>Voyage</dt>
+              <dt>Pas</dt>
               <dd data-bump={steps.bump % 2}>{steps.shown}</dd>
-            </div>
-            <div>
-              <dt>Points</dt>
-              <dd data-hud-target="points" data-bump={(points.bump + landed) % 2}>{points.shown}</dd>
             </div>
             <div>
               <dt>Rang</dt>

@@ -16,7 +16,7 @@ export interface Player {
   characterId: string;
   /** Instant ISO d'arrivée dans la partie. Ne donne aucun point rétroactif. */
   joinedAt: string;
-  /** Renseigné après une embauche : le personnage quitte la course, garde ses points. */
+  /** Renseigné après une embauche : le personnage quitte la course, garde ses pas. */
   hiredAt?: string;
 }
 
@@ -32,7 +32,7 @@ export interface GameEvent {
   at: string;
   /** Legacy: the first pigeon game doubled application travel. Kept for old journals. */
   journeyMultiplier?: 2;
-  /** Extra journey steps won in mini-games. Ranking points never change. */
+  /** Extra journey steps won in mini-games. Also counted in the journey standings. */
   journeyBonus?: number;
   miniGameId?: string;
   /** Legacy pointer of the first pigeon game, migrated into miniGameId on load. */
@@ -55,7 +55,7 @@ export interface MiniGameAttempt {
   /** The event that unlocked it; a chest attempt keeps the event that earned the chest. */
   eventId: string;
   result: "pending" | MiniGameResult;
-  /** Bragging rights, for records; never changes steps or points. */
+  /** Bragging rights, for records; never changes journey steps. */
   score?: number;
 }
 

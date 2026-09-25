@@ -1,0 +1,34 @@
+{
+  "label": "lot-1-perf",
+  "results": [
+    {
+      "viewport": [
+        1280,
+        720
+      ],
+      "throttle": 1,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 2.6168001935448872,
+      "maxFrameMS": 16.80000000000109,
+      "p95FrameMS": 16.700000000000728
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "throttle": 4,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 8.257449818081165,
+      "maxFrameMS": 66.69999999999982,
+      "p95FrameMS": 16.700000000000728
+    }
+  ],
+  "errors": []
+}

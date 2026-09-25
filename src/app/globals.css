@@ -997,10 +997,7 @@ body {
     white-space: normal;
   }
 
-  .action-button__reward,
-  .action-button > span:last-child {
-    display: none;
-  }
+  .action-button__reward { display: block; }
 
   .action-undo {
     flex-direction: row;
@@ -1869,7 +1866,6 @@ html { font-size: 18px; }
 
   .action-button__label { font-size: 0.85rem; white-space: normal; }
   .action-button__reward { display: block; font-size: 0.7rem; }
-  .action-button > span:last-child { display: none; }
 
   .reward-overlay { padding: 8px; }
 
@@ -2288,7 +2284,7 @@ html, body { height: 100%; height: 100dvh; }
   .action-dock__bar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .action-button, .action-undo { min-height: 54px; padding: 4px; }
   .action-button { grid-template-columns: 28px minmax(0, 1fr); column-gap: 5px; }
-  .action-button > span:last-child, .keycap { display: none; }
+  .keycap { display: none; }
   .action-button__icon { width: 30px; height: 30px; }
   .action-button__label { font-size: 0.7rem; }
   .action-button__reward { font-size: 0.65rem; }
@@ -2353,7 +2349,7 @@ html, body { height: 100%; height: 100dvh; }
   .action-button__label { grid-column: 1 / -1; text-align: center; font-size: 1rem; }
   .action-button__icon { grid-row: 2; width: 3.3rem; height: 3.3rem; justify-self: end; }
   .action-button__reward { grid-column: 2; font-size: 0.85rem; align-self: center; white-space: nowrap; }
-  .action-button > span:last-child, .action-button .keycap { display: none; }
+  .action-button .keycap { display: none; }
   .action-button, .action-undo { min-height: 90px; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
@@ -2609,14 +2605,6 @@ html, body { height: 100%; height: 100dvh; }
 .moment-letterbox { animation: moment-noop var(--hold) linear forwards; }
 @keyframes moment-noop { from { opacity: 1; } to { opacity: 1; } }
 @keyframes moment-bars { 0% { transform: scaleY(0); } 12% { transform: scaleY(1); } 82% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
-.moment-points {
-  position: absolute; left: 0; top: 0; display: inline-flex; align-items: baseline; gap: 4px;
-  margin: -0.6em 0 0 -1em; font-family: var(--font-display); font-size: clamp(2.6rem, 5vw, 3.6rem); line-height: 1;
-  color: var(--janky-yellow); -webkit-text-stroke: 2px #2a1a08; paint-order: stroke fill;
-  text-shadow: 0 3px 0 #2a1a08, 0 0 18px rgb(255 215 108 / 0.55); will-change: transform, opacity;
-}
-.moment-points small { font-size: 0.4em; -webkit-text-stroke: 1px #2a1a08; }
-.moment-points[data-negative="true"] { color: #ff9a8a; text-shadow: 0 3px 0 #2a0d0d, 0 0 18px rgb(255 120 100 / 0.5); }
 .moment-banner {
   position: absolute; left: 50%; top: 30%; display: grid; justify-items: center; gap: 2px; width: min(92vw, 34rem);
   padding: 14px 28px 16px; transform: translate(-50%, -50%); text-align: center;
@@ -2925,3 +2913,39 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 }
 /* A grid item keeps its text's width unless told otherwise: long class names pushed rows off phones. */
 .standing-row { min-width: 0; }
+
+/* One short, reopenable introduction. Native dialog supplies focus containment. */
+.welcome-card { margin: auto; width: min(92vw, 32rem); max-height: 90dvh; overflow-y: auto; color: #302b23; background: #f2e1b2; border: 4px solid #302b23; box-shadow: 7px 8px 0 #0006; padding: clamp(1.1rem, 4vw, 1.8rem); }
+.welcome-card::backdrop { background: #171b20ba; }
+.welcome-card h1 { font-family: var(--font-pirata), serif; font-size: clamp(1.9rem, 6vw, 2.5rem); line-height: 1.1; margin-bottom: .75rem; }
+.welcome-card p { margin-bottom: .8rem; line-height: 1.3; }
+.welcome-card__eyebrow { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; }
+.welcome-card__actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; padding: .75rem 0; margin-bottom: .3rem; border-block: 1px solid #302b2350; }
+.welcome-card__actions div { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+.welcome-card__actions dd { font-weight: 700; white-space: nowrap; }
+.welcome-card__aside { font-size: .88rem; font-style: italic; }
+.welcome-card__start { display: block; width: 100%; padding: .65rem; background: #efc139; border: 3px solid #302b23; font-family: var(--font-pirata), serif; font-size: 1.6rem; margin: 1rem 0 .5rem; cursor: pointer; }
+.welcome-card small { display: block; text-align: center; opacity: .7; }
+.welcome-help { pointer-events: auto; border: 2px solid #ebd69a66; color: #f0dfa8; background: #292b2ce6; padding: .3rem .6rem; font-size: .85rem; cursor: pointer; }
+@media (max-width: 420px) { .welcome-card__actions { grid-template-columns: 1fr; gap: .15rem; } }
+@media (max-width: 760px), (max-height: 500px) {
+  .journey-card__stats > div:first-child { display: flex; align-items: baseline; gap: 4px; }
+  .action-button .action-button__reward { display: block; }
+}
+
+.welcome-card[open] { display: flex; flex-direction: column; overflow: hidden; font-size: clamp(.85rem, 2.5vw, 1rem); }
+.welcome-card__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.welcome-card h1:focus { outline: none; }
+.welcome-card__start, .welcome-card > small { flex-shrink: 0; }
+@media (max-height: 500px) and (min-width: 600px) {
+  .welcome-card[open] { width: min(94vw, 50rem); padding: 12px 18px; font-size: .8rem; }
+  .welcome-card__body { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .welcome-card__body > .welcome-card__eyebrow,
+  .welcome-card__body > h1,
+  .welcome-card__body > p:nth-child(3) { grid-column: 1 / -1; }
+  .welcome-card h1 { font-size: 1.8rem; margin-bottom: 5px; }
+  .welcome-card p { margin-bottom: 6px; }
+  .welcome-card__actions { grid-column: 1; grid-row: 4 / 7; grid-template-columns: 1fr; align-content: center; margin: 0; }
+  .welcome-card__body > p:nth-child(n+5) { grid-column: 2; }
+  .welcome-card__start { padding: 4px; margin: 8px 0 4px; font-size: 1.3rem; }
+}

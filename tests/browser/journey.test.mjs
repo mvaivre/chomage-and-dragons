@@ -10,10 +10,11 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 const { corporateAnswer } = await import('../../src/lib/game/personality-quiz.ts');
 
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3100';
-const ready = page => page.waitForFunction(() => {
-  const button = document.querySelector('.action-button--entretien');
-  return button && !button.disabled;
-});
+const ready = async page => {
+  await page.waitForFunction(() => document.querySelector('.welcome-card[open]') || (document.querySelector('.action-button--entretien') && !document.querySelector('.action-button--entretien').disabled));
+  if (await page.locator('.welcome-card').count()) await page.getByRole('button', { name: 'C’est parti !' }).click();
+  await page.waitForFunction(() => !document.querySelector('.action-button--entretien')?.disabled);
+};
 
 test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000 }, async t => {
   const server = process.env.GAME_TEST_URL ? null : spawn(process.execPath,
@@ -25,7 +26,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
   }
   const browser = await chromium.launch({
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    args: process.env.PLAYWRIGHT_WEBGL === 'metal'
+      ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist']
+      : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
   });
   t.after(() => browser.close());
 
@@ -38,7 +41,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     await page.addInitScript(({ kinds }) => {
       if (localStorage.getItem('louchomage:v2')) return;
       const at = new Date().toISOString();
-      localStorage.setItem('louchomage:moi:v1', 'test');
+      localStorage.setItem('chomage:welcome:steps-v1','seen');localStorage.setItem('louchomage:moi:v1', 'test');
       localStorage.setItem('louchomage:v2', JSON.stringify({
         players: [{ id: 'test', name: 'Mika', characterId: 'skater', joinedAt: at }],
         events: kinds.map((kind, i) => ({ id: `event-${i}`, playerId: 'test', kind, at })),
@@ -120,7 +123,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.equal(await page.locator('.hud-layer').isVisible(), false);
       // Park the pointer away from the sheet's buttons: their hover styling is not the world.
       await page.mouse.move(4, 560);
-      // The points of the undone interview may still be flying to their counter.
+      // Let the final reaction settle before checking the paused canvas.
       await page.waitForFunction(() => !document.querySelector('.moment-layer > *'));
       await page.waitForTimeout(400);
       const before = await page.locator('canvas').screenshot();
@@ -522,7 +525,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.ok(saved.miniGames[0].score > 0, 'the attempt keeps its score');
       await page.locator('.action-button--refus').click();
       await page.locator('.mini-game-invite__record').waitFor();
-      assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record : \d+ pts · Mika/);
+      assert.match(await page.locator('.mini-game-invite__record').innerText(), /Record : \d+\s+· Mika/);
       await page.locator('.mini-game-invite__pass').click();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
