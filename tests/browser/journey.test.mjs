@@ -97,7 +97,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     } finally { await context.close(); }
   });
 
-  await t.test('zero-distance actions and undo finish with reduced motion; map pauses and closes', async () => {
+  await t.test('zero-distance actions and undo finish with reduced motion; the standings and their map pause and close', async () => {
     const { context, page, errors } = await fixture(0, 'reduce');
     try {
       await page.setViewportSize({ width: 320, height: 568 });
@@ -114,18 +114,20 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       const overflow = await page.locator('.action-button__label').evaluateAll(nodes => nodes.some(node => node.scrollWidth > node.clientWidth + 1));
       assert.equal(overflow, false);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
-      await page.locator('.company-camera').click();
-      // Park the pointer away from the map's buttons: their hover styling is not the world.
-      await page.mouse.move(160, 460);
+      // The map lives in the standings, opened from the crown.
+      await page.locator('.leaderboard-card').click();
+      await page.locator('.leaderboard-sheet .journey-map .company-map-pin.is-me').waitFor();
       assert.equal(await page.locator('.hud-layer').isVisible(), false);
+      // Park the pointer away from the sheet's buttons: their hover styling is not the world.
+      await page.mouse.move(4, 560);
       // The points of the undone interview may still be flying to their counter.
       await page.waitForFunction(() => !document.querySelector('.moment-layer > *'));
       await page.waitForTimeout(400);
       const before = await page.locator('canvas').screenshot();
       await page.waitForTimeout(600);
-      assert.ok(Buffer.compare(await page.locator('canvas').screenshot(), before) === 0, 'the world stays still behind the map');
+      assert.ok(Buffer.compare(await page.locator('canvas').screenshot(), before) === 0, 'the world stays still behind the standings');
       await page.keyboard.press('Escape');
-      assert.equal(await page.getByRole('button', { name: 'Fermer la carte' }).count(), 0);
+      assert.equal(await page.locator('.leaderboard-sheet').count(), 0);
       await ready(page);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }

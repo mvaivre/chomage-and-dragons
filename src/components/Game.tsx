@@ -24,7 +24,6 @@ import {
 import {
   CompactLeaderboard,
   LeaderboardOverlay,
-  OverviewLeaderboard,
 } from "@/components/hud/Leaderboard";
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
@@ -36,7 +35,7 @@ import { SoundToggle } from "@/components/hud/SoundToggle";
 import { startMusic, steerMusic } from "@/lib/client/music";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
-import { Album } from "@/components/hud/Album";
+import { JourneyMap } from "@/components/hud/JourneyMap";
 import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
@@ -231,7 +230,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     return () => window.clearTimeout(timer);
   }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
-  const [overview, setOverview] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
   useEffect(() => warmUpAudio(), []);
@@ -290,7 +288,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !overview && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
@@ -372,26 +370,18 @@ export function Game({ slug = null }: { slug?: string | null }) {
           setRegisterOpen(false);
           return;
         }
-        if (overview) {
-          setOverview(false);
-          return;
-        }
         if (awaitingTravel) return;
         if (notice) {
           setNotice(null);
           return;
         }
         setRegisterOpen((open) => !open);
-      } else if (event.key.toLowerCase() === "v" && !event.metaKey && !event.ctrlKey && !event.altKey &&
-        !(event.target instanceof HTMLElement && (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)))) {
-        event.preventDefault();
-        setOverview((value) => !value);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, overview, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible]);
 
   useEffect(
     () => () => {
@@ -538,7 +528,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
-      setOverview(false);
 
       const { event, offer, chestGame } = addEvent(me.id, kind);
       if (!event) {
@@ -673,7 +662,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
-      setOverview(false);
       const targetIndex = players.findIndex((player) => player.id === targetId);
       const target = players[targetIndex];
       if (!target) return;
@@ -757,7 +745,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     pendingChestGame.current = null;
     setEffects([]);
     setActionFeedback(null);
-    setOverview(false);
     setEffectFocusId(null);
   }, []);
 
@@ -820,8 +807,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={overview || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
-        actionDockVisible={Boolean(me && !overview)}
+        paused={registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
         players={players}
@@ -839,7 +826,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       <DaylightVeil />
       <MomentOverlay />
 
-      {DEV_BUILD && !overview ? (
+      {DEV_BUILD ? (
         <aside className="dev-explorer" data-open={devExplore}>
           <button
             type="button"
@@ -896,19 +883,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
         </aside>
       ) : null}
 
-      {me && overview ? (
-        <CompanyMap
-          onClose={() => setOverview(false)}
-          players={players}
-          meId={identity}
-          monthStandings={monthStandings}
-          monthKeyNow={monthKeyNow}
-          onOpenLeaderboard={() => setRegisterOpen(true)}
-        />
-      ) : null}
-
       {me ? (
-        <div hidden={overview} className="hud-layer pointer-events-none absolute inset-0 z-10">
+        <div hidden={registerOpen} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
               <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
@@ -923,50 +899,36 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
-                <button
-                  type="button"
-                  className="company-camera pointer-events-auto"
-                  aria-pressed={overview}
-                  onClick={() => setOverview((value) => !value)}
-                >
-                  <span aria-hidden>◉</span>
-                  <span>Carte</span>
-                  <kbd>V</kbd>
-                </button>
               </div>
             </div>
-            {!overview ? (
-              <CompactLeaderboard
-                players={players}
-                monthStandings={monthStandings}
-                monthKeyNow={monthKeyNow}
-                meId={identity}
-                onOpen={() => setRegisterOpen(true)}
-              />
-            ) : null}
+            <CompactLeaderboard
+              players={players}
+              monthStandings={monthStandings}
+              monthKeyNow={monthKeyNow}
+              meId={identity}
+              onOpen={() => setRegisterOpen(true)}
+            />
           </header>
 
-          {!overview ? (
-            <div className="hud-bottom">
-              <ActionBar
-                onAction={handleAction}
-                onUndo={handleUndo}
-                canUndo={canUndo}
-                hired={Boolean(me.hiredAt)}
-                locked={
-                  registerOpen ||
-                  !sceneReady ||
-                  rewardMoments.length > 0 ||
-                  miniGameOffer !== null ||
-                  devMiniGame !== null ||
-                  awaitingTravel ||
-                  shotInbox !== null
-                }
-                feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
-                feedbackKind={actionFeedback?.kind}
-              />
-            </div>
-          ) : null}
+          <div className="hud-bottom">
+            <ActionBar
+              onAction={handleAction}
+              onUndo={handleUndo}
+              canUndo={canUndo}
+              hired={Boolean(me.hiredAt)}
+              locked={
+                registerOpen ||
+                !sceneReady ||
+                rewardMoments.length > 0 ||
+                miniGameOffer !== null ||
+                devMiniGame !== null ||
+                awaitingTravel ||
+                shotInbox !== null
+              }
+              feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
+              feedbackKind={actionFeedback?.kind}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -993,7 +955,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           meId={identity}
           groupName={groupName}
           inviteUrl={inviteUrl}
-          album={me ? <Album me={me} events={events} miniGames={miniGames} /> : null}
+          map={<JourneyMap players={players} meId={identity} />}
           onAddPlayer={store ? null : addPlayer}
           onRemovePlayer={removePlayer}
           onChangeIdentity={handleChangeIdentity}
@@ -1073,82 +1035,5 @@ export function Game({ slug = null }: { slug?: string | null }) {
         />
       ) : null}
     </main>
-  );
-}
-
-function mapRouteY(progress: number): number {
-  const points = [67, 70, 69, 66, 60, 64, 68];
-  const scaled = Math.max(0, Math.min(1, progress)) * (points.length - 1);
-  const index = Math.min(points.length - 2, Math.floor(scaled));
-  const t = scaled - index;
-  return points[index] + (points[index + 1] - points[index]) * t;
-}
-
-interface CompanyMapProps {
-  onClose: () => void;
-  players: ReturnType<typeof useGame>["players"];
-  meId: string | null;
-  monthStandings: ReturnType<typeof useGame>["monthStandings"];
-  monthKeyNow: string;
-  onOpenLeaderboard: () => void;
-}
-
-/** Carte d'interface : elle se fond sur le jeu sans toucher à la caméra Pixi. */
-function CompanyMap({
-  onClose,
-  players,
-  meId,
-  monthStandings,
-  monthKeyNow,
-  onOpenLeaderboard,
-}: CompanyMapProps) {
-  const closeButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    closeButton.current?.focus();
-    return () => {
-      requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".company-camera")?.focus());
-    };
-  }, []);
-  return (
-    <section className="company-map-view is-open absolute inset-0 z-20" role="dialog" aria-modal="true" aria-labelledby="company-map-title">
-      <header className="company-map-view__header">
-        <h2 id="company-map-title">La compagnie</h2>
-        <button ref={closeButton} type="button" className="company-map-view__close" aria-label="Fermer la carte" title="Fermer la carte (Échap)" onClick={onClose}>×</button>
-      </header>
-      <div className="company-map-view__scroll">
-        <div className="company-map-view__content">
-          <div className="company-map-view__map">
-            <div
-              className="company-map-view__painting"
-              role="img"
-              aria-label="Carte médiévale du voyage de la compagnie"
-            />
-            <div className="company-map-view__pins" aria-label="Position des joueurs">
-              {players.map((player, index) => (
-                <div
-                  key={player.id}
-                  className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
-                  style={{
-                    left: `${16 + (player.position % 1 || (player.position > 0 ? 1 : 0)) * 68 + ((index % 3) - 1) * 1.25}%`,
-                    top: `${mapRouteY(player.position % 1 || (player.position > 0 ? 1 : 0)) + ((index % 3) - 1) * 3.2}%`,
-                    zIndex: player.id === meId ? 20 : index + 1,
-                  }}
-                >
-                  <span>{player.name.slice(0, 1).toUpperCase()}</span>
-                  <strong>{player.name} · {player.journeySteps} pas<small>Voyage {Math.max(1, Math.ceil(player.position))}</small></strong>
-                </div>
-              ))}
-            </div>
-          </div>
-          <OverviewLeaderboard
-            players={players}
-            monthStandings={monthStandings}
-            monthKeyNow={monthKeyNow}
-            meId={meId}
-            onOpen={onOpenLeaderboard}
-          />
-        </div>
-      </div>
-    </section>
   );
 }

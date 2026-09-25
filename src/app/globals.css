@@ -376,7 +376,6 @@ body {
   text-transform: uppercase;
 }
 
-
 .journey-card__main {
   min-width: 0;
 }
@@ -463,13 +462,11 @@ body {
   display: none;
 }
 
-
 .leaderboard-card h2 {
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.5rem;
   line-height: 1;
 }
-
 
 .leaderboard-row {
   display: flex;
@@ -499,62 +496,7 @@ body {
   font-weight: 800;
 }
 
-
 /* La carte est une couche d'interface indépendante : aucun dézoom du monde. */
-.company-map-view {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  padding: clamp(8.5rem, 18vh, 10rem) 14px 16px;
-  overflow-y: auto;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  background: rgb(7 13 22 / 0.62);
-  backdrop-filter: blur(2px) saturate(0.85);
-  transition:
-    opacity 420ms cubic-bezier(0.22, 0.8, 0.2, 1),
-    visibility 0s linear 420ms;
-}
-
-.company-map-view.is-open {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transition-delay: 0s;
-}
-
-.company-map-view__map {
-  position: relative;
-  flex: 0 0 auto;
-  width: min(92vw, 89vh, 68rem);
-  aspect-ratio: 3 / 2;
-  overflow: hidden;
-  border: 2px solid rgb(130 83 33 / 0.92);
-  border-radius: 16px;
-  outline: 1px solid rgb(241 215 157 / 0.36);
-  box-shadow:
-    0 24px 70px rgb(0 0 0 / 0.66),
-    inset 0 0 54px rgb(62 33 10 / 0.3);
-  transform: translateY(10px) scale(0.985);
-  transition: transform 520ms cubic-bezier(0.16, 0.9, 0.24, 1);
-}
-
-.company-map-view.is-open .company-map-view__map {
-  transform: translateY(0) scale(1);
-}
-
-.company-map-view__painting,
-.company-map-view__pins {
-  position: absolute;
-  inset: 0;
-}
-
-.company-map-view__painting {
-  background: url("/art/runtime/company-map.webp") center / cover no-repeat;
-}
 
 .company-map-pin {
   position: absolute;
@@ -598,103 +540,6 @@ body {
 }
 
 /* Classement court directement sous le parchemin. */
-.overview-ranking {
-  position: relative;
-  flex: 0 0 auto;
-  width: min(54rem, calc(100% - 28px));
-  margin-inline: auto;
-  padding: 11px 13px 12px;
-  border: 1px solid rgb(96 60 24 / 0.72);
-  border-radius: 12px;
-  color: var(--color-parchment-ink);
-  background:
-    linear-gradient(110deg, rgb(250 235 194 / 0.97), rgb(216 185 124 / 0.96)),
-    url("/art/runtime/company-map.webp") center / cover;
-  box-shadow: 0 18px 45px rgb(0 0 0 / 0.42), inset 0 0 24px rgb(91 53 15 / 0.12);
-  transform: translateY(8px);
-  transition: transform 520ms 60ms cubic-bezier(0.16, 0.9, 0.24, 1);
-}
-
-.company-map-view.is-open .overview-ranking {
-  transform: translateY(0);
-}
-
-.overview-ranking > header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.overview-ranking > header span {
-  display: block;
-  color: rgb(59 43 24 / 0.55);
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.overview-ranking > header strong {
-  display: block;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.overview-ranking > header button {
-  flex: 0 0 auto;
-  padding: 5px 9px;
-  border: 1px solid rgb(72 44 17 / 0.28);
-  border-radius: 999px;
-  color: rgb(59 43 24 / 0.72);
-  font-size: 0.68rem;
-  font-weight: 800;
-}
-
-.overview-ranking__list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.overview-ranking__list li {
-  display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
-  min-height: 2rem;
-  padding: 4px 8px;
-  border: 1px solid rgb(74 52 29 / 0.12);
-  border-radius: 6px;
-  background: rgb(255 250 231 / 0.42);
-}
-
-.overview-ranking__list li.is-me {
-  border-color: rgb(117 77 27 / 0.48);
-  background: rgb(255 242 184 / 0.78);
-}
-
-.overview-ranking__list li > span {
-  display: grid;
-  place-items: center;
-  color: #805a25;
-  font-size: 0.74rem;
-  font-weight: 900;
-}
-
-.overview-ranking__list li > strong {
-  overflow: hidden;
-  font-size: 0.84rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.overview-ranking__list li > b {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.05rem;
-}
 
 /* ------------------------------------------------------------------ actions */
 
@@ -816,41 +661,6 @@ body {
   position: relative;
   width: max-content;
   margin-top: 8px;
-}
-
-.company-camera {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 8px;
-  padding: 7px 10px;
-  border: 1px solid rgb(115 219 217 / 0.48);
-  border-radius: 999px;
-  color: rgb(244 231 202 / 0.82);
-  background: rgb(17 28 39 / 0.86);
-  box-shadow: 0 8px 22px rgb(0 0 0 / 0.26);
-  font-size: 0.78rem;
-  font-weight: 700;
-  backdrop-filter: blur(8px);
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.company-camera:hover,
-.company-camera[aria-pressed="true"] {
-  border-color: #8ff4ef;
-  color: #f8edcf;
-  background: rgb(24 54 61 / 0.94);
-}
-
-.company-camera kbd {
-  display: grid;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  place-items: center;
-  border: 1px solid rgb(244 231 202 / 0.22);
-  border-radius: 4px;
-  color: rgb(244 231 202 / 0.48);
-  font-size: 0.61rem;
 }
 
 .power-menu__trigger {
@@ -1046,20 +856,11 @@ body {
 @media (max-width: 760px) {
   html { font-size: 16px; }
 
-  .overview-ranking {
-    width: auto;
-    padding: 9px;
-  }
+  
 
-  .company-map-view {
-    gap: 8px;
-    padding: 5.25rem 8px 10px;
-  }
+  
 
-  .company-map-view__map {
-    width: min(95vw, 86vh);
-    border-radius: 10px;
-  }
+  
 
   .company-map-pin {
     width: 1.65rem;
@@ -1072,21 +873,15 @@ body {
     height: 2rem;
   }
 
-  .overview-ranking > header { margin-bottom: 6px; }
+  
 
-  .overview-ranking > header strong { font-size: 1rem; }
+  
 
-  .overview-ranking > header button { display: none; }
+  
 
-  .overview-ranking__list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-  }
+  
 
-  .overview-ranking__list li {
-    min-height: 1.8rem;
-    padding: 3px 6px;
-  }
+  
 
   .hud-layer { padding: 8px; }
 
@@ -1152,13 +947,9 @@ body {
 
   .power-menu { margin-top: 5px; }
 
-  .company-camera {
-    margin-top: 5px;
-    padding: 5px 8px;
-    font-size: 0.7rem;
-  }
+  
 
-  .company-camera kbd { display: none; }
+  
 
   .power-menu__trigger {
     padding: 5px 8px;
@@ -1268,7 +1059,7 @@ html { font-size: 18px; }
 
 .hud-crown-art { width: 1.65rem; height: 1.65rem; }
 .leaderboard-crown-art { width: 2.35rem; height: 2.35rem; }
-.overview-crown-art { width: 1.25rem; height: 1.25rem; }
+
 .monthly-crown-art { width: 3rem; height: 3rem; flex-shrink: 0; }
 .standing-crown-art { width: 1.8rem; height: 1.8rem; margin-inline: auto; }
 .palmares-crown-art { width: 1.35rem; height: 1.35rem; flex-shrink: 0; }
@@ -1281,7 +1072,6 @@ html { font-size: 18px; }
 .leaderboard-card,
 .action-dock__bar,
 .power-menu__popover,
-.overview-ranking,
 .leaderboard-sheet,
 .reward-modal {
   border: 2px solid var(--ui-gold-dark);
@@ -1337,7 +1127,6 @@ html { font-size: 18px; }
 
 .journey-card h2 { font-size: 1.8rem; }
 
-
 .journey-card__level {
   flex-shrink: 0;
   padding: 2px 8px;
@@ -1389,7 +1178,6 @@ html { font-size: 18px; }
 
 /* ---------------------------------------------------------- commandes haut */
 
-.company-camera,
 .power-menu__trigger {
   min-height: 2.35rem;
   margin-top: 9px;
@@ -1405,16 +1193,12 @@ html { font-size: 18px; }
   backdrop-filter: none;
 }
 
-.company-camera:hover,
-.company-camera[aria-pressed="true"],
 .power-menu__trigger:hover {
   border-color: var(--ui-gold-hot);
   color: #fff3c8;
   background: #1b160b;
   box-shadow: inset 0 0 0 1px #000, 0 0 18px rgb(255 206 99 / 0.24);
 }
-
-.company-camera kbd { border-radius: 0; }
 
 .power-menu__chest-art {
   width: 2rem;
@@ -1516,7 +1300,6 @@ html { font-size: 18px; }
 .leaderboard-card__desktop { padding: 16px 17px 14px; }
 .leaderboard-card h2 { color: var(--ui-gold-hot); font-size: 1.45rem; line-height: 1.1; white-space: nowrap; }
 
-
 .leaderboard-card [class*="text-parchment-ink"] { color: var(--ui-cream) !important; }
 
 .leaderboard-row {
@@ -1537,35 +1320,6 @@ html { font-size: 18px; }
   border-radius: 0;
   color: var(--ui-gold-hot);
   background: #030303;
-}
-
-
-.company-map-view__map { border-radius: 2px; }
-
-.overview-ranking {
-  color: var(--ui-cream);
-  background: linear-gradient(145deg, #151109, #050504);
-}
-
-.overview-ranking [class*="text-parchment-ink"] { color: var(--ui-cream) !important; }
-.overview-ranking > header span { color: #a99770; }
-.overview-ranking > header strong { color: var(--ui-gold-hot); font-size: 1.45rem; }
-.overview-ranking > header button { border-radius: 0; color: var(--ui-gold-hot); }
-
-.overview-ranking__list li {
-  border-color: rgb(255 216 114 / 0.16);
-  border-radius: 0;
-  color: var(--ui-cream);
-  background: #090806;
-}
-
-.overview-ranking__list li.is-me {
-  border-color: var(--ui-gold);
-  background: #21190c;
-}
-
-.overview-ranking__list li {
-  grid-template-columns: 1.5rem minmax(0, 1fr) auto auto;
 }
 
 .shot-tally {
@@ -2082,7 +1836,7 @@ html { font-size: 18px; }
 
   .leaderboard-card__mobile { color: var(--ui-gold-hot); }
 
-  .company-camera,
+  
   .power-menu__trigger { margin-top: 5px; font-size: 0.76rem; }
 
   .hud-bottom { right: 6px; bottom: 6px; left: 6px; }
@@ -2209,7 +1963,6 @@ html { font-size: 18px; }
 .leaderboard-card,
 .action-dock__bar,
 .power-menu__popover,
-.overview-ranking,
 .leaderboard-sheet,
 .reward-modal,
 .toast-notice__panel {
@@ -2326,7 +2079,6 @@ html { font-size: 18px; }
   box-shadow: none;
 }
 
-.company-camera,
 .power-menu__trigger,
 .toast-notice__panel button {
   border: 3px solid var(--janky-ink);
@@ -2336,8 +2088,6 @@ html { font-size: 18px; }
   box-shadow: 4px 4px 0 rgb(21 20 18 / 0.72);
 }
 
-.company-camera:hover,
-.company-camera[aria-pressed="true"],
 .power-menu__trigger:hover,
 .toast-notice__panel button:hover {
   transform: translate(-1px, -1px) rotate(0.5deg);
@@ -2529,7 +2279,7 @@ html, body { height: 100%; height: 100dvh; }
 
 @media (max-height: 500px) and (orientation: landscape) {
   .journey-card__main, .journey-card__identity > p,
-  .leaderboard-card, .action-dock__prompt, .company-camera kbd { display: none; }
+  .leaderboard-card, .action-dock__prompt { display: none; }
   .hud-journey { width: min(300px, 38vw); }
   .journey-card { display: block; min-height: 0; }
   .journey-card__identity { padding: 5px 10px; }
@@ -2595,7 +2345,7 @@ html, body { height: 100%; height: 100dvh; }
 .journey-card__place { font-size: 1.5rem; }
 .journey-card__chest { font-size: 1rem; }
 .journey-card__chest-art, .hud-crown-art { width: 2.5rem; height: 2.5rem; }
-.company-camera, .power-menu__trigger { font-size: 1rem; }
+.power-menu__trigger { font-size: 1rem; }
 .power-menu__trigger img { width: 2.5rem; height: 2.5rem; }
 .standing-action-art, .collective-action-art { width: 1.8rem; height: 1.8rem; }
 @media (max-width: 1100px) and (min-height: 501px) {
@@ -2626,34 +2376,10 @@ html, body { height: 100%; height: 100dvh; }
 
 /* Align the actual controls, including the loot button's wrapper. */
 .hud-controls { align-items: stretch; margin-top: 8px; }
-.hud-controls .power-menu, .hud-controls .power-menu__trigger,
-.hud-controls .company-camera { margin-top: 0; }
-.hud-controls .power-menu__trigger, .hud-controls .company-camera { min-height: 48px; height: 100%; }
+.hud-controls .power-menu, .hud-controls .power-menu__trigger { margin-top: 0; }
+.hud-controls .power-menu__trigger { min-height: 48px; height: 100%; }
 
 /* The company map owns the screen; its header stays reachable while scrolling. */
-.company-map-view { padding: 0; gap: 0; overflow: hidden; }
-.company-map-view__header {
-  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
-  width: 100%; padding: max(10px, env(safe-area-inset-top)) 16px 8px;
-  color: var(--ui-cream); font-family: var(--font-display), Georgia, serif;
-}
-.company-map-view__header h2 { font-size: 1.6rem; }
-.company-map-view__close {
-  display: grid; place-items: center; width: 48px; height: 48px;
-  border: 3px solid var(--janky-ink); background: var(--janky-paper-light);
-  color: var(--janky-ink); font: 2rem/1 Georgia, serif; cursor: pointer;
-  box-shadow: 3px 3px 0 #111;
-}
-.company-map-view__close:hover { background: var(--janky-yellow); }
-.company-map-view__close:focus-visible { outline: 3px solid var(--janky-yellow); outline-offset: 3px; }
-.company-map-view__scroll { display: flex; flex: 1; min-height: 0; width: 100%; overflow-y: auto; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
-.company-map-view__content { display: flex; flex-direction: column; align-items: center; gap: 16px; width: min(100%, 68rem); margin: auto; }
-.company-map-view__map { width: min(100%, max(260px, calc((100dvh - 290px) * 1.5)), 68rem); border-radius: 2px; }
-.company-map-view .overview-ranking { width: min(100%, 54rem); }
-@media (max-height: 500px) and (orientation: landscape) {
-  .company-map-view__content { display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; }
-  .company-map-view__map, .company-map-view .overview-ranking { width: 100%; }
-}
 
 /* Mobile prioritizes the journey: identity and progress fit in two short rows. */
 .journey-card__mobile-score { display: none; }
@@ -2675,7 +2401,7 @@ html, body { height: 100%; height: 100dvh; }
   .journey-card__chest { margin-top: 4px; }
   .journey-card__meter { height: 6px; }
   .hud-controls { margin-top: 5px; gap: 6px; }
-  .hud-controls .power-menu__trigger, .hud-controls .company-camera { min-height: 40px; padding: 3px 7px; font-size: 0.9rem; }
+  .hud-controls .power-menu__trigger { min-height: 40px; padding: 3px 7px; font-size: 0.9rem; }
   .power-menu__trigger img { width: 1.9rem; height: 1.9rem; }
   .action-dock__prompt { font-size: 0.85rem; line-height: 1.2; padding: 3px 8px; margin-bottom: 4px; min-height: 24px; }
   .action-button, .action-undo { min-height: 82px; padding: 4px; }
@@ -2685,7 +2411,7 @@ html, body { height: 100%; height: 100dvh; }
   .action-button__reward { font-size: 0.85rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .company-map-view, .company-map-view__map, .overview-ranking, .action-button,
+   .action-button,
   .reward-modal, .reward-modal__rays, .rise { animation: none !important; transition: none !important; }
 }
 
@@ -3156,19 +2882,7 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 @keyframes moment-tale { 0% { opacity: 0; transform: translate(-50%, 20px) rotate(-1deg); } 8% { opacity: 1; transform: translate(-50%, 0) rotate(0); } 88% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
 .journey-card__streak { padding: 0 6px; border-radius: 999px; background: #3a2414; color: #ffd08a; font-size: 0.8rem; font-weight: 700; }
 /* Album. */
-.album { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgb(0 0 0 / 0.2); }
-.album h3 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.album__summary { margin: 4px 0 10px; font-size: 0.85rem; opacity: 0.75; }
-.album__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 6px; }
-.album__column { display: grid; gap: 4px; align-content: start; }
-.album__card { padding: 4px 8px; border: 2px solid #3d3f3c; background: #232524; color: #8d8672; font-size: 0.82rem; }
-.album__card[data-seen="true"] { border-color: #6b6452; background: #e9dcb4; color: #2a2418; font-weight: 700; }
-.album__card[data-seen="true"][data-rarity="rare"] { border-color: #5a4a8a; background: #d9cff5; color: #2a2045; }
-.album__card[data-seen="true"][data-rarity="legendary"] { border-color: #8a6a1e; background: linear-gradient(135deg, #f5d163, #fff1bd); color: #3a2a08; }
-.album__lands, .album__bests { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 0.82rem; }
-.album__lands span { padding: 2px 8px; border-radius: 999px; border: 1px solid #3d3f3c; color: #8d8672; }
-.album__lands span[data-seen="true"] { border-color: #718744; background: #3b4a24; color: #e8f2cf; }
-.album__bests span { padding: 2px 8px; background: #232524; color: #d8cda9; }
+
 @media (prefers-reduced-motion: reduce) { .moment-tale { animation-duration: 4000ms; } }
 .moment-top { position: absolute; inset: 0; z-index: 26; pointer-events: none; }
 @media (max-width: 420px) {
@@ -3187,3 +2901,27 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
     box-shadow: 2px 3px 0 rgb(21 21 19 / 0.45);
   }
 }
+
+/* The company's map, first thing in the standings. */
+.journey-map {
+  position: relative; width: 100%; aspect-ratio: 3 / 2; overflow: hidden;
+  border: 3px solid var(--janky-ink); box-shadow: 4px 4px 0 #151513;
+}
+.journey-map__painting, .journey-map__pins { position: absolute; inset: 0; }
+.journey-map__painting { background: url("/art/runtime/company-map.webp") center / cover no-repeat; }
+.journey-map .company-map-pin strong small { display: block; margin-top: 3px; font-size: 0.65rem; }
+@media (max-width: 760px) {
+  .journey-map .company-map-pin { width: 1.65rem; height: 1.65rem; font-size: 0.9rem; }
+  .journey-map .company-map-pin.is-me { width: 2rem; height: 2rem; }
+}
+/* Short landscape screens keep the crown as a round button: it opens the standings and the map. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .leaderboard-card { display: block; width: 46px; height: 46px; border-radius: 50%; }
+  .leaderboard-card__desktop { display: none; }
+  .leaderboard-card__mobile { display: grid; width: 100%; height: 100%; place-items: center; }
+  .leaderboard-card__mobile span { display: none; }
+  .journey-card__portrait { display: none; }
+  .journey-card__identity { padding: 5px 10px; }
+}
+/* A grid item keeps its text's width unless told otherwise: long class names pushed rows off phones. */
+.standing-row { min-width: 0; }

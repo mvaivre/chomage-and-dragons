@@ -140,55 +140,6 @@ function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
   );
 }
 
-/* -------------------------------------------------------------- vue carte */
-
-interface OverviewProps {
-  players: PlayerView[];
-  monthStandings: Standing[];
-  monthKeyNow: string;
-  meId: string | null;
-  onOpen: () => void;
-}
-
-/** Classement court posé sous la carte de la compagnie. */
-export function OverviewLeaderboard({
-  players,
-  monthStandings,
-  monthKeyNow,
-  meId,
-  onOpen,
-}: OverviewProps) {
-  const rows = useMemo(
-    () => toRows(monthStandings, players),
-    [monthStandings, players],
-  );
-
-  return (
-    <section className="overview-ranking pointer-events-auto" aria-label="Classement de la compagnie">
-      <header>
-        <div>
-          <span>La compagnie · {monthLabel(monthKeyNow)}</span>
-          <strong>Qui paiera la prochaine tournée ?</strong>
-        </div>
-        <button type="button" onClick={onOpen}>Classement complet</button>
-      </header>
-      <ol className="overview-ranking__list">
-        {rows.slice(0, 6).map((row) => (
-          <li
-            key={row.player.id}
-            className={row.player.id === meId ? "is-me" : undefined}
-          >
-              <span>{row.rank === 1 ? <CrownArtwork className="overview-crown-art" /> : row.rank}</span>
-            <strong>{row.player.name}</strong>
-            <ShotTally count={row.player.shotsOwed} compact />
-            <b>{row.score}</b>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------------ déplié */
 
 type Tab = "saison" | "mois" | "palmares";
@@ -211,8 +162,8 @@ interface OverlayProps {
   /** The group's name and invitation link; both null when the device plays alone. */
   groupName?: string | null;
   inviteUrl?: string | null;
-  /** The viewer's collection, shown under the standings. */
-  album?: React.ReactNode;
+  /** The company's painted map, first thing in the standings. */
+  map?: React.ReactNode;
   /** Enrolling others from one device only makes sense in solo mode: null in a group. */
   onAddPlayer: ((name: string, characterId: string) => void) | null;
   onRemovePlayer: (id: string) => void;
@@ -231,7 +182,7 @@ export function LeaderboardOverlay({
   meId,
   groupName = null,
   inviteUrl = null,
-  album = null,
+  map = null,
   onAddPlayer,
   onRemovePlayer,
   onChangeIdentity,
@@ -273,6 +224,8 @@ export function LeaderboardOverlay({
             Fermer
           </button>
         </header>
+
+        {map ? <section className="leaderboard-map mt-5" aria-label="Carte de la compagnie">{map}</section> : null}
 
         <nav className="leaderboard-tabs mt-6 flex gap-1 border-b border-parchment-ink/20">
           {TABS.map(({ id, label }) => (
@@ -318,8 +271,6 @@ export function LeaderboardOverlay({
         </div>
 
         <Collective totals={totals} playerCount={players.length} />
-
-        {album}
 
         <Company
           players={players}
