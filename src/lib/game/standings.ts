@@ -1,6 +1,6 @@
 import type { ActionKind, GameEvent, Player } from "@/lib/data/types";
 import { monthKey } from "@/lib/game/calendar";
-import { pointsFor } from "@/lib/game/scoring";
+import { stepsForEvent } from "@/lib/game/scoring";
 
 export const ACTION_ORDER: ActionKind[] = [
   "candidature",
@@ -30,7 +30,7 @@ export const ACTION_LABELS_ONE: Record<ActionKind, string> = {
 
 export interface Standing {
   playerId: string;
-  score: number;
+  steps: number;
   counts: Record<ActionKind, number>;
 }
 
@@ -44,23 +44,30 @@ function emptyCounts(): Record<ActionKind, number> {
   };
 }
 
-/** Classement sur un sous-ensemble d'événements. Aucun bonus caché n'y entre. */
-export function standings(events: GameEvent[], players: Player[]): Standing[] {
+/** Replay all history so a month's net movement respects the journey's floor at zero. */
+export function standings(events: GameEvent[], players: Player[], month?: string): Standing[] {
   const byPlayer = new Map<string, Standing>(
     players.map((p) => [
       p.id,
-      { playerId: p.id, score: 0, counts: emptyCounts() },
+      { playerId: p.id, steps: 0, counts: emptyCounts() },
     ]),
   );
 
+  const positions = new Map<string, number>();
   for (const event of events) {
+    if (month && eventMonthKey(event.at) > month) continue;
     const standing = byPlayer.get(event.playerId);
     if (!standing) continue;
-    standing.score += pointsFor(event.kind);
-    standing.counts[event.kind] += 1;
+    const before = positions.get(event.playerId) ?? 0;
+    const after = Math.max(0, before + stepsForEvent(event));
+    positions.set(event.playerId, after);
+    if (!month || eventMonthKey(event.at) === month) {
+      standing.steps += after - before;
+      standing.counts[event.kind] += 1;
+    }
   }
 
-  return [...byPlayer.values()].sort((a, b) => b.score - a.score);
+  return [...byPlayer.values()].sort((a, b) => b.steps - a.steps);
 }
 
 /**
@@ -88,19 +95,19 @@ export function eventsInMonth(events: GameEvent[], key: string): GameEvent[] {
  */
 export function collectiveTotals(events: GameEvent[]) {
   const counts = emptyCounts();
-  let score = 0;
+  const positions = new Map<string, number>();
 
   for (const event of events) {
     counts[event.kind] += 1;
-    score += pointsFor(event.kind);
+    positions.set(event.playerId, Math.max(0, (positions.get(event.playerId) ?? 0) + stepsForEvent(event)));
   }
 
-  return { counts, score, total: events.length };
+  return { counts, steps: [...positions.values()].reduce((sum, steps) => sum + steps, 0), total: events.length };
 }
 
 /** Le/la meneur·euse, ou null en cas d'égalité ou de tableau vide. */
 export function soleLeader(rows: Standing[]): Standing | null {
-  if (rows.length === 0 || rows[0].score <= 0) return null;
-  if (rows.length > 1 && rows[1].score === rows[0].score) return null;
+  if (rows.length === 0 || rows[0].steps <= 0) return null;
+  if (rows.length > 1 && rows[1].steps === rows[0].steps) return null;
   return rows[0];
 }

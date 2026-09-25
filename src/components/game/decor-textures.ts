@@ -50,6 +50,31 @@ export function wrapText(context: CanvasRenderingContext2D, text: string, width:
   return lines;
 }
 
+/** Warp a small text canvas over the measured four corners of the painted board. */
+function quadLetters(c: CanvasRenderingContext2D, text: string, quad: number[][], family: string, maximum: number) {
+  const width = Math.ceil(Math.hypot(quad[1][0]-quad[0][0],quad[1][1]-quad[0][1]));
+  const height = Math.ceil(Math.hypot(quad[3][0]-quad[0][0],quad[3][1]-quad[0][1]));
+  const ink = document.createElement("canvas"); ink.width = width*2; ink.height = height*2;
+  const source = ink.getContext("2d")!; source.scale(2,2); source.fillStyle = c.fillStyle;
+  fitLetters(source,text,[0,0,width,height],family,maximum);
+  const point=(u:number,v:number)=>[0,1].map(axis=>(1-v)*((1-u)*quad[0][axis]+u*quad[1][axis])+v*((1-u)*quad[3][axis]+u*quad[2][axis]));
+  // Affine triangles over a bilinear grid: straight baselines follow the board's perspective.
+  for(let row=0;row<4;row++)for(let col=0;col<8;col++) {
+    const a=[col/8,row/4], b=[(col+1)/8,row/4], d=[col/8,(row+1)/4], e=[(col+1)/8,(row+1)/4];
+    for(const uv of [[a,b,d],[e,d,b]]) {
+      const [p0,p1,p2]=uv.map(([u,v])=>point(u,v));
+      const [s0,s1,s2]=uv.map(([u,v])=>[u*ink.width,v*ink.height]);
+      const dx1=s1[0]-s0[0],dy1=s1[1]-s0[1],dx2=s2[0]-s0[0],dy2=s2[1]-s0[1],det=dx1*dy2-dx2*dy1;
+      const ax=((p1[0]-p0[0])*dy2-(p2[0]-p0[0])*dy1)/det;
+      const bx=((p1[1]-p0[1])*dy2-(p2[1]-p0[1])*dy1)/det;
+      const cy=((p2[0]-p0[0])*dx1-(p1[0]-p0[0])*dx2)/det;
+      const dy=((p2[1]-p0[1])*dx1-(p1[1]-p0[1])*dx2)/det;
+      c.save();c.beginPath();c.moveTo(...p0 as [number,number]);c.lineTo(...p1 as [number,number]);c.lineTo(...p2 as [number,number]);c.closePath();c.clip();
+      c.transform(ax,bx,cy,dy,p0[0]-ax*s0[0]-cy*s0[1],p0[1]-bx*s0[0]-dy*s0[1]);c.drawImage(ink,0,0);c.restore();
+    }
+  }
+}
+
 /** All ink, including letters, is baked once; no Text objects rasterise during travel. */
 async function paint(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number, ink: string): Promise<Texture> {
   const family = await gameFonts();
@@ -68,7 +93,10 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
     c.drawImage(image, frame % 4 * 384 + cx, Math.floor(frame / 4) * 384 + cy, cw, ch, left, top, artWidth, height);
     const rect = signs.frames[frame].text as number[];
     c.fillStyle = "#292620";
-    fitLetters(c, text, [left + (rect[0] - cx) * artWidth / cw, top + (rect[1] - cy) * height / ch, rect[2] * artWidth / cw, rect[3] * height / ch], kind === "daily" || kind === "crown" ? family.title : family.body, 31);
+    const face = kind === "daily" || kind === "crown" ? family.title : family.body;
+    const quad = signs.frames[frame].textQuad;
+    if (quad) quadLetters(c,text,quad.map(([x,y])=>[left+(x-cx)*artWidth/cw,top+(y-cy)*height/ch]),face,31);
+    else fitLetters(c, text, [left + (rect[0] - cx) * artWidth / cw, top + (rect[1] - cy) * height / ch, rect[2] * artWidth / cw, rect[3] * height / ch], face, 31);
     return Texture.from(canvas);
   }
   if (textOnly) {

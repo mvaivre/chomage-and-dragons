@@ -1,3 +1,4 @@
+import type { RoomLocation } from "@/lib/game/doors";
 import { VIEW } from "@/lib/game/world";
 
 /**
@@ -27,6 +28,8 @@ export interface Camera {
 }
 
 export interface Scene {
+  room: RoomLocation | null;
+  doorTransition: { elapsed: number; destination: RoomLocation | null; switched: boolean } | null;
   momentActive: boolean;
   reducedMotion: boolean;
   camera: Camera;
@@ -99,7 +102,7 @@ export function slowMotion(scale: number, ms: number): void {
 /** Seconds of world time in this frame, after hit-stop and slow motion. */
 export function worldDelta(elapsedMS: number): number {
   const now = performance.now();
-  if (now < scene.freezeUntil) return 0;
+  if (now < scene.freezeUntil || scene.doorTransition) return 0;
   const seconds = elapsedMS / 1000;
   return now < scene.slowUntil ? seconds * scene.slowScale : seconds;
 }
@@ -136,6 +139,8 @@ export function markMotion(): void {
 }
 
 export const scene: Scene = {
+  room: null,
+  doorTransition: null,
   momentActive: false,
   reducedMotion: false,
   bottomInset: 170,
@@ -172,6 +177,8 @@ export const scene: Scene = {
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
 export function resetScene(): void {
+  scene.room = null;
+  scene.doorTransition = null;
   scene.momentActive = false;
   scene.camera = {
     x: 0,

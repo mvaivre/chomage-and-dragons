@@ -8,16 +8,16 @@ import { SLOTS, type SlotsSim, paylineSymbol } from "@/lib/game/slot-machine";
 
 /**
  * One number per mini-game attempt, higher is better, so a group can keep
- * records and compare runs. Scores never change journey steps or points: the
+ * records and compare runs. Records never change journey steps: the
  * reward of a game stays its win; the score is bragging rights.
  */
 
 export const SCORE_UNITS: Record<MiniGameKind, string> = {
   pigeon: "m",
-  keywords: "pts",
-  stamp: "pts",
-  quiz: "pts",
-  ghosting: "pts",
+  keywords: "",
+  stamp: "",
+  quiz: "",
+  ghosting: "",
   slots: "CHF",
 };
 

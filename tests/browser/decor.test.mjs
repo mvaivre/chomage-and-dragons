@@ -13,7 +13,7 @@ test('decor rooms, motion preferences and rare events work in the actual rendere
  async function fixture(step){
   const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(step=>{const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:step/2},(_,i)=>({id:`d-${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));},step);
+  await page.addInitScript(step=>{const at=new Date().toISOString();localStorage.setItem('chomage:welcome:steps-v1','seen');localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:step/2},(_,i)=>({id:`d-${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));},step);
   await page.goto(`${url}/local?debug&hour=22&variant=classic`);
   await page.waitForFunction(()=>window.__decorScene&&window.__pixiApp&&!document.querySelector('.action-button--refus')?.disabled);
   await page.waitForTimeout(1500);

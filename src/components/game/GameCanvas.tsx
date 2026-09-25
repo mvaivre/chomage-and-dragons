@@ -6,10 +6,11 @@ import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
-import { interiorAt, type GroupDecor } from "@/lib/game/decor";
+import type { GroupDecor } from "@/lib/game/decor";
 import { setMusicPlace } from "@/lib/client/music";
-import { Interiors } from "./Interiors";
-import { OutdoorMask } from "./InteriorMask";
+import { Interiors, ExteriorBuildings } from "./Interiors";
+import { Outdoors, SceneDoors } from "./SceneDoors";
+import { roomAt } from "@/lib/game/doors";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
@@ -48,7 +49,7 @@ const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
 
 function MusicPosition() {
-  useTick(() => setMusicPlace(interiorAt(scene.focus)?.id ?? biomeAt(scene.focus).id));
+  useTick(() => setMusicPlace(scene.room?.id ?? biomeAt(scene.focus).id));
   return null;
 }
 
@@ -81,6 +82,7 @@ function CameraRig({
       resetScene();
       scene.focus = initialFocus;
       scene.targetFocus = initialFocus;
+      scene.room = roomAt(initialFocus);
     }
 
     const { camera } = scene;
@@ -105,7 +107,7 @@ function CameraRig({
     const focusEase = 1 - Math.exp(-scene.focusSpeed * dt);
     // Walking heroes set a high focus speed: then the focus is the hero itself, and only
     // the camera's own follow smooths the ride, so a long run to the tavern stays framed.
-    scene.focus = scene.reducedMotion || scene.focusSpeed >= 10 ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
+    if (!scene.doorTransition || scene.doorTransition.switched) scene.focus = scene.reducedMotion || scene.focusSpeed >= 10 ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
     if (!freeCamera && !scene.dragging && scene.pan !== 0) {
@@ -123,7 +125,7 @@ function CameraRig({
 
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
-    if (firstFrame || scene.reducedMotion) {
+    if (firstFrame || scene.reducedMotion || scene.doorTransition?.switched) {
       if (camera.x !== clamped || camera.y !== wantedY) markMotion();
       camera.x = clamped;
       camera.y = wantedY;
@@ -319,6 +321,7 @@ function WorldScene({
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <MusicPosition />
+      <Outdoors>
       <Sky />
 
       <Layer factor={FAR_FACTOR} shade={1.0}>
@@ -362,21 +365,23 @@ function WorldScene({
         <GroundDwellers />
       </Layer>
 
+      <Layer factor={1} shade={0.3}><ExteriorBuildings /></Layer>
+      </Outdoors>
+
       <Layer factor={1} shade={0.06}>
         <Interiors />
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        <DecorEvents />
-        <Decor group={decor} />
+        <Outdoors><DecorEvents /><Decor group={decor} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
       <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
-        <OutdoorMask factor={NEAR_PLANE.factor}><Foreground plane={NEAR_PLANE} /></OutdoorMask>
+        <Outdoors><Foreground plane={NEAR_PLANE} /></Outdoors>
       </Layer>
       <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
-        <OutdoorMask factor={CLOSE_PLANE.factor}><Foreground plane={CLOSE_PLANE} /></OutdoorMask>
+        <Outdoors><Foreground plane={CLOSE_PLANE} /></Outdoors>
       </Layer>
 
       <Layer factor={1} shade={0.14}>
@@ -415,10 +420,11 @@ function WorldScene({
             />
           );
         })}
-        <AmbientWeather />
+        <Outdoors><AmbientWeather /></Outdoors>
         <FxLayer />
       </Layer>
     </CameraRig>
+    <SceneDoors />
     </>
   );
 }
@@ -464,7 +470,7 @@ function GameCanvas({
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
     players.find((player) => player.id === focusPlayerId) ?? me;
-  const focus = focusPlayer ? worldXFor(focusPlayer.position) : 0;
+  const focus = focusPlayer ? worldXFor(focusPlayer.position) + laneFor(players.findIndex(p => p.id === focusPlayer.id)).dx : 0;
 
   useEffect(() => {
     if (!focusPlayer) return;

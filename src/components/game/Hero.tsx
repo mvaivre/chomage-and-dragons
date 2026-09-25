@@ -5,6 +5,7 @@ import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
+import { nextDoor, roomAt, sameRoom } from "@/lib/game/doors";
 import { seededRandom } from "@/lib/rng";
 import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
@@ -46,6 +47,7 @@ export const REACTION_HOLD = { candidature: 0.75, refus: 0.95, entretien: 0.85, 
 type Gait = "trot" | "dash" | "knockback";
 
 interface TravelLeg {
+  door?: ReturnType<typeof nextDoor>;
   from: number;
   to: number;
   steps: number;
@@ -166,6 +168,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
   const travel = useRef<TravelLeg | null>(null);
+  const finishAfterDoor = useRef(false);
   const lastDirection = useRef<1 | -1>(1);
   // Déphasage tiré de l'identifiant : les personnages ne respirent pas à l'unisson,
   // et le tirage reste le même d'un rendu à l'autre.
@@ -243,13 +246,17 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
     const dt = worldDelta(ticker.elapsedMS);
+    if (finishAfterDoor.current && !scene.doorTransition) {
+      finishAfterDoor.current = false;
+      onTravelDone?.(player.id);
+    }
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
       movementDelay.current = scene.reducedMotion ? 0 : Math.max(0, movementDelay.current - dt);
     }
 
-    if (!travel.current && movementDelay.current === 0) {
+    if (!travel.current && movementDelay.current === 0 && !scene.doorTransition) {
       const next = travelQueue.current.shift();
       if (next && Math.abs(next.target - at.current) <= 0.5) {
         // A clamped step at zero still completes the action sequence.
@@ -257,10 +264,15 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       } else if (next) {
         const direction = next.target >= at.current ? 1 : -1;
         const gait: Gait = direction < 0 ? "knockback" : next.steps >= 5 ? "dash" : "trot";
+        const door = isFocused ? nextDoor(at.current, next.target) : null;
+        const end = door ? door.x + direction * 0.1 : next.target;
+        const fraction = Math.min(1, Math.abs((end - at.current) / (next.target - at.current)));
+        if (door && Math.abs(next.target - end) > 0.5) travelQueue.current.unshift({ target: next.target, steps: Math.max(1, Math.round(next.steps * (1 - fraction))) });
         travel.current = {
+          door,
           from: at.current,
-          to: next.target,
-          steps: Math.max(1, next.steps),
+          to: end,
+          steps: Math.max(1, Math.round(next.steps * fraction)),
           index: 0,
           elapsed: 0,
           gait,
@@ -316,7 +328,10 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
             if (isMe) sfx.land();
           }
         }
-        onTravelDone?.(player.id);
+        if (activeTravel.door) {
+          scene.doorTransition = { elapsed: 0, destination: activeTravel.door.destination, switched: false };
+          finishAfterDoor.current = travelQueue.current.length === 0;
+        } else { onTravelDone?.(player.id); }
       } else {
         strideProgress = activeTravel.elapsed / strideFor(activeTravel);
         // A steady speed between steps, except where the gait itself accelerates or brakes.
@@ -374,7 +389,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     if (node) {
       node.x = at.current;
       node.y = surfaceAt(at.current) + 4 + lane.dy;
-      node.visible = at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
+      node.visible = (isFocused || sameRoom(roomAt(at.current), scene.room)) && at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
       if (!node.visible) return;
     }
 

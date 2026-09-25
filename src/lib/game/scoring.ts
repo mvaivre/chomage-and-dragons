@@ -1,9 +1,5 @@
-import { JOURNEY_STEPS, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
+import { JOURNEY_STEPS, STEPS_PER_LEVEL } from "@/lib/config";
 import type { ActionKind, GameEvent } from "@/lib/data/types";
-
-export function pointsFor(kind: ActionKind): number {
-  return POINTS[kind];
-}
 
 export function stepsFor(kind: ActionKind): number {
   return JOURNEY_STEPS[kind];

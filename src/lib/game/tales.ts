@@ -3,7 +3,7 @@ import { mulberry32, seedFrom } from "@/lib/game/random";
 
 /**
  * The random events of the pitch: a stroke of luck, an HR mini-boss, an
- * absurdity of recruiting. Purely narrative, they never touch points or steps.
+ * absurdity of recruiting. Purely narrative, they never touch steps.
  * Drawn from the event id, so the same action tells the same tale everywhere
  * and forever, as the pitch requires.
  */

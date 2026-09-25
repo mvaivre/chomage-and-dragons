@@ -5,7 +5,7 @@ import { mulberry32, seedFrom } from "@/lib/game/random";
 /**
  * The daily challenge: every Zurich day picks one mini-game and one seed for
  * the whole group. Each friend plays it once; the day's ranking is the reward.
- * It never touches steps, points or loot.
+ * It never touches steps or loot.
  */
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-CA", { timeZone: SEASON.timeZone, year: "numeric", month: "2-digit", day: "2-digit" });

@@ -25,7 +25,7 @@ import {
 interface Row {
   rank: number;
   player: PlayerView;
-  score: number;
+  steps: number;
   counts: Record<ActionKind, number>;
 }
 
@@ -56,7 +56,7 @@ function toRows(standings: Standing[], players: PlayerView[]): Row[] {
     .map((entry, index) => ({
       rank: index + 1,
       player: entry.player,
-      score: entry.standing.score,
+      steps: entry.standing.steps,
       counts: entry.standing.counts,
     }));
 }
@@ -135,7 +135,7 @@ function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
         {row.player.name}
       </span>
       <ShotTally count={row.player.shotsOwed} compact />
-      <span className="font-display text-xl text-parchment-ink">{row.score}</span>
+      <span className="font-display text-xl text-parchment-ink">{row.steps} pas</span>
     </li>
   );
 }
@@ -156,7 +156,7 @@ interface OverlayProps {
   monthStandings: Standing[];
   monthKeyNow: string;
   crowns: Crown[];
-  totals: { counts: Record<ActionKind, number>; score: number; total: number };
+  totals: { counts: Record<ActionKind, number>; steps: number; total: number };
   freeCharacters: Character[];
   meId: string | null;
   /** The group's name and invitation link; both null when the device plays alone. */
@@ -308,7 +308,7 @@ function Standings({
 
   return (
     <div>
-      <p className="mb-3 text-sm font-semibold text-parchment-ink/55 capitalize">{caption}</p>
+      <p className="mb-3 text-sm font-semibold text-parchment-ink/55 capitalize">{caption} · pas parcourus</p>
       <ul className="grid gap-2">
         {rows.map((row) => {
           const character = characterById(row.player.characterId);
@@ -363,8 +363,8 @@ function Standings({
               <ShotTally count={row.player.shotsOwed} />
 
               <span className="w-16 shrink-0 text-right text-parchment-ink">
-                <strong className="block font-display text-2xl leading-none">{row.score}</strong>
-                <small className="text-xs text-parchment-ink/45">points</small>
+                <strong className="block font-display text-2xl leading-none">{row.steps}</strong>
+                <small className="text-xs text-parchment-ink/45">pas</small>
               </span>
             </li>
           );
@@ -414,7 +414,7 @@ function Palmares({
                 )}
               </span>
               <span className="shrink-0 font-display text-base text-parchment-ink/70">
-                {crown.score > 0 ? crown.score : "—"}
+                {crown.steps > 0 ? `${crown.steps} pas` : "—"}
               </span>
             </li>
           );
@@ -430,7 +430,7 @@ function Collective({
   totals,
   playerCount,
 }: {
-  totals: { counts: Record<ActionKind, number>; score: number; total: number };
+  totals: { counts: Record<ActionKind, number>; steps: number; total: number };
   playerCount: number;
 }) {
   return (
@@ -441,8 +441,7 @@ function Collective({
       <p className="mt-1 text-xs text-parchment-ink/55">
         {playerCount} âme{playerCount === 1 ? "" : "s"} en peine, {totals.total}{" "}
         action{totals.total === 1 ? "" : "s"} déclarée
-        {totals.total === 1 ? "" : "s"}, {totals.score} point
-        {Math.abs(totals.score) === 1 ? "" : "s"} au total.
+        {totals.total === 1 ? "" : "s"}, {totals.steps} pas au total.
       </p>
 
       <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">

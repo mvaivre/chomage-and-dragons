@@ -128,7 +128,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice, record, best
       <span className="mini-game__progress"><span style={{ width: `${Math.min(100, day * GHOSTING.msPerDay / GHOSTING.messageAt[1] * 100)}%` }} /></span>
       <span className="mini-game__score">Fenêtre : <b>{GHOSTING.windowMs / 1000} s</b></span>
     </>}
-    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={points} unit="pts" record={record} best={best} /></> :
+    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={points} unit="" record={record} best={best} /></> :
       <span>{status === "ready" ? "Une seule tentative · un seul vrai message · encadré doré" : status === "typing" ? "Il écrit… ou il fait semblant. N’appuie pas." : hot ? "MAINTENANT !" : "Silence. N’appuie pas."}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Réponds dans le chat ↑",

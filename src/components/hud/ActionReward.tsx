@@ -10,7 +10,6 @@ interface ActionMoment {
   type: "action";
   kind: ActionKind;
   steps: number;
-  points: number;
   progress: number;
   place: string;
   discoveredPlace: boolean;
@@ -51,7 +50,7 @@ const COPY: Record<
   embauche: {
     eyebrow: "Quête accomplie",
     title: "La taverne allume ses feux.",
-    body: "Tes points restent. Ta place à table aussi.",
+    body: "Ton parcours reste. Ta place à table aussi.",
   },
 };
 
@@ -118,8 +117,6 @@ function ActionCopy({ moment, titleId }: { moment: ActionMoment; titleId: string
           <>
             <strong>{moment.steps > 0 ? "+" : ""}{moment.steps}</strong>
             <span>pas de voyage</span>
-            <i aria-hidden>◆</i>
-            <b>{moment.points > 0 ? "+" : ""}{moment.points} pts</b>
           </>
         )}
       </div>

@@ -25,6 +25,7 @@ import {
   CompactLeaderboard,
   LeaderboardOverlay,
 } from "@/components/hud/Leaderboard";
+import { Welcome, hasSeenWelcome, rememberWelcome } from "@/components/hud/Welcome";
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
@@ -47,7 +48,7 @@ import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
-import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
+import { leanIn, leanOut, scene } from "@/components/game/scene";
 import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
@@ -68,7 +69,7 @@ import {
 import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
 import { MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
-import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
+import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import {
   BIOMES,
@@ -198,6 +199,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // This component never renders on the server, so the origin is known at once.
   const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome());
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
@@ -570,7 +572,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
           type: "action",
           kind,
           steps: stepsFor(kind),
-          points: POINTS[kind],
           progress:
             kind === "embauche" ? 1 : (afterSteps > 0 ? ((afterSteps - 1) % JOURNEY_TARGET + 1) / JOURNEY_TARGET : 0),
           place: afterZone.name,
@@ -595,7 +596,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       setEffects(previous => [...previous, ...queued]);
 
-      // The moment: lean in, impact, points flying to their counter, then the walk.
+      // The moment: lean in, impact, then the walk.
       sfx.press();
       const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
       const { impact, duration } = reactionTiming(reactionKind);
@@ -605,13 +606,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
       const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
       leanIn(legendary ? 1.14 : 1.08, 0.42);
       setMomentActive(true);
-      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 }, points: { delay: impact + 1500, duration: 300 } });
+      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
       if (legendary) moment.cue({ type: "letterbox", ms: duration });
       schedule(impact, () => {
         moment.cue({ type: "flash", ...FLASH[kind] });
-        const hero = scene.heroes.get(me.id) ?? origin;
-        // Points rise from the hero's shoulder, inside the visible band, then fly to their counter.
-        if (POINTS[kind] !== 0) moment.cue({ type: "points", value: POINTS[kind], from: worldToScreen(hero.x - 70, hero.y - 130) });
       });
       pendingTale.current = forcedTale() ?? taleFor(event);
       const laneDx = laneFor(meIndex).dx;
@@ -822,7 +820,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
         onSceneReady={handleSceneReady}
-        paused={registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -903,7 +901,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={registerOpen} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
+              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
               <div className="hud-controls">
                 <DailyButton kind={todayGame.kind} runs={todayRuns} meId={identity}
                   onPlay={() => { if (!me || awaitingTravel || miniGameOffer || rewardMoments.length) return; startDaily(me.id, today, todayGame.kind); setDailyOpen(true); }}
@@ -915,6 +913,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
+                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => setWelcomeOpen(true)}>Aide</button>
               </div>
             </div>
             <CompactLeaderboard
@@ -933,7 +932,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               canUndo={canUndo}
               hired={Boolean(me.hiredAt)}
               locked={
-                registerOpen ||
+                welcomeOpen || registerOpen ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
@@ -958,6 +957,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
         onDone={() => { setDailyOpen(false); setDailySheetOpen(true); }} /> : null}
       {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
+
+      {me && sceneReady && welcomeOpen ? <Welcome onClose={() => { rememberWelcome(); setWelcomeOpen(false); }} /> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay

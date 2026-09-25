@@ -26,10 +26,10 @@ const art = {
 };
 export type DecorLand = keyof typeof art;
 
-export function DecorLabel({text, rect, tint = 0xffffff}: {text:string;rect:number[];tint?:number}) {
+export function DecorLabel({text, rect, tint = 0xffffff, angle = 0}: {text:string;rect:number[];tint?:number;angle?:number}) {
   const [x,y,w,h] = rect;
   const texture = useSignTexture(text,"setpiece",true,Math.ceil(w),Math.ceil(h));
-  return texture ? <pixiSprite texture={texture} x={x} y={y} scale={0.5} tint={tint} /> : null;
+  return texture ? <pixiSprite texture={texture} x={x} y={y} rotation={angle} scale={0.5} tint={tint} /> : null;
 }
 
 function Crank() {

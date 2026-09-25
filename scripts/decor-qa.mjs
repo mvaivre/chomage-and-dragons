@@ -20,14 +20,14 @@ async function fixture(step, size, hour = 12) {
   const page = await context.newPage();
   page.setDefaultTimeout(30_000);
   page.on('pageerror', e => errors.push(e.message));
-  await page.addInitScript(({ step }) => {
+  await page.addInitScript(({ step, welcome }) => {
     if (localStorage.getItem('louchomage:v2')) return;
     const at = new Date().toISOString();
-    localStorage.setItem('louchomage:moi:v1', 'test');
+    if (!welcome) localStorage.setItem('chomage:welcome:steps-v1','seen');localStorage.setItem('louchomage:moi:v1', 'test');
     localStorage.setItem('louchomage:v2', JSON.stringify({ players: [{ id:'test', name:'Mika', characterId:'skater', joinedAt:at }, {id:'lou',name:'Lou',characterId:'barde',joinedAt:at}], events: [...Array.from({length:Math.floor(step/2)+(step%2?2:0)},(_,i)=>({id:`qa-${i}`,playerId:'test',kind:'candidature',at})), ...(step%2?[{id:'qa-adjust',playerId:'test',kind:'entretien',at}]:[])], casts:[] }));
-  }, { step });
+  }, { step, welcome: process.env.DECOR_WELCOME === "1" });
   await page.goto(`${url}/local?debug&hour=${hour}&variant=classic`);
-  await page.waitForFunction(() => window.__pixiApp && !document.querySelector('.action-button--refus')?.disabled, null, {timeout:30_000});
+  await page.waitForFunction(() => window.__pixiApp && (document.querySelector('.welcome-card[open]') || !document.querySelector('.action-button--refus')?.disabled), null, {timeout:30_000});
   await page.waitForTimeout(2200);
   if (process.env.DECOR_EVENT) {
     let seconds = 84;

@@ -54,14 +54,14 @@ test('undo removes the chest only when its unlocking event no longer exists', ()
 const { COURSE, courseSeed, generateTowers, createPigeonSim, stepPigeon, flapPigeon, pigeonAutopilot, towersPassed } = await import('../src/lib/game/pigeon-flight.ts');
 const { reserveMiniGame, resolveMiniGame, reserveChestGame, miniGameForAction } = await import('../src/lib/game/mini-games.ts');
 const { migrateMiniGames } = await import('../src/lib/data/local-store.ts');
-const { stepsForEvent, pointsFor } = await import('../src/lib/game/scoring.ts');
+const { stepsForEvent } = await import('../src/lib/game/scoring.ts');
 const application = (id, playerId = 'me') => ({ id, playerId, kind: 'candidature', at: '2026-09-08T12:00:00Z' });
 function enter(state, event) {
   const reserved = reserveMiniGame(state, event);
   return { ...reserved, state: { ...reserved.state, events: [...state.events, reserved.event] } };
 }
 
-test('a won application game doubles only application travel and can unlock a chest', () => {
+test('a won application game doubles application travel and can unlock a chest', () => {
   const initial = {players: [], casts: [], events: [application('a'), application('b'), application('c')]};
   const reservation = enter(initial, application('delivery'));
   assert.equal(reservation.offer, 'keywords', 'applications alternate between the two courier games');
@@ -69,7 +69,7 @@ test('a won application game doubles only application travel and can unlock a ch
   assert.deepEqual(journeyProgress(reservation.state.events), {steps: 8, earnedChests: 0});
   const awarded = resolveMiniGame(reservation.state, 'delivery', 'won');
   assert.deepEqual(journeyProgress(awarded.events), {steps: 10, earnedChests: 1});
-  assert.equal(pointsFor(awarded.events.at(-1).kind), 1);
+  assert.equal(stepsForEvent(awarded.events.at(-1)), 4);
   assert.equal(resolveMiniGame(awarded, 'delivery', 'won'), awarded, 'Award is idempotent');
   assert.equal(stepsForEvent({kind: 'refus', journeyBonus: 1}), 4);
   assert.equal(stepsForEvent({kind: 'entretien', journeyBonus: 1}), -2);

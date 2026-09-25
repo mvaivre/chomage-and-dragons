@@ -1,7 +1,7 @@
 import type { DailyRun, GameEvent, Player } from "@/lib/data/types";
 import { mulberry32, seedFrom } from "@/lib/game/random";
 import { BIOMES, WORLD_LENGTH } from "@/lib/game/world";
-import { eventsInMonth, soleLeader, standings } from "@/lib/game/standings";
+import { soleLeader, standings } from "@/lib/game/standings";
 import { dailyRanking } from "@/lib/game/daily";
 
 /** Words stay short enough to read on the road, including the narrowest camera. */
@@ -50,7 +50,7 @@ export const DECOR_TEXTS = {
   crowd: ["En attente de réponse depuis 2019", "Disponible depuis trois prophéties", "Le vivier déborde, nous aussi", "Toujours debout, dossier compris"],
 } as const;
 
-export type DecorKind = keyof typeof DECOR_TEXTS | "friend" | "grave" | "crown" | "daily" | "hired" | "setpiece";
+export type DecorKind = keyof typeof DECOR_TEXTS | "welcome" | "friend" | "grave" | "crown" | "daily" | "hired" | "setpiece";
 export type InteriorId = "orp" | "factory";
 export const INTERIORS: ReadonlyArray<{ id: InteriorId; biome: string; name: string; from: number; to: number }> = [
   { id: "orp", biome: "plaine", name: "Centre ORP", from: 1000, to: 2663.2 },
@@ -122,7 +122,8 @@ export function decorForLap(lap: number): DecorSite[] {
     }
   }
   const count = new Map<string, number>();
-  return sites.map(site => {
+  return sites.map((original, siteIndex) => {
+    const site = cycle === 0 && siteIndex === 0 ? { ...original, x: 0 } : original;
     const index = count.get(site.biome) ?? 0;
     count.set(site.biome, index + 1);
     const target = site.biome === "plaine" ? 0 : site.biome === "foret" ? sites.filter(s => s.biome === "foret").length - 1 : 1;
@@ -153,7 +154,7 @@ function shortName(name: string): string { return Array.from(name.trim().split(/
 export function groupDecor(group: DecorGroup): GroupDecor {
   const players = [...group.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   const names = new Map(players.map(p => [p.id, shortName(p.name)]));
-  const leader = soleLeader(standings(eventsInMonth([...group.events], group.month), players.map(p => ({ ...p, joinedAt: "" }))));
+  const leader = soleLeader(standings([...group.events], players.map(p => ({ ...p, joinedAt: "" })), group.month));
   const champion = dailyRanking([...group.daily].filter(r => !r.pending && names.has(r.playerId)), group.day)[0];
   const winner = players.find(p => p.id === leader?.playerId);
   // Recent means the last eight refusals of the group, stable even in an old save.
@@ -174,6 +175,7 @@ export function personaliseDecor(sites: readonly DecorSite[], group: GroupDecor)
   let friend = 0, grave = 0;
   const tavernStart = sites.findIndex(s => s.biome === "taverne");
   return sites.map((site, index) => {
+    if (site.id === "0:0" || site.id === "0:1") return { ...site, kind: "welcome", reaction: "none", text: site.id === "0:0" ? "Bienvenue dans la quête du CDI" : "Ici, les refus font avancer" };
     const page = index - tavernStart;
     if (site.biome === "taverne" && page < Math.max(1, Math.ceil(group.hired.length / 3))) {
       const names = group.hired.slice(page * 3, page * 3 + 3).map(text => text.split(" · ")[0]);

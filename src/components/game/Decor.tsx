@@ -45,7 +45,7 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     node.visible = site.x > scene.camera.x - 400 && site.x < scene.camera.x + scene.camera.viewW + 400;
     if (!node.visible || !sign.current) return;
     const safeTop = (scene.topInset + 12 - scene.camera.screenOffsetY) / scene.camera.scale + scene.camera.y;
-    const baseScale = 0.5 * Math.min(1, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
+    const baseScale = 0.5 * Math.min(1, scene.camera.viewW * 0.8 / 320, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
     sign.current.scale.y = baseScale;
     sign.current.x = illustrated && site.biome === "desert" ? 230 : illustrated && scene.camera.viewW > 650 ? 105 : 0;
     const passing = performance.now() < scene.walkingUntil && [...scene.heroes.values()].some(hero => Math.abs(hero.x - site.x) < 155 && Math.abs(hero.x - scene.focus) < 360);
