@@ -2937,3 +2937,15 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 .welcome-card__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .welcome-card h1:focus { outline: none; }
 .welcome-card__start, .welcome-card > small { flex-shrink: 0; }
+@media (max-height: 500px) and (min-width: 600px) {
+  .welcome-card[open] { width: min(94vw, 50rem); padding: 12px 18px; font-size: .8rem; }
+  .welcome-card__body { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .welcome-card__body > .welcome-card__eyebrow,
+  .welcome-card__body > h1,
+  .welcome-card__body > p:nth-child(3) { grid-column: 1 / -1; }
+  .welcome-card h1 { font-size: 1.8rem; margin-bottom: 5px; }
+  .welcome-card p { margin-bottom: 6px; }
+  .welcome-card__actions { grid-column: 1; grid-row: 4 / 7; grid-template-columns: 1fr; align-content: center; margin: 0; }
+  .welcome-card__body > p:nth-child(n+5) { grid-column: 2; }
+  .welcome-card__start { padding: 4px; margin: 8px 0 4px; font-size: 1.3rem; }
+}
