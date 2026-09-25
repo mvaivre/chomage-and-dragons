@@ -167,6 +167,76 @@
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
       ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-a0ea4a8a-5c9a-40c3-9e37-e5c407324e16.png",
+      "output": "public/art/world-v3/decor/interior-factory-wall.webp",
+      "compileMode": "tile --output-width=2048 --output-height=1024 --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 1024. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nOpaque back wall of a medieval CV processing factory: muted brown bricks, brass pipes, large gears, steam vents, elevated conveyor belts near the ceiling. Two frontal rectangular eye-level windows with blurred landscape and sky. Below y=860 a metal baseboard and beginning of floor. Straight frontal dollhouse interior, flat side-scrolling perspective. No near machinery or front wall, no people. Perfect horizontal repeat, matching brick edges at left and right.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. Fully opaque edge to edge.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-e86d4032-724c-4f7f-b0a5-dd7bf4fc275f.png",
+      "output": "public/art/world-v3/decor/interior-factory-floor.webp",
+      "compileMode": "tile --output-width=1672 --output-height=361 --trim --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 1672 × 361. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nFull-bleed opaque horizontal floor strip, worn riveted metal plates mixed with wooden planks. Same shallow side view and walkable top edge as a game road strip, floor extends down. No furniture, walls, props or people. Seamless horizontally including mirrored tiling, consistent matching depth at ends.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. Fully opaque edge to edge.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-66cede83-d267-4bf9-94db-cba484f2b93d.png",
+      "output": "public/art/world-v3/decor/interior-factory-ceiling.webp",
+      "compileMode": "tile --output-width=2048 --output-height=256 --trim --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 256. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nVery wide narrow ceiling strip: industrial medieval timber and iron beams, a few suspended warm lamps and copper pipes. True RGBA transparency below lamps and pipes. No walls or floor. Flat side view, seamless horizontal repeat, identical beam edge at both ends. All lamps and pipe shapes contained with margin.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-4b7849ba-9619-4505-8d9f-1d395d2afd0b.png",
+      "output": "public/art/world-v3/decor/interior-factory-facade.webp",
+      "compileMode": "cutout --output-width=1536 --output-height=1536",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 1536 × 1536. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nSide exterior of a medieval brick CV processing factory with tall chimney and copper pipes, cleanly sliced open on its RIGHT side exposing a dark dollhouse interior cross section. Only the left portion of the building; transparent empty space beyond the right cut. Open ground-level door aligned to walking path. One broad blank pale frontal sign above doorway. No people. Small base only, isolated silhouette.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-a6981ceb-43df-42db-8ca0-b0df226bd4e5.png",
+      "output": "public/art/world-v3/decor/interior-factory-props.webp",
+      "compileMode": "atlas --islands --columns=4 --rows=2 --cell-width=512 --cell-height=512 --baseline=496",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 1024. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nStrict sprite sheet 4 columns × 2 rows, eight isolated medieval industrial props, side view, wide transparent gutters, bases aligned within each cell, no text anywhere. Row 1 left to right: short conveyor belt section; stamping press body with open space for a separate head (DO NOT include head); isolated stamping press head and vertical piston, attachment at TOP CENTER; paper shredder. Row 2: CV hopper with pipe; crate of blank parchments; one isolated toothed gear centered in its cell, pivot at exact center; lever. No labels, grid, captions, shadows or people. Each part completely separate, suitable for 512 × 512 cells baseline 496.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
     }
   ],
   "referencePacking": {

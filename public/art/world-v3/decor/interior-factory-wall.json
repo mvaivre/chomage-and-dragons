@@ -1,0 +1,26 @@
+{
+  "columns": 1,
+  "rows": 1,
+  "width": 2048,
+  "height": 1024,
+  "baseline": 1023,
+  "heights": [
+    1024
+  ],
+  "tile": true,
+  "windows": [
+    [
+      456,
+      475,
+      415,
+      206
+    ],
+    [
+      1175,
+      475,
+      409,
+      206
+    ]
+  ],
+  "opaque": true
+}
