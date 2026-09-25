@@ -180,6 +180,7 @@ function configureRenderer(app: PixiApplication) {
   // Diagnostics only: `?debug` exposes the Pixi application to the console and the tests.
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
+    (window as unknown as { __decorScene?: typeof scene }).__decorScene = scene;
   }
   // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
   scene.lowPower = app.renderer.type === RendererType.CANVAS;

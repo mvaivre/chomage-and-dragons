@@ -121,11 +121,12 @@ export function decorForLap(lap: number): DecorSite[] {
       previous = x;
     }
   }
-  const seen = new Set<string>();
+  const count = new Map<string, number>();
   return sites.map(site => {
-    const first = !seen.has(site.biome);
-    seen.add(site.biome);
-    return { ...site, setpiece: first };
+    const index = count.get(site.biome) ?? 0;
+    count.set(site.biome, index + 1);
+    const target = site.biome === "plaine" ? 0 : site.biome === "foret" ? sites.filter(s => s.biome === "foret").length - 1 : 1;
+    return { ...site, setpiece: index === target };
   });
 }
 

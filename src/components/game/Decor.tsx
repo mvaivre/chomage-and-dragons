@@ -31,7 +31,7 @@ function WaitingHero({ id, x, statue = false }: { id: string; x: number; statue?
 }
 
 function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
-  const illustrated = site.setpiece && site.biome === "plaine";
+  const illustrated = site.setpiece;
   const texture = useSignTexture(site.text, site.kind);
   const changed = useSignTexture(site.reaction === "change" ? "Finalement, le poste exige un dragon" : site.text, site.kind);
   const root = useRef<Container>(null);
@@ -60,7 +60,12 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
   return <pixiContainer ref={root} x={site.x} y={WALKABLE_GROUND_Y + 10} label={`decor:${site.id}:${site.kind}`}>
     <pixiGraphics draw={shadow} />
     {illustrated ? <DecorSetpiece land={site.biome as DecorLand} worldX={site.x} /> : null}
-    {site.biome === "plaine" && site.kind === "coach" ? <DecorNpc sheet="hype" x={-175} worldX={site.x - 175} /> : null}
+    {site.kind === "coach" || site.kind === "influencer" ? <DecorNpc sheet="hype" row={site.kind === "coach" ? 0 : 1} x={-175} worldX={site.x - 175} /> : null}
+    {illustrated && site.biome === "foret" ? <DecorNpc sheet="recruiters" x={-240} worldX={site.x - 240} height={112} /> : null}
+    {illustrated && site.biome === "marais" ? <DecorNpc sheet="afterlife" x={-240} worldX={site.x - 240} height={154} ghost /> : null}
+    {illustrated && site.biome === "lac" ? <DecorNpc sheet="recruiters" row={1} x={-220} worldX={site.x - 220} height={152} /> : null}
+    {illustrated && site.biome === "desert" ? <DecorNpc sheet="afterlife" row={1} x={-190} worldX={site.x - 190} height={130} /> : null}
+    {illustrated && site.biome === "taverne" ? <DecorNpc sheet="hype" row={1} x={-250} worldX={site.x - 250} height={135} /> : null}
     {site.kind === "crowd" ? [-148, -98, 108, 158].map((x, i) => <WaitingHero key={x} id={["barde", "paladin", "sorciere", "skater"][i]} x={x} />) : null}
     {site.kind === "crown" ? <pixiContainer x={210}><pixiGraphics draw={pedestal} /><WaitingHero id={group.crown.characterId ?? "chevalier"} x={0} statue /></pixiContainer> : null}
     {texture ? <pixiSprite ref={sign} texture={texture} x={illustrated ? 105 : 0} anchor={{ x: 0.5, y: 272 / 280 }} scale={0.5} /> : null}

@@ -62,3 +62,24 @@ test('group signs honour the journal, crowns, daily runs and all hired companion
   const board = personaliseDecor(sites,largeGroup).filter(s=>s.kind==='hired').map(s=>s.text).join(' · ');
   for(let i=0;i<15;i++) assert.ok(board.split(' · ').includes(`Ami${i}`));
 });
+
+test('one illustrated scene in each land, with room for its road-bound silhouette',()=>{
+ for(let lap=0;lap<30;lap++) {
+  const sites=decorForLap(lap).filter(s=>s.setpiece);
+  assert.equal(sites.length,8);
+  assert.equal(new Set(sites.map(s=>s.biome)).size,8);
+  for(const site of sites)for(const offset of [-330,0,330])assert.equal(interiorAt(site.x+offset),undefined);
+ }
+});
+
+test('ambient events are rare and keep the same trajectory across viewport sizes',async()=>{
+ const {decorEventAt}=await import('../src/lib/game/decor-events.ts');
+ for(const x of [200,5800,40000]) {
+  let active=0;
+  for(let time=0;time<900;time++) {
+   const event=decorEventAt(x,time);assert.deepEqual(event,decorEventAt(x+1,time));
+   if(event.active)active++;
+  }
+  assert.equal(active,90);
+ }
+});
