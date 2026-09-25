@@ -220,3 +220,12 @@ Les tests démarrent leur serveur sur le port 3100 et utilisent des contextes is
 sans toucher à la sauvegarde de votre navigateur. `GAME_TEST_URL` permet de choisir
 un serveur déjà lancé. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un
 Chromium installé plutôt que celui fourni par Playwright.
+
+### Décor « vie et WTF »
+
+La passe de décor ajoute des messages absurdes sur le recrutement, des hommages à
+la compagnie et une foule de candidatures qui attendent. Le catalogue et les
+emplacements sont déterministes, avec des réservations pour le Centre ORP et
+l'Usine à CV. Voir [le brief et son état de livraison](docs/DECOR_WTF_BRIEF.md) et
+[le contrat de rendu](docs/RENDERING.md). Les panneaux de secours sont dessinés et
+lettrés une seule fois avec les polices du jeu, puis conservés en texture.

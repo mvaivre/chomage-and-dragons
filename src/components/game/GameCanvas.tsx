@@ -4,6 +4,8 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
+import { Decor } from "./Decor";
+import type { GroupDecor } from "@/lib/game/decor";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
@@ -265,6 +267,7 @@ interface SceneProps {
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
+  decor: GroupDecor;
   meId: string | null;
   focusPlayerId: string | null;
   initialFocus: number;
@@ -281,6 +284,7 @@ function WorldScene({
   onSceneReady,
   paused,
   players,
+  decor,
   meId,
   focusPlayerId,
   initialFocus,
@@ -345,6 +349,10 @@ function WorldScene({
         <GroundDwellers />
       </Layer>
 
+      <Layer factor={1} shade={0.3}>
+        <Decor group={decor} />
+      </Layer>
+
       <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
         <Foreground plane={NEAR_PLANE} />
       </Layer>
@@ -402,6 +410,7 @@ export interface GameCanvasProps {
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
+  decor: GroupDecor;
   meId: string | null;
   /** Cible temporairement suivie pendant une farce, puis null pour revenir à soi. */
   focusPlayerId?: string | null;
@@ -419,6 +428,7 @@ function GameCanvas({
   onSceneReady,
   paused,
   players,
+  decor,
   meId,
   focusPlayerId = null,
   effects,
@@ -530,6 +540,7 @@ function GameCanvas({
           onSceneReady={onSceneReady}
           paused={paused}
           players={players}
+          decor={decor}
           meId={meId}
           focusPlayerId={focusPlayer?.id ?? null}
           initialFocus={focus}

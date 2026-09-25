@@ -25,7 +25,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
   }
   const browser = await chromium.launch({
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    args: process.env.PLAYWRIGHT_WEBGL === 'metal'
+      ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist']
+      : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
   });
   t.after(() => browser.close());
 

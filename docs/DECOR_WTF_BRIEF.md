@@ -177,3 +177,15 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 - Un court récapitulatif dans ce fichier, section « Livré », avec les chemins, tailles
   et toute limite rencontrée (texte parasite, raccord imparfait, pose ratée), pour que
   l'intégration sache quoi corriger.
+
+## Livré
+
+### Lot 1 — pilote plaine
+
+- Catalogue et placement pur : `src/lib/game/decor.ts` (86 refus, 43 arrêts par tour,
+  réservations des futurs intérieurs). Tests dans `tests/decor.test.mjs`.
+- `Decor.tsx` et `decor-textures.ts` : panneaux de secours encrés, textes français
+  cuits avec les polices du jeu, foule des candidatures au repos, réactions au passage.
+- Personnalisation calculée depuis le journal, les joueur·euses et le défi du jour.
+- Captures de référence et de la plaine dans `docs/decor-previews/` ; aucune
+  illustration des groupes A–D intégrée à ce stade.

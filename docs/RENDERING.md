@@ -291,3 +291,33 @@ Le son est synthétisé en WebAudio : aucun fichier. Ouvrir la sortie audio coû
 
 Les mesures headless demandent `--use-angle=metal --enable-gpu --ignore-gpu-blocklist` :
 sans WebGL, Pixi passe en rendu Canvas 2D et les chiffres ne veulent rien dire.
+
+## Décor absurde — pilote plaine
+
+`decor.ts` place 43 arrêts par tour, dans des intervalles indépendants du viewport.
+L'espacement est d'au moins 600 unités, raccord de tour compris. Les transitions
+réservent 250 unités de chaque côté ; deux passages de onze pas sont réservés à
+l'ORP (plaine) et à l'usine (bois). Les graines dépendent du tour, jamais de l'appareil.
+Le catalogue compte 86 raisons de refus et des directions, offres, avis, épitaphes,
+phrases de coach, d'influenceur et de guichet. Chaque message compte au plus huit mots.
+
+Le pilote `Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
+le sol et avant les héros. Les messages sont peints à résolution double en temps
+mort, après `document.fonts.ready`, avec les familles résolues des variables CSS
+Pirata et Garamond. Le cache partagé libère les textures huit secondes après leur
+dernier utilisateur. Seuls les arrêts proches sont montés. Les réactions de passage
+modifient des transforms ou une texture précuite ; la réduction des mouvements les
+fige. La foule réutilise les atlas des héros, en plus petit et avec une teinte terne.
+
+`groupDecor` dérive les hommages au groupe, les huit derniers refus, la couronne du
+mois (aucun gagnant inventé en cas d'égalité), le défi du jour et les engagé·es. Les
+clés du jour et du mois sont explicitement celles de Zurich. Personnaliser ne change
+jamais les positions. Les données d'une vraie partie ne sont pas modifiées par la QA.
+
+Vérification : 54 tests unitaires, lint, TypeScript et build Webpack. Turbopack échoue
+localement à ouvrir son port interne (`Operation not permitted`) ; le même Next 16
+compile avec `pnpm build --webpack`. Le lint ignore aussi les worktrees imbriqués de
+`.claude` et les fichiers locaux de `.codex`, qui ne font pas partie de ce projet.
+Le script `scripts/decor-qa.mjs` capture les cinq formats demandés, à midi et à 22 h,
+avec Chrome et WebGL Metal (Apple M1 Max). `GAME_TEST_URL`, `DECOR_STEPS`,
+`DECOR_SIZES` et `DECOR_PERF=0` permettent de rejouer une tranche.

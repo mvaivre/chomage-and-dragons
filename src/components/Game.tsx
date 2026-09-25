@@ -52,6 +52,7 @@ import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
 import { weeklyStreak } from "@/lib/game/streak";
 import { PowerArtwork } from "@/components/hud/Artwork";
+import { groupDecor } from "@/lib/game/decor";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
 import Link from "next/link";
@@ -186,6 +187,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     addPlayer,
     removePlayer,
   } = useGame(mode);
+
+  const decorDay = zurichDay();
+  const decor = useMemo(() => groupDecor({ players, events, daily, day: decorDay, month: monthKeyNow }), [players, events, daily, decorDay, monthKeyNow]);
 
   const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -812,6 +816,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
         players={players}
+        decor={decor}
         meId={identity}
         focusPlayerId={effectFocusId}
         effects={effects}
