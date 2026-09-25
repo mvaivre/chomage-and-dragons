@@ -186,7 +186,7 @@ avec les outils DEV. Les captures de cette passe sont dans `.codex/visual-qa/rev
 ### Parcours prolongé et lisibilité
 
 Barème de voyage : candidature +2, refus +3, entretien −3, rejet post-entretien +6.
-Le journal existant est recalculé avec ce barème ; les points restent indépendants.
+Le journal existant est recalculé avec ce barème ; les pas servent aussi au classement.
 Les boutons affichent des textes et icônes agrandis ; sur petit écran, le libellé
 occupe une ligne complète au-dessus de l’icône et du nombre de pas. Le cadrage tient
 compte de l’espace restant entre les commandes, y compris sur écran court.
@@ -243,8 +243,7 @@ Après les deux pas de base (et l’éventuel coffre), une livraison facultative
 douze secondes pour envoyer le pigeon à la hauteur de la boîte. Il se déplace vers
 la droite en regardant à gauche. Toucher la scène, cliquer « Envoyer » ou utiliser
 Espace/Entrée verrouille l’altitude. La bande dorée correspond à la zone de réussite.
-Un succès double les pas de cette candidature : 2 + 2 bonus, sans changer les points
-du classement. Le trajet bonus peut ouvrir son propre coffre.
+Un succès double les pas de cette candidature : 2 + 2 bonus, également comptés au classement. Le trajet bonus peut ouvrir son propre coffre.
 
 Le monde est en pause derrière le dialogue natif, qui garde le focus et gère Escape.
 La préférence de réduction des mouvements remplace le timing par un réglage de
@@ -270,7 +269,7 @@ héros la suivent, l'interface non.
 Les effets sont procéduraux : quelques textures peintes une fois sur de petits
 canvas, des sprites en pool (au plus 520, dont 60 pour la météo), des éclairs tracés
 dans un `Graphics`. Le calque des moments (`MomentOverlay`) porte le flash, les bandes
-de cinéma, les points qui volent jusqu'au compteur et les bannières ; il est sous le
+de cinéma, les bannières ; il est sous le
 HUD, sauf les récits, qui se lisent au-dessus.
 
 Les mises en scène sont décrites dans `reactions.ts` : entrée, impact, sortie, copies
@@ -350,17 +349,20 @@ s’efface à l’approche (plein au-delà de 195 unités, invisible à moins de
 Son panneau voisin est décalé pour dégager la porte « CDI ». Le péage et l’afterwork utilisent directement leurs propres
 surfaces de texte, sans panneau supplémentaire par-dessus.
 
-Les deux intérieurs occupent des intervalles du monde qui se répètent à chaque
-tour : ORP `[1000, 2663.2]`, usine `[4300, 5963.2]`. Le mur et le sol opaques sont
-sur le plan 1, après les décors extérieurs mais avant les héros et les coffres.
-Un plafond et deux façades, dont une en miroir, ferment les raccords. Les fenêtres
-se teintent avec l’heure ; la pièce garde son éclairage (ombre 0,06). Le mur adapte
-sa hauteur à la bande lisible, les habitants gardent la même taille et les pieds
-sur la même route. Les premiers plans utilisent un masque des intervalles réels,
-compensé de leur parallaxe : aucune touffe ne glisse dans une salle. Les particules
-ambiantes sont filtrées à l’émission et pendant leur vie, y compris au franchissement
-d’une porte. La musique suit `scene.focus`, et une entrée déclenche la même bannière
-que les contrées après le déplacement.
+Les deux intérieurs conservent leurs intervalles de voyage : ORP `[1000, 2663.2]`,
+usine `[4300, 5963.2]`, répétés à chaque tour. Ces bornes sont désormais des portes.
+`doors.ts` découpe un trajet en segments aux seuils, dans les deux sens. `SceneDoors`
+pause la marche, effectue un fondu de 240 ms, commute `scene.room` sous le noir, puis
+revient en 240 ms après une tenue de 80 ms. Le HUD reste hors du voile ; le mouvement
+reprend vers la destination déjà enregistrée. En mouvement réduit : 120 ms par fondu.
+
+`Outdoors` masque d’un bloc paysages, façades, végétation et météo dans une salle.
+Les murs et le sol intérieurs couvrent toute la fenêtre, y compris au-delà des portes :
+aucun raccord de tuiles extérieur/intérieur n’est dessiné. Les héros et coffres des
+autres lieux sont cachés. La musique suit la salle effectivement affichée ; une
+bannière annonce l’arrivée après le trajet. Le rechargement déduit directement le lieu
+de la position sauvegardée. Les façades fermées et la porte isolée remplacent les
+anciennes coupes ; sources et prompts dans [scene-door-prompts.json](scene-door-prompts.json).
 
 Les CV, pigeons et nuages ont une fenêtre de neuf secondes dans chaque cycle de
 90 secondes. Leur graine dépend d’une cellule de monde de 1 200 unités et du cycle,

@@ -180,6 +180,18 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 
 ## Livré
 
+### Révision : portes et accueil (25 septembre 2026)
+
+La demande suivante remplace les raccords en coupe par des scènes séparées sous
+fondu. Nouvelles découpes dans `public/art/world-v3/decor/` : `exterior-orp.webp`,
+`exterior-factory.webp` et `interior-door.webp`. Les deux anciennes façades en coupe
+sont retirées. Total actuel : 26 WebP, 5 527 554 octets. Les sources et prompts exacts
+sont dans `scene-door-prompts.json` ; les captures finales, dans
+`decor-previews/doors-final/` et `decor-previews/welcome-final/`.
+Les points sont supprimés au profit des pas ; règles, migration par relecture du
+journal et validation des portes sont détaillées dans [SCENE_DOORS.md](SCENE_DOORS.md).
+
+
 ### Illustrations A–D
 
 25 WebP et leurs JSON dans `public/art/world-v3/decor/`, **5 716 692 octets** au total

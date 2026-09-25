@@ -2,7 +2,7 @@
 
 Jeu web humoristique entre ami·es : **plus on se fait recaler, plus on avance.**
 Chaque candidature, chaque refus fait progresser ton personnage sur une carte
-d'aventure en 2D avec parallaxe. Le 31 décembre, celui ou celle qui a le plus de points est
+d'aventure en 2D avec parallaxe. Le 31 décembre, celui ou celle qui a le plus de pas est
 couronné·e **Légende du Chômage** et se fait inviter à manger par tout le monde.
 
 📖 Les règles complètes : [`docs/PITCH.md`](docs/PITCH.md)
@@ -66,7 +66,7 @@ src/
   hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur, sur
                           l'appareil d'abord, puis sur le serveur pour un groupe
   lib/
-    config.ts             ⚙️ Réglages : saison, points, pondérations
+    config.ts             ⚙️ Réglages : saison et pas par action
     data/
       types.ts            Joueur et événement
       store.ts            Contrat du magasin : charger, sauver, réinitialiser
@@ -100,9 +100,22 @@ src/
 Deux fichiers portent l'essentiel des décisions structurantes :
 
 - **`src/lib/config.ts`** — tous les réglages du jeu au même endroit. Changer la date
-  de fin de saison ou le barème des points ne demande de toucher à rien d'autre.
+  de fin de saison ou le barème des pas ne demande de toucher à rien d'autre.
 - **`src/lib/data/local-store.ts`** — la seule chose qui sait *où* les données sont
   stockées. C'est la couture prévue pour brancher Neon.
+
+## Pas, accueil et portes
+
+Les pas sont la seule mesure de progression et de classement : candidature +2, refus +3,
+entretien −3, rejet après entretien +6. Les bonus comptent aussi. La couronne mensuelle
+récompense la progression nette du mois (Europe/Zurich), sans reporter les pas antérieurs.
+Les sauvegardes existantes sont recalculées depuis leur journal, sans migration destructive.
+
+Deux panneaux accueillent le personnage au départ. Une fenêtre courte présente les règles
+au premier lancement ; « Aide » la rouvre. Les lettres suivent les surfaces inclinées.
+L’ORP et l’usine sont des scènes séparées : porte extérieure, fondu, salle entière,
+puis sortie vers le paysage avec le bâtiment à gauche. Les pas restants continuent
+automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.md).
 
 ## État actuel
 
@@ -114,8 +127,8 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
 - un cadrage adapté au bureau, au portrait et au paysage sur mobile
 - **les 5 actions officielles**, chacune mise en scène comme un moment : la caméra
   se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
-  (éclair, flash, secousse, confettis, onde de choc, ralenti), les points volent
-  jusqu'à leur compteur, les pas défilent pendant la marche, une bannière annonce
+  (éclair, flash, secousse, confettis, onde de choc, ralenti), les pas défilent
+  pendant la marche, une bannière annonce
   chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton à trois états
   (musique et effets, effets seuls, silence)
 - une **musique d'ambiance discrète**, composée en direct : une humeur par contrée
@@ -136,7 +149,7 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   des gnomes qui acclament le passage du héros
 - des **mini-jeux facultatifs** qui décorent les actions, une seule tentative
   chacun, jamais rejouée après annulation ou rechargement, et qui ne touchent
-  qu'aux pas de voyage ou au butin, jamais aux points :
+  qu'aux pas de voyage (classement compris) ou au butin :
   - candidature : **le pigeon à reculons** (tape pour battre des ailes, dix tours,
     trois plumes) en alternance avec **le CV à mots-clés** (glisse le CV sous les
     mots de l'annonce, évite les fautes de goût), ×2 sur les pas ;
