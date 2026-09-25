@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Texture } from "pixi.js";
-import { BIOMES, biomeAt, mixColor, WORLD_LENGTH, type Biome } from "@/lib/game/world";
+import { Texture, type Container } from "pixi.js";
+import { BIOMES, biomeAt, mixColor, WALKABLE_GROUND_Y, WORLD_LENGTH, type Biome } from "@/lib/game/world";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { scene } from "./scene";
 
@@ -10,8 +10,8 @@ import { scene } from "./scene";
  * Out-of-focus vegetation between the camera and the road. Two planes scroll
  * faster than the ground, pinned to the bottom of the clear window above the
  * dock: tufts that are slightly soft, and closer silhouettes, large, dark and
- * very blurred. Both stay low and sparse, framing the road without ever
- * covering a hero's body. Each tuft is painted once per biome on a small
+ * very blurred. Both stay under the heroes' feet and are drawn just before
+ * them, so name plates stay readable and no body is ever covered. Each tuft is painted once per biome on a small
  * canvas; the GPU only scales it.
  */
 
@@ -39,8 +39,11 @@ export interface ForegroundPlane {
   seed: number;
 }
 
+/** The foreground never rises above the heroes' feet, so it never covers a body. */
+const FEET_CLEARANCE = 6;
+
 export const NEAR_PLANE: ForegroundPlane = {
-  id: "near", bank: 46, factor: 1.32, spacing: 700, gaps: 0.2, width: [220, 300], aspect: 0.55,
+  id: "near", bank: 46, factor: 1.32, spacing: 700, gaps: 0.2, width: [200, 280], aspect: 0.5,
   shrink: 1.5, radius: 0.9, sink: 34, shadow: 0, seed: 11,
 };
 export const CLOSE_PLANE: ForegroundPlane = {
@@ -297,6 +300,16 @@ function useIdlePainting(plane: ForegroundPlane) {
 
 function ForegroundPlaneLayer({ plane }: { plane: ForegroundPlane }) {
   useIdlePainting(plane);
+  const node = useRef<Container>(null);
+  // Where the window between the road and the dock is short, the plane sinks
+  // behind the dock rather than rise over the heroes' feet.
+  useTick(() => {
+    if (!node.current) return;
+    const { camera } = scene;
+    const band = camera.viewH - (scene.bottomInset + camera.screenOffsetY) / camera.scale - WALKABLE_GROUND_Y;
+    const tallest = plane.width[1] * plane.aspect - plane.sink + plane.bank * 0.4;
+    node.current.y = Math.max(0, tallest - (band - FEET_CLEARANCE));
+  });
   const measure = () => {
     // The plane's container sits at parallaxX(0): its visible interval in its own units.
     const left = (scene.camera.x + scene.camera.viewW / 2) * plane.factor - scene.camera.viewW / 2;
@@ -327,7 +340,7 @@ function ForegroundPlaneLayer({ plane }: { plane: ForegroundPlane }) {
   if (plane.bank) {
     for (let tile = Math.floor(first * plane.spacing / BANK_TILE) - 1; tile <= Math.ceil(final * plane.spacing / BANK_TILE) + 1; tile++) tiles.push(tile);
   }
-  return <pixiContainer>
+  return <pixiContainer ref={node}>
     {tiles.map((tile) => <pixiSprite key={`bank-${tile}`} texture={bank()} x={tile * BANK_TILE} y={plane.sink - plane.bank} width={BANK_TILE + 1} height={plane.bank * 2} />)}
     {placed.map((tuft) => {
       const texture = tuftTexture(plane, tuft.biome, tuft.variant);

@@ -47,7 +47,7 @@ import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
 import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
-import { sfx, warmUpAudio } from "@/lib/client/sound";
+import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
@@ -242,6 +242,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   useEffect(() => {
     if (!sceneReady) return;
     return whenIdle(() => {
+      primeAudio();
       retainTextures([...Object.values(ACTION_ART), ...Object.values(POWER_ART)]);
       for (const url of MINI_GAME_IMAGES) void decodedImage(url).catch(() => {});
       void loadMiniGames();

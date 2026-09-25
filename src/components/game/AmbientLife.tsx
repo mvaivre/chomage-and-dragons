@@ -72,27 +72,36 @@ function WaterGlints({ worldX, factor }: { worldX: number; factor: number }) {
   </pixiContainer>;
 }
 
+/** What lives in the scenery behind the road: crows in the sky, the cascade's glints. */
 function AmbientLifeLayer({ factor }: { factor: number }) {
   const indices = useLayerBiomes(factor, 1200);
   return <pixiContainer>{indices.flatMap(({ index, offset }) => {
     const biome = BIOMES[index];
     const start = offset + biome.from * WORLD_LENGTH;
     const span = (biome.to - biome.from) * WORLD_LENGTH;
-    const kinds = index === 0 || index === 7 ? [0, 1] : index >= 5 ? [1] : [1, 3];
-    return [biome.id === "cascade" ? <WaterGlints key={`cascade-water-${offset}`} worldX={start + span * 0.5} factor={factor} /> : null, ...kinds.map(kind => <Resident key={`${offset}-${index}-${kind}`} kind={kind} variant={index % 2} worldX={start + span * [0.35, 0.5, 0.72, 0.62][kind]} factor={factor} />)];
+    return [
+      biome.id === "cascade" ? <WaterGlints key={`cascade-water-${offset}`} worldX={start + span * 0.5} factor={factor} /> : null,
+      <Resident key={`${offset}-${index}-crow`} kind={1} variant={index % 2} worldX={start + span * 0.5} factor={factor} />,
+    ];
   })}</pixiContainer>;
 }
 
-/** On the back edge of the road, after the grass fringe but before the player. */
-function BackgroundGnomesLayer({ factor }: { factor: number }) {
-  const indices = useLayerBiomes(factor, 1200);
+/**
+ * Whoever stands on the back edge of the road — gnomes, hens, toads, tufts —
+ * moves with the road itself, after the grass fringe but before the player.
+ * On a slower plane they would slide under their own feet.
+ */
+function GroundDwellersLayer() {
+  const indices = useLayerBiomes(1, 1200);
   return <pixiContainer>{indices.map(({ index, offset }) => {
     const biome = BIOMES[index];
-    const x = offset + (biome.from + (biome.to - biome.from) * 0.72) * WORLD_LENGTH;
+    const at = (ratio: number) => offset + (biome.from + (biome.to - biome.from) * ratio) * WORLD_LENGTH;
     const leafy = ["plaine", "foret", "cascade", "lac", "taverne"].includes(biome.id);
+    const walker = index === 0 || index === 7 ? 0 : index < 5 ? 3 : null;
     return <pixiContainer key={`${offset}-${index}`}>
-      {leafy ? [0.4, 0.84].map(ratio => <AnimatedTuft key={ratio} factor={factor} worldX={offset + (biome.from + (biome.to - biome.from) * ratio) * WORLD_LENGTH} />) : null}
-      <Resident kind={2} variant={index % 2} worldX={x} factor={factor} />
+      {leafy ? [0.4, 0.84].map(ratio => <AnimatedTuft key={ratio} factor={1} worldX={at(ratio)} />) : null}
+      {walker !== null ? <Resident kind={walker} variant={index % 2} worldX={at([0.35, 0, 0, 0.62][walker])} factor={1} /> : null}
+      <Resident kind={2} variant={index % 2} worldX={at(0.72)} factor={1} />
     </pixiContainer>;
   })}</pixiContainer>;
 }
@@ -101,4 +110,4 @@ function BackgroundGnomesLayer({ factor }: { factor: number }) {
 export const AmbientLife = memo(AmbientLifeLayer);
 
 /** Static scenery: re-rendered only when its own props change. */
-export const BackgroundGnomes = memo(BackgroundGnomesLayer);
+export const GroundDwellers = memo(GroundDwellersLayer);

@@ -166,6 +166,12 @@ const NOTE = (semitones: number) => 523.25 * Math.pow(2, semitones / 12);
 export function warmUpAudio(): () => void {
   if (typeof window === "undefined") return () => {};
   const warm = () => {
+    if (context) {
+      // A context made before any gesture waits; Safari only lets it start inside the gesture itself.
+      if (context.state === "suspended") void context.resume().catch(() => {});
+      else remove();
+      return;
+    }
     remove();
     // Let the gesture's own work finish first.
     window.setTimeout(() => {
@@ -177,6 +183,19 @@ export function warmUpAudio(): () => void {
   const remove = () => events.forEach((name) => window.removeEventListener(name, warm, true));
   events.forEach((name) => window.addEventListener(name, warm, { capture: true, passive: true }));
   return remove;
+}
+
+/**
+ * Arriving from a click (the title screen, an invitation link followed in the
+ * app), the page may already make sound: start the context now, so the music
+ * plays on arrival instead of waiting for the first action.
+ */
+export function primeAudio(): void {
+  if (typeof navigator === "undefined" || context || muted) return;
+  const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  if (!activation?.hasBeenActive) return;
+  const a = audio();
+  if (a) whiteNoise(a.ctx);
 }
 
 let lastTick = 0;

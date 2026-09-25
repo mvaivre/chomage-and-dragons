@@ -25,7 +25,7 @@ import {
 } from "./FlatWorld";
 import { CLOSE_PLANE, Foreground, NEAR_PLANE } from "./Foreground";
 import { Hero, VisibleHero } from "./Hero";
-import { AmbientLife, BackgroundGnomes } from "./AmbientLife";
+import { AmbientLife, GroundDwellers } from "./AmbientLife";
 import { laneFor } from "./lanes";
 import { FxLayer } from "./FxLayer";
 import type { HeroMotion } from "./animation";
@@ -341,8 +341,15 @@ function WorldScene({
         <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
-      <Layer factor={MIDGROUND_FACTOR} shade={0.66}>
-        <BackgroundGnomes factor={MIDGROUND_FACTOR} />
+      <Layer factor={1} shade={0.6}>
+        <GroundDwellers />
+      </Layer>
+
+      <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
+        <Foreground plane={NEAR_PLANE} />
+      </Layer>
+      <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
+        <Foreground plane={CLOSE_PLANE} />
       </Layer>
 
       <Layer factor={1} shade={0.14}>
@@ -367,12 +374,6 @@ function WorldScene({
         ))}
       </Layer>
 
-      <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
-        <Foreground plane={NEAR_PLANE} />
-      </Layer>
-      <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
-        <Foreground plane={CLOSE_PLANE} />
-      </Layer>
 
       <Layer factor={1} shade={0.0}>
         {effects.map((effect) => {
