@@ -112,7 +112,7 @@ function InteriorsLayer() {
   const measure=()=>`${Math.max(0,Math.floor((scene.camera.x-600)/800))}:${Math.ceil((scene.camera.x+scene.camera.viewW+600)/800)}`;
   const [range,setRange]=useState(measure);
   useSceneTick(()=>{const next=measure();if(next!==range)setRange(next);});
-  const rooms=useMemo(()=>{const[a,b]=range.split(":").map(n=>Number(n)*800);return interiorsInRange(a,b).filter(r=>r.id==="orp");},[range]);
+  const rooms=useMemo(()=>{const[a,b]=range.split(":").map(n=>Number(n)*800);return interiorsInRange(a,b);},[range]);
   return <pixiContainer>{rooms.map(room=><Room key={room.from} {...room}/>)}</pixiContainer>;
 }
 export const Interiors=memo(InteriorsLayer);
