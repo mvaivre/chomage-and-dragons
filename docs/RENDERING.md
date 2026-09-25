@@ -316,10 +316,103 @@ jamais les positions. Les données d'une vraie partie ne sont pas modifiées par
 Après validation du pilote de la plaine, les huit contrées utilisent ces arrêts.
 La taverne répartit les quinze noms possibles sur cinq tableaux, trois par tableau.
 
-Vérification : 54 tests unitaires, lint, TypeScript et build Webpack. Turbopack échoue
+Vérification du lot 1 : 54 tests unitaires, lint, TypeScript et build Webpack. Turbopack échoue
 localement à ouvrir son port interne (`Operation not permitted`) ; le même Next 16
 compile avec `pnpm build --webpack`. Le lint ignore aussi les worktrees imbriqués de
 `.claude` et les fichiers locaux de `.codex`, qui ne font pas partie de ce projet.
 Le script `scripts/decor-qa.mjs` capture les cinq formats demandés, à midi et à 22 h,
 avec Chrome et WebGL Metal (Apple M1 Max). `GAME_TEST_URL`, `DECOR_STEPS`,
 `DECOR_SIZES` et `DECOR_PERF=0` permettent de rejouer une tranche.
+
+### Illustrations et intérieurs
+
+Les 25 nouvelles images vivent dans `public/art/world-v3/decor/` : 5 716 692 octets
+WebP au total. Les PNG de `docs/decor-previews/` sont des contrôles d’import et des
+captures, jamais des téléchargements du jeu. Les prompts exacts et les commandes
+retenues sont consignés dans `docs/decor-prompts.json`.
+
+`compile_ambient_assets.mjs` accepte des dimensions, une grille, une base et des
+pivots génériques. La détection d’îlots sépare les poses quand les gouttières de la
+source sont irrégulières ; les pieds sont recalés sur l’alpha visible après
+réduction. Les rectangles de lettrage ont été mesurés sur les sorties. Les tuiles
+sont jointes par recouvrement des bords, puis encodées sans perte pour préserver
+leur égalité exacte après décodage. Un filtre médian de 3 px et une palette de
+12 couleurs réduisent leur grain et leur poids ; les autres sprites restent en
+WebP qualité 92. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
+de raccord et budget total.
+
+Les panneaux illustrés sont composés avec leur texte une seule fois, en temps
+mort. Les messages restent dans les rectangles clairs de l’atlas ; leur échelle
+s’adapte à la bande disponible sous le HUD sur les petits écrans. Les figurants
+utilisent un atlas partagé, avec 19 secondes de repos par cycle de 22 secondes et
+une réaction de passage. La manivelle pivote autour de son axe mesuré ; le mirage
+s’efface à l’approche (plein au-delà de 195 unités, invisible à moins de 45).
+Son panneau voisin est décalé pour dégager la porte « CDI ». Le péage et l’afterwork utilisent directement leurs propres
+surfaces de texte, sans panneau supplémentaire par-dessus.
+
+Les deux intérieurs occupent des intervalles du monde qui se répètent à chaque
+tour : ORP `[1000, 2663.2]`, usine `[4300, 5963.2]`. Le mur et le sol opaques sont
+sur le plan 1, après les décors extérieurs mais avant les héros et les coffres.
+Un plafond et deux façades, dont une en miroir, ferment les raccords. Les fenêtres
+se teintent avec l’heure ; la pièce garde son éclairage (ombre 0,06). Le mur adapte
+sa hauteur à la bande lisible, les habitants gardent la même taille et les pieds
+sur la même route. Les premiers plans utilisent un masque des intervalles réels,
+compensé de leur parallaxe : aucune touffe ne glisse dans une salle. Les particules
+ambiantes sont filtrées à l’émission et pendant leur vie, y compris au franchissement
+d’une porte. La musique suit `scene.focus`, et une entrée déclenche la même bannière
+que les contrées après le déplacement.
+
+Les CV, pigeons et nuages ont une fenêtre de neuf secondes dans chaque cycle de
+90 secondes. Leur graine dépend d’une cellule de monde de 1 200 unités et du cycle,
+jamais du viewport. L’enseigne nocturne apparaît brièvement sur la banderole de la
+taverne. `scene.momentActive` et `scene.reducedMotion` les inhibent. Les ticks changent
+uniquement les textures, positions et opacités ; React ne suit que les changements
+de tranche visible.
+
+### Recette finale et performances
+
+`pnpm lint`, `pnpm exec tsc --noEmit`, les **59 tests unitaires** et les **16 tests
+navigateur** passent. Après les dernières retouches de profondeur et du mirage,
+les six tests navigateur ciblés du décor ont été rejoués avec succès. Ils couvrent
+les deux salles, une presse réellement animée, les poses figées, les deux musiques,
+la bannière d’entrée, la disparition du mirage, l’enseigne nocturne et l’arrêt des
+événements rares pendant une vraie action. Les tests d’assets confirment le budget
+et les raccords exacts après décodage.
+
+La commande `pnpm build` (Turbopack) a été retentée en fin de travail : elle échoue
+encore localement lors du traitement de `globals.css`, à la création d’un processus
+qui doit ouvrir un port (`Operation not permitted`, erreur OS 1). Le build de
+production **`pnpm build --webpack` passe** ; c’est celui utilisé pour la recette.
+Le script de build du projet reste inchangé.
+
+Les huit contrées et les deux intérieurs ont été contrôlés aux cinq formats du
+brief, de jour et de nuit, avec le renderer WebGL Metal. Les entrées, centres et
+sorties des salles ont des captures dédiées. Les scènes rares sont figées à une
+heure de test pour contrôler leur lettrage et leurs plans. Voir la
+[sélection avant/après et les commandes](decor-previews/README.md).
+
+Mesures sur Chrome/ANGLE Metal, Apple M1 Max. « CPU » désigne le temps de tâche du
+renderer (`Performance.TaskDuration / Timestamp`), sur cinq secondes au repos.
+Les frames sont les intervalles de `requestAnimationFrame` pendant 4,3 secondes
+autour d’un refus. Le mobile 390 × 844 utilise un ralentissement CPU ×4 ; le desktop
+1280 × 720 reste à ×1. Les mesures finales ne tournent avec aucun autre test ni build.
+
+| État et position | Format | CPU repos | Frame maximale | P95 |
+| --- | --- | ---: | ---: | ---: |
+| Avant, pas 2 | Desktop | 2,60 % | 333,3 ms | 16,8 ms |
+| Après, pas 2 | Desktop | 4,00 % | 33,4 ms | 16,7 ms |
+| Avant, pas 2 | Mobile ×4 | 10,69 % | 233,3 ms | 16,7 ms |
+| Après, pas 2 | Mobile ×4 | 10,76 % | 66,6 ms | 16,8 ms |
+| Après, usine pas 34 | Desktop | 3,00 % | 50,0 ms | 16,7 ms |
+| Après, usine pas 34 | Mobile ×4 | 11,28 % | 66,7 ms | 16,8 ms |
+
+Données brutes : [avant](decor-previews/baseline/results.json),
+[après](decor-previews/final-perf/results.json),
+[usine](decor-previews/final-factory-perf/results.json).
+Le P95 reste autour d’une frame à 60 Hz ; le coût CPU au repos augmente d’environ
+1,4 point sur desktop et de 0,08 point sur le mobile simulé au même endroit.
+Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache et
+à l’activité système. La référence initiale a été mesurée pendant d’autres travaux :
+sa forte valeur maximale ne constitue donc pas la preuve d’un gain causé par cette
+PR. Aucun test sur téléphone physique n’a été effectué ; ces chiffres ne garantissent
+pas le même résultat sur tous les appareils.

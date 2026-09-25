@@ -1,0 +1,62 @@
+{
+  "label": "lot-2-perf",
+  "captures": 0,
+  "steps": [],
+  "sizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      844,
+      390
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "hours": [
+    12,
+    22
+  ],
+  "results": [
+    {
+      "viewport": [
+        1280,
+        720
+      ],
+      "throttle": 1,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 4.958232858725289,
+      "maxFrameMS": 50,
+      "p95FrameMS": 16.700000000000728
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "throttle": 4,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 10.201860334413348,
+      "maxFrameMS": 66.69999999999982,
+      "p95FrameMS": 16.799999999999272
+    }
+  ],
+  "errors": []
+}

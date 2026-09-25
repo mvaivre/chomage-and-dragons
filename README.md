@@ -223,9 +223,16 @@ Chromium installé plutôt que celui fourni par Playwright.
 
 ### Décor « vie et WTF »
 
-La passe de décor ajoute des messages absurdes sur le recrutement, des hommages à
-la compagnie et une foule de candidatures qui attendent. Le catalogue et les
-emplacements sont déterministes, avec des réservations pour le Centre ORP et
-l'Usine à CV. Voir [le brief et son état de livraison](docs/DECOR_WTF_BRIEF.md) et
-[le contrat de rendu](docs/RENDERING.md). Les panneaux de secours sont dessinés et
-lettrés une seule fois avec les polices du jeu, puis conservés en texture.
+Chaque tour comporte 43 haltes absurdes : panneaux de refus, hommages aux ami·es,
+cimetière des candidatures, couronne du mois, défi du jour et tableau des engagé·es.
+Les emplacements et les messages sont déterministes pour toute la compagnie.
+Huit scènes illustrées peuplent les contrées, de l’épouvantail-recruteur à
+l’afterwork obligatoire. Le Centre ORP et l’Usine à CV sont deux passages en coupe
+de onze pas, avec leurs figurants, leurs machines et leur musique.
+
+Les lettres sont cuites avec les vraies polices du jeu dans les surfaces vierges
+des illustrations ; un dessin de secours prend le relais si l’atlas manque.
+Les animations respectent la réduction des mouvements et les événements rares
+s’effacent pendant une action. Les nouvelles images WebP totalisent 5,72 Mo.
+Voir [le brief livré](docs/DECOR_WTF_BRIEF.md), [les prompts](docs/decor-prompts.json)
+et [le contrat de rendu et les vérifications](docs/RENDERING.md).
