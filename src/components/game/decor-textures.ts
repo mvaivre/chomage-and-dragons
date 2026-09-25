@@ -3,10 +3,28 @@
 import { useEffect, useState } from "react";
 import { Texture } from "pixi.js";
 import type { DecorKind } from "@/lib/game/decor";
+import signs from "../../../public/art/world-v3/decor/signs.json";
 
 interface Painted { texture: Texture; users: number; timer?: ReturnType<typeof setTimeout> }
 const cache = new Map<string, Painted>();
 let fonts: Promise<{ title: string; body: string }> | undefined;
+let signImage: Promise<HTMLImageElement | null> | undefined;
+function loadSigns() {
+  return signImage ??= new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = "/art/world-v3/decor/signs.webp";
+  });
+}
+
+function fitLetters(c: CanvasRenderingContext2D, text: string, rect: number[], family: string, maximum: number) {
+  const [x, y, w, h] = rect;
+  let size = maximum, lines: string[] = [];
+  do { c.font = `600 ${size}px ${family}`; lines = wrapText(c, text, w); if (lines.length * size * 1.04 <= h) break; size--; } while (size > 12);
+  c.textAlign = "center"; c.textBaseline = "middle";
+  lines.forEach((line, i) => c.fillText(line, x + w / 2, y + h / 2 + (i - (lines.length - 1) / 2) * size * 1.04, w));
+}
 
 function gameFonts() {
   return fonts ??= document.fonts.ready.then(() => {
@@ -29,12 +47,31 @@ export function wrapText(context: CanvasRenderingContext2D, text: string, width:
 }
 
 /** All ink, including letters, is baked once; no Text objects rasterise during travel. */
-async function paint(text: string, kind: DecorKind, textOnly: boolean): Promise<Texture> {
+async function paint(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number): Promise<Texture> {
   const family = await gameFonts();
   const canvas = document.createElement("canvas");
-  canvas.width = 640; canvas.height = 560;
+  canvas.width = width * 2; canvas.height = height * 2;
   const c = canvas.getContext("2d")!;
   c.scale(2, 2);
+  const image = textOnly ? null : await loadSigns();
+  if (image) {
+    const frame = kind === "grave" || kind === "epitaph" ? 7 : kind === "wanted" || kind === "offer" ? 5 : 9;
+    // Trim the transparent gutter, keeping the measured lettering rectangle in image space.
+    const crop = frame === 7 ? [102, 98, 206, 274] : frame === 5 ? [95, 23, 200, 349] : [64, 10, 260, 362];
+    const [cx, cy, cw, ch] = crop;
+    const height = frame === 7 ? 198 : 260, top = 272 - height;
+    const artWidth = frame === 7 ? 220 : 320, left = (320 - artWidth) / 2;
+    c.drawImage(image, frame % 4 * 384 + cx, Math.floor(frame / 4) * 384 + cy, cw, ch, left, top, artWidth, height);
+    const rect = signs.frames[frame].text as number[];
+    c.fillStyle = "#292620";
+    fitLetters(c, text, [left + (rect[0] - cx) * artWidth / cw, top + (rect[1] - cy) * height / ch, rect[2] * artWidth / cw, rect[3] * height / ch], kind === "daily" || kind === "crown" ? family.title : family.body, 31);
+    return Texture.from(canvas);
+  }
+  if (textOnly) {
+    c.fillStyle = "#292620";
+    fitLetters(c, text, [4, 4, width - 8, height - 8], family.title, Math.min(64, height * 0.7));
+    return Texture.from(canvas);
+  }
   c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = "#292620"; c.lineWidth = 3.5;
   const grave = kind === "grave" || kind === "epitaph";
   if (!textOnly) {
@@ -66,13 +103,13 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean): Promise<
 }
 
 const jobs = new Map<string, Promise<Painted>>();
-function acquire(text: string, kind: DecorKind, textOnly: boolean) {
-  const key = JSON.stringify([text, kind, textOnly]);
+function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number) {
+  const key = JSON.stringify([text, kind, textOnly, width, height]);
   let pending = jobs.get(key);
   if (!pending) {
     pending = new Promise<Painted>(resolve => {
       const idle = window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 40));
-      idle(() => { void paint(text, kind, textOnly).then(texture => {
+      idle(() => { void paint(text, kind, textOnly, width, height).then(texture => {
         const entry = { texture, users: 0 }; cache.set(key, entry); resolve(entry);
       }); });
     });
@@ -82,12 +119,12 @@ function acquire(text: string, kind: DecorKind, textOnly: boolean) {
 }
 
 /** Ref-counted and evicted after travel, so an endless journey never accumulates text textures. */
-export function useSignTexture(text: string, kind: DecorKind, textOnly = false): Texture | null {
+export function useSignTexture(text: string, kind: DecorKind, textOnly = false, width = 320, height = 280): Texture | null {
   const [value, setValue] = useState<{ key: string; texture: Texture } | null>(null);
-  const key = JSON.stringify([text, kind, textOnly]);
+  const key = JSON.stringify([text, kind, textOnly, width, height]);
   useEffect(() => {
     let alive = true;
-    const job = acquire(text, kind, textOnly);
+    const job = acquire(text, kind, textOnly, width, height);
     let owned: Painted | undefined;
     const release = (entry: Painted) => {
       entry.users--;
@@ -102,6 +139,6 @@ export function useSignTexture(text: string, kind: DecorKind, textOnly = false):
       owned = entry; setValue({ key: job.key, texture: entry.texture });
     });
     return () => { alive = false; if (owned) release(owned); };
-  }, [text, kind, textOnly]);
+  }, [text, kind, textOnly, width, height]);
   return value?.key === key && !value.texture.destroyed ? value.texture : null;
 }

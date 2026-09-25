@@ -67,6 +67,17 @@ export function interiorAt(x: number) {
   return INTERIORS.find(room => local >= room.from && local <= room.to);
 }
 
+export function interiorsInRange(left: number, right: number) {
+  const result: Array<(typeof INTERIORS)[number]> = [];
+  for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
+    for (const room of INTERIORS) {
+      const from = room.from + lap * WORLD_LENGTH, to = room.to + lap * WORLD_LENGTH;
+      if (to >= left && from <= right) result.push({ ...room, from, to });
+    }
+  }
+  return result;
+}
+
 export interface DecorSite {
   id: string;
   x: number;
@@ -74,6 +85,7 @@ export interface DecorSite {
   kind: DecorKind;
   text: string;
   reaction: "none" | "turn" | "fall" | "change";
+  setpiece?: boolean;
 }
 
 /** Safe intervals use only world coordinates: viewport and pixel density never enter. */
@@ -109,7 +121,12 @@ export function decorForLap(lap: number): DecorSite[] {
       previous = x;
     }
   }
-  return sites;
+  const seen = new Set<string>();
+  return sites.map(site => {
+    const first = !seen.has(site.biome);
+    seen.add(site.biome);
+    return { ...site, setpiece: first };
+  });
 }
 
 type DecorPlayer = Pick<Player, "id" | "name" | "characterId" | "hiredAt">;

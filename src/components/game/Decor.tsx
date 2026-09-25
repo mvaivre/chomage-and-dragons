@@ -9,6 +9,8 @@ import { scene } from "./scene";
 import { useSignTexture } from "./decor-textures";
 import { CHARACTER_ANIMATIONS, characterFrame } from "./animation";
 import { atlasFrames, useDirectTexture } from "./textures";
+import { DecorNpc } from "./DecorNpc";
+import { DecorSetpiece, type DecorLand } from "./DecorSetpiece";
 
 const shadow = (g: Graphics) => { g.clear().ellipse(0, 0, 45, 5).fill({ color: 0x211b18, alpha: 0.2 }); };
 const pedestal = (g: Graphics) => { g.clear().poly([-54, 0, -47, -45, 47, -45, 54, 0]).fill(0xaca590).stroke({ color: 0x302b27, width: 3 }).poly([-16, -180, -20, -198, -5, -190, 0, -204, 8, -190, 20, -198, 16, -180]).fill(0xd0ac54).stroke({ color: 0x302b27, width: 2 }); };
@@ -29,6 +31,7 @@ function WaitingHero({ id, x, statue = false }: { id: string; x: number; statue?
 }
 
 function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
+  const illustrated = site.setpiece && site.biome === "plaine";
   const texture = useSignTexture(site.text, site.kind);
   const changed = useSignTexture(site.reaction === "change" ? "Finalement, le poste exige un dragon" : site.text, site.kind);
   const root = useRef<Container>(null);
@@ -40,21 +43,27 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     if (!node) return;
     node.visible = site.x > scene.camera.x - 400 && site.x < scene.camera.x + scene.camera.viewW + 400;
     if (!node.visible || !sign.current) return;
+    const safeTop = (scene.topInset + 12 - scene.camera.screenOffsetY) / scene.camera.scale + scene.camera.y;
+    const baseScale = 0.5 * Math.min(1, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
+    sign.current.scale.y = baseScale;
+    sign.current.x = illustrated && scene.camera.viewW > 650 ? 105 : 0;
     const passing = performance.now() < scene.walkingUntil && [...scene.heroes.values()].some(hero => Math.abs(hero.x - site.x) < 155 && Math.abs(hero.x - scene.focus) < 360);
     if (passing && !active.current) react.current = 1;
     active.current = passing;
-    if (scene.reducedMotion) { react.current = 0; sign.current.rotation = 0; sign.current.scale.x = 0.5; sign.current.texture = texture ?? sign.current.texture; return; }
+    if (scene.reducedMotion) { react.current = 0; sign.current.rotation = 0; sign.current.scale.x = baseScale; sign.current.texture = texture ?? sign.current.texture; return; }
     react.current = Math.max(0, react.current - ticker.elapsedMS / 2200);
     const amount = Math.sin(react.current * Math.PI);
     sign.current.rotation = site.reaction === "fall" ? amount * 0.38 : 0;
-    sign.current.scale.x = 0.5 * (site.reaction === "turn" ? 1 - amount * 0.65 : 1);
+    sign.current.scale.x = baseScale * (site.reaction === "turn" ? 1 - amount * 0.65 : 1);
     if (site.reaction === "change") sign.current.texture = react.current > 0.1 && changed ? changed : texture ?? sign.current.texture;
   });
   return <pixiContainer ref={root} x={site.x} y={WALKABLE_GROUND_Y + 10} label={`decor:${site.id}:${site.kind}`}>
     <pixiGraphics draw={shadow} />
+    {illustrated ? <DecorSetpiece land={site.biome as DecorLand} worldX={site.x} /> : null}
+    {site.biome === "plaine" && site.kind === "coach" ? <DecorNpc sheet="hype" x={-175} worldX={site.x - 175} /> : null}
     {site.kind === "crowd" ? [-148, -98, 108, 158].map((x, i) => <WaitingHero key={x} id={["barde", "paladin", "sorciere", "skater"][i]} x={x} />) : null}
     {site.kind === "crown" ? <pixiContainer x={210}><pixiGraphics draw={pedestal} /><WaitingHero id={group.crown.characterId ?? "chevalier"} x={0} statue /></pixiContainer> : null}
-    {texture ? <pixiSprite ref={sign} texture={texture} anchor={{ x: 0.5, y: 272 / 280 }} scale={0.5} /> : null}
+    {texture ? <pixiSprite ref={sign} texture={texture} x={illustrated ? 105 : 0} anchor={{ x: 0.5, y: 272 / 280 }} scale={0.5} /> : null}
   </pixiContainer>;
 }
 
