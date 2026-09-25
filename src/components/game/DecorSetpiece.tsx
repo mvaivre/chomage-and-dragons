@@ -39,7 +39,7 @@ function Crank() {
 }
 
 /** All bases travel with the road; the original distant landscapes stay untouched. */
-export function DecorSetpiece({land, worldX, x = -160}: {land:DecorLand;worldX:number;x?:number}) {
+export function DecorSetpiece({land, worldX, x = -160, caption}: {land:DecorLand;worldX:number;x?:number;caption?:string}) {
   const spec = art[land], meta = spec.meta;
   const texture = useDirectTexture(`/art/world-v3/decor/setpiece-${spec.id}.webp`);
   const ref = useRef<Container>(null);
@@ -50,7 +50,7 @@ export function DecorSetpiece({land, worldX, x = -160}: {land:DecorLand;worldX:n
     ref.current.scale.set(h/meta.heights[0]);
     ref.current.alpha = land === "desert" && !scene.reducedMotion ? Math.max(0,Math.min(1,(Math.abs(scene.focus-(worldX+x))-90)/300)) : 1;
   });
-  const text = land === "lac" ? "Péage : un CV" : land === "desert" ? "CDI" : land === "taverne" ? "Afterwork obligatoire" : null;
+  const text = caption ?? (land === "lac" ? "Péage : un CV" : land === "desert" ? "CDI" : land === "taverne" ? "Afterwork obligatoire" : null);
   const rect = "text" in meta ? meta.text : null;
   return <pixiContainer ref={ref} x={x} label={`setpiece:${land}`} scale={spec.height/meta.heights[0]}>
     {texture ? <pixiSprite texture={texture} anchor={{x:0.5,y:meta.baseline/meta.height}} /> : null}

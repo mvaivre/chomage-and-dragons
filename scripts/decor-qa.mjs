@@ -6,7 +6,7 @@ const steps = (process.env.DECOR_STEPS ?? '1,19').split(',').filter(Boolean).map
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3123';
 const folder = `docs/decor-previews/${label}`;
 await fs.mkdir(folder, { recursive: true });
-const openBrowser = () => chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const openBrowser = () => chromium.launch({ timeout: 30_000, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 let browser = await openBrowser();
 let captures = 0;
 const sizes = process.env.DECOR_SIZES ? process.env.DECOR_SIZES.split(',').map(s=>s.split('x').map(Number)) : [[1280,720],[390,844],[320,568],[844,390],[1920,1080]];
@@ -15,6 +15,7 @@ const results = [];
 async function fixture(step, size, hour = 12) {
   const context = await browser.newContext({ viewport: { width: size[0], height: size[1] } });
   const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
   page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(({ step }) => {
     if (localStorage.getItem('louchomage:v2')) return;
@@ -23,7 +24,7 @@ async function fixture(step, size, hour = 12) {
     localStorage.setItem('louchomage:v2', JSON.stringify({ players: [{ id:'test', name:'Mika', characterId:'skater', joinedAt:at }, {id:'lou',name:'Lou',characterId:'barde',joinedAt:at}], events: [...Array.from({length:Math.floor(step/2)+(step%2?2:0)},(_,i)=>({id:`qa-${i}`,playerId:'test',kind:'candidature',at})), ...(step%2?[{id:'qa-adjust',playerId:'test',kind:'entretien',at}]:[])], casts:[] }));
   }, { step });
   await page.goto(`${url}/local?debug&hour=${hour}&variant=classic`);
-  await page.waitForFunction(() => window.__pixiApp && !document.querySelector('.action-button--refus')?.disabled);
+  await page.waitForFunction(() => window.__pixiApp && !document.querySelector('.action-button--refus')?.disabled, null, {timeout:30_000});
   await page.waitForTimeout(2200);
   await page.addStyleTag({content:'.dev-explorer, nextjs-portal { visibility: hidden !important; }'});
   return { context, page };
@@ -55,7 +56,7 @@ try {
     results.push({viewport:size,throttle,renderer,idleCPU:100*(after.TaskDuration-before.TaskDuration)/(after.Timestamp-before.Timestamp),maxFrameMS:frames.at(-1),p95FrameMS:frames[Math.floor(frames.length*.95)]});
     await context.close();
   }
-  await fs.writeFile(`${folder}/results.json`,JSON.stringify({label,results,errors},null,2)+'\n');
-  console.log(JSON.stringify({label,results,errors},null,2));
+  await fs.writeFile(`${folder}/results.json`,JSON.stringify({label,captures,steps,sizes,hours:[12,22],results,errors},null,2)+'\n');
+  console.log(JSON.stringify({label,captures,steps,sizes,hours:[12,22],results,errors},null,2));
   if(errors.length) process.exitCode=1;
 } finally {await browser.close()}
