@@ -51,7 +51,7 @@ export function wrapText(context: CanvasRenderingContext2D, text: string, width:
 }
 
 /** All ink, including letters, is baked once; no Text objects rasterise during travel. */
-async function paint(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number): Promise<Texture> {
+async function paint(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number, ink: string): Promise<Texture> {
   const family = await gameFonts();
   const canvas = document.createElement("canvas");
   canvas.width = width * 2; canvas.height = height * 2;
@@ -72,7 +72,7 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
     return Texture.from(canvas);
   }
   if (textOnly) {
-    c.fillStyle = "#292620";
+    c.fillStyle = ink;
     const inset = Math.min(4, width * 0.06, height * 0.08);
     fitLetters(c, text, [inset, inset, width - inset * 2, height - inset * 2], family.title, Math.min(64, height * 0.7));
     return Texture.from(canvas);
@@ -108,13 +108,13 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
 }
 
 const jobs = new Map<string, Promise<Painted>>();
-function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number) {
-  const key = JSON.stringify([text, kind, textOnly, width, height]);
+function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number, ink: string) {
+  const key = JSON.stringify([text, kind, textOnly, width, height, ink]);
   let pending = jobs.get(key);
   if (!pending) {
     pending = new Promise<Painted>(resolve => {
       const idle = window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 40));
-      idle(() => { void paint(text, kind, textOnly, width, height).then(texture => {
+      idle(() => { void paint(text, kind, textOnly, width, height, ink).then(texture => {
         const entry = { texture, users: 0 }; cache.set(key, entry); resolve(entry);
       }); });
     });
@@ -124,12 +124,12 @@ function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number
 }
 
 /** Ref-counted and evicted after travel, so an endless journey never accumulates text textures. */
-export function useSignTexture(text: string, kind: DecorKind, textOnly = false, width = 320, height = 280): Texture | null {
+export function useSignTexture(text: string, kind: DecorKind, textOnly = false, width = 320, height = 280, ink = "#292620"): Texture | null {
   const [value, setValue] = useState<{ key: string; texture: Texture } | null>(null);
-  const key = JSON.stringify([text, kind, textOnly, width, height]);
+  const key = JSON.stringify([text, kind, textOnly, width, height, ink]);
   useEffect(() => {
     let alive = true;
-    const job = acquire(text, kind, textOnly, width, height);
+    const job = acquire(text, kind, textOnly, width, height, ink);
     let owned: Painted | undefined;
     const release = (entry: Painted) => {
       entry.users--;
@@ -144,6 +144,6 @@ export function useSignTexture(text: string, kind: DecorKind, textOnly = false, 
       owned = entry; setValue({ key: job.key, texture: entry.texture });
     });
     return () => { alive = false; if (owned) release(owned); };
-  }, [text, kind, textOnly, width, height]);
+  }, [text, kind, textOnly, width, height, ink]);
   return value?.key === key && !value.texture.destroyed ? value.texture : null;
 }

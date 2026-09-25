@@ -47,7 +47,7 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     const safeTop = (scene.topInset + 12 - scene.camera.screenOffsetY) / scene.camera.scale + scene.camera.y;
     const baseScale = 0.5 * Math.min(1, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
     sign.current.scale.y = baseScale;
-    sign.current.x = illustrated && scene.camera.viewW > 650 ? 105 : 0;
+    sign.current.x = illustrated && site.biome === "desert" ? 230 : illustrated && scene.camera.viewW > 650 ? 105 : 0;
     const passing = performance.now() < scene.walkingUntil && [...scene.heroes.values()].some(hero => Math.abs(hero.x - site.x) < 155 && Math.abs(hero.x - scene.focus) < 360);
     if (passing && !active.current) react.current = 1;
     active.current = passing;

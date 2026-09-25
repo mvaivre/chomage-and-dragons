@@ -7,6 +7,7 @@ import { scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
+import { NightOfficeLabel } from "./NightOfficeLabel";
 import plaine from "../../../public/art/world-v3/decor/setpiece-plaine-scarecrow.json";
 import foret from "../../../public/art/world-v3/decor/setpiece-foret-shredder.json";
 import marais from "../../../public/art/world-v3/decor/setpiece-marais-bottles.json";
@@ -48,13 +49,15 @@ export function DecorSetpiece({land, worldX, x = -160, caption}: {land:DecorLand
     const safeTop = (scene.topInset + 12 - scene.camera.screenOffsetY) / scene.camera.scale + scene.camera.y;
     const h = Math.min(spec.height, Math.max(180,WALKABLE_GROUND_Y-safeTop));
     ref.current.scale.set(h/meta.heights[0]);
-    ref.current.alpha = land === "desert" && !scene.reducedMotion ? Math.max(0,Math.min(1,(Math.abs(scene.focus-(worldX+x))-90)/300)) : 1;
+    ref.current.alpha = land === "desert" && !scene.reducedMotion ? Math.max(0,Math.min(1,(Math.abs(scene.focus-(worldX+x))-45)/150)) : 1;
   });
   const text = caption ?? (land === "lac" ? "Péage : un CV" : land === "desert" ? "CDI" : land === "taverne" ? "Afterwork obligatoire" : null);
   const rect = "text" in meta ? meta.text : null;
   return <pixiContainer ref={ref} x={x} label={`setpiece:${land}`} scale={spec.height/meta.heights[0]}>
     {texture ? <pixiSprite texture={texture} anchor={{x:0.5,y:meta.baseline/meta.height}} /> : null}
     {land === "foret" ? <Crank /> : null}
-    {text && rect ? <DecorLabel text={text} rect={[rect[0]-meta.width/2,rect[1]-meta.baseline,rect[2],rect[3]]} /> : null}
+    {text && rect ? land === "taverne"
+      ? <NightOfficeLabel text={text} rect={[rect[0]-meta.width/2,rect[1]-meta.baseline,rect[2],rect[3]]} />
+      : <DecorLabel text={text} rect={[rect[0]-meta.width/2,rect[1]-meta.baseline,rect[2],rect[3]]} /> : null}
   </pixiContainer>;
 }

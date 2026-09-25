@@ -5,6 +5,7 @@ import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Decor } from "./Decor";
+import { DecorEvents } from "./DecorEvents";
 import { interiorAt, type GroupDecor } from "@/lib/game/decor";
 import { setMusicPlace } from "@/lib/client/music";
 import { Interiors } from "./Interiors";
@@ -366,6 +367,7 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
+        <DecorEvents />
         <Decor group={decor} />
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
