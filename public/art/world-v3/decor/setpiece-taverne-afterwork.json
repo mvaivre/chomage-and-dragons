@@ -1,0 +1,23 @@
+{
+  "columns": 1,
+  "rows": 1,
+  "width": 1024,
+  "height": 683,
+  "baseline": 648,
+  "heights": [
+    613
+  ],
+  "tile": false,
+  "bounds": [
+    40,
+    36,
+    963,
+    613
+  ],
+  "text": [
+    270,
+    165,
+    530,
+    130
+  ]
+}
