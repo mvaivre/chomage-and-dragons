@@ -1,14 +1,14 @@
 # Brief illustrations — décor « WTF », lots 2 et 3
 
-> Pour Codex (ImageGen intégré). Objectif : produire les illustrations des panneaux,
+> Volet illustration de la passe « vie et WTF » de Chômage & Dragons : panneaux,
 > figurants, grandes scènes par contrée et passages en intérieur (Centre ORP, Usine à CV).
-> **Uniquement des assets et de la documentation** : ne pas modifier `src/`. L'intégration
-> dans le jeu sera faite ensuite, à partir des fichiers et métadonnées livrés ici.
+> Produit avec l'ImageGen intégré de Codex, puis intégré dans le jeu par la même tâche,
+> à partir des fichiers et métadonnées décrits ici.
 
 ## Règles communes
 
-- **Branche** : partir de `origin/claude/moment-et-perf`, travailler sur
-  `codex/decor-wtf-assets`, committer par groupe d'assets, pousser la branche.
+- **Branche** : celle de la tâche d'ensemble (`codex/decor-wtf`), un commit par groupe
+  d'assets, séparé des commits d'intégration.
 - **Outil** : ImageGen intégré, comme pour `docs/ambient-prompts.json`. Consigner chaque
   asset (prompt exact, source retenue, sortie, mode d'import) dans un nouveau fichier
   `docs/decor-prompts.json`, même format.
@@ -32,7 +32,7 @@
 - **Import** : `scripts/compile_ambient_assets.mjs` (mode `atlas` pour les planches
   4 × 2 de 256 × 320, ligne de pieds 312). Pour les autres formats, **étendre ce script**
   avec des paramètres génériques (colonnes, lignes, taille de cellule, ligne de base,
-  largeur de sortie, raccord de tuile) plutôt que d'écrire du code dans `src/`.
+  largeur de sortie, raccord de tuile) plutôt que d'ajouter un script par asset.
   Sorties en WebP qualité 92, sous `public/art/world-v3/decor/`.
 - **Métadonnées** : pour chaque planche, un `.json` à côté (colonnes, lignes, taille de
   cellule, ligne de base, hauteurs utiles). Pour chaque surface à texte, un rectangle
