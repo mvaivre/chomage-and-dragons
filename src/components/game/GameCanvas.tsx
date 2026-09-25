@@ -5,10 +5,14 @@ import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Decor } from "./Decor";
-import type { GroupDecor } from "@/lib/game/decor";
+import { interiorAt, type GroupDecor } from "@/lib/game/decor";
+import { setMusicPlace } from "@/lib/client/music";
+import { Interiors } from "./Interiors";
+import { OutdoorMask } from "./InteriorMask";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
+  biomeAt,
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
@@ -20,6 +24,7 @@ import {
   BiomeArtLayer,
   GROUND_Y,
   GroundLayer,
+  FlatJourneyMarkers,
   LandscapeBase,
   MidgroundLayer,
   PaperMotes,
@@ -40,6 +45,11 @@ const REST_SURFACE = GROUND_Y;
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
+
+function MusicPosition() {
+  useTick(() => setMusicPlace(interiorAt(scene.focus)?.id ?? biomeAt(scene.focus).id));
+  return null;
+}
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -307,6 +317,7 @@ function WorldScene({
     <RenderLifecycle paused={paused} />
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
+      <MusicPosition />
       <Sky />
 
       <Layer factor={FAR_FACTOR} shade={1.0}>
@@ -343,22 +354,27 @@ function WorldScene({
       <PaperMotes />
 
       <Layer factor={1} shade={0.5}>
-        <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+        <GroundLayer />
       </Layer>
 
       <Layer factor={1} shade={0.6}>
         <GroundDwellers />
       </Layer>
 
+      <Layer factor={1} shade={0.06}>
+        <Interiors />
+      </Layer>
+
       <Layer factor={1} shade={0.3}>
         <Decor group={decor} />
+        <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
       <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
-        <Foreground plane={NEAR_PLANE} />
+        <OutdoorMask factor={NEAR_PLANE.factor}><Foreground plane={NEAR_PLANE} /></OutdoorMask>
       </Layer>
       <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
-        <Foreground plane={CLOSE_PLANE} />
+        <OutdoorMask factor={CLOSE_PLANE.factor}><Foreground plane={CLOSE_PLANE} /></OutdoorMask>
       </Layer>
 
       <Layer factor={1} shade={0.14}>

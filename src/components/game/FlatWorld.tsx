@@ -14,6 +14,7 @@ import {
   WORLD_LENGTH,
 } from "@/lib/game/world";
 import { atlasFrames, useDirectTexture } from "./textures";
+import { interiorAt } from "@/lib/game/decor";
 import { scene, WORLD_BOTTOM } from "./scene";
 import { JourneyChest } from "./JourneyChest";
 import { chestXForStep, parallaxX, visibleTiles } from "./projection";
@@ -367,13 +368,12 @@ export function FlatJourneyMarkers({ earnedChests, pendingChestStep, activeChest
   })}</pixiContainer>;
 }
 
-function GroundLayerLayer(props: JourneyMarkersProps) {
+function GroundLayerLayer() {
   const tiles = useStripTiles(2048);
   return <pixiContainer>
     {tiles.map(index => <pixiGraphics key={index} x={-VIEW.width + index * 2048} draw={paintUnderworld} />)}
     <VergeStrip />
     <RoadStrip />
-    <FlatJourneyMarkers {...props} />
   </pixiContainer>;
 }
 
@@ -391,6 +391,7 @@ function PaperMotesLayer() {
       const span = camera.viewW + 100;
       const raw = i * 173 - camera.x * 0.035 + time.current * (4 + i % 4);
       node.position.set(((raw % span) + span) % span - 50, 260 + (i * 79) % 280 + Math.sin(time.current + i) * 7);
+      node.visible = !interiorAt(camera.x + node.x);
     });
   });
   return <pixiContainer ref={ref} alpha={0.22}>

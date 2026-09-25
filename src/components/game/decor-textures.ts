@@ -20,8 +20,12 @@ function loadSigns() {
 
 function fitLetters(c: CanvasRenderingContext2D, text: string, rect: number[], family: string, maximum: number) {
   const [x, y, w, h] = rect;
-  let size = maximum, lines: string[] = [];
-  do { c.font = `600 ${size}px ${family}`; lines = wrapText(c, text, w); if (lines.length * size * 1.04 <= h) break; size--; } while (size > 12);
+  let size = Math.max(4, Math.floor(maximum)), lines: string[] = [];
+  for (; size >= 4; size--) {
+    c.font = `600 ${size}px ${family}`;
+    lines = wrapText(c, text, w);
+    if (lines.length * size * 1.04 <= h || size === 4) break;
+  }
   c.textAlign = "center"; c.textBaseline = "middle";
   lines.forEach((line, i) => c.fillText(line, x + w / 2, y + h / 2 + (i - (lines.length - 1) / 2) * size * 1.04, w));
 }
@@ -69,7 +73,8 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
   }
   if (textOnly) {
     c.fillStyle = "#292620";
-    fitLetters(c, text, [4, 4, width - 8, height - 8], family.title, Math.min(64, height * 0.7));
+    const inset = Math.min(4, width * 0.06, height * 0.08);
+    fitLetters(c, text, [inset, inset, width - inset * 2, height - inset * 2], family.title, Math.min(64, height * 0.7));
     return Texture.from(canvas);
   }
   c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = "#292620"; c.lineWidth = 3.5;

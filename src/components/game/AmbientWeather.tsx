@@ -5,6 +5,7 @@ import { biomeAt, WORLD_LENGTH } from "@/lib/game/world";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { fx, type PresetName } from "./fx";
 import { scene } from "./scene";
+import { interiorAt } from "@/lib/game/decor";
 
 interface Weather {
   preset: PresetName;
@@ -47,6 +48,7 @@ function AmbientWeatherImpl() {
       if (clocks.current[key] > 0) continue;
       clocks.current[key] = every * (0.6 + Math.random() * 0.8);
       const x = weather.from === "right" ? camera.x + camera.viewW + 20 : camera.x - 80 + Math.random() * (camera.viewW + 160);
+      if (interiorAt(x)) continue;
       const y = weather.from === "above" ? bandTop - 20
         : weather.from === "ground" ? ground - Math.random() * 60
         : weather.from === "right" ? ground - Math.random() * (ground - bandTop) * 0.7

@@ -32,7 +32,9 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { startMusic, steerMusic } from "@/lib/client/music";
+import { startMusic, setMusicDucked } from "@/lib/client/music";
+import { interiorAt } from "@/lib/game/decor";
+import { laneFor } from "@/components/game/lanes";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { JourneyMap } from "@/components/hud/JourneyMap";
@@ -296,8 +298,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
-  const musicLand = me ? biomeAt(worldXFor(me.position)).id : "plaine";
-  useEffect(() => steerMusic(musicLand, miniGameVisible || dailyOpen), [musicLand, miniGameVisible, dailyOpen]);
+  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen), [miniGameVisible, dailyOpen]);
+  useEffect(() => {
+    scene.momentActive = momentActive || miniGameVisible || dailyOpen;
+    return () => { scene.momentActive = false; };
+  }, [momentActive, miniGameVisible, dailyOpen]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
@@ -609,8 +614,14 @@ export function Game({ slug = null }: { slug?: string | null }) {
         if (POINTS[kind] !== 0) moment.cue({ type: "points", value: POINTS[kind], from: worldToScreen(hero.x - 70, hero.y - 130) });
       });
       pendingTale.current = forcedTale() ?? taleFor(event);
-      pendingBanner.current = beforeZone.id !== afterZone.id
+      const laneDx = laneFor(meIndex).dx;
+      const beforeRoom = interiorAt(worldXFor(me.position) + laneDx);
+      const afterRoom = interiorAt(worldXFor(afterPosition) + laneDx);
+      pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
+        ? { kicker: "Vous entrez", title: afterRoom.name }
+        : beforeZone.id !== afterZone.id
         ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
+        : beforeRoom && !afterRoom ? { kicker: "De retour dehors", title: afterZone.name }
         : null;
       lastAction.current = kind;
 

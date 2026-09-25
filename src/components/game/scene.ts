@@ -27,6 +27,7 @@ export interface Camera {
 }
 
 export interface Scene {
+  momentActive: boolean;
   reducedMotion: boolean;
   camera: Camera;
   /** Screen pixels occupied by the action dock, measured when it resizes. */
@@ -135,6 +136,7 @@ export function markMotion(): void {
 }
 
 export const scene: Scene = {
+  momentActive: false,
   reducedMotion: false,
   bottomInset: 170,
   topInset: 160,
@@ -170,6 +172,7 @@ export const scene: Scene = {
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
 export function resetScene(): void {
+  scene.momentActive = false;
   scene.camera = {
     x: 0,
     y: 0,
