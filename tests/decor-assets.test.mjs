@@ -21,10 +21,19 @@ test('decor atlas cells keep alpha gutters, complete silhouettes and registered 
       assert.ok(count>100,`${name}:${cell} empty`);assert.equal(edge,0,`${name}:${cell} clipped`);
       assert.ok(Math.abs(bottom-m.baseline)<=5,`${name}:${cell} bottom ${bottom}`);
     }
-    for(const frame of m.frames??[]) for(const [x,y,w,h] of Array.isArray(frame.text[0])?frame.text:[frame.text]) {
+    for(const frame of m.frames??[]) for(const [x,y,w,h] of !frame.text?[]:Array.isArray(frame.text[0])?frame.text:[frame.text]) {
       assert.ok(x>=0&&y>=0&&x+w<=m.width&&y+h<=m.height,`${name} text rectangle`);
     }
   }
+});
+
+test('interior tiles are opaque where required and meet exactly at their edges',async()=>{
+ for(const name of (await fs.readdir(folder)).filter(n=>n.endsWith('.json'))) {
+  const m=JSON.parse(await fs.readFile(new URL(name,folder),'utf8'));if(!m.tile)continue;
+  const {data,info}=await sharp(new URL(name.replace('.json','.webp'),folder).pathname).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  for(let y=0;y<info.height;y++)for(let c=0;c<4;c++)assert.equal(data[(y*info.width)*4+c],data[(y*info.width+info.width-1)*4+c],`${name}: seam ${y}`);
+  if(m.opaque)for(let i=3;i<data.length;i+=4)assert.equal(data[i],255,name);
+ }
 });
 
 test('decor downloads fit the six-megabyte addition budget',async()=>{

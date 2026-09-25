@@ -1,0 +1,11 @@
+{
+  "columns": 1,
+  "rows": 1,
+  "width": 2048,
+  "height": 256,
+  "baseline": 255,
+  "heights": [
+    256
+  ],
+  "tile": true
+}

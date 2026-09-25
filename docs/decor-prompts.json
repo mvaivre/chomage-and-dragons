@@ -97,6 +97,84 @@
       "output": "public/art/world-v3/decor/setpiece-foret-shredder-crank.webp",
       "compileMode": "cutout --output-width=512 --output-height=512 --pivot-x=192 --pivot-y=206",
       "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEdit target: FIRST attached image. Other five images are style references. Keep only the iron circular axle hub, bent crank arm, and wooden grip. Completely REMOVE the wooden mounting post, bolts above/below the hub, grass, and ground. Transparent RGBA around the isolated mechanism. Center the circular hub axis precisely at (256,256) in a 512 × 512 output. Crank and grip fully contained with margins. No text, no shadow. It must rotate freely as one mechanical sprite, without a post rotating with it.\nThe two landscapes are combined on attachment 2; all original references remain included."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-536b47dc-32bb-4627-86c9-bbb12d3c2a7c.png",
+      "output": "public/art/world-v3/decor/interior-orp-wall.webp",
+      "compileMode": "tile --output-width=2048 --output-height=1024 --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 1024. The six attached images are style references only.\nOpaque pale institutional green back wall, straight frontal side-scrolling dollhouse interior. Two small windows at eye level with blurry sky and landscape. Blank pale noticeboards, one large completely blank pale frontal number-call display, an analog clock with hands but no numbers. Thin ceiling fluorescent strips. Below y=860 only baseboard and the beginning of the floor. Flat evenly lit surfaces, no near furniture, no foreground, no front wall. Perfect horizontal repeat; same flat green wall edge both sides.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. Fully opaque edge to edge.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-824357f8-54da-4684-a8de-5c6defc9083b.png",
+      "output": "public/art/world-v3/decor/interior-orp-floor.webp",
+      "compileMode": "tile --output-width=1672 --output-height=361 --trim --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 1672 × 361. The six attached images are style references only.\nA full-bleed opaque horizontal floor strip of worn checkerboard tiles in pale institutional green and cream, shallow side view matching the road-universal game strip. Walkable line at top edge, floor extends down. No walls, no furniture, no side walls, no characters. Repeats horizontally and when mirrored. Both ends have identical tile colours and depth; unobtrusive seams.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. Fully opaque edge to edge.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-de7e9c1c-f77b-4b25-9321-c3e049da4e0e.png",
+      "output": "public/art/world-v3/decor/interior-orp-ceiling.webp",
+      "compileMode": "tile --output-width=2048 --output-height=256 --trim --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 256. The six attached images are style references only.\nA very wide narrow strip of beams and suspended fluorescent lamps for an institutional medieval office ceiling. Transparent RGBA under and around hanging lamps. Flat side view. No walls, no floor, no characters. Horizontal seamless repeat, identical beam at both edges. Entire lamps visible inside the strip.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-d2481170-9c8c-4128-99f5-2c192c5f544b.png",
+      "output": "public/art/world-v3/decor/interior-orp-facade.webp",
+      "compileMode": "cutout --output-width=1536 --output-height=1536",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 1536 × 1536. The six attached images are style references only.\nSide exterior of an austere medieval administrative building, sliced open cleanly along its RIGHT side to reveal a dark cutaway interior. The sliced vertical boundary shows roof, wall and floor cross section. Only left portion of building exists; transparent empty space to the right. Open door at ground level on the path, flags, a short queue lane marked on ground toward door. Broad blank pale frontal sign above the door. No characters. Isolated complete silhouette, small base only, no ground shadow.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-6b29c880-53ca-40ff-b748-adf296cb6e7a.png",
+      "output": "public/art/world-v3/decor/interior-orp-props.webp",
+      "compileMode": "atlas --islands --columns=4 --rows=2 --cell-width=512 --cell-height=512 --baseline=496",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 1024. The six attached images are style references only.\nA strict sprite sheet, 4 columns by 2 rows, eight isolated props with wide transparent gutters, every base on same line within each cell. Side view, no characters. Row 1 left-to-right: waiting bench of three chairs; ticket dispenser with blank ticket; dying potted plant; medieval brass out-of-order coffee machine with a blank pale frontal plate. Row 2: two queue posts connected by rope; water dispenser; unstable tall pile of folders; empty glass service counter (no clerk). All text surfaces completely blank. No cells touching, no grids, no captions. Designed for import to 512 × 512 cells baseline 496.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
     }
-  ]
+  ],
+  "referencePacking": {
+    "reason": "ImageGen accepts at most five attachments; plain + forest originals are packed unchanged into one contact board.",
+    "board": "docs/decor-previews/style-landscapes.png",
+    "sources": [
+      "public/art/world-v3/runtime/plaine-mid.webp",
+      "public/art/world-v3/runtime/foret-back.webp"
+    ]
+  }
 }

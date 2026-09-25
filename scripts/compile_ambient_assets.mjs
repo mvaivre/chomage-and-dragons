@@ -118,7 +118,16 @@ async function main() {
     registration = { columns, rows, width: outWidth, height: outHeight, baseline: footline, heights: sizes };
   } else if (mode === 'cutout' || mode === 'tile') {
     const w = number('output-width', width), h = number('output-height', height);
-    output = sharp(data, { raw }).resize(w, h, { fit: 'fill' });
+    output = sharp(data, { raw });
+    if (Object.hasOwn(options, 'trim')) output = output.trim({ threshold: 8 });
+    output = output.resize(w, h, { fit: 'fill' });
+    if (Object.hasOwn(options, 'smooth')) output = output.median(3);
+    if (Object.hasOwn(options, 'opaque')) output = output.flatten({background: '#a49e85'}).ensureAlpha();
+    if (options.palette) {
+      // A shared muted palette removes photographic grain entropy before lossless tiling.
+      const indexed = await output.png({palette:true,colours:number('palette',128),dither:0}).toBuffer();
+      output = sharp(indexed).ensureAlpha();
+    }
     if (mode === 'tile') {
       // Blend the overlap of the two edges; lossless WebP keeps their equality after decoding.
       const pixels = await output.raw().toBuffer();
@@ -132,6 +141,7 @@ async function main() {
       output = sharp(pixels, { raw: { width: w, height: h, channels: 4 } });
     }
     registration = { columns: 1, rows: 1, width: w, height: h, baseline: number('baseline', h - 1), heights: [h], tile: mode === 'tile' };
+    if (options['pivot-x'] && options['pivot-y']) registration.pivot = [number('pivot-x'), number('pivot-y')];
   } else if (mode === 'flag') {
     // A tiny existing flag must not retain the entire former landscape in VRAM.
     output = sharp(data, { raw }).extract({ left: 252, top: 27, width: 36, height: 31 });
@@ -143,6 +153,13 @@ async function main() {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await output.webp({ quality: 92, effort: 6, lossless: mode === 'tile' }).toFile(destination + '.tmp');
   await fs.rename(destination + '.tmp', destination);
+  if (mode === 'cutout') {
+    const {data: pixels, info: size} = await sharp(destination).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    let left=size.width,right=0,top=size.height,bottom=0;
+    for(let y=0;y<size.height;y++)for(let x=0;x<size.width;x++)if(pixels[(y*size.width+x)*4+3]>32){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+    registration.bounds=[left,top,right-left+1,bottom-top+1];
+    registration.baseline=bottom;registration.heights=[bottom-top+1];
+  }
   if (registration) await fs.writeFile(destination.replace(/\.webp$/, '.json'), JSON.stringify(registration, null, 2) + '\n');
   // Contact sheets are review artifacts, never downloaded by the game.
   if (destination.includes('/decor/')) {
