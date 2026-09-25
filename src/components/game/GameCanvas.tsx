@@ -17,6 +17,7 @@ import {
   biomeAt,
   worldXFor,
   WORLD_LENGTH,
+  JOURNEY_SURFACE_Y,
 } from "@/lib/game/world";
 import { depthLight, markMotion, resetScene, scene } from "./scene";
 import { EffectView, type Effect } from "./Effects";
@@ -24,7 +25,6 @@ import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
 import {
   BiomeArtLayer,
-  GROUND_Y,
   GroundLayer,
   FlatJourneyMarkers,
   LandscapeBase,
@@ -42,7 +42,7 @@ import { frameComposition, parallaxX, renderResolution } from "./projection";
 import "./extendPixi";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
-const REST_SURFACE = GROUND_Y;
+const REST_SURFACE = JOURNEY_SURFACE_Y;
 
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
@@ -90,17 +90,17 @@ function CameraRig({
     const { width, height } = app.screen;
     if (width <= 0 || height <= 0) return;
 
-    const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, GROUND_Y);
+    const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, JOURNEY_SURFACE_Y);
     // The moment of an action leans in: zoom about the ground line, hero nearer the centre.
     const lean = scene.reducedMotion ? 1 : Math.min(1, dt * 3.2);
     scene.zoom += (scene.zoomTarget - scene.zoom) * lean;
     scene.anchor += (scene.anchorTarget - scene.anchor) * lean;
     if (Math.abs(scene.zoomTarget - scene.zoom) > 0.002) markMotion();
-    const groundScreenY = composition.screenOffsetY + GROUND_Y * composition.scale;
+    const groundScreenY = composition.screenOffsetY + JOURNEY_SURFACE_Y * composition.scale;
     camera.scale = composition.scale * scene.zoom;
     camera.viewW = width / camera.scale;
     camera.viewH = height / camera.scale;
-    camera.screenOffsetY = groundScreenY - GROUND_Y * camera.scale;
+    camera.screenOffsetY = groundScreenY - JOURNEY_SURFACE_Y * camera.scale;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.

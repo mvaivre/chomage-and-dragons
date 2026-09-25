@@ -53,7 +53,7 @@ export const DECOR_TEXTS = {
 export type DecorKind = keyof typeof DECOR_TEXTS | "welcome" | "friend" | "grave" | "crown" | "daily" | "hired" | "setpiece";
 export type InteriorId = "orp" | "factory";
 export const INTERIORS: ReadonlyArray<{ id: InteriorId; biome: string; name: string; from: number; to: number }> = [
-  { id: "orp", biome: "plaine", name: "Centre ORP", from: 1000, to: 2663.2 },
+  { id: "orp", biome: "plaine", name: "Centre ORP", from: 1600, to: 3263.2 },
   { id: "factory", biome: "foret", name: "Usine à CV", from: 4300, to: 5963.2 },
 ];
 export const DECOR_SPACING = 600;

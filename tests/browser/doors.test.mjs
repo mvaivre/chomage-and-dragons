@@ -38,14 +38,14 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('an action crosses the entrance, pauses for the fade and completes all steps; undo returns outside',async()=>{
-  const{page,context,errors}=await fixture(6);await watch(page);
-  await page.locator('.action-button--refus').click();await assertArrival(page,9,'orp');
+  const{page,context,errors}=await fixture(10);await watch(page);
+  await page.locator('.action-button--refus').click();await assertArrival(page,13,'orp');
   const samples=await page.evaluate(()=>{window.__recordDoors=false;return window.__doorSamples;});
   const faded=samples.filter(s=>s.fade);assert.ok(faded.length>3,'fade spans several frames');
   assert.ok(faded.some(s=>!s.fade.switched)&&faded.some(s=>s.fade.switched),'both scenes rendered under fade');
   assert.ok(Math.max(...faded.map(s=>s.x))-Math.min(...faded.map(s=>s.x))<.5,'feet wait at threshold');
-  await page.reload();await assertArrival(page,9,'orp');
-  await page.locator('.action-undo').click();await assertArrival(page,6,null);
+  await page.reload();await assertArrival(page,13,'orp');
+  await page.locator('.action-undo').click();await assertArrival(page,10,null);
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('a power observes a friend in another room, then returns to the original room',async()=>{
@@ -60,12 +60,12 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('exit leaves the building to the left and reverse travel re-enters, including reduced motion',async()=>{
-  const{page,context,errors}=await fixture(18);
-  await page.locator('.action-button--candidature').click();await assertArrival(page,20,null);
+  const{page,context,errors}=await fixture(22);
+  await page.locator('.action-button--candidature').click();await assertArrival(page,24,null);
   const exit=await page.evaluate(()=>{let found;const walk=n=>{if(n.label==='building:orp:exit')found=n;n.children?.forEach(walk);};walk(window.__pixiApp.stage);return found?{x:found.x,visible:found.visible}:null;});
-  assert.ok(exit?.visible&&exit.x<20*30240/200-80);
+  assert.ok(exit?.visible&&exit.x<24*30240/200-80);
   await page.reload();await page.emulateMedia({reducedMotion:'reduce'});
-  await page.locator('.action-button--entretien').click();await assertArrival(page,17,'orp');
+  await page.locator('.action-button--entretien').click();await assertArrival(page,21,'orp');
   assert.deepEqual(errors,[]);await context.close();
  });
 });

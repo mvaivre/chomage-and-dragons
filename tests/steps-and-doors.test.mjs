@@ -35,10 +35,10 @@ test('doors split forward and reverse travel without skipping rooms, on any lap'
  for(const lap of [0,1,20])for(const direction of [1,-1]){
   const offset=lap*WORLD_LENGTH;let x=offset+(direction>0?500:7000),target=offset+(direction>0?7000:500);const crossed=[];
   for(let i=0;i<10;i++){const door=nextDoor(x,target);if(!door)break;crossed.push(Math.round((door.x-offset)*10)/10);x=door.x+direction*.1;assert.ok(sameRoom(roomAt(x),door.destination));}
-  assert.deepEqual(crossed,direction>0?[1000,2663.2,4300,5963.2]:[5963.2,4300,2663.2,1000]);
+  assert.deepEqual(crossed,direction>0?[1600,3263.2,4300,5963.2]:[5963.2,4300,3263.2,1600]);
   assert.equal(nextDoor(x,target),null);
  }
- assert.equal(nextDoor(1400,1450),null);
- assert.equal(nextDoor(1400,1400),null);
- assert.equal(sameRoom(roomAt(1400),roomAt(1400+WORLD_LENGTH)),false);
+ assert.equal(nextDoor(1800,1850),null);
+ assert.equal(nextDoor(1800,1800),null);
+ assert.equal(sameRoom(roomAt(1800),roomAt(1800+WORLD_LENGTH)),false);
 });

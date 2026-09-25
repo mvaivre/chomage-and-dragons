@@ -6,6 +6,8 @@ registerHooks({resolve(s,c,n){return n(s.startsWith('@/')?new URL(`../src/${s.sl
 const {decorEventAt}=await import('../src/lib/game/decor-events.ts');
 const label = process.argv[2] ?? 'after';
 const steps = (process.env.DECOR_STEPS ?? '1,19').split(',').filter(Boolean).map(Number);
+const character = process.env.DECOR_CHARACTER ?? 'skater';
+const hours = (process.env.DECOR_HOURS ?? '12,22').split(',').map(Number);
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3123';
 const folder = `docs/decor-previews/${label}`;
 await fs.mkdir(folder, { recursive: true });
@@ -20,12 +22,12 @@ async function fixture(step, size, hour = 12) {
   const page = await context.newPage();
   page.setDefaultTimeout(30_000);
   page.on('pageerror', e => errors.push(e.message));
-  await page.addInitScript(({ step, welcome }) => {
+  await page.addInitScript(({ step, welcome, character }) => {
     if (localStorage.getItem('louchomage:v2')) return;
     const at = new Date().toISOString();
     if (!welcome) localStorage.setItem('chomage:welcome:steps-v1','seen');localStorage.setItem('louchomage:moi:v1', 'test');
-    localStorage.setItem('louchomage:v2', JSON.stringify({ players: [{ id:'test', name:'Mika', characterId:'skater', joinedAt:at }, {id:'lou',name:'Lou',characterId:'barde',joinedAt:at}], events: [...Array.from({length:Math.floor(step/2)+(step%2?2:0)},(_,i)=>({id:`qa-${i}`,playerId:'test',kind:'candidature',at})), ...(step%2?[{id:'qa-adjust',playerId:'test',kind:'entretien',at}]:[])], casts:[] }));
-  }, { step, welcome: process.env.DECOR_WELCOME === "1" });
+    localStorage.setItem('louchomage:v2', JSON.stringify({ players: [{ id:'test', name:'Mika', characterId:character, joinedAt:at }, {id:'lou',name:'Lou',characterId:character === 'barde' ? 'skater' : 'barde',joinedAt:at}], events: [...Array.from({length:Math.floor(step/2)+(step%2?2:0)},(_,i)=>({id:`qa-${i}`,playerId:'test',kind:'candidature',at})), ...(step%2?[{id:'qa-adjust',playerId:'test',kind:'entretien',at}]:[])], casts:[] }));
+  }, { step, character, welcome: process.env.DECOR_WELCOME === "1" });
   await page.goto(`${url}/local?debug&hour=${hour}&variant=classic`);
   await page.waitForFunction(() => window.__pixiApp && (document.querySelector('.welcome-card[open]') || !document.querySelector('.action-button--refus')?.disabled), null, {timeout:30_000});
   await page.waitForTimeout(2200);
@@ -48,7 +50,7 @@ async function fixture(step, size, hour = 12) {
   return { context, page };
 }
 try {
-  for (const step of steps) for (const size of sizes) for (const hour of [12,22]) {
+  for (const step of steps) for (const size of sizes) for (const hour of hours) {
     const {context,page} = await fixture(step, size, hour);
     const name = `${step}-${size.join('x')}-${hour}.jpg`;
     await page.screenshot({path:`${folder}/${name}`, type:'jpeg', quality:67});
@@ -74,7 +76,7 @@ try {
     results.push({step:Number(process.env.DECOR_PERF_STEP ?? 2),viewport:size,throttle,renderer,idleCPU:100*(after.TaskDuration-before.TaskDuration)/(after.Timestamp-before.Timestamp),maxFrameMS:frames.at(-1),p95FrameMS:frames[Math.floor(frames.length*.95)]});
     await context.close();
   }
-  await fs.writeFile(`${folder}/results.json`,JSON.stringify({label,captures,steps,sizes,hours:[12,22],results,errors},null,2)+'\n');
-  console.log(JSON.stringify({label,captures,steps,sizes,hours:[12,22],results,errors},null,2));
+  await fs.writeFile(`${folder}/results.json`,JSON.stringify({label,captures,steps,sizes,hours,character,results,errors},null,2)+'\n');
+  console.log(JSON.stringify({label,captures,steps,sizes,hours,character,results,errors},null,2));
   if(errors.length) process.exitCode=1;
 } finally {await browser.close()}

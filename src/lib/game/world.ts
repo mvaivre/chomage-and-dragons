@@ -10,8 +10,11 @@
 /** Résolution de référence. L'axe Y descend, comme partout en 2D. */
 export const VIEW = { width: 1280, height: 720 } as const;
 
-/** Ligne de raccord commune à toutes les tuiles de route et aux pieds des héros. */
+/** Raccord entre l'arrière du chemin et le décor, commun à toutes les tuiles. */
 export const WALKABLE_GROUND_Y = 602;
+
+/** Voie des joueurs et des coffres, sur le chemin plutôt que sur son bord arrière. */
+export const JOURNEY_SURFACE_Y = WALKABLE_GROUND_Y + 44;
 
 /**
  * Longueur d'une traversée : 42 modules de 720 unités. Un pas en vaut environ 150,
@@ -291,12 +294,12 @@ export function paletteAt(worldX: number): BiomePalette {
 /**
  * Hauteur de la surface sur laquelle marchent les personnages.
  *
- * Le monde v3 impose le même socket vertical à chaque module. Le relief existe au
- * centre des îlots décoratifs, jamais sur leurs bords ni sous les pieds du joueur.
+ * La voie de jeu reste distincte du raccord des illustrations : les joueurs et
+ * leurs récompenses avancent devant les accessoires posés au fond du chemin.
  */
 export function surfaceAt(worldX: number): number {
   void worldX;
-  return WALKABLE_GROUND_Y;
+  return JOURNEY_SURFACE_Y;
 }
 
 /** Pente de la surface, pour incliner les personnages et les accessoires. */

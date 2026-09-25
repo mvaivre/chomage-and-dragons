@@ -33,7 +33,7 @@ aussi leur inclinaison. Aucune rasterisation de texte n’est ajoutée au ticker
 
 ## Portes et salles
 
-Les seuils restent aux coordonnées existantes : ORP de 1000 à 2663,2 et usine de
+L’ORP commence plus loin dans la plaine, vers le 11ᵉ pas : de 1600 à 3263,2. L’usine va de
 4300 à 5963,2, répétés à chaque tour. La marche est découpée aux portes par `nextDoor`.
 Le héros attend au seuil pendant le fondu (240 ms vers le noir, tenue de 80 ms,
 240 ms de retour ; 120 ms par fondu en mouvement réduit). Les pas restants reprennent
@@ -54,6 +54,14 @@ ont été produites avec ImageGen intégré, puis importées en WebP avec alpha 
 5 527 554 octets, sous le budget de 6 Mo.
 
 ## Vérifications
+
+Révision du 25 septembre : ORP repoussé de 600 unités, joueurs et coffres descendus
+de 44 unités par rapport au raccord des illustrations. La caméra réserve toujours
+la place des noms au-dessus des actions. Captures à jour :
+`decor-previews/lower-path/` (départ et ORP, desktop/mobile/large) et
+`decor-previews/lower-path-later/` (approche, coffre à vingt pas, sortie, usine).
+Les treize planches présentant un liseré clair sont retouchées ; voir
+[ANIMATION_ASSETS.md](ANIMATION_ASSETS.md).
 
 Les tests unitaires couvrent le recalcul des sauvegardes, les bonus historiques,
 les limites de mois à Zurich, le recul net, l’annulation, les égalités et le passage

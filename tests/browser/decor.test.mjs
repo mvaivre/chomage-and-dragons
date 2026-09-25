@@ -24,7 +24,7 @@ test('decor rooms, motion preferences and rare events work in the actual rendere
    const{context,page,errors}=await fixture(step);
    await page.waitForFunction(id=>window.__decorFind(`interior:${id}`).length>0,id);
    await page.waitForFunction(id=>window.__decorFind(`npc:${id}:0`).some(n=>n.texture?.width>1),id);
-   assert.equal(await page.evaluate(()=>window.__decorScene.heroes.get('test')?.y),606);
+   assert.equal(await page.evaluate(()=>window.__decorScene.heroes.get('test')?.y),650);
    if(id==='factory'){
     const y=await page.evaluate(()=>window.__decorFind('prop:factory:2')[0]?.y);
     await page.waitForFunction(y=>Math.abs(window.__decorFind('prop:factory:2')[0]?.y-y)>10,y,{timeout:6000});
@@ -78,7 +78,7 @@ test('decor rooms, motion preferences and rare events work in the actual rendere
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('entering the ORP announces the room after travel',async()=>{
-  const{context,page,errors}=await fixture(6);
+  const{context,page,errors}=await fixture(10);
   await page.locator('.action-button--refus').click();
   await page.locator('.moment-banner').filter({hasText:'Centre ORP'}).waitFor({timeout:15000});
   assert.deepEqual(errors,[]);await context.close();

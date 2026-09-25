@@ -86,6 +86,12 @@ fermeture de la compagnie. Le viewport dynamique et les marges de sécurité son
 en compte. L'interface se compacte en paysage bas ; les libellés d'actions restent lisibles.
 Le glisser utilise la capture du pointeur et se termine aussi sur annulation tactile.
 
+La ligne de raccord des illustrations reste à `WALKABLE_GROUND_Y = 602`.
+La voie des joueurs et des coffres est 44 unités plus bas, à `JOURNEY_SURFACE_Y = 646`.
+`surfaceAt` fournit cette voie aux avatars, coffres, ombres et effets de pas.
+La caméra cadre cette même référence, y compris pendant un zoom, pour conserver
+la place des noms au-dessus des boutons sur les petits écrans.
+
 ## Personnages et compilation des assets
 
 Les quinze fichiers `public/art/world-v3/characters/*.webp` servent aux portraits.
@@ -349,7 +355,7 @@ s’efface à l’approche (plein au-delà de 195 unités, invisible à moins de
 Son panneau voisin est décalé pour dégager la porte « CDI ». Le péage et l’afterwork utilisent directement leurs propres
 surfaces de texte, sans panneau supplémentaire par-dessus.
 
-Les deux intérieurs conservent leurs intervalles de voyage : ORP `[1000, 2663.2]`,
+Les intérieurs occupent les intervalles de voyage suivants : ORP `[1600, 3263.2]`,
 usine `[4300, 5963.2]`, répétés à chaque tour. Ces bornes sont désormais des portes.
 `doors.ts` découpe un trajet en segments aux seuils, dans les deux sens. `SceneDoors`
 pause la marche, effectue un fondu de 240 ms, commute `scene.room` sous le noir, puis
