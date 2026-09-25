@@ -152,7 +152,8 @@
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
-      ]
+      ],
+      "supersededBy": "public/art/world-v3/decor/exterior-orp.webp (see scene-door-prompts.json)"
     },
     {
       "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-6b29c880-53ca-40ff-b748-adf296cb6e7a.png",
@@ -222,7 +223,8 @@
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
         "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
-      ]
+      ],
+      "supersededBy": "public/art/world-v3/decor/exterior-factory.webp (see scene-door-prompts.json)"
     },
     {
       "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-a6981ceb-43df-42db-8ca0-b0df226bd4e5.png",

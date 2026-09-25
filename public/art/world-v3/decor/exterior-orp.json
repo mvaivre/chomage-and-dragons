@@ -1,0 +1,25 @@
+{
+  "columns": 1,
+  "rows": 1,
+  "width": 1254,
+  "height": 1254,
+  "baseline": 1138,
+  "heights": [
+    1038
+  ],
+  "tile": false,
+  "bounds": [
+    57,
+    101,
+    1170,
+    1038
+  ],
+  "doorX": 390,
+  "text": [
+    255,
+    566,
+    263,
+    61
+  ],
+  "textAngle": -0.065
+}
