@@ -154,8 +154,13 @@ export function groupDecor(group: DecorGroup): GroupDecor {
 /** Personalisation changes the contents, never the spacing or the deterministic world. */
 export function personaliseDecor(sites: readonly DecorSite[], group: GroupDecor): DecorSite[] {
   let friend = 0, grave = 0;
+  const tavernStart = sites.findIndex(s => s.biome === "taverne");
   return sites.map((site, index) => {
-    if (site.biome === "taverne" && index === sites.findIndex(s => s.biome === "taverne")) return { ...site, kind: "hired", text: group.hired[0] ?? "Engagé·es : la prochaine tournée vous attend" };
+    const page = index - tavernStart;
+    if (site.biome === "taverne" && page < Math.max(1, Math.ceil(group.hired.length / 3))) {
+      const names = group.hired.slice(page * 3, page * 3 + 3).map(text => text.split(" · ")[0]);
+      return { ...site, kind: "hired", text: names.join(" · ") || "La prochaine tournée vous attend" };
+    }
     if (index === 0 && group.friends.length) return { ...site, kind: "friend", text: group.friends[friend++ % group.friends.length] };
     if (index === 2) return { ...site, kind: "crowd", text: DECOR_TEXTS.crowd[0] };
     if (index === 9) return { ...site, kind: "crown", text: group.crown.text };

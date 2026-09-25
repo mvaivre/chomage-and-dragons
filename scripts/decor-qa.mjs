@@ -6,7 +6,9 @@ const steps = (process.env.DECOR_STEPS ?? '1,19').split(',').filter(Boolean).map
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3123';
 const folder = `docs/decor-previews/${label}`;
 await fs.mkdir(folder, { recursive: true });
-const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const openBrowser = () => chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+let browser = await openBrowser();
+let captures = 0;
 const sizes = process.env.DECOR_SIZES ? process.env.DECOR_SIZES.split(',').map(s=>s.split('x').map(Number)) : [[1280,720],[390,844],[320,568],[844,390],[1920,1080]];
 const errors = [];
 const results = [];
@@ -32,6 +34,7 @@ try {
     const name = `${step}-${size.join('x')}-${hour}.jpg`;
     await page.screenshot({path:`${folder}/${name}`, type:'jpeg', quality:67});
     await context.close();
+    if (++captures % 10 === 0) { await browser.close(); browser = await openBrowser(); }
   }
   if (process.env.DECOR_PERF !== '0') for (const [size, throttle] of [[[1280,720],1],[[390,844],4]]) {
     const {context,page} = await fixture(2,size);

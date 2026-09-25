@@ -292,7 +292,7 @@ Le son est synthétisé en WebAudio : aucun fichier. Ouvrir la sortie audio coû
 Les mesures headless demandent `--use-angle=metal --enable-gpu --ignore-gpu-blocklist` :
 sans WebGL, Pixi passe en rendu Canvas 2D et les chiffres ne veulent rien dire.
 
-## Décor absurde — pilote plaine
+## Décor absurde — panneaux du groupe
 
 `decor.ts` place 43 arrêts par tour, dans des intervalles indépendants du viewport.
 L'espacement est d'au moins 600 unités, raccord de tour compris. Les transitions
@@ -301,7 +301,7 @@ l'ORP (plaine) et à l'usine (bois). Les graines dépendent du tour, jamais de l
 Le catalogue compte 86 raisons de refus et des directions, offres, avis, épitaphes,
 phrases de coach, d'influenceur et de guichet. Chaque message compte au plus huit mots.
 
-Le pilote `Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
+`Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
 le sol et avant les héros. Les messages sont peints à résolution double en temps
 mort, après `document.fonts.ready`, avec les familles résolues des variables CSS
 Pirata et Garamond. Le cache partagé libère les textures huit secondes après leur
@@ -313,6 +313,8 @@ fige. La foule réutilise les atlas des héros, en plus petit et avec une teinte
 mois (aucun gagnant inventé en cas d'égalité), le défi du jour et les engagé·es. Les
 clés du jour et du mois sont explicitement celles de Zurich. Personnaliser ne change
 jamais les positions. Les données d'une vraie partie ne sont pas modifiées par la QA.
+Après validation du pilote de la plaine, les huit contrées utilisent ces arrêts.
+La taverne répartit les quinze noms possibles sur cinq tableaux, trois par tableau.
 
 Vérification : 54 tests unitaires, lint, TypeScript et build Webpack. Turbopack échoue
 localement à ouvrir son port interne (`Operation not permitted`) ; le même Next 16

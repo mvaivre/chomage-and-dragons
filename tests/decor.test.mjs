@@ -58,4 +58,7 @@ test('group signs honour the journal, crowns, daily runs and all hired companion
   assert.equal(undone.graves.length,0);
   assert.equal(undone.crown.characterId,undefined);
   assert.match(groupDecor({...group,daily:[{...group.daily[0],pending:true}]}).daily,/attend/);
+  const largeGroup = groupDecor({...group, players:Array.from({length:15},(_,i)=>({id:`p${i}`,name:`Ami${i}`,characterId:'barde',hiredAt:'2026-09-15'}))});
+  const board = personaliseDecor(sites,largeGroup).filter(s=>s.kind==='hired').map(s=>s.text).join(' · ');
+  for(let i=0;i<15;i++) assert.ok(board.split(' · ').includes(`Ami${i}`));
 });

@@ -52,7 +52,7 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean): Promise<
       for (const x of [24, 295]) { c.beginPath(); c.arc(x, 28, 2.2, 0, Math.PI * 2); c.fill(); }
     }
   }
-  const title = kind === "crown" ? "Couronne du mois" : kind === "daily" ? "Défi du jour" : kind === "grave" ? "Candidature" : kind === "offer" ? "On recrute" : kind === "hired" ? "La compagnie" : kind === "crowd" ? "Le vivier" : "Bureau des refus";
+  const title = kind === "crown" ? "Couronne du mois" : kind === "daily" ? "Défi du jour" : kind === "grave" ? "Candidature" : kind === "offer" ? "On recrute" : kind === "hired" ? "Engagé·es" : kind === "crowd" ? "Le vivier" : "Bureau des refus";
   c.fillStyle = "#514434"; c.textAlign = "center"; c.textBaseline = "middle";
   c.font = `23px ${family.title}`;
   c.fillText(title, 160, 31, 266);

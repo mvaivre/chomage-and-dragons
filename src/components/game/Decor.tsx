@@ -67,7 +67,7 @@ function DecorLayer({ group }: { group: GroupDecor }) {
     const [left, right] = range.split(":").map(n => Number(n) * 400);
     const result: DecorSite[] = [];
     for (let lap = Math.floor(left / WORLD_LENGTH); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
-      result.push(...personaliseDecor(decorForLap(lap), group).filter(s => s.x >= left && s.x <= right && s.biome === "plaine"));
+      result.push(...personaliseDecor(decorForLap(lap), group).filter(s => s.x >= left && s.x <= right));
     }
     return result;
   }, [range, group]);
