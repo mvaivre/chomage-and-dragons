@@ -35,7 +35,7 @@ export const CHARACTER_ANIMATIONS: Partial<Record<string, ReturnType<typeof pose
   licorne: poseSheet("licorne", 256),
   necromancien: poseSheet("necromancien", 264),
   paladin: poseSheet("paladin", 264),
-  skater: poseSheet("skater", 266),
+  skater: poseSheet("skateuse", 265),
   sorciere: poseSheet("sorciere", 292),
   squelette: poseSheet("squelette", 275),
   teddy: poseSheet("teddy", 236),

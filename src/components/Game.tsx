@@ -33,7 +33,7 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { startMusic, setMusicDucked } from "@/lib/client/music";
+import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
 import { interiorAt } from "@/lib/game/decor";
 import { laneFor } from "@/components/game/lanes";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
@@ -271,7 +271,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const todayGame = useMemo(() => dailyChallenge(today), [today]);
   const [dailyOpen, setDailyOpen] = useState(false);
   const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
-  // Discreet music follows the hero's land and steps back under a mini-game.
+  // The selection theme gives way to the adventure, then follows the hero's land.
   useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
@@ -293,6 +293,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
+  useEffect(() => {
+    if (loaded) setMusicPhase(identity ? "adventure" : "intro");
+  }, [loaded, identity]);
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||

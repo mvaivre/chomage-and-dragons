@@ -169,7 +169,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: "skater",
-    name: "Skater des Sans-suite",
+    name: "Skateuse des Sans-suite",
     blurb: "Grinde les candidatures et ollie par-dessus les périodes d’essai.",
     palette: { robe: 0x3b7aa6, robeDark: 0x24465f, trim: 0xf15e44, skin: 0xd9a77f },
     hat: "casquette",
@@ -183,10 +183,11 @@ export function characterById(id: string): Character {
 
 /** Shared by the Pixi scene and the DOM selection portrait. */
 export function characterArt(id: string): string {
-  return `/art/world-v3/characters/${characterById(id).id}.webp`;
+  const artId = characterById(id).id;
+  return `/art/world-v3/characters/${artId === "skater" ? "skateuse" : artId}.webp`;
 }
 
 /** Direction actually drawn in the static illustrations. Animation sheets face right. */
 export function staticCharacterFacing(id: string): 1 | -1 {
-  return ["chevalier", "voleur", "archimage", "necromancien", "licorne", "squelette", "teddy", "skater"].includes(id) ? -1 : 1;
+  return ["chevalier", "voleur", "archimage", "necromancien", "licorne", "squelette", "teddy"].includes(id) ? -1 : 1;
 }
