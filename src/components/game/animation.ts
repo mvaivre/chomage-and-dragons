@@ -11,6 +11,9 @@ export function heroFrame(motion: HeroMotion, time: number, progress = 0): numbe
 
 /** Keep each class's props consistent; reject the three generated victory poses with stray props. */
 export function characterFrame(characterId: string, motion: HeroMotion, time: number, progress = 0): number {
+  if (motion === "idle" && characterId !== "fee" && time % 13 > 11.8) {
+    return time % 13 < 12.2 ? 12 : time % 13 < 12.7 ? 13 : 15;
+  }
   const frame = heroFrame(motion === "idle" && characterId === "fee" ? "walk" : motion, time, progress);
   return frame === 14 && ["skater", "sorciere", "druidesse"].includes(characterId) ? 13 : frame;
 }

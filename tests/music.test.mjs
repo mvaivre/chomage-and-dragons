@@ -45,7 +45,7 @@ class AudioContext {
 
 const { Composer, MOODS, startMusic, setMusicPlace, setMusicPhase, setMusicDucked, setMusicOn } = await import('../src/lib/client/music.ts');
 const { primeAudio, audioOutput, setMuted } = await import('../src/lib/client/sound.ts');
-const kicks = nodes => nodes.filter(node => node.kind === 'oscillator' && node.frequency.events[0]?.value === 135);
+const kicks = nodes => nodes.filter(node => node.kind === 'oscillator' && node.frequency.events[0]?.value === 110);
 
 test('selection stays calm; entering the game starts its rhythmic theme and honours sound settings', () => {
   const intervals = new Map(), timeouts = new Map(), listeners = new Map();
@@ -76,15 +76,15 @@ test('selection stays calm; entering the game starts its rhythmic theme and hono
     setMusicPlace('plaine');
     let before = ctx.nodes.length;
     setMusicPhase('adventure');
-    assert.equal(kicks(ctx.nodes.slice(before)).length, 1, 'departure starts on its first downbeat');
-    assert.ok(ctx.nodes.slice(before).some(node => node.kind === 'noise'), 'percussion joins on entry');
+    assert.equal(kicks(ctx.nodes.slice(before)).length, 2, 'departure schedules both beats of its first jig bar');
+    assert.ok(kicks(ctx.nodes.slice(before)).every(node => node.frequency.events.some(event => event.value === 55)), 'bodhran hits fall in pitch');
     before = ctx.nodes.length;
     setMusicPhase('adventure');
     assert.equal(ctx.nodes.length, before, 'repeated identity updates must not restart the theme');
 
     ctx.currentTime = 2; tick();
     const beatTimes = kicks(ctx.nodes).map(node => node.started);
-    assert.ok(Math.abs(beatTimes[1] - beatTimes[0] - 120 / 116) < 0.001, 'the departure has a 116 BPM pulse');
+    assert.ok(Math.abs(beatTimes[1] - beatTimes[0] - 60 / 116) < 0.001, 'the departure has a 116 BPM pulse');
     setMusicDucked(true);
     assert.ok(ctx.nodes.some(node => Math.abs((node.gain.events.at(-1)?.value ?? 0) - 0.9) < 0.001));
 
@@ -117,7 +117,7 @@ test('nightfall keeps the adventure melody and backbeat', () => {
   piece.setMood(MOODS.plaine, 1);
   piece.schedule(2);
   assert.ok(kicks(ctx.nodes).length >= 2);
-  assert.ok(ctx.nodes.some(node => node.type === 'sawtooth'), 'the plucked lead does not become sparse night bells');
+  assert.ok(ctx.nodes.some(node => node.frequency.value === 5), 'the whistle keeps its vibrato after sunset');
   const frequencies = ctx.nodes.filter(node => node.kind === 'oscillator').flatMap(node => node.frequency.events.map(event => event.value));
   assert.ok(frequencies.every(Number.isFinite));
 });

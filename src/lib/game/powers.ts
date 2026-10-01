@@ -26,7 +26,7 @@ export const POWERS: Record<PowerKind, PowerDefinition> = {
     kind: "fienteDragon",
     name: "Fiente du dragon",
     short: "Dragon honteux",
-    description: "Un dragon passe et dépose un feedback très personnel.",
+    description: "Le dragon avale ton camarade… puis le chie.",
   },
   paperasse: {
     kind: "paperasse",

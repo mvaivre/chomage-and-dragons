@@ -4,13 +4,13 @@ import { useRef } from "react";
 import { useApplication } from "@pixi/react";
 import { Texture, type Container, type Sprite } from "pixi.js";
 import { roomAt, sameRoom } from "@/lib/game/doors";
-import { markMotion, scene } from "./scene";
+import { markMotion, scene, viewingInterior } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 
 /** Exterior layers are switched as a whole: there is no illustration seam to hide. */
 export function Outdoors({ children }: { children: React.ReactNode }) {
   const root = useRef<Container>(null);
-  useSceneTick(() => { if (root.current) root.current.visible = !scene.room; });
+  useSceneTick(() => { if (root.current) root.current.visible = !viewingInterior(); });
   return <pixiContainer ref={root}>{children}</pixiContainer>;
 }
 

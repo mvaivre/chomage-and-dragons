@@ -13,6 +13,7 @@ import { SLOTS, type SlotsSim, paylineSymbol } from "@/lib/game/slot-machine";
  */
 
 export const SCORE_UNITS: Record<MiniGameKind, string> = {
+  dragon: "",
   pigeon: "m",
   keywords: "",
   stamp: "",
@@ -56,6 +57,7 @@ export function slotsScore(sim: SlotsSim): number {
  * forging a number.
  */
 export const SCORE_CAPS: Record<MiniGameKind, number> = {
+  dragon: 350,
   pigeon: 400,
   keywords: 250,
   stamp: DESK.dossiers * 10 + DESK.missesAllowed * 15,

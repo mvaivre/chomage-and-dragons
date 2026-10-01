@@ -4,7 +4,7 @@ import { memo, useMemo, useRef, useState } from "react";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import { interiorsInRange, type InteriorId } from "@/lib/game/decor";
 import { WALKABLE_GROUND_Y } from "@/lib/game/world";
-import { scene } from "./scene";
+import { scene, viewingInterior } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { DecorLabel } from "./DecorSetpiece";
@@ -100,7 +100,7 @@ function Room({id,from,to}:{id:InteriorId;from:number;to:number}) {
   const floor=useDirectTexture(url(id,"floor"));
   const length=to-from;
   const root=useRef<Container>(null);
-  useSceneTick(()=>{if(root.current)root.current.visible=scene.room?.from===from;});
+  useSceneTick(()=>{if(root.current)root.current.visible=viewingInterior()&&scene.room?.from===from;});
   return <pixiContainer ref={root} x={from} visible={false} label={`interior:${id}:${from}`}>
     <Wall id={id}/>
     <pixiGraphics draw={g=>{g.clear().rect(-4000,WALKABLE_GROUND_Y,10000,2500).fill(id==="orp"?0x9c997f:0x564d41);}}/>

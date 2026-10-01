@@ -4,6 +4,8 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
+import { Dragons, DragonEncounter } from "./Dragons";
+import { Forest } from "./Forest";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
 import type { GroupDecor } from "@/lib/game/decor";
@@ -353,6 +355,7 @@ function WorldScene({
 
       <Layer factor={1} shade={0.62}>
         <TransitionLandmarks />
+        <Forest />
       </Layer>
 
       <PaperMotes />
@@ -373,7 +376,7 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        <Outdoors><DecorEvents /><Decor group={decor} /></Outdoors>
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -432,6 +435,7 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  onDragonChallenge?: () => void;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
@@ -450,6 +454,7 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  onDragonChallenge,
   onSceneReady,
   paused,
   players,
@@ -489,8 +494,7 @@ function GameCanvas({
     scene.pan = 0;
   }, [devCameraTarget, freeCamera]);
 
-  // Glisser à la souris ou au doigt décale la vue, qui revient ensuite d'elle-même
-  // sur le personnage : on peut aller voir le peloton sans perdre son repère.
+  // Le regard reste où on le laisse ; seul le bouton de retour recentre la vue.
   useEffect(() => {
     const root = host.current;
     if (!root) return;
@@ -499,6 +503,7 @@ function GameCanvas({
     const measure = () => {
       scene.bottomInset = dock ? Math.max(0, root.getBoundingClientRect().bottom - dock.getBoundingClientRect().top) : 80;
       scene.topInset = top ? Math.max(0, top.getBoundingClientRect().bottom - root.getBoundingClientRect().top) : 0;
+      root.style.setProperty("--world-hud-top", `${scene.topInset + 10}px`);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(root);
@@ -553,6 +558,13 @@ function GameCanvas({
       onPointerCancel={onPointerUp}
       onLostPointerCapture={onPointerUp}
     >
+      {meId && !paused ? <button type="button" className="world-return"
+        onPointerDown={event => event.stopPropagation()}
+        onClick={() => { scene.pan = 0; scene.exploreCenter = null; markMotion(); }}
+        title="Glisse le paysage ou utilise la molette pour explorer">
+        ↶ Retrouver mon personnage
+      </button> : null}
+      <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}

@@ -101,8 +101,9 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
   }
   if (textOnly) {
     c.fillStyle = ink;
+    c.shadowColor = "#20170df0"; c.shadowOffsetX = 1; c.shadowOffsetY = 1;
     const inset = Math.min(4, width * 0.06, height * 0.08);
-    fitLetters(c, text, [inset, inset, width - inset * 2, height - inset * 2], family.title, Math.min(64, height * 0.7));
+    fitLetters(c, text, [inset, inset, width - inset * 2, height - inset * 2], family.body, Math.min(64, height * 0.7));
     return Texture.from(canvas);
   }
   c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = "#292620"; c.lineWidth = 3.5;

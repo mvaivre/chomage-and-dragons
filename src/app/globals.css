@@ -2949,3 +2949,29 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
   .welcome-card__body > p:nth-child(n+5) { grid-column: 2; }
   .welcome-card__start { padding: 4px; margin: 8px 0 4px; font-size: 1.3rem; }
 }
+
+.world-return { position:absolute; z-index:4; top:var(--world-hud-top, 220px); left:12px; padding:7px 11px; border:1px solid #c1a86b66; border-radius:6px; background:#231e18d9; color:#eadbb5; font:600 12px var(--font-garamond),serif; cursor:pointer; }
+.world-return:hover { background:#443724; }
+@media(max-width:600px) { .world-return { font-size:11px; padding:5px 8px; } }
+
+.dragon-sprite { background-image:url('/art/world-v3/animations/dragon.webp'); background-size:400% 200%; background-repeat:no-repeat; }
+.dragon-arena { position:relative; height:300px; overflow:hidden; background:linear-gradient(#283728e0,#13251af0),url('/art/world-v3/runtime/foret-back.webp') center/cover; }
+.dragon-arena__lane { position:absolute; width:100%; height:1px; background:#e4cc8e22; }
+.dragon-arena__dragon { position:absolute; right:-18px; bottom:2%; width:180px; height:180px; opacity:.8; }
+.dragon-arena__rider { position:absolute; left:16%; transform:translate(-50%,-50%); font-size:43px; color:#f5d163; text-shadow:0 3px #000; transition:top .07s; z-index:2; }
+.dragon-arena__fire { position:absolute; width:44px; height:25px; transform:translate(-50%,-50%); border-radius:70% 35% 35% 70%; border:2px solid #521e0b; background:radial-gradient(ellipse at 25% 50%,#fff5bb 10%,#ffca46 35%,#fb6b2b 65%,#962910); box-shadow:15px 0 14px #ed7c3655,0 0 16px #ffac3d66; }
+.dragon-arena__fire::after { content:''; position:absolute; left:80%; top:4px; width:33px; height:14px; background:linear-gradient(90deg,#ff702ebb,transparent); clip-path:polygon(0 0,100% 25%,40% 50%,100% 80%,0 100%); }
+.dragon-arena__gold { position:absolute; transform:translate(-50%,-50%); color:#ffd665; font-size:31px; text-shadow:0 0 10px #ffa62f; }
+.dragon-controls { display:flex; justify-content:center; gap:12px; padding:8px 0; }
+.dragon-controls button { min-width:110px; min-height:44px; border:1px solid #c5a868; border-radius:5px; background:#443726; color:#f4e4b5; font-weight:700; }
+.dragon-controls button:disabled { opacity:.35; }
+@media(max-width:600px){.dragon-arena {height:220px}.dragon-arena__dragon{width:130px;height:130px}.dragon-arena__rider{font-size:34px}.dragon-arena__fire{width:32px;height:20px}}
+
+.dragon-encounter { position:absolute; z-index:4; transform:translateX(-50%); max-width:200px; padding:7px 10px; color:#f1ddb0; border:1px solid #ad8c53; border-radius:5px; background:#282016e8; font:600 13px var(--font-garamond),serif; cursor:pointer; }
+.dragon-encounter:disabled { color:#d0c3a6; background:#302e29d9; border-color:#81785d; cursor:default; }
+
+.dragon-arena__rider span { display:block; width:70px; height:90px; background-size:contain; background-repeat:no-repeat; background-position:center; filter:drop-shadow(0 4px 2px #0006); }
+.dragon-arena[data-running="true"] .dragon-arena__rider span { animation:dragon-rider .7s ease-in-out infinite alternate; }
+@keyframes dragon-rider { from { transform:rotate(-4deg) translateY(2px); } to { transform:rotate(4deg) translateY(-3px); } }
+@media(prefers-reduced-motion:reduce) { .dragon-arena__rider span { animation:none!important; } }
+@media(max-width:600px) { .dragon-arena__rider span { width:48px; height:66px; } }

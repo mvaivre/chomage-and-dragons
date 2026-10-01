@@ -59,6 +59,7 @@ export interface Scene {
   lowPower: boolean;
   /** Live feet position of every hero, so effects can follow the one they celebrate. */
   heroes: Map<string, { x: number; y: number }>;
+  heroEffects: Map<string, { owner: symbol; x: number; y: number; scale: number; alpha: number; rotation: number }>;
   /** Camera zoom around the ground line; the moment of an action leans in. */
   zoom: number;
   zoomTarget: number;
@@ -163,6 +164,7 @@ export const scene: Scene = {
   lastMotion: 0,
   lowPower: false,
   heroes: new Map(),
+  heroEffects: new Map(),
   zoom: 1,
   zoomTarget: 1,
   anchor: 0.36,
@@ -197,6 +199,7 @@ export function resetScene(): void {
   scene.dragging = false;
   scene.lastMotion = 0;
   scene.heroes.clear();
+  scene.heroEffects.clear();
   scene.zoom = 1;
   scene.zoomTarget = 1;
   scene.anchor = FOLLOW_ANCHOR;
@@ -207,3 +210,10 @@ export function resetScene(): void {
 
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */
 export const WORLD_BOTTOM = VIEW.height + 1040;
+
+/** Camera browsing may leave an interior; actual room and music still follow the hero. */
+export function viewingInterior(): boolean {
+  if (!scene.room) return false;
+  const center = scene.camera.x + scene.camera.viewW / 2;
+  return center >= scene.room.from - 100 && center <= scene.room.to + 100;
+}

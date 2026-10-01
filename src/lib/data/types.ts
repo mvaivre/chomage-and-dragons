@@ -39,7 +39,7 @@ export interface GameEvent {
   pigeonFlightId?: string;
 }
 
-export type MiniGameKind = "pigeon" | "keywords" | "stamp" | "quiz" | "ghosting" | "slots";
+export type MiniGameKind = "pigeon" | "keywords" | "stamp" | "quiz" | "ghosting" | "slots" | "dragon";
 export type MiniGameResult = "won" | "lost" | "skipped";
 /**
  * One attempt per action ordinal (or per chest): undo, re-entry and reloads find

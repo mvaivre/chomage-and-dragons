@@ -115,7 +115,7 @@ function forcedTale() {
 const REACTION_KINDS = CHOREOGRAPHIES;
 
 const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
-  shot: "cocktail",
+  shot: "shotVolley",
   feuSacré: "fireCurse",
   fienteDragon: "dragonDrop",
   paperasse: "paperStorm",
@@ -123,11 +123,11 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 };
 
 const DEV_BUILD = process.env.NODE_ENV === "development";
-const DEV_VIEWPOINTS = BIOMES.slice(0, -1).map((biome, index) => ({
+const DEV_VIEWPOINTS = [...BIOMES.slice(0, -1).map((biome, index) => ({
   id: `${biome.id}-${BIOMES[index + 1].id}`,
   label: `${biome.short}→${BIOMES[index + 1].short}`,
   progress: biome.to,
-}));
+})), { id: "forest-clearing", label: "Clairière", progress: 0.22 }, { id: "dragon-nest", label: "Nid du dragon", progress: 0.13 }];
 
 interface MiniGameOffer {
   attemptId: string;
@@ -205,7 +205,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
   const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
-  const [devMiniGame, setDevMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
+  const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
@@ -301,8 +301,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
     (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
   // First an invitation card, then the game itself once the player accepts.
-  const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
-  const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
+  const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
+  const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
   useEffect(() => setMusicDucked(miniGameVisible || dailyOpen), [miniGameVisible, dailyOpen]);
   useEffect(() => {
     scene.momentActive = momentActive || miniGameVisible || dailyOpen;
@@ -542,6 +542,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
+      scene.pan = 0;
+      scene.exploreCenter = null;
 
       const { event, offer, chestGame } = addEvent(me.id, kind);
       if (!event) {
@@ -678,6 +680,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
+      scene.pan = 0;
+      scene.exploreCenter = null;
       const targetIndex = players.findIndex((player) => player.id === targetId);
       const target = players[targetIndex];
       if (!target) return;
@@ -688,7 +692,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       focusTimeout.current = window.setTimeout(() => {
         setEffectFocusId(null);
         focusTimeout.current = null;
-      }, 3600);
+      }, power.kind === "fienteDragon" ? 7000 : 4000);
       setEffects((previous) => [
         ...previous,
         {
@@ -699,17 +703,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           loud: true,
         },
       ]);
-      setNotice({
-        title:
-          power.kind === "shot"
-            ? `Shot envoyé à ${target.name}`
-            : `Farce lancée sur ${target.name}`,
-        body:
-          power.kind === "shot"
-            ? "Sa dette apparaît dans le classement et à sa prochaine ouverture."
-            : "Tu vois l’effet maintenant ; la victime le reverra à sa prochaine ouverture.",
-        powerKind: power.kind,
-      });
+
     },
     [castPower, me, players],
   );
@@ -822,6 +816,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
         onSceneReady={handleSceneReady}
         paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
@@ -834,7 +829,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
-        freeCamera={DEV_BUILD && devExplore}
+        freeCamera={true}
         devCameraTarget={devCameraTarget}
       />
 
@@ -864,16 +859,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 <option value="idle">Repos</option><option value="walk">Marche</option><option value="send">Lettre</option><option value="hurt">Réaction</option><option value="celebrate">Victoire</option>
               </select>
               <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
-                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["shotVolley", "Gage"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
-              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setDevMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
+              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
                 <option value="">Mini-jeu (entraînement)…</option>
                 {Object.values(MINI_GAMES).map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
               </select>
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
                 const x = devEffect === "chest" ? at + 110 : at;
-                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
+                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
               }}>Tester l’effet</button>
               {BIOMES.map((biome) => (
                 <button
@@ -939,7 +934,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
-                devMiniGame !== null ||
+                practiceMiniGame !== null ||
                 awaitingTravel ||
                 shotInbox !== null
               }
@@ -991,11 +986,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
         />
       ) : null}
 
-      {devMiniGame ? <MiniGame key={devMiniGame.seed} kind={devMiniGame.kind} seedId={devMiniGame.seed} practice onResolve={() => {}} onDone={() => setDevMiniGame(null)} /> :
+      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => {}} onDone={() => setPracticeMiniGame(null)} /> :
         inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)}
           onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
           onPass={handlePassMiniGame} /> :
-        miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
+        miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
           record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
 
       {shotInbox ? (

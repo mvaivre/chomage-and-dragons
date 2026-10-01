@@ -25,6 +25,8 @@ export interface Mood {
   voice: "lute" | "flute" | "bell" | "harp";
   /** Six eighths to the bar for a jig, eight otherwise. */
   jig?: boolean;
+  /** Acoustic dance arrangement: open fifths, strummed strings and whistle. */
+  folk?: boolean;
   drum?: boolean;
   /** A driving adventure pulse, kept lively even after sunset. */
   march?: boolean;
@@ -32,23 +34,25 @@ export interface Mood {
   motif?: Array<number | null>;
 }
 
-const MAJOR_PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+const DORIAN = [0, 2, 3, 5, 7, 9, 10, 12];
 const MINOR_PENTA = [0, 3, 5, 7, 10, 12, 15, 17];
 
 export const MOODS: Record<string, Mood> = {
-  intro: { root: 62, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [0, 4, 7], [7, 11, 14]], bpm: 84, density: 0.42, voice: "lute" },
+  intro: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [0, 7, 12], [5, 12, 17]], bpm: 84, density: 0.5, voice: "lute", jig: true, folk: true,
+    motif: [0, null, 2, 3, 2, 1, 0, null, 4, 3, 1, 0] },
   // Keep eight degrees: a phrase begun outdoors must survive the change of room.
   orp: { root: 60, scale: [0, 4, 7, 9, 12, 16, 19, 21], chords: [[0, 4, 7, 11], [2, 5, 9, 12], [0, 4, 7, 11], [-1, 2, 5, 9]], bpm: 66, density: 0.22, voice: "bell" },
   factory: { root: 50, scale: [0, 0, 7, 12, 12, 19, 24, 24], chords: [[0, 7, 12], [0, 7, 12], [-2, 5, 10], [0, 7, 12]], bpm: 96, density: 0.6, voice: "lute", drum: true },
-  plaine: { root: 62, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [-3, 0, 4], [7, 11, 14]], bpm: 116, density: 0.78, voice: "lute", drum: true, march: true,
-    motif: [0, null, 2, 3, 4, 3, 2, null, 1, null, 3, 4, 5, 4, 3, 0] },
+  plaine: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [5, 12, 17], [0, 7, 12]], bpm: 116, density: 0.85, voice: "flute", jig: true, folk: true, drum: true,
+    motif: [0, 2, 3, 4, 3, 2, 1, 3, 4, 6, 4, 2] },
   foret: { root: 64, scale: [0, 2, 3, 7, 9, 10, 12, 14], chords: [[0, 3, 7], [5, 9, 12], [0, 3, 7], [-2, 2, 5]], bpm: 74, density: 0.36, voice: "flute" },
   marais: { root: 57, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [5, 8, 12], [0, 3, 7]], bpm: 64, density: 0.28, voice: "harp" },
   lac: { root: 65, scale: [0, 2, 4, 6, 7, 11, 12, 14], chords: [[0, 4, 7], [2, 6, 9], [0, 4, 7], [7, 11, 14]], bpm: 70, density: 0.32, voice: "bell" },
   cascade: { root: 60, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]], bpm: 70, density: 0.36, voice: "harp" },
   montagne: { root: 67, scale: [0, 2, 4, 5, 7, 9, 10, 12], chords: [[0, 4, 7], [-2, 2, 5], [5, 9, 12], [0, 4, 7]], bpm: 78, density: 0.34, voice: "flute" },
   desert: { root: 62, scale: [0, 1, 4, 5, 7, 8, 10, 12], chords: [[0, 7, 12], [0, 7, 12], [1, 5, 8], [0, 7, 12]], bpm: 88, density: 0.38, voice: "lute", drum: true },
-  taverne: { root: 67, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]], bpm: 108, density: 0.55, voice: "lute", jig: true, drum: true },
+  taverne: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [5, 12, 17], [-2, 5, 10], [0, 7, 12]], bpm: 126, density: 0.9, voice: "flute", jig: true, folk: true, drum: true,
+    motif: [4, 3, 2, 0, 2, 3, 4, 6, 7, 6, 4, 2] },
 };
 
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
@@ -132,7 +136,19 @@ export class Composer {
   private changeChord(t: number) {
     this.chord = (this.chord + 1) % this.mood.chords.length;
     const length = this.eighth * this.perBar * 2;
-    for (const interval of this.mood.chords[this.chord]) this.pad(t, hz(this.mood.root - 12 + interval), length);
+    if (this.mood.folk) {
+      // A lute strum, then an open drone: no sustained electronic chord pad.
+      this.mood.chords[this.chord].forEach((interval, i) => {
+        const at = t + i * 0.032;
+        const gain = this.envelope(at, 0.026, 0.006, 1.2);
+        gain.connect(this.dest);
+        this.voice("triangle", hz(this.mood.root - 12 + interval), at, 1.2, gain);
+        this.voice("sine", hz(this.mood.root - 12 + interval) * 2, at, 0.35, gain, 3);
+      });
+      const drone = this.envelope(t, 0.016, 0.18, length);
+      drone.connect(this.dest);
+      this.voice("triangle", hz(this.mood.root - 24), t, length, drone);
+    } else for (const interval of this.mood.chords[this.chord]) this.pad(t, hz(this.mood.root - 12 + interval), length);
   }
 
   /** A two-bar phrase, repeated with small changes half of the time: music, not noise. */
@@ -210,6 +226,12 @@ export class Composer {
       const gain = this.envelope(t, peak * 1.1, 0.07, length);
       gain.connect(this.dest);
       const osc = this.voice("sine", freq, t, length, gain);
+      if (this.mood.folk && accent) {
+        // A short grace note gives the whistle its Irish lift.
+        const grace = this.envelope(t, peak * 0.3, 0.008, 0.055);
+        grace.connect(this.dest);
+        this.voice("sine", freq * Math.pow(2, 2 / 12), t, 0.055, grace);
+      }
       const lfo = this.ctx.createOscillator();
       const depth = this.ctx.createGain();
       lfo.frequency.value = 5;
@@ -219,7 +241,7 @@ export class Composer {
       lfo.stop(t + length + 0.05);
       return;
     }
-    if (voice === "bell" || (this.night > 0.6 && !this.mood.march)) {
+    if (voice === "bell" || (this.night > 0.6 && !this.mood.march && !this.mood.folk)) {
       const length = 2.2;
       const gain = this.envelope(t, peak * 0.7, 0.004, length);
       gain.connect(this.dest);

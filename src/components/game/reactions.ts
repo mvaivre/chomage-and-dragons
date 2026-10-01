@@ -32,7 +32,7 @@ export interface Choreography {
   /** A line of speech beside the art, after the impact. */
   bubble?: string;
   /** Something drawn in the world besides the art. */
-  prop?: "carpet" | "crater" | "gnomes" | "ropes";
+  prop?: "carpet" | "crater" | "gnomes" | "ropes" | "sigil";
   /** Called every frame after the impact, ms since impact; `state` survives between calls. */
   during?(ctx: ImpactContext, since: number, state: Record<string, number>): void;
   /** Art height at rest, world units. */
@@ -390,16 +390,46 @@ export const CHOREOGRAPHIES = {
       fx.burst({ preset: "confetti", x: ctx.x, y: ctx.head - 60, count: 80 });
     },
   },
+  shotVolley: {
+    art: POWER_ART.shot, size: 175, duration: 4000, impact: 440, enter: "drop", exit: "rise", lift: 50, rarity: "rare", label: "À TA SANTÉ", labelColor: 0xffd76c,
+    copies: [{ dx: -125, dy: -35, scale: 0.8, delay: 140 }, { dx: 120, dy: 25, scale: 0.75, delay: 240 }],
+    trail: { preset: "stars", every: 80, count: 2 },
+    onImpact(ctx) {
+      quiet(ctx, sfx.pop); quiet(ctx, sfx.chime);
+      fx.burst({ preset: "shockwave", x: ctx.x, y: ctx.head - 40, count: 1, power: 0.8, colors: [0xffd76c] });
+      fx.burst({ preset: "confetti", x: ctx.x, y: ctx.head - 80, count: 95, power: 1.25 });
+      fx.burst({ preset: "splash", x: ctx.x, y: ctx.head - 40, count: 24, colors: [0xffd76c, 0xf4e1a5, 0xffffff] });
+      scene.shake = Math.max(scene.shake, 0.45); hitStop(75);
+    },
+    during(ctx, since, state) {
+      const wave = Math.floor(since / 450);
+      if (since < 1700 && wave > (state.wave ?? -1)) {
+        state.wave = wave;
+        fx.burst({ preset: "stars", x: ctx.x + Math.sin(wave * 2) * 100, y: ctx.head - 60, count: 16, colors: [0xffd76c, 0xffefb9] });
+        fx.burst({ preset: "puff", x: ctx.x, y: ctx.head - 90, count: 6, colors: [0xfff3d5, 0xffffff] });
+      }
+    },
+  },
   fireCurse: {
-    art: POWER_ART.feuSacré, size: 170, duration: 2400, impact: 280, enter: "rise", exit: "rise", lift: 30, rarity: "common", label: "FEU SACRÉ", labelColor: 0xffb080,
+    art: POWER_ART.feuSacré, size: 210, duration: 3600, impact: 380, enter: "rise", exit: "rise", lift: 30, rarity: "common", label: "FEU SACRÉ", labelColor: 0xffb080, prop: "sigil",
     onImpact(ctx) {
       quiet(ctx, sfx.whoosh);
-      fx.burst({ preset: "sparks", x: ctx.x, y: ctx.head, count: 30, colors: [0xffb62f, 0xff6a3d, 0xfff1bd] });
-      fx.burst({ preset: "smoke", x: ctx.x, y: ctx.head - 20, count: 10 });
+      fx.burst({ preset: "sparks", x: ctx.x, y: ctx.head, count: 60, power: 1.3, colors: [0xffb62f, 0xff6a3d, 0xfff1bd] });
+      fx.burst({ preset: "smoke", x: ctx.x, y: ctx.head - 20, count: 18 });
+      fx.burst({ preset: "shockwave", x: ctx.x, y: ctx.feet, count: 1, colors: [0xffab36] });
+      scene.shake = Math.max(scene.shake, 0.55);
+    },
+    during(ctx, since, state) {
+      const wave = Math.floor(since / 140);
+      if (since < 2100 && wave > (state.wave ?? -1)) {
+        state.wave = wave;
+        const angle = since / 230;
+        fx.burst({ preset: "sparks", x: ctx.x + Math.cos(angle) * 65, y: ctx.head + 70 + Math.sin(angle) * 80, count: 5, colors: [0xffb62f, 0xff6a3d, 0xfff1bd] });
+      }
     },
   },
   dragonDrop: {
-    art: POWER_ART.fienteDragon, size: 170, duration: 2300, impact: 420, enter: "drop", exit: "fall", lift: 20, rarity: "common", label: "CADEAU DU DRAGON", labelColor: 0xd9f0a0,
+    art: POWER_ART.fienteDragon, size: 340, duration: 6400, impact: 1100, enter: "drop", exit: "fall", lift: 20, rarity: "common", label: "CADEAU DU DRAGON", labelColor: 0xd9f0a0,
     onImpact(ctx) {
       quiet(ctx, sfx.stamp);
       fx.burst({ preset: "dust", x: ctx.x, y: ctx.head, count: 16, colors: [0xb8c77a, 0x8c9c55, 0xe8efc4] });
@@ -407,10 +437,18 @@ export const CHOREOGRAPHIES = {
     },
   },
   paperStorm: {
-    art: POWER_ART.paperasse, size: 170, duration: 2500, impact: 300, enter: "drop", exit: "fall", lift: 30, rarity: "common", label: "PAPERASSE !", labelColor: 0xf5e8bd,
+    art: POWER_ART.paperasse, size: 200, duration: 3800, impact: 300, enter: "drop", exit: "fall", lift: 30, rarity: "common", label: "PAPERASSE !", labelColor: 0xf5e8bd,
     onImpact(ctx) {
       quiet(ctx, sfx.whoosh);
-      fx.burst({ preset: "letterRain", x: ctx.x, y: ctx.viewTop - 30, count: 40, spreadX: 260, spreadY: 40 });
+      fx.burst({ preset: "letterRain", x: ctx.x, y: ctx.viewTop - 30, count: 75, spreadX: Math.min(400, ctx.viewWidth / 2), spreadY: 40 });
+      fx.burst({ preset: "shockwave", x: ctx.x, y: ctx.feet, count: 1, power: 0.7 });
+    },
+    during(ctx, since, state) {
+      const wave = Math.floor(since / 250);
+      if (since < 2300 && wave > (state.wave ?? -1)) {
+        state.wave = wave;
+        fx.burst({ preset: "letters", x: ctx.x + Math.sin(wave) * 120, y: ctx.head + Math.cos(wave) * 40, count: 5, power: 1.2 });
+      }
     },
   },
   frogCurse: {
