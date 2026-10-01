@@ -14,6 +14,14 @@
 
 ## Validation
 
+### Localisation depuis le classement
+
+Un clic sur un nom du classement compact suit ce personnage dans le monde. Le bouton distinct « Classement & carte » ouvre le tableau détaillé et la carte ; les noms et repères y déclenchent la même localisation et referment le panneau. Le suivi reste actif jusqu’au retour au personnage, à une action personnelle, à un sort ou à un changement d’identité. Aucun journal ni score ne change pendant cette observation.
+
+Les repères de carte ont des cibles de 44 pixels et sont espacés lorsqu’ils se chevaucheraient ; un trait les relie à leur vraie position sur le parcours. Le classement compact indique la personne observée et les commandes ont un focus clavier visible.
+
+Vérification CUA avec deux joueurs locaux à 2 et 6 pas : nom compact, ligne détaillée, repère mobile, touche Entrée, ouverture dédiée et retour au héros. Desktop 1280×720 et téléphone 390×844. Captures `leaderboard-locate-desktop.png`, `leaderboard-locate-mobile.png` et `leaderboard-map-mobile.png` dans `dragon-previews/`.
+
 `pnpm test` : 70 tests réussis. TypeScript, ESLint des fichiers modifiés et `pnpm build --webpack` réussis.
 
 Les tests couvrent notamment les étapes du sort et les huit poses, les nids hors bâtiments, le verrouillage à distance, les contrôles et le score du mini-jeu, quarante graines à trois fréquences d’images, les transitions musicales, l’atlas et son budget.

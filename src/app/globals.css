@@ -2975,3 +2975,20 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 @keyframes dragon-rider { from { transform:rotate(-4deg) translateY(2px); } to { transform:rotate(4deg) translateY(-3px); } }
 @media(prefers-reduced-motion:reduce) { .dragon-arena__rider span { animation:none!important; } }
 @media(max-width:600px) { .dragon-arena__rider span { width:48px; height:66px; } }
+
+/* A name locates its hero; the separate command opens the standings and map. */
+.leaderboard-card:hover { transform:none; }
+button.leaderboard-row, button.standing-row { width:100%; text-align:left; cursor:pointer; }
+button.leaderboard-row { min-height:44px; }
+button.leaderboard-row:hover, button.leaderboard-row[aria-pressed="true"], button.standing-row:hover { border-color:#e3bd61; background:#e3bd6126; }
+.leaderboard-open { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:44px; margin-top:10px; border:2px solid #e2c47780; color:#f4dfa4; background:#d6ad3c19; font-size:1rem; cursor:pointer; }
+.leaderboard-open svg { width:20px; height:20px; }
+.leaderboard-open:hover { background:#d6ad3c35; }
+.leaderboard-card__mobile { cursor:pointer; }
+button.company-map-pin { cursor:pointer; }
+.journey-map button.company-map-pin, .journey-map button.company-map-pin.is-me { width:44px; height:44px; }
+.journey-map button.company-map-pin strong { display:none; pointer-events:none; }
+.journey-map button.company-map-pin:hover strong, .journey-map button.company-map-pin:focus-visible strong { display:block; }
+.journey-map__connections { position:absolute; inset:0; pointer-events:none; }
+.journey-map__connections line { stroke:#4f3523; stroke-width:2; stroke-dasharray:3 3; }
+.leaderboard-open:focus-visible, button.leaderboard-row:focus-visible, button.standing-row:focus-visible, button.company-map-pin:focus-visible, button.leaderboard-card__mobile:focus-visible { outline:3px solid #ffe198; outline-offset:3px; }

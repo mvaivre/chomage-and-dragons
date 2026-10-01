@@ -13,6 +13,7 @@ import {
   CrownArtwork,
   PowerArtwork,
 } from "./Artwork";
+import { ScrollIcon } from "./icons";
 
 /**
  * Les classements.
@@ -74,6 +75,8 @@ interface CompactProps {
   monthStandings: Standing[];
   monthKeyNow: string;
   meId: string | null;
+  observedId: string | null;
+  onLocate: (id: string) => void;
   onOpen: () => void;
 }
 
@@ -83,6 +86,8 @@ export function CompactLeaderboard({
   monthStandings,
   monthKeyNow,
   meId,
+  observedId,
+  onLocate,
   onOpen,
 }: CompactProps) {
   const rows = useMemo(() => toRows(monthStandings, players), [monthStandings, players]);
@@ -91,16 +96,13 @@ export function CompactLeaderboard({
   const meOutside = mine && mine.rank > 3 ? mine : null;
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <section
       className="leaderboard-card pointer-events-auto text-left"
-      aria-label="Ouvrir les classements détaillés"
+      aria-label="Classement du mois"
     >
-      <div className="leaderboard-card__mobile">
+      <button type="button" onClick={onOpen} className="leaderboard-card__mobile" aria-label="Ouvrir le classement détaillé et la carte" title="Classement et carte">
         <CrownArtwork className="leaderboard-crown-art" />
-        <span>{top[0]?.player.name ?? "Classement"}</span>
-      </div>
+      </button>
 
       <div className="leaderboard-card__desktop">
         <header className="flex items-center justify-between gap-3">
@@ -115,19 +117,22 @@ export function CompactLeaderboard({
         ) : (
           <ul className="mt-2 grid gap-1.5">
             {top.map((row) => (
-              <CompactRow key={row.player.id} row={row} isMe={row.player.id === meId} />
+              <CompactRow key={row.player.id} row={row} isMe={row.player.id === meId} selected={row.player.id === observedId} onLocate={onLocate} />
             ))}
-            {meOutside ? <CompactRow row={meOutside} isMe /> : null}
+            {meOutside ? <CompactRow row={meOutside} isMe selected={meOutside.player.id === observedId} onLocate={onLocate} /> : null}
           </ul>
         )}
+        <button type="button" className="leaderboard-open" onClick={onOpen} aria-label="Ouvrir le classement détaillé et la carte">
+          <ScrollIcon /> Classement & carte
+        </button>
       </div>
-    </button>
+    </section>
   );
 }
 
-function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
+function CompactRow({ row, isMe, selected, onLocate }: { row: Row; isMe: boolean; selected: boolean; onLocate: (id: string) => void }) {
   return (
-    <li className={`leaderboard-row ${isMe ? "leaderboard-row--me" : ""}`}>
+    <li><button type="button" className={`leaderboard-row ${isMe ? "leaderboard-row--me" : ""}`} onClick={() => onLocate(row.player.id)} aria-label={`Voir ${row.player.name} dans le monde`} aria-pressed={selected} title={`Voir ${row.player.name} dans le monde`}>
       <span className="leaderboard-row__rank">
         {row.rank}
       </span>
@@ -136,7 +141,7 @@ function CompactRow({ row, isMe }: { row: Row; isMe: boolean }) {
       </span>
       <ShotTally count={row.player.shotsOwed} compact />
       <span className="font-display text-xl text-parchment-ink">{row.steps} pas</span>
-    </li>
+    </button></li>
   );
 }
 
@@ -169,6 +174,7 @@ interface OverlayProps {
   onRemovePlayer: (id: string) => void;
   onChangeIdentity: () => void;
   onClose: () => void;
+  onLocate: (id: string) => void;
 }
 
 export function LeaderboardOverlay({
@@ -187,6 +193,7 @@ export function LeaderboardOverlay({
   onRemovePlayer,
   onChangeIdentity,
   onClose,
+  onLocate,
 }: OverlayProps) {
   const [tab, setTab] = useState<Tab>("mois");
 
@@ -260,6 +267,7 @@ export function LeaderboardOverlay({
           ) : (
             <Standings
               rows={rows}
+              onLocate={onLocate}
               meId={meId}
               caption={
                 tab === "mois"
@@ -293,10 +301,12 @@ function Standings({
   rows,
   meId,
   caption,
+  onLocate,
 }: {
   rows: Row[];
   meId: string | null;
   caption: string;
+  onLocate: (id: string) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -317,6 +327,7 @@ function Standings({
           return (
             <li
               key={row.player.id}
+            ><button type="button" onClick={() => onLocate(row.player.id)} aria-label={`Voir ${row.player.name} dans le monde`} title={`Voir ${row.player.name} dans le monde`}
               className={`standing-row ${
                 isMe ? "standing-row--me" : ""
               }`}
@@ -366,7 +377,7 @@ function Standings({
                 <strong className="block font-display text-2xl leading-none">{row.steps}</strong>
                 <small className="text-xs text-parchment-ink/45">pas</small>
               </span>
-            </li>
+            </button></li>
           );
         })}
       </ul>

@@ -435,6 +435,7 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
   onSceneReady: () => void;
   paused: boolean;
@@ -454,6 +455,7 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  onReturnToMe,
   onDragonChallenge,
   onSceneReady,
   paused,
@@ -560,7 +562,7 @@ function GameCanvas({
     >
       {meId && !paused ? <button type="button" className="world-return"
         onPointerDown={event => event.stopPropagation()}
-        onClick={() => { scene.pan = 0; scene.exploreCenter = null; markMotion(); }}
+        onClick={() => { scene.pan = 0; scene.exploreCenter = null; onReturnToMe?.(); markMotion(); }}
         title="Glisse le paysage ou utilise la molette pour explorer">
         ↶ Retrouver mon personnage
       </button> : null}

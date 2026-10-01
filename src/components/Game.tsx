@@ -48,7 +48,7 @@ import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
-import { leanIn, leanOut, scene } from "@/components/game/scene";
+import { leanIn, leanOut, markMotion, scene } from "@/components/game/scene";
 import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
@@ -238,6 +238,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     return () => window.clearTimeout(timer);
   }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
+  const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
   useEffect(() => warmUpAudio(), []);
@@ -542,6 +543,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
+      setObservedPlayerId(null);
       scene.pan = 0;
       scene.exploreCenter = null;
 
@@ -680,6 +682,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
+      setObservedPlayerId(null);
       scene.pan = 0;
       scene.exploreCenter = null;
       const targetIndex = players.findIndex((player) => player.id === targetId);
@@ -712,6 +715,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
+    setObservedPlayerId(null);
+    scene.pan = 0;
+    scene.exploreCenter = null;
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
@@ -729,6 +735,18 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleDevExplore = useCallback(() => {
     setDevExplore((active) => !active);
   }, []);
+
+  const handleLocatePlayer = useCallback((id: string) => {
+    if (!players.some(player => player.id === id)) return;
+    if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
+    focusTimeout.current = null;
+    setEffectFocusId(null);
+    setObservedPlayerId(id);
+    setRegisterOpen(false);
+    scene.pan = 0;
+    scene.exploreCenter = null;
+    markMotion();
+  }, [players]);
 
   const handleDevBiome = useCallback((from: number, to: number) => {
     setDevExplore(true);
@@ -756,6 +774,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setEffects([]);
     setActionFeedback(null);
     setEffectFocusId(null);
+    setObservedPlayerId(null);
   }, []);
 
   const enter = useCallback((playerId: string) => {
@@ -825,7 +844,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
         players={players}
         decor={decor}
         meId={identity}
-        focusPlayerId={effectFocusId}
+        focusPlayerId={effectFocusId ?? observedPlayerId}
+        onReturnToMe={() => {
+          if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
+          focusTimeout.current = null;
+          setEffectFocusId(null);
+          setObservedPlayerId(null);
+        }}
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
@@ -919,6 +944,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
               monthStandings={monthStandings}
               monthKeyNow={monthKeyNow}
               meId={identity}
+              observedId={observedPlayerId}
+              onLocate={handleLocatePlayer}
               onOpen={() => setRegisterOpen(true)}
             />
           </header>
@@ -970,7 +997,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
           meId={identity}
           groupName={groupName}
           inviteUrl={inviteUrl}
-          map={<JourneyMap players={players} meId={identity} />}
+          map={<JourneyMap players={players} meId={identity} onLocate={handleLocatePlayer} />}
+          onLocate={handleLocatePlayer}
           onAddPlayer={store ? null : addPlayer}
           onRemovePlayer={removePlayer}
           onChangeIdentity={handleChangeIdentity}
