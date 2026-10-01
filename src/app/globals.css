@@ -2992,3 +2992,19 @@ button.company-map-pin { cursor:pointer; }
 .journey-map__connections { position:absolute; inset:0; pointer-events:none; }
 .journey-map__connections line { stroke:#4f3523; stroke-width:2; stroke-dasharray:3 3; }
 .leaderboard-open:focus-visible, button.leaderboard-row:focus-visible, button.standing-row:focus-visible, button.company-map-pin:focus-visible, button.leaderboard-card__mobile:focus-visible { outline:3px solid #ffe198; outline-offset:3px; }
+
+.environment-overlay { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
+.environment-target { position:absolute; transform:translate(-50%,-50%); pointer-events:auto; cursor:pointer; touch-action:none; border:0; border-radius:45%; background:transparent; }
+.environment-target > span { position:absolute; right:0; top:4px; min-width:18px; height:16px; padding:0 2px; border:1px solid #e5c99277; border-radius:9px; background:#302e24b0; color:#f2e5ba; font:bold 14px/8px Georgia,serif; opacity:.55; pointer-events:none; }
+.environment-target[aria-disabled="true"] { cursor:grab; }
+.environment-target[aria-disabled="true"] > span { opacity:.18; }
+.environment-target:hover > span, .environment-target:focus-visible > span { opacity:1; }
+.environment-target[data-available="true"]:hover { background:#fff2b10b; box-shadow:inset 0 0 16px #f4d97a1c; }
+.environment-target:focus-visible { outline:2px dashed #f6d277; outline-offset:2px; }
+.environment-speech { position:absolute; transform:translate(-50%,-100%); display:flex; align-items:flex-start; gap:7px; width:max-content; max-width:min(270px,calc(100vw - 24px)); padding:11px 12px; pointer-events:auto; color:#302a20; background:#f0dfb1; border:3px solid #302a20; border-radius:13px; box-shadow:3px 4px 0 #1d211c66; font:700 18px/1.15 var(--font-garamond),serif; }
+.environment-speech::after { content:''; position:absolute; bottom:-12px; left:calc(50% - 10px); width:16px; height:16px; background:#f0dfb1; border-right:3px solid #302a20; border-bottom:3px solid #302a20; transform:rotate(45deg); }
+.environment-speech[data-side="left"]::after { left:auto; right:-11px; top:calc(50% - 8px); transform:rotate(-45deg); }
+.environment-speech[data-side="right"]::after { left:-11px; top:calc(50% - 8px); transform:rotate(135deg); }
+.environment-speech button { flex:none; width:24px; height:24px; margin:-5px -6px 0 0; font-size:23px; line-height:24px; cursor:pointer; }
+.environment-speech button:focus-visible { outline:2px solid #805424; }
+@media(max-width:600px) { .environment-speech { font-size:17px; padding:9px 10px; } }

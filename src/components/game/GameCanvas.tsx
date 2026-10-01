@@ -6,6 +6,8 @@ import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Dragons, DragonEncounter } from "./Dragons";
 import { Forest } from "./Forest";
+import { EnvironmentLife } from "./EnvironmentLife";
+import { EnvironmentOverlay } from "./EnvironmentOverlay";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
 import type { GroupDecor } from "@/lib/game/decor";
@@ -351,6 +353,7 @@ function WorldScene({
       <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
+        <EnvironmentLife factor={MIDGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1} shade={0.62}>
@@ -376,7 +379,7 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /></Outdoors>
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -435,6 +438,8 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  environmentBlocked?: boolean;
+  environmentPreviewX?: number;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
   onSceneReady: () => void;
@@ -455,6 +460,8 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  environmentBlocked = false,
+  environmentPreviewX,
   onReturnToMe,
   onDragonChallenge,
   onSceneReady,
@@ -567,6 +574,7 @@ function GameCanvas({
         ↶ Retrouver mon personnage
       </button> : null}
       <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
+      <EnvironmentOverlay meId={meId} paused={paused} blocked={environmentBlocked} previewX={environmentPreviewX} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}

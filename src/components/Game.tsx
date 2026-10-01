@@ -7,6 +7,7 @@ import GameCanvas from "@/components/game/GameCanvas";
 import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
+import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
 import { retainTextures } from "@/components/game/textures";
@@ -123,6 +124,7 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 };
 
 const DEV_BUILD = process.env.NODE_ENV === "development";
+const DEV_ENCOUNTERS = DEV_BUILD ? [...environmentSites(0, WORLD_LENGTH, 1), ...environmentSites(0, WORLD_LENGTH, 0.76)].filter((site, index, sites) => sites.findIndex(other => other.kind === site.kind) === index) : [];
 const DEV_VIEWPOINTS = [...BIOMES.slice(0, -1).map((biome, index) => ({
   id: `${biome.id}-${BIOMES[index + 1].id}`,
   label: `${biome.short}→${BIOMES[index + 1].short}`,
@@ -256,6 +258,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     });
   }, [sceneReady]);
   const [devExplore, setDevExplore] = useState(false);
+  const [devEnvironmentPreview, setDevEnvironmentPreview] = useState(false);
   const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
   const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
   const [devCameraTarget, setDevCameraTarget] = useState<{
@@ -835,6 +838,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        environmentBlocked={awaitingTravel}
+        environmentPreviewX={DEV_BUILD && devEnvironmentPreview ? devCameraTarget?.worldX : undefined}
         onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
         onSceneReady={handleSceneReady}
         paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
@@ -876,6 +881,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
           </button>
           {devExplore ? (
             <nav className="dev-explorer__biomes" aria-label="Biomes de test">
+              <button type="button" aria-pressed={devEnvironmentPreview} onClick={() => setDevEnvironmentPreview(value => !value)}>Tester les interactions ici</button>
+              <select aria-label="Rencontre de test" value="" onChange={event => { if (event.target.value) { const progress = Number(event.target.value) / WORLD_LENGTH; handleDevBiome(progress, progress); } }}>
+                <option value="">Rencontre de décor…</option>
+                {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
+              </select>
               <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
               <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
                 {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
