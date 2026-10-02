@@ -21,7 +21,7 @@ import { chestXForStep, parallaxX, visibleTiles } from "./projection";
 import { CascadeLife } from "./CascadeLife";
 import { TerrainRoad } from "./Terrain";
 import { GROUND_TILE_WIDTH, terrainBaseColor } from "@/lib/game/terrain";
-import { WindmillLife, TavernLife } from "./LandmarkLife";
+import { WindmillLife, TavernLife, TavernWindows } from "./LandmarkLife";
 
 /**
  * Le monde v3 suit un contrat volontairement court :
@@ -201,6 +201,7 @@ function BiomeArtLayerLayer({
             >
               {channel === "back" && biome.id === "cascade" ? <CascadeLife worldX={center + offset} factor={factor} /> : null}
               {channel === "back" && biome.id === "plaine" ? <WindmillLife worldX={center + offset} factor={factor} /> : null}
+              {channel === "back" && biome.id === "taverne" ? <TavernWindows worldX={center + offset} factor={factor} /> : null}
             </LayerSprite>
           ));
         });

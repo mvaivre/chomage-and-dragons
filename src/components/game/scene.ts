@@ -32,6 +32,8 @@ export interface Scene {
   doorTransition: { elapsed: number; destination: RoomLocation | null; switched: boolean } | null;
   momentActive: boolean;
   reducedMotion: boolean;
+  atmosphereEnabled: boolean;
+  atmosphereTime: number;
   camera: Camera;
   /** Screen pixels occupied by the action dock, measured when it resizes. */
   bottomInset: number;
@@ -144,6 +146,8 @@ export const scene: Scene = {
   doorTransition: null,
   momentActive: false,
   reducedMotion: false,
+  atmosphereEnabled: true,
+  atmosphereTime: 0,
   bottomInset: 170,
   topInset: 160,
   camera: {
@@ -179,6 +183,7 @@ export const scene: Scene = {
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
 export function resetScene(): void {
+  scene.atmosphereTime = 0;
   scene.room = null;
   scene.doorTransition = null;
   scene.momentActive = false;

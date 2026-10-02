@@ -264,6 +264,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     worldX: number;
     revision: number;
   } | null>(null);
+  const [devAtmosphere, setDevAtmosphere] = useState(true);
   const shownCasts = useRef(new Set<string>());
   // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
   const [dailySheetOpen, setDailySheetOpen] = useState(false);
@@ -837,6 +838,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
         onSceneReady={handleSceneReady}
         paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
@@ -883,6 +885,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
               </select>
               <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
+              <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>Lumière et brume</button>
               <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
                 {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
               </select>

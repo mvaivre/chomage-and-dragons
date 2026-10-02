@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, type RefObject } from "react";
-import type { Container, Sprite } from "pixi.js";
+import type { Container, MeshPlane, Sprite } from "pixi.js";
 import { interiorAt } from "@/lib/game/decor";
 import { BIOMES, WALKABLE_GROUND_Y, WORLD_LENGTH } from "@/lib/game/world";
+import { canopyOffset } from "@/lib/game/atmosphere";
 import { useLayerBiomes } from "./FlatWorld";
 import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
@@ -29,7 +30,8 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
     if (squirrel.current) {
       // Register the feet to the oak's painted branch near source pixel (620, 450).
       const leap = active ? Math.sin(p * Math.PI) : 0;
-      squirrel.current.position.set(height * 0.205 + leap * 24, -height * 0.59 - leap * 34);
+      const breeze = scene.atmosphereEnabled && !scene.reducedMotion && !scene.lowPower ? canopyOffset(620 / 768, 450 / 1152, scene.atmosphereTime, target.current.homeX) : { x: 0, y: 0 };
+      squirrel.current.position.set(height * 0.205 + leap * 24 + breeze.x * height / 1152, -height * 0.59 - leap * 34 + breeze.y * height / 1152);
       squirrel.current.texture = frames[active ? p < 0.2 ? 2 : p < 0.8 ? 3 : 0 : Math.floor(t / 2) % 2];
       squirrel.current.rotation = active ? Math.sin(p * Math.PI * 2) * 0.18 : 0;
     }
@@ -60,23 +62,34 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
 export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; worldX: number; height?: number; text?: string }) {
   const texture = useDirectTexture("/art/world-v3/runtime/forest-oak.webp");
   const inscription = useSignTexture(text ?? "", "refusal", "tree", 190, 96, "#302318");
-  const root = useRef<Container>(null), crown = useRef<Sprite>(null);
-  const time = useRef(worldX % 13);
+  const root = useRef<Container>(null), crown = useRef<MeshPlane>(null);
+  const resting = useRef(false);
   const target = useEnvironmentTarget(`tree:${worldX}`, "tree", worldX);
-  useSceneTick(ticker => {
+  useSceneTick(() => {
     if (!root.current) return;
     root.current.visible = worldX > scene.camera.x - 400 && worldX < scene.camera.x + scene.camera.viewW + 400;
     const hit = target.current;
     updateEnvironmentTarget(`tree:${worldX}`, { visible: Boolean(texture && isDrawn(root.current)), worldX: worldX + height * .11, worldY: WALKABLE_GROUND_Y + 30 - height * 0.16, width: 90, height: height * 0.25 });
     if (!root.current.visible || !crown.current) return;
-    if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
-    // Roots remain registered: a tiny crown shear reads as wind, without floating the tree.
-    const p = reactionProgress(hit), wake = p < 1 && !scene.reducedMotion ? Math.sin(p * 32) * (1 - p) * 0.025 : 0;
-    crown.current.skew.x = scene.reducedMotion ? 0 : Math.sin(time.current * 0.7) * 0.004 + wake;
+    const animated = scene.atmosphereEnabled && !scene.reducedMotion;
+    if (!animated && resting.current) return;
+    resting.current = !animated;
+    // A small mesh flexes outer branches while the entire painted trunk stays fixed.
+    const p = reactionProgress(hit), wake = p < 1 && !scene.reducedMotion ? Math.sin(p * 32) * (1 - p) : 0;
+    const mesh = crown.current, positions = mesh.geometry.positions;
+    const width = mesh.texture.width, fullHeight = mesh.texture.height;
+    for (let row = 0; row < 13; row++) for (let col = 0; col < 7; col++) {
+      const u = col / 6, v = row / 12, i = (row * 7 + col) * 2;
+      const offset = animated ? canopyOffset(u, v, scene.atmosphereTime, worldX, wake) : { x: 0, y: 0 };
+      positions[i] = u * width + offset.x; positions[i + 1] = v * fullHeight + offset.y;
+    }
+    mesh.geometry.getBuffer("aPosition").update();
     if (p < 1) markMotion();
   });
   return <pixiContainer ref={root} x={x} y={20} label="forest-oak">
-    {texture ? <pixiSprite ref={crown} texture={texture} anchor={{ x: 0.5, y: 1130 / 1152 }} height={height} width={height * 2 / 3} tint={text ? 0xe3dfc5 : 0xc1c6a5} /> : null}
+    {texture ? scene.lowPower
+      ? <pixiSprite texture={texture} anchor={{ x: 0.5, y: 1130 / 1152 }} height={height} width={height * 2 / 3} tint={text ? 0xe3dfc5 : 0xc1c6a5} />
+      : <pixiMeshPlane ref={crown} texture={texture} verticesX={7} verticesY={13} pivot={{ x: texture.width / 2, y: texture.height * 1130 / 1152 }} scale={{ x: height * 2 / 3 / texture.width, y: height / texture.height }} tint={text ? 0xe3dfc5 : 0xc1c6a5} /> : null}
     {text && inscription ? <pixiSprite texture={inscription} x={height * 0.11} y={-height * 0.31} anchor={0.5} width={94} height={48} rotation={-0.035} /> : null}
     <TreeResidents height={height} target={target} />
   </pixiContainer>;

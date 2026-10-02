@@ -27,6 +27,7 @@ import { depthLight, markMotion, resetScene, scene } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
+import { Atmosphere, AtmosphereClock } from "./Atmosphere";
 import {
   BiomeArtLayer,
   GroundLayer,
@@ -282,6 +283,7 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  atmosphere: boolean;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
@@ -299,6 +301,7 @@ interface SceneProps {
 }
 
 function WorldScene({
+  atmosphere,
   onSceneReady,
   paused,
   players,
@@ -325,6 +328,7 @@ function WorldScene({
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <MusicPosition />
+      <AtmosphereClock enabled={atmosphere} />
       <Outdoors>
       <Sky />
 
@@ -339,6 +343,7 @@ function WorldScene({
         />
       </Layer>
 
+      <Atmosphere depth="far" />
       <Layer factor={BACKGROUND_FACTOR} shade={0.88}>
         <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
         <BiomeArtLayer
@@ -350,6 +355,7 @@ function WorldScene({
         />
       </Layer>
 
+      <Atmosphere depth="air" />
       <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
@@ -365,6 +371,7 @@ function WorldScene({
       <Layer factor={1} shade={0.5}>
         <GroundLayer />
       </Layer>
+      <Atmosphere depth="ground" />
 
       <Layer factor={1} shade={0.6}>
         <Forest />
@@ -438,6 +445,7 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  atmosphere?: boolean;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
   onSceneReady: () => void;
@@ -458,6 +466,7 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  atmosphere = true,
   onReturnToMe,
   onDragonChallenge,
   onSceneReady,
@@ -580,6 +589,7 @@ function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          atmosphere={atmosphere}
           onSceneReady={onSceneReady}
           paused={paused}
           players={players}
