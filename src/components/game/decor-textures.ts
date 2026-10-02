@@ -9,6 +9,15 @@ interface Painted { texture: Texture; users: number; timer?: ReturnType<typeof s
 const cache = new Map<string, Painted>();
 let fonts: Promise<{ title: string; body: string }> | undefined;
 let signImage: Promise<HTMLImageElement | null> | undefined;
+let treeBoardImage: Promise<HTMLImageElement | null> | undefined;
+function loadTreeBoard() {
+  return treeBoardImage ??= new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = "/art/world-v3/runtime/tree-notice-board.webp";
+  });
+}
 function loadSigns() {
   return signImage ??= new Promise(resolve => {
     const image = new Image();
@@ -76,12 +85,22 @@ function quadLetters(c: CanvasRenderingContext2D, text: string, quad: number[][]
 }
 
 /** All ink, including letters, is baked once; no Text objects rasterise during travel. */
-async function paint(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number, ink: string): Promise<Texture> {
+async function paint(text: string, kind: DecorKind, textOnly: boolean | "tree", width: number, height: number, ink: string): Promise<Texture> {
   const family = await gameFonts();
   const canvas = document.createElement("canvas");
   canvas.width = width * 2; canvas.height = height * 2;
   const c = canvas.getContext("2d")!;
   c.scale(2, 2);
+  if (textOnly === "tree") {
+    const board = await loadTreeBoard();
+    if (board) {
+      c.drawImage(board, 0, 0, width, height);
+      c.fillStyle = ink;
+      // Keep the lettering inside the boards, clear of their nails and uneven edges.
+      fitLetters(c, text, [width * .14, height * .18, width * .72, height * .64], family.body, height * .29);
+    }
+    return Texture.from(canvas);
+  }
   const image = textOnly ? null : await loadSigns();
   if (image) {
     const frame = kind === "grave" || kind === "epitaph" ? 7 : kind === "wanted" || kind === "offer" ? 5 : 9;
@@ -137,7 +156,7 @@ async function paint(text: string, kind: DecorKind, textOnly: boolean, width: nu
 }
 
 const jobs = new Map<string, Promise<Painted>>();
-function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number, height: number, ink: string) {
+function acquire(text: string, kind: DecorKind, textOnly: boolean | "tree", width: number, height: number, ink: string) {
   const key = JSON.stringify([text, kind, textOnly, width, height, ink]);
   let pending = jobs.get(key);
   if (!pending) {
@@ -153,7 +172,7 @@ function acquire(text: string, kind: DecorKind, textOnly: boolean, width: number
 }
 
 /** Ref-counted and evicted after travel, so an endless journey never accumulates text textures. */
-export function useSignTexture(text: string, kind: DecorKind, textOnly = false, width = 320, height = 280, ink = "#292620"): Texture | null {
+export function useSignTexture(text: string, kind: DecorKind, textOnly: boolean | "tree" = false, width = 320, height = 280, ink = "#292620"): Texture | null {
   const [value, setValue] = useState<{ key: string; texture: Texture } | null>(null);
   const key = JSON.stringify([text, kind, textOnly, width, height, ink]);
   useEffect(() => {

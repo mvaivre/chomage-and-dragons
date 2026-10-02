@@ -19,6 +19,18 @@ Les trolls se promènent, s’arrêtent pour répondre, puis reprennent leur mar
 
 Les répliques tournent entre trois ou quatre phrases par habitant. Cette nouveauté ne modifie pas le catalogue de panneaux ni les noms des personnages encore en discussion.
 
+## Panneaux fixés aux troncs — 2 octobre 2026
+
+Les légendes de forêt utilisent désormais un panneau de bois avec quatre clous et une ombre de contact. Le texte est composé dans la même texture que les planches, à l’intérieur d’une zone dégagée ; le sprite de 94 × 48 unités se place sur le tronc. Contrôle visuel à 1280×720, 390×844 et 1920×900 : bois et clous visibles, texte lisible sans débordement et racines au contact. Captures : `docs/tree-sign-previews/`.
+
+Asset : `public/art/world-v3/runtime/tree-notice-board.webp`. Généré avec l’outil ImageGen intégré et la référence `forest-oak.webp`, puis uniquement recadré sur sa transparence, réduit à 768 px de large et converti en WebP avec Sharp. Source conservée : `/Users/mika/.codex/generated_images/01a0f857-9351-71e1-9fca-d726ac59efaa/exec-4e9b0e5b-331e-4f1c-ba77-74c4533dbc39.png`.
+
+Prompt exact :
+
+```text
+Use case: stylized-concept. Production prop sprite for the hand-drawn medieval 2D game in the reference. A SINGLE small wooden NOTICE BOARD designed to be nailed directly flat onto a tree trunk. Two fitted horizontal weathered oak planks, warm pale honey wood, subtly irregular edges, thick dark handmade ink outline, crisp gouache wood grain. Four small dark iron nails with distinct heads near the corners visibly fasten the board. Shallow dark contact shadow hugging the bottom and right edge, no large floating shadow. Wide rectangular board roughly 2.1:1. The middle 75 percent of the board is quiet, pale and completely BLANK for readable lettering added by the game. No letters, no text, no symbol, no post, no feet, no stand, no tree, no rope, no foliage, no character, no landscape. Straight-on front view with only very slight handmade skew. Entire object complete, centered with generous transparent margins. Match the reference oak's earthy hand-drawn linework and texture. This is one physical attached signboard, not a UI panel.
+```
+
 ## Règles
 
 - La proximité dépend du vrai personnage de cet appareil : 320 unités autour du domicile de la rencontre. Explorer avec la caméra ou suivre un autre joueur dans le classement ne débloque aucun clic.

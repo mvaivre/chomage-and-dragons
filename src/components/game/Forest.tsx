@@ -50,7 +50,7 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
 
 export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; worldX: number; height?: number; text?: string }) {
   const texture = useDirectTexture("/art/world-v3/runtime/forest-oak.webp");
-  const inscription = useSignTexture(text ?? "", "refusal", true, 170, 110, "#e5cba0");
+  const inscription = useSignTexture(text ?? "", "refusal", "tree", 190, 96, "#302318");
   const root = useRef<Container>(null), crown = useRef<Sprite>(null);
   const time = useRef(worldX % 13);
   const target = useEnvironmentTarget(`tree:${worldX}`, "tree", worldX);
@@ -68,7 +68,7 @@ export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; 
   });
   return <pixiContainer ref={root} x={x} y={20} label="forest-oak">
     {texture ? <pixiSprite ref={crown} texture={texture} anchor={{ x: 0.5, y: 1130 / 1152 }} height={height} width={height * 2 / 3} tint={text ? 0xe3dfc5 : 0xc1c6a5} /> : null}
-    {text && inscription ? <pixiSprite texture={inscription} x={height * 0.11} y={-height * 0.31} anchor={0.5} width={76} height={46} rotation={-0.035} /> : null}
+    {text && inscription ? <pixiSprite texture={inscription} x={height * 0.11} y={-height * 0.31} anchor={0.5} width={94} height={48} rotation={-0.035} /> : null}
     <TreeResidents height={height} target={target} />
   </pixiContainer>;
 }
