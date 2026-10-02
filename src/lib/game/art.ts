@@ -10,6 +10,7 @@ export const ACTION_ART: Record<ActionKind, string> = {
 };
 /** Images drawn by the mini-game canvases, decoded ahead of time. */
 export const MINI_GAME_IMAGES = [
+  "/art/world-v3/animations/dragon.webp",
   "/art/world-v3/ui/action-candidature.webp",
   "/art/world-v3/runtime/plaine-far.webp",
   "/art/world-v3/animations/gnomes.webp",

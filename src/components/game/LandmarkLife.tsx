@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { parallaxX } from "./projection";
 import { scene } from "./scene";
 import { crownedChickenFrame } from "./ambient-animation";
+import { windAt } from "@/lib/game/atmosphere";
+import { atmosphereTextures } from "./atmosphere-textures";
 import parts from "../../../public/art/world-v3/animations/tavern-life.json";
 
 export interface LandmarkProps { worldX: number; factor: number; }
@@ -31,13 +33,13 @@ export function TavernLife(props: LandmarkProps) {
   const halos = useRef<Array<Graphics | null>>([]);
   const flame = useRef<Sprite>(null);
   const smoke = useRef<Array<Sprite | null>>([]);
-  const time = useRef(Math.abs(props.worldX) % 7);
-  useSceneTick(ticker => {
+  useSceneTick(() => {
     if (!frames || !inView(props)) return;
-    if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
-    const t = time.current;
+    const baseTime = scene.reducedMotion ? 0 : scene.atmosphereTime;
+    const t = baseTime + Math.abs(props.worldX) % 7;
+    const wind = windAt(baseTime, props.worldX);
     if (chicken.current) chicken.current.texture = frames[crownedChickenFrame(t)];
-    lamps.current.forEach((lamp, i) => { if (lamp) lamp.rotation = Math.sin(t * 1.4 + i * 2.3) * 0.025; });
+    lamps.current.forEach((lamp, i) => { if (lamp) lamp.rotation = wind * .035 + Math.sin(t * 1.4 + i * 2.3) * .008; });
     halos.current.forEach((halo, i) => { if (halo) { halo.alpha = 0.8 + Math.sin(t * 5.3 + i) * Math.sin(t * 8.7) * 0.2; halo.scale.set(1 + scene.night * 0.8); } });
     if (flame.current) {
       flame.current.scale.y = 12 / parts.heights[5] * (1 + Math.sin(t * 8.2) * 0.1);
@@ -47,7 +49,7 @@ export function TavernLife(props: LandmarkProps) {
       if (!puff) return;
       puff.visible = !scene.reducedMotion;
       const progress = (t * 0.24 + i * 0.5) % 1;
-      puff.position.set(220 + Math.sin(progress * 3 + i) * 9, 38 - progress * 48);
+      puff.position.set(220 + wind * progress * 28 + Math.sin(progress * 3 + i) * 5, 38 - progress * 48);
       puff.scale.set((19 + progress * 22) / parts.heights[6]);
       puff.alpha = Math.sin(progress * Math.PI) * 0.3;
     });
@@ -65,19 +67,47 @@ export function TavernLife(props: LandmarkProps) {
   </pixiContainer>;
 }
 
+/** Emission sits on the existing painted windows in the 1400 × 786 back plate. */
+const TAVERN_WINDOWS = [
+  { x: 279, y: 371, width: 55, height: 76 },
+  { x: 269, y: 467, width: 67, height: 83 },
+  { x: 1138, y: 345, width: 64, height: 86 },
+  { x: 1240, y: 386, width: 64, height: 80 },
+  { x: 1178, y: 483, width: 75, height: 100 },
+  { x: 1222, y: 461, width: 55, height: 75 },
+];
+
+export function TavernWindows(props: LandmarkProps) {
+  const root = useRef<Container>(null);
+  const glow = useMemo(() => atmosphereTextures().glow, []);
+  useSceneTick(() => {
+    const node = root.current;
+    if (!node) return;
+    node.visible = scene.atmosphereEnabled && !scene.lowPower && inView(props);
+    if (!node.visible) return;
+    const t = scene.reducedMotion ? 0 : scene.atmosphereTime;
+    const light = scene.night * .85 + scene.warm * .14;
+    node.children.forEach((child, i) => {
+      child.alpha = light * (.92 + Math.sin(t * 2.7 + props.worldX * .01 + i * 1.8) * .08);
+    });
+  });
+  return <pixiContainer ref={root} eventMode="none" label="tavern-window-light">
+    {TAVERN_WINDOWS.map(({ x, y, width, height }, i) => <pixiSprite key={i} texture={glow} x={x} y={y} width={width} height={height} anchor={.5} tint={0xffb65d} blendMode="add" alpha={0} />)}
+  </pixiContainer>;
+}
+
 /** A separate little tuft bends at its roots; rocks and terrain never sway. */
 export function AnimatedTuft(props: LandmarkProps) {
   const source = useDirectTexture("/art/world-v3/animations/tavern-life.webp");
   const texture = source ? atlasFrames(source, 4, 2)[7] : null;
   const sprite = useRef<Sprite>(null);
-  const time = useRef(props.worldX % 13);
-  useSceneTick(ticker => {
+  useSceneTick(() => {
     const node = sprite.current;
     if (!node) return;
     node.visible = inView(props, 80);
     if (!node.visible) return;
-    if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
-    node.skew.x = Math.sin(time.current * 1.6) * 0.045;
+    const t = scene.reducedMotion ? 0 : scene.atmosphereTime;
+    node.skew.x = windAt(t, props.worldX) * .07;
   });
   return texture ? <pixiSprite ref={sprite} texture={texture} x={props.worldX * props.factor} y={610} anchor={{ x: 0.5, y: 312 / 320 }} scale={33 / parts.heights[7]} tint={0xb4c29e} /> : null;
 }
@@ -88,14 +118,15 @@ export function WindmillLife(props: LandmarkProps) {
   const flag = useDirectTexture("/art/world-v3/runtime/windmill-flag.webp");
   const wheel = useRef<Sprite>(null);
   const cloth = useRef<Sprite>(null);
-  const time = useRef(Math.abs(props.worldX * 0.013) % 11);
-  useSceneTick(ticker => {
+  useSceneTick(() => {
     if (!inView(props)) return;
-    if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
-    if (wheel.current) wheel.current.rotation = time.current * 0.13;
+    const baseTime = scene.reducedMotion ? 0 : scene.atmosphereTime;
+    const t = baseTime + Math.abs(props.worldX * .013) % 11;
+    const wind = windAt(baseTime, props.worldX);
+    if (wheel.current) wheel.current.rotation = t * .13 + Math.sin(t * .3) * .08;
     if (cloth.current) {
-      cloth.current.skew.y = Math.sin(time.current * 2.1) * 0.11;
-      cloth.current.scale.x = 1 + Math.sin(time.current * 2.1 + 0.7) * 0.09;
+      cloth.current.skew.y = wind * .13 + Math.sin(t * 2.1) * .025;
+      cloth.current.scale.x = 1 + wind * .08;
     }
   });
   return <pixiContainer>

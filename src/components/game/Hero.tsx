@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
+import { reactionProgress, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
+import { nextDoor, roomAt, sameRoom } from "@/lib/game/doors";
 import { seededRandom } from "@/lib/rng";
 import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
@@ -46,6 +48,7 @@ export const REACTION_HOLD = { candidature: 0.75, refus: 0.95, entretien: 0.85, 
 type Gait = "trot" | "dash" | "knockback";
 
 interface TravelLeg {
+  door?: ReturnType<typeof nextDoor>;
   from: number;
   to: number;
   steps: number;
@@ -78,7 +81,7 @@ function footfall(x: number, y: number, count: number, direction: 1 | -1) {
   const land = biomeAt(((x % WORLD_LENGTH) + WORLD_LENGTH) % WORLD_LENGTH).id;
   const angle = -Math.PI / 2 - direction * 0.5;
   if (WATER.has(land)) {
-    fx.burst({ preset: "splash", x, y, count: count + 2, spreadX: 10, angle });
+    fx.burst({ preset: "splash", x, y, count: count + 4, spreadX: 10, angle });
     fx.burst({ preset: "puff", x, y, count: 1, colors: [0xcfe4ea, 0xa9c4c8] });
     return;
   }
@@ -88,7 +91,7 @@ function footfall(x: number, y: number, count: number, direction: 1 | -1) {
         : land === "foret" ? [0xa08a64, 0x86734f, 0xbfae84]
           : [0xcdb68d, 0xb59b72, 0xe0cfa8];
   fx.burst({ preset: "puff", x, y, count, spreadX: 8, colors, angle });
-  if (land === "foret" && Math.random() < 0.5) fx.burst({ preset: "kickLeaves", x, y: y - 6, count: 2, angle });
+  if (land === "foret" && Math.random() < 0.7) fx.burst({ preset: "kickLeaves", x, y: y - 6, count: 2, angle });
 }
 
 const INK = 0x211b18;
@@ -162,10 +165,13 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const lantern = useRef<Sprite>(null);
 
   const target = worldXFor(player.position) + lane.dx;
+  const interactionId = `hero:${player.id}`;
+  const interaction = useEnvironmentTarget(interactionId, "traveller", target);
   const at = useRef(target);
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
   const travel = useRef<TravelLeg | null>(null);
+  const finishAfterDoor = useRef(false);
   const lastDirection = useRef<1 | -1>(1);
   // Déphasage tiré de l'identifiant : les personnages ne respirent pas à l'unisson,
   // et le tirage reste le même d'un rendu à l'autre.
@@ -243,13 +249,17 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
     const dt = worldDelta(ticker.elapsedMS);
+    if (finishAfterDoor.current && !scene.doorTransition) {
+      finishAfterDoor.current = false;
+      onTravelDone?.(player.id);
+    }
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
       movementDelay.current = scene.reducedMotion ? 0 : Math.max(0, movementDelay.current - dt);
     }
 
-    if (!travel.current && movementDelay.current === 0) {
+    if (!travel.current && movementDelay.current === 0 && !scene.doorTransition) {
       const next = travelQueue.current.shift();
       if (next && Math.abs(next.target - at.current) <= 0.5) {
         // A clamped step at zero still completes the action sequence.
@@ -257,10 +267,15 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       } else if (next) {
         const direction = next.target >= at.current ? 1 : -1;
         const gait: Gait = direction < 0 ? "knockback" : next.steps >= 5 ? "dash" : "trot";
+        const door = isFocused ? nextDoor(at.current, next.target) : null;
+        const end = door ? door.x + direction * 0.1 : next.target;
+        const fraction = Math.min(1, Math.abs((end - at.current) / (next.target - at.current)));
+        if (door && Math.abs(next.target - end) > 0.5) travelQueue.current.unshift({ target: next.target, steps: Math.max(1, Math.round(next.steps * (1 - fraction))) });
         travel.current = {
+          door,
           from: at.current,
-          to: next.target,
-          steps: Math.max(1, next.steps),
+          to: end,
+          steps: Math.max(1, Math.round(next.steps * fraction)),
           index: 0,
           elapsed: 0,
           gait,
@@ -272,9 +287,10 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
           if (gait === "knockback") {
             fx.burst({ preset: "stars", x: at.current, y: feet - HERO_HEIGHT, count: 7, power: 0.8 });
             if (isMe) sfx.boing();
-          } else if (gait === "dash") {
+          } else {
+            fx.burst({ preset: "dust", x: at.current, y: feet, count: gait === "dash" ? 20 : 10, spreadX: 22, power: 0.7 });
             footfall(at.current, feet, 6, direction);
-            if (isMe) sfx.whoosh();
+            if (isMe && gait === "dash") sfx.whoosh();
           }
         }
       }
@@ -299,7 +315,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
             activeTravel.steps;
-        if (juicy) footfall(at.current, feetY, activeTravel.gait === "dash" ? 4 : isMe ? 3 : 2, lastDirection.current);
+        if (juicy) footfall(at.current, feetY, activeTravel.gait === "dash" ? 7 : isMe ? 5 : 3, lastDirection.current);
       }
 
       if (activeTravel.index >= activeTravel.steps) {
@@ -316,7 +332,10 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
             if (isMe) sfx.land();
           }
         }
-        onTravelDone?.(player.id);
+        if (activeTravel.door) {
+          scene.doorTransition = { elapsed: 0, destination: activeTravel.door.destination, switched: false };
+          finishAfterDoor.current = travelQueue.current.length === 0;
+        } else { onTravelDone?.(player.id); }
       } else {
         strideProgress = activeTravel.elapsed / strideFor(activeTravel);
         // A steady speed between steps, except where the gait itself accelerates or brakes.
@@ -372,9 +391,13 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
 
     const node = root.current;
     if (node) {
-      node.x = at.current;
-      node.y = surfaceAt(at.current) + 4 + lane.dy;
-      node.visible = at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
+      const effect = scene.heroEffects.get(player.id);
+      node.alpha = effect?.alpha ?? 1;
+      node.scale.set(lane.scale * (effect?.scale ?? 1));
+      node.rotation = effect?.rotation ?? 0;
+      node.x = at.current + (effect?.x ?? 0);
+      node.y = surfaceAt(at.current) + 4 + lane.dy + (effect?.y ?? 0);
+      node.visible = (isFocused || sameRoom(roomAt(at.current), scene.room)) && at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
       if (!node.visible) return;
     }
 
@@ -396,16 +419,21 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     }
     if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
+    updateSpriteTarget(interactionId, art.current, HERO_HEIGHT * lane.scale, HERO_HEIGHT * lane.scale * .7);
+    updateEnvironmentTarget(interactionId, { label: `Saluer ${player.name}` });
+    const greetingProgress = reactionProgress(interaction.current);
+    const greeting = !moving && actionTimer.current <= 0 && greetingProgress < 1;
     const knocked = moving && gait === "knockback" && legIndex === 0;
     const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : knocked ? "hurt" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
-      : "idle");
-    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : 1 - actionTimer.current / actionDuration.current;
+      : greeting ? "celebrate" : "idle");
+    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : greeting ? greetingProgress : 1 - actionTimer.current / actionDuration.current;
     const frame = characterFrame(character.id, motion, scene.reducedMotion ? 0 : elapsed.current, progress);
     if (art.current && poses) art.current.texture = poses[frame];
 
     const body = rig.current;
     if (body) {
+      const breath = !moving && !scene.reducedMotion ? Math.sin(phase.current * 1.4) * 0.012 : 0;
       body.y = -hop - speciesLift;
       // Électrocuté : le personnage part en arrière et tremble.
       // A knocked-back hero tilts away from the blow; a sprinter leans into the run.
@@ -416,14 +444,14 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
         character.id === "skater" ? lean * 0.6 :
         stun.current > 0 && !moving
           ? Math.sin(stun.current * 24) * 0.08 * stun.current
-          : slopeAt(at.current) * 0.5 + lean +
+          : slopeAt(at.current) * 0.5 + lean + (!moving ? Math.sin(phase.current * 0.7) * 0.015 : 0) +
             (moving && gait === "trot" ? Math.sin(phase.current) * 0.03 : 0) +
             (actionKind.current === "candidature" ? Math.sin(actionTimer.current / actionDuration.current * Math.PI) * -0.08 : 0);
-      body.scale.y = 1 - squash;
+      body.scale.y = 1 - squash + breath;
       // Animated sheets face right; static fallbacks declare their native direction.
       // Pushed back, a hero keeps facing the road ahead.
       const facing = animation ? poseFacing(character.id, frame) : staticCharacterFacing(character.id);
-      body.scale.x = facing * (moving && gait !== "knockback" ? lastDirection.current : 1) * (1 + squash * 0.6);
+      body.scale.x = facing * (moving && gait !== "knockback" ? lastDirection.current : 1) * (1 + squash * 0.6 - breath * 0.45);
     }
   }});
 

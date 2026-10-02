@@ -7,6 +7,7 @@ import GameCanvas from "@/components/game/GameCanvas";
 import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
+import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
 import { retainTextures } from "@/components/game/textures";
@@ -25,6 +26,7 @@ import {
   CompactLeaderboard,
   LeaderboardOverlay,
 } from "@/components/hud/Leaderboard";
+import { Welcome, hasSeenWelcome, rememberWelcome } from "@/components/hud/Welcome";
 import { QuestHud } from "@/components/hud/QuestHud";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
@@ -32,7 +34,9 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { startMusic, steerMusic } from "@/lib/client/music";
+import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
+import { interiorAt } from "@/lib/game/decor";
+import { laneFor } from "@/components/game/lanes";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { JourneyMap } from "@/components/hud/JourneyMap";
@@ -45,13 +49,14 @@ import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
-import { leanIn, leanOut, scene, worldToScreen } from "@/components/game/scene";
+import { leanIn, leanOut, markMotion, scene } from "@/components/game/scene";
 import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
 import { weeklyStreak } from "@/lib/game/streak";
 import { PowerArtwork } from "@/components/hud/Artwork";
+import { groupDecor } from "@/lib/game/decor";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
 import Link from "next/link";
@@ -65,7 +70,7 @@ import {
 import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
 import { MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
-import { JOURNEY_TARGET, POINTS, STEPS_PER_LEVEL } from "@/lib/config";
+import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import {
   BIOMES,
@@ -111,7 +116,7 @@ function forcedTale() {
 const REACTION_KINDS = CHOREOGRAPHIES;
 
 const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
-  shot: "cocktail",
+  shot: "shotVolley",
   feuSacré: "fireCurse",
   fienteDragon: "dragonDrop",
   paperasse: "paperStorm",
@@ -119,11 +124,12 @@ const POWER_EFFECT_FOR: Record<PowerKind, EffectKind> = {
 };
 
 const DEV_BUILD = process.env.NODE_ENV === "development";
-const DEV_VIEWPOINTS = BIOMES.slice(0, -1).map((biome, index) => ({
+const DEV_ENCOUNTERS = DEV_BUILD ? [...environmentSites(0, WORLD_LENGTH, 1), ...environmentSites(0, WORLD_LENGTH, 0.76)].filter((site, index, sites) => sites.findIndex(other => other.kind === site.kind) === index) : [];
+const DEV_VIEWPOINTS = [...BIOMES.slice(0, -1).map((biome, index) => ({
   id: `${biome.id}-${BIOMES[index + 1].id}`,
   label: `${biome.short}→${BIOMES[index + 1].short}`,
   progress: biome.to,
-}));
+})), { id: "forest-clearing", label: "Clairière", progress: 0.22 }, { id: "dragon-nest", label: "Nid du dragon", progress: 0.13 }];
 
 interface MiniGameOffer {
   attemptId: string;
@@ -187,17 +193,21 @@ export function Game({ slug = null }: { slug?: string | null }) {
     removePlayer,
   } = useGame(mode);
 
+  const decorDay = zurichDay();
+  const decor = useMemo(() => groupDecor({ players, events, daily, day: decorDay, month: monthKeyNow }), [players, events, daily, decorDay, monthKeyNow]);
+
   const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
   const [claiming, setClaiming] = useState<string | null>(null);
   // This component never renders on the server, so the origin is known at once.
   const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome());
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
   const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
-  const [devMiniGame, setDevMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
+  const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
@@ -230,6 +240,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     return () => window.clearTimeout(timer);
   }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
+  const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
   useEffect(() => warmUpAudio(), []);
@@ -253,6 +264,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     worldX: number;
     revision: number;
   } | null>(null);
+  const [devAtmosphere, setDevAtmosphere] = useState(true);
   const shownCasts = useRef(new Set<string>());
   // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
   const [dailySheetOpen, setDailySheetOpen] = useState(false);
@@ -263,7 +275,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const todayGame = useMemo(() => dailyChallenge(today), [today]);
   const [dailyOpen, setDailyOpen] = useState(false);
   const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
-  // Discreet music follows the hero's land and steps back under a mini-game.
+  // The selection theme gives way to the adventure, then follows the hero's land.
   useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const pendingChestEffect = useRef<Effect | null>(null);
@@ -285,15 +297,21 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
+  useEffect(() => {
+    if (loaded) setMusicPhase(identity ? "adventure" : "intro");
+  }, [loaded, identity]);
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
     (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
   // First an invitation card, then the game itself once the player accepts.
-  const inviteVisible = Boolean(!devMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
-  const miniGameVisible = Boolean(devMiniGame) || (miniGameReady && !inviteVisible);
-  const musicLand = me ? biomeAt(worldXFor(me.position)).id : "plaine";
-  useEffect(() => steerMusic(musicLand, miniGameVisible || dailyOpen), [musicLand, miniGameVisible, dailyOpen]);
+  const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
+  const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
+  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen), [miniGameVisible, dailyOpen]);
+  useEffect(() => {
+    scene.momentActive = momentActive || miniGameVisible || dailyOpen;
+    return () => { scene.momentActive = false; };
+  }, [momentActive, miniGameVisible, dailyOpen]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
@@ -528,6 +546,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
+      setObservedPlayerId(null);
+      scene.pan = 0;
+      scene.exploreCenter = null;
 
       const { event, offer, chestGame } = addEvent(me.id, kind);
       if (!event) {
@@ -561,7 +582,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
           type: "action",
           kind,
           steps: stepsFor(kind),
-          points: POINTS[kind],
           progress:
             kind === "embauche" ? 1 : (afterSteps > 0 ? ((afterSteps - 1) % JOURNEY_TARGET + 1) / JOURNEY_TARGET : 0),
           place: afterZone.name,
@@ -586,7 +606,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       setEffects(previous => [...previous, ...queued]);
 
-      // The moment: lean in, impact, points flying to their counter, then the walk.
+      // The moment: lean in, impact, then the walk.
       sfx.press();
       const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
       const { impact, duration } = reactionTiming(reactionKind);
@@ -596,17 +616,20 @@ export function Game({ slug = null }: { slug?: string | null }) {
       const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
       leanIn(legendary ? 1.14 : 1.08, 0.42);
       setMomentActive(true);
-      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 }, points: { delay: impact + 1500, duration: 300 } });
+      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
       if (legendary) moment.cue({ type: "letterbox", ms: duration });
       schedule(impact, () => {
         moment.cue({ type: "flash", ...FLASH[kind] });
-        const hero = scene.heroes.get(me.id) ?? origin;
-        // Points rise from the hero's shoulder, inside the visible band, then fly to their counter.
-        if (POINTS[kind] !== 0) moment.cue({ type: "points", value: POINTS[kind], from: worldToScreen(hero.x - 70, hero.y - 130) });
       });
       pendingTale.current = forcedTale() ?? taleFor(event);
-      pendingBanner.current = beforeZone.id !== afterZone.id
+      const laneDx = laneFor(meIndex).dx;
+      const beforeRoom = interiorAt(worldXFor(me.position) + laneDx);
+      const afterRoom = interiorAt(worldXFor(afterPosition) + laneDx);
+      pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
+        ? { kicker: "Vous entrez", title: afterRoom.name }
+        : beforeZone.id !== afterZone.id
         ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
+        : beforeRoom && !afterRoom ? { kicker: "De retour dehors", title: afterZone.name }
         : null;
       lastAction.current = kind;
 
@@ -662,6 +685,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleCast = useCallback(
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
+      setObservedPlayerId(null);
+      scene.pan = 0;
+      scene.exploreCenter = null;
       const targetIndex = players.findIndex((player) => player.id === targetId);
       const target = players[targetIndex];
       if (!target) return;
@@ -672,7 +698,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       focusTimeout.current = window.setTimeout(() => {
         setEffectFocusId(null);
         focusTimeout.current = null;
-      }, 3600);
+      }, power.kind === "fienteDragon" ? 7000 : 4000);
       setEffects((previous) => [
         ...previous,
         {
@@ -683,17 +709,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           loud: true,
         },
       ]);
-      setNotice({
-        title:
-          power.kind === "shot"
-            ? `Shot envoyé à ${target.name}`
-            : `Farce lancée sur ${target.name}`,
-        body:
-          power.kind === "shot"
-            ? "Sa dette apparaît dans le classement et à sa prochaine ouverture."
-            : "Tu vois l’effet maintenant ; la victime le reverra à sa prochaine ouverture.",
-        powerKind: power.kind,
-      });
+
     },
     [castPower, me, players],
   );
@@ -702,6 +718,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
+    setObservedPlayerId(null);
+    scene.pan = 0;
+    scene.exploreCenter = null;
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
@@ -719,6 +738,18 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleDevExplore = useCallback(() => {
     setDevExplore((active) => !active);
   }, []);
+
+  const handleLocatePlayer = useCallback((id: string) => {
+    if (!players.some(player => player.id === id)) return;
+    if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
+    focusTimeout.current = null;
+    setEffectFocusId(null);
+    setObservedPlayerId(id);
+    setRegisterOpen(false);
+    scene.pan = 0;
+    scene.exploreCenter = null;
+    markMotion();
+  }, [players]);
 
   const handleDevBiome = useCallback((from: number, to: number) => {
     setDevExplore(true);
@@ -746,6 +777,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setEffects([]);
     setActionFeedback(null);
     setEffectFocusId(null);
+    setObservedPlayerId(null);
   }, []);
 
   const enter = useCallback((playerId: string) => {
@@ -806,18 +838,27 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        atmosphere={DEV_BUILD ? devAtmosphere : true}
+        onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
         onSceneReady={handleSceneReady}
-        paused={registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
         players={players}
+        decor={decor}
         meId={identity}
-        focusPlayerId={effectFocusId}
+        focusPlayerId={effectFocusId ?? observedPlayerId}
+        onReturnToMe={() => {
+          if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
+          focusTimeout.current = null;
+          setEffectFocusId(null);
+          setObservedPlayerId(null);
+        }}
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
-        freeCamera={DEV_BUILD && devExplore}
+        freeCamera={true}
         devCameraTarget={devCameraTarget}
       />
 
@@ -839,7 +880,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
           </button>
           {devExplore ? (
             <nav className="dev-explorer__biomes" aria-label="Biomes de test">
+              <select aria-label="Rencontre de test" value="" onChange={event => { if (event.target.value) { const progress = Number(event.target.value) / WORLD_LENGTH; handleDevBiome(progress, progress); } }}>
+                <option value="">Rencontre de décor…</option>
+                {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
+              </select>
               <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
+              <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>Lumière et brume</button>
               <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
                 {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
               </select>
@@ -847,16 +893,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 <option value="idle">Repos</option><option value="walk">Marche</option><option value="send">Lettre</option><option value="hurt">Réaction</option><option value="celebrate">Victoire</option>
               </select>
               <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
-                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["shotVolley", "Gage"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
-              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setDevMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
+              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
                 <option value="">Mini-jeu (entraînement)…</option>
                 {Object.values(MINI_GAMES).map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
               </select>
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
                 const x = devEffect === "chest" ? at + 110 : at;
-                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
+                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
               }}>Tester l’effet</button>
               {BIOMES.map((biome) => (
                 <button
@@ -887,7 +933,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={registerOpen} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
+              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
               <div className="hud-controls">
                 <DailyButton kind={todayGame.kind} runs={todayRuns} meId={identity}
                   onPlay={() => { if (!me || awaitingTravel || miniGameOffer || rewardMoments.length) return; startDaily(me.id, today, todayGame.kind); setDailyOpen(true); }}
@@ -899,6 +945,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
+                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => setWelcomeOpen(true)}>Aide</button>
               </div>
             </div>
             <CompactLeaderboard
@@ -906,6 +953,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
               monthStandings={monthStandings}
               monthKeyNow={monthKeyNow}
               meId={identity}
+              observedId={observedPlayerId}
+              onLocate={handleLocatePlayer}
               onOpen={() => setRegisterOpen(true)}
             />
           </header>
@@ -917,11 +966,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
               canUndo={canUndo}
               hired={Boolean(me.hiredAt)}
               locked={
-                registerOpen ||
+                welcomeOpen || registerOpen ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
-                devMiniGame !== null ||
+                practiceMiniGame !== null ||
                 awaitingTravel ||
                 shotInbox !== null
               }
@@ -943,6 +992,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
+      {me && sceneReady && welcomeOpen ? <Welcome onClose={() => { rememberWelcome(); setWelcomeOpen(false); }} /> : null}
+
       {registerOpen ? (
         <LeaderboardOverlay
           players={players}
@@ -955,7 +1006,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
           meId={identity}
           groupName={groupName}
           inviteUrl={inviteUrl}
-          map={<JourneyMap players={players} meId={identity} />}
+          map={<JourneyMap players={players} meId={identity} onLocate={handleLocatePlayer} />}
+          onLocate={handleLocatePlayer}
           onAddPlayer={store ? null : addPlayer}
           onRemovePlayer={removePlayer}
           onChangeIdentity={handleChangeIdentity}
@@ -971,11 +1023,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
         />
       ) : null}
 
-      {devMiniGame ? <MiniGame key={devMiniGame.seed} kind={devMiniGame.kind} seedId={devMiniGame.seed} practice onResolve={() => {}} onDone={() => setDevMiniGame(null)} /> :
+      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => {}} onDone={() => setPracticeMiniGame(null)} /> :
         inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)}
           onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
           onPass={handlePassMiniGame} /> :
-        miniGameVisible && miniGameOffer ? <MiniGame key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
+        miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
           record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
 
       {shotInbox ? (

@@ -70,6 +70,7 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
 export const ACTION_KEYS = new Set([" ", "Spacebar", "Enter", "ArrowUp"]);
 
 export interface MiniGameProps {
+  characterId?: string;
   /** Seeds the course, so a saved attempt always shows the same one. */
   seedId: string;
   onResolve: (result: "won" | "lost" | "skipped", score?: number) => void;

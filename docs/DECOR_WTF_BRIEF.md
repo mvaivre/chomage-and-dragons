@@ -177,3 +177,72 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 - Un court récapitulatif dans ce fichier, section « Livré », avec les chemins, tailles
   et toute limite rencontrée (texte parasite, raccord imparfait, pose ratée), pour que
   l'intégration sache quoi corriger.
+
+## Livré
+
+### Révision : portes et accueil (25 septembre 2026)
+
+La demande suivante remplace les raccords en coupe par des scènes séparées sous
+fondu. Nouvelles découpes dans `public/art/world-v3/decor/` : `exterior-orp.webp`,
+`exterior-factory.webp` et `interior-door.webp`. Les deux anciennes façades en coupe
+sont retirées. Total actuel : 26 WebP, 5 527 554 octets. Les sources et prompts exacts
+sont dans `scene-door-prompts.json` ; les captures finales, dans
+`decor-previews/doors-final/` et `decor-previews/welcome-final/`.
+Les points sont supprimés au profit des pas ; règles, migration par relecture du
+journal et validation des portes sont détaillées dans [SCENE_DOORS.md](SCENE_DOORS.md).
+
+
+### Illustrations A–D
+
+25 WebP et leurs JSON dans `public/art/world-v3/decor/`, **5 716 692 octets** au total
+(plafond : 6 000 000). Chaque sortie possède sa planche-contact PNG dans
+`docs/decor-previews/`. Les prompts exacts, références jointes, sources retenues et
+commandes d’import sont dans `docs/decor-prompts.json`.
+
+| Groupe | Sorties | Dimensions | Poids WebP |
+| --- | --- | --- | ---: |
+| A | `signs` | 4 × 3 cellules de 384², base 372 | 459 514 o |
+| B | `npc-{hype,recruiters,afterlife,orp,factory}` | 4 × 2 cellules de 256 × 320, base 312 | 1 030 542 o |
+| C | 8 `setpiece-*` + manivelle | largeur 1536 ; cascade/échelle 1024 × 1536 ; manivelle 512² | 1 451 018 o |
+| D ORP | mur, sol, plafond, façade, accessoires | formats du brief ci-dessus | 1 350 990 o |
+| D usine | mur, sol, plafond, façade, accessoires | formats du brief ci-dessus | 1 424 628 o |
+
+Les rectangles de lettrage sont mesurés sur les images finales. Les JSON conservent
+les rectangles supplémentaires des trois flèches et des trois feuilles. Les pivots
+de la manivelle, de la presse et de la roue sont renseignés. Le script d’import
+unique accepte les grilles, bases, dimensions, pivots et raccords génériques.
+
+Limites et traitements :
+
+- L’outil accepte cinq références. Pour les intérieurs, les deux paysages originaux
+  sont réunis sans retouche dans `style-landscapes.png` ; les trois autres références
+  et la taverne sont jointes séparément. Les six références demandées sont présentes.
+- Quelques glyphes de sommeil détachés ont été écartés lors de la séparation des
+  îlots. Aucun lettrage de jeu n’est peint dans les images.
+- Les tuiles emploient un filtre médian de 3 px, une palette de 12 couleurs et un
+  encodage sans perte pour tenir le budget et garder les colonnes de raccord
+  strictement identiques après décodage. Leur grain est donc plus discret que celui
+  des découpes, encodées en qualité 92. Les bases, gouttières, cellules et raccords
+  sont contrôlés automatiquement.
+
+### Intégration des quatre lots
+
+- `src/lib/game/decor.ts` : 86 refus, autres catégories de gags, 43 arrêts par tour,
+  espacement de 600 unités, réservations des transitions et intérieurs. Hommages
+  aux ami·es, huit refus récents, couronne mensuelle, défi quotidien et engagé·es
+  proviennent de l’état du groupe ; les positions restent communes à tous.
+- `Decor.tsx`, `DecorNpc.tsx`, `DecorSetpiece.tsx` et `decor-textures.ts` : panneaux
+  illustrés avec secours procédural, foule des héros existants, dix figurants,
+  huit grandes scènes, réactions de passage, manivelle et mirage. Textes précuits
+  avec les polices du jeu, cache partagé et montage limité au champ proche.
+- `Interiors.tsx` et `InteriorMask.tsx` : deux salles de onze pas dans la plaine et
+  les bois, façades en miroir, sol et plafond, guichet, écran d’appel, machines et
+  tapis roulants. Fenêtres liées à l’heure, éclairage intérieur, musique et bannière
+  propres. Météo et premier plan extérieur exclus des salles.
+- `DecorEvents.tsx` : CV au vent, pigeon de retour, nuage « NON » et enseigne nocturne.
+  Les événements rares cèdent la place aux actions ; les mouvements décoratifs
+  respectent la préférence de réduction des animations.
+
+Les paysages lointains existants sont conservés. Le protocole, les captures
+représentatives et les mesures sont référencés dans `docs/RENDERING.md` et
+`docs/decor-previews/README.md`.

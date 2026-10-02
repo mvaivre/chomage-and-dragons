@@ -1,0 +1,19 @@
+{
+  "label": "clean-knight",
+  "captures": 1,
+  "steps": [
+    20
+  ],
+  "sizes": [
+    [
+      1920,
+      1080
+    ]
+  ],
+  "hours": [
+    22
+  ],
+  "character": "chevalier",
+  "results": [],
+  "errors": []
+}

@@ -97,7 +97,7 @@ function Roster({
   canForge: boolean;
 }) {
   const sorted = useMemo(
-    () => [...players].sort((a, b) => b.score - a.score),
+    () => [...players].sort((a, b) => b.journeySteps - a.journeySteps),
     [players],
   );
 
@@ -129,7 +129,7 @@ function Roster({
                     Niveau {player.level}
                   </span>
                   <span className="font-display text-xl text-gold-light">
-                    {player.score}
+                    {player.journeySteps} pas
                   </span>
                 </span>
               </button>

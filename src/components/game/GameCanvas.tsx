@@ -4,20 +4,34 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
+import { Dragons, DragonEncounter } from "./Dragons";
+import { Forest } from "./Forest";
+import { EnvironmentLife } from "./EnvironmentLife";
+import { EnvironmentOverlay } from "./EnvironmentOverlay";
+import { Decor } from "./Decor";
+import { DecorEvents } from "./DecorEvents";
+import type { GroupDecor } from "@/lib/game/decor";
+import { setMusicPlace } from "@/lib/client/music";
+import { Interiors, ExteriorBuildings } from "./Interiors";
+import { Outdoors, SceneDoors } from "./SceneDoors";
+import { roomAt } from "@/lib/game/doors";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
+  biomeAt,
   worldXFor,
   WORLD_LENGTH,
+  JOURNEY_SURFACE_Y,
 } from "@/lib/game/world";
 import { depthLight, markMotion, resetScene, scene } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
+import { Atmosphere, AtmosphereClock } from "./Atmosphere";
 import {
   BiomeArtLayer,
-  GROUND_Y,
   GroundLayer,
+  FlatJourneyMarkers,
   LandscapeBase,
   MidgroundLayer,
   PaperMotes,
@@ -33,11 +47,16 @@ import { frameComposition, parallaxX, renderResolution } from "./projection";
 import "./extendPixi";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
-const REST_SURFACE = GROUND_Y;
+const REST_SURFACE = JOURNEY_SURFACE_Y;
 
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
+
+function MusicPosition() {
+  useTick(() => setMusicPlace(scene.room?.id ?? biomeAt(scene.focus).id));
+  return null;
+}
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -68,6 +87,7 @@ function CameraRig({
       resetScene();
       scene.focus = initialFocus;
       scene.targetFocus = initialFocus;
+      scene.room = roomAt(initialFocus);
     }
 
     const { camera } = scene;
@@ -75,24 +95,24 @@ function CameraRig({
     const { width, height } = app.screen;
     if (width <= 0 || height <= 0) return;
 
-    const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, GROUND_Y);
+    const composition = frameComposition(width, height, scene.topInset, scene.bottomInset, JOURNEY_SURFACE_Y);
     // The moment of an action leans in: zoom about the ground line, hero nearer the centre.
     const lean = scene.reducedMotion ? 1 : Math.min(1, dt * 3.2);
     scene.zoom += (scene.zoomTarget - scene.zoom) * lean;
     scene.anchor += (scene.anchorTarget - scene.anchor) * lean;
     if (Math.abs(scene.zoomTarget - scene.zoom) > 0.002) markMotion();
-    const groundScreenY = composition.screenOffsetY + GROUND_Y * composition.scale;
+    const groundScreenY = composition.screenOffsetY + JOURNEY_SURFACE_Y * composition.scale;
     camera.scale = composition.scale * scene.zoom;
     camera.viewW = width / camera.scale;
     camera.viewH = height / camera.scale;
-    camera.screenOffsetY = groundScreenY - GROUND_Y * camera.scale;
+    camera.screenOffsetY = groundScreenY - JOURNEY_SURFACE_Y * camera.scale;
 
     // Le paysage se découvre avec le personnage au lieu de téléporter le regard au
     // résultat final. Une exponentielle garde la même sensation pour +1 et +10 pas.
     const focusEase = 1 - Math.exp(-scene.focusSpeed * dt);
     // Walking heroes set a high focus speed: then the focus is the hero itself, and only
     // the camera's own follow smooths the ride, so a long run to the tavern stays framed.
-    scene.focus = scene.reducedMotion || scene.focusSpeed >= 10 ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
+    if (!scene.doorTransition || scene.doorTransition.switched) scene.focus = scene.reducedMotion || scene.focusSpeed >= 10 ? scene.targetFocus : scene.focus + (scene.targetFocus - scene.focus) * focusEase;
 
     // Le regard revient tout seul sur le personnage dès que le joueur lâche.
     if (!freeCamera && !scene.dragging && scene.pan !== 0) {
@@ -110,7 +130,7 @@ function CameraRig({
 
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
-    if (firstFrame || scene.reducedMotion) {
+    if (firstFrame || scene.reducedMotion || scene.doorTransition?.switched) {
       if (camera.x !== clamped || camera.y !== wantedY) markMotion();
       camera.x = clamped;
       camera.y = wantedY;
@@ -178,6 +198,7 @@ function configureRenderer(app: PixiApplication) {
   // Diagnostics only: `?debug` exposes the Pixi application to the console and the tests.
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
+    (window as unknown as { __decorScene?: typeof scene }).__decorScene = scene;
   }
   // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
   scene.lowPower = app.renderer.type === RendererType.CANVAS;
@@ -262,9 +283,11 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  atmosphere: boolean;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
+  decor: GroupDecor;
   meId: string | null;
   focusPlayerId: string | null;
   initialFocus: number;
@@ -278,9 +301,11 @@ interface SceneProps {
 }
 
 function WorldScene({
+  atmosphere,
   onSceneReady,
   paused,
   players,
+  decor,
   meId,
   focusPlayerId,
   initialFocus,
@@ -302,6 +327,9 @@ function WorldScene({
     <RenderLifecycle paused={paused} />
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
+      <MusicPosition />
+      <AtmosphereClock enabled={atmosphere} />
+      <Outdoors>
       <Sky />
 
       <Layer factor={FAR_FACTOR} shade={1.0}>
@@ -315,6 +343,7 @@ function WorldScene({
         />
       </Layer>
 
+      <Atmosphere depth="far" />
       <Layer factor={BACKGROUND_FACTOR} shade={0.88}>
         <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
         <BiomeArtLayer
@@ -326,9 +355,11 @@ function WorldScene({
         />
       </Layer>
 
+      <Atmosphere depth="air" />
       <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
+        <EnvironmentLife factor={MIDGROUND_FACTOR} />
       </Layer>
 
       <Layer factor={1} shade={0.62}>
@@ -338,18 +369,32 @@ function WorldScene({
       <PaperMotes />
 
       <Layer factor={1} shade={0.5}>
-        <GroundLayer earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+        <GroundLayer />
       </Layer>
+      <Atmosphere depth="ground" />
 
       <Layer factor={1} shade={0.6}>
+        <Forest />
         <GroundDwellers />
       </Layer>
 
+      <Layer factor={1} shade={0.3}><ExteriorBuildings /></Layer>
+      </Outdoors>
+
+      <Layer factor={1} shade={0.06}>
+        <Interiors />
+      </Layer>
+
+      <Layer factor={1} shade={0.3}>
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
+        <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
+      </Layer>
+
       <Layer factor={NEAR_PLANE.factor} shade={0.55} pinned>
-        <Foreground plane={NEAR_PLANE} />
+        <Outdoors><Foreground plane={NEAR_PLANE} /></Outdoors>
       </Layer>
       <Layer factor={CLOSE_PLANE.factor} shade={0.7} pinned>
-        <Foreground plane={CLOSE_PLANE} />
+        <Outdoors><Foreground plane={CLOSE_PLANE} /></Outdoors>
       </Layer>
 
       <Layer factor={1} shade={0.14}>
@@ -388,10 +433,11 @@ function WorldScene({
             />
           );
         })}
-        <AmbientWeather />
+        <Outdoors><AmbientWeather /></Outdoors>
         <FxLayer />
       </Layer>
     </CameraRig>
+    <SceneDoors />
     </>
   );
 }
@@ -399,9 +445,13 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  atmosphere?: boolean;
+  onReturnToMe?: () => void;
+  onDragonChallenge?: () => void;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
+  decor: GroupDecor;
   meId: string | null;
   /** Cible temporairement suivie pendant une farce, puis null pour revenir à soi. */
   focusPlayerId?: string | null;
@@ -416,9 +466,13 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  atmosphere = true,
+  onReturnToMe,
+  onDragonChallenge,
   onSceneReady,
   paused,
   players,
+  decor,
   meId,
   focusPlayerId = null,
   effects,
@@ -435,7 +489,7 @@ function GameCanvas({
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
     players.find((player) => player.id === focusPlayerId) ?? me;
-  const focus = focusPlayer ? worldXFor(focusPlayer.position) : 0;
+  const focus = focusPlayer ? worldXFor(focusPlayer.position) + laneFor(players.findIndex(p => p.id === focusPlayer.id)).dx : 0;
 
   useEffect(() => {
     if (!focusPlayer) return;
@@ -454,8 +508,7 @@ function GameCanvas({
     scene.pan = 0;
   }, [devCameraTarget, freeCamera]);
 
-  // Glisser à la souris ou au doigt décale la vue, qui revient ensuite d'elle-même
-  // sur le personnage : on peut aller voir le peloton sans perdre son repère.
+  // Le regard reste où on le laisse ; seul le bouton de retour recentre la vue.
   useEffect(() => {
     const root = host.current;
     if (!root) return;
@@ -464,6 +517,7 @@ function GameCanvas({
     const measure = () => {
       scene.bottomInset = dock ? Math.max(0, root.getBoundingClientRect().bottom - dock.getBoundingClientRect().top) : 80;
       scene.topInset = top ? Math.max(0, top.getBoundingClientRect().bottom - root.getBoundingClientRect().top) : 0;
+      root.style.setProperty("--world-hud-top", `${scene.topInset + 10}px`);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(root);
@@ -518,6 +572,14 @@ function GameCanvas({
       onPointerCancel={onPointerUp}
       onLostPointerCapture={onPointerUp}
     >
+      {meId && !paused ? <button type="button" className="world-return"
+        onPointerDown={event => event.stopPropagation()}
+        onClick={() => { scene.pan = 0; scene.exploreCenter = null; onReturnToMe?.(); markMotion(); }}
+        title="Glisse le paysage ou utilise la molette pour explorer">
+        ↶ Retrouver mon personnage
+      </button> : null}
+      <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
+      <EnvironmentOverlay meId={meId} paused={paused} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}
@@ -527,9 +589,11 @@ function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          atmosphere={atmosphere}
           onSceneReady={onSceneReady}
           paused={paused}
           players={players}
+          decor={decor}
           meId={meId}
           focusPlayerId={focusPlayer?.id ?? null}
           initialFocus={focus}

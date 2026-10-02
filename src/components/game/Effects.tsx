@@ -6,6 +6,7 @@ import { sfx } from "@/lib/client/sound";
 import { ACTION_ART } from "@/lib/game/art";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
+import { DragonEffect } from "./DragonEffect";
 import { JourneyChest } from "./JourneyChest";
 import { fx } from "./fx";
 import { CHOREOGRAPHIES, type ImpactContext, type ReactionKind } from "./reactions";
@@ -50,7 +51,7 @@ function Reaction({ kind, origin, playerId, loud = false, onDone }: EffectProps 
     copies?: Array<{ dx: number; dy: number; scale: number; delay: number }>;
     trail?: { preset: Parameters<typeof fx.burst>[0]["preset"]; every: number; count?: number };
     bubble?: string;
-    prop?: "carpet" | "crater" | "gnomes" | "ropes";
+    prop?: "carpet" | "crater" | "gnomes" | "ropes" | "sigil";
     during?: (ctx: ImpactContext, since: number, state: Record<string, number>) => void;
     label?: string;
     labelColor?: number;
@@ -222,7 +223,16 @@ function Reaction({ kind, origin, playerId, loud = false, onDone }: EffectProps 
     if (g && spot) {
       g.clear();
       const fade = 1 - clamp((t - (c.duration - 600)) / 600);
-      if (c.prop === "carpet") {
+      if (c.prop === "sigil") {
+        const glow = fade * clamp(since / 250);
+        g.ellipse(follow.current.x, follow.current.y + 3, 92, 16).stroke({ color: 0xffa637, width: 4, alpha: glow * 0.8 });
+        g.ellipse(follow.current.x, follow.current.y + 3, 70, 12).stroke({ color: 0xffe8a3, width: 2, alpha: glow });
+        for (let rune = 0; rune < 8; rune++) {
+          const angle = rune * Math.PI / 4 + (calm ? 0 : t / 1400);
+          const px = follow.current.x + Math.cos(angle) * 81, py = follow.current.y + 3 + Math.sin(angle) * 14;
+          g.moveTo(px - 4, py - 4).lineTo(px, py + 2).lineTo(px + 4, py - 4).stroke({ color: 0xffedb4, width: 2, alpha: glow });
+        }
+      } else if (c.prop === "carpet") {
         // Unrolls behind the hero, over the three steps an interview costs.
         const length = STEP_LENGTH * 3 * easeOutCubic(clamp(since / 900));
         g.rect(spot.x - length, spot.feet - 2, length, 34).fill({ color: 0x5a1216, alpha: 0.5 * fade });
@@ -300,6 +310,7 @@ function ChestEffect({ origin, loud = true, onDone }: EffectProps) {
 
 /** Any effect of the scene: a reaction by its choreography, or the chest. */
 export function EffectView({ kind, ...props }: EffectProps & { kind: EffectKind }) {
+  if (kind === "dragonDrop") return <DragonEffect {...props} />;
   if (kind === "chest") return <ChestEffect {...props} />;
   return <Reaction {...props} kind={kind} />;
 }

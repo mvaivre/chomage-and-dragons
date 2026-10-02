@@ -1,0 +1,252 @@
+{
+  "toolMode": "Built-in ImageGen; no CLI fallback",
+  "references": [
+    "public/art/world-v3/runtime/plaine-mid.webp",
+    "public/art/world-v3/runtime/foret-back.webp",
+    "public/art/world-v3/animations/gnomes.webp",
+    "public/art/world-v3/animations/tavern-life.webp",
+    "public/art/world-v3/characters/skater.webp"
+  ],
+  "assets": [
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-9df16480-531e-4ca4-939a-f0a27fa4d9d8.png",
+      "output": "public/art/world-v3/decor/signs.webp",
+      "compileMode": "atlas --columns=4 --rows=3 --cell-width=384 --cell-height=384 --baseline=372 --islands",
+      "prompt": "Use case: stylized-concept. Production asset signs.webp for a side-view 2D game. The five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nCreate a single sprite sheet, EXACTLY 4 columns by 3 rows, total 1536 × 1152 pixels, cells 384 × 384. Twelve different isolated blank signs; ample transparent gutters, aligned bases at y=372 within each cell. Each complete object fits inside its cell with at least 14px transparent margin. True RGBA transparent background, no background paint, no checkerboard, no ground shadows, no grid or frame. Side view, each blank writing surface flat pale cream and FRONT FACING, no strong perspective, extremely generous room for game lettering. NO TEXT, no letters, numbers, logos or pictograms anywhere.\nIn reading order:\n1 wooden direction pole with THREE blank arrows pointing left, right, right.\n2 hanging blank rectangular wooden sign on its own gallows post.\n3 large noticeboard on two posts holding three pinned blank parchment sheets.\n4 triangular danger sign with red border and blank white centre on a crooked post.\n5 circular prohibition sign with red border and blank white centre on a post.\n6 blank wanted parchment nailed to a post.\n7 stone milestone with blank pale face.\n8 round-topped blank gravestone with a tiny grass tuft at the foot.\n9 wooden grave cross with wide blank crossbar.\n10 blank cardboard protest placard on a stick planted on the baseline.\n11 small noticeboard on two posts with one blank torn-corner poster.\n12 wooden A-frame pavement board, three-quarter frame but broad readable blank front face.\nPreserve the cartoon ink character of the reference assets, not smooth vector graphics. No people. Do not put text into the asset."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-29a1f459-eee0-421b-8e55-c30d57e2f920.png",
+      "output": "public/art/world-v3/decor/npc-hype.webp",
+      "compileMode": "atlas --islands",
+      "prompt": "Use case: stylized-concept. Create the production NPC sprite sheet npc-hype for our side-view game. The five attached images are style references, not targets. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEXACT 4 columns × 2 rows, equally sized cells, eight full-body poses. Intended import cells 256 × 320, feet on y=312. All face RIGHT, identical scale and footline within each row, big transparent gutters. True RGBA transparency. NO letters, numbers, logos, painted checkerboard, ground shadows, captions, borders or grid.\nTop row, SAME medieval personal development coach: loud muted ochre tunic, improbably white smile, headband. Four poses: 1 arms spread preaching, 2 finger pointing skyward, 3 thumbs up, 4 flexes biceps.\nBottom row, SAME medieval influencer minstrel-jester holding a hand mirror as a phone. Four poses: 1 gestures while talking, 2 selfie in mirror, 3 applauds with mirror still visible, 4 bows in greeting.\nHuman height and tired cartoon facial proportions like skater reference; these are human-sized adults, not tiny gnomes. Entire body and all props visible within every cell, with clean outlines and muted colors."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-9805aeda-64bf-4b1f-ac30-2dc04d98850f.png",
+      "output": "public/art/world-v3/decor/npc-recruiters.webp",
+      "compileMode": "atlas --islands",
+      "prompt": "Use case: stylized-concept. Production side-view 2D game sprite sheet npc-recruiters. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEXACTLY four columns × two rows, eight isolated complete poses. Use 2048 × 1280 canvas, each spacious source cell 512 × 640, intended import 256 × 320 with footline 312. All figures face RIGHT. Identical scale within a row, feet or desk bases on the same horizontal line. Leave at least 30 transparent pixels on EVERY side of every cell; all extended limbs and props must fit. True RGBA transparency around each object, no ground or shadow, no checkerboard, no grid, frames, numbers, lettering or logos.\nTop row: SAME recruiter hidden in the SAME leafy bush; the bush silhouette stays identical. Poses: completely hidden, only eyes visible above leaves, brandishes a briefcase, dives back into bush. Bottom row: SAME stocky human-height HR troll, tie and blank badge. Poses: arms folded; hand extended collecting a toll; shakes head no; presses a stamp into his palm.\nHumans have the height and caricature proportions of the skater reference, not garden gnome proportions. All writing surfaces and papers are blank pale cream. NO painted text. Sharp black rough outlines and muted flat colors."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-48fba4c0-49c9-44ac-aa50-391b2003d385.png",
+      "output": "public/art/world-v3/decor/npc-afterlife.webp",
+      "compileMode": "atlas --islands",
+      "prompt": "Use case: stylized-concept. Production side-view 2D game sprite sheet npc-afterlife. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEXACTLY four columns × two rows, eight isolated complete poses. Use 2048 × 1280 canvas, each spacious source cell 512 × 640, intended import 256 × 320 with footline 312. All figures face RIGHT. Identical scale within a row, feet or desk bases on the same horizontal line. Leave at least 30 transparent pixels on EVERY side of every cell; all extended limbs and props must fit. True RGBA transparency around each object, no ground or shadow, no checkerboard, no grid, frames, numbers, lettering or logos.\nTop row: SAME recruiter ghost, fully opaque white sheet, tie, briefcase; alpha will be animated by the game. Poses: floats; waves; points; lower half of sheet frays as it dissipates. Bottom row: SAME skeleton seated at SAME small office desk, desk included in each pose. Poses: still; tilted head; jaw drops; taps bony finger on desk.\nHumans have the height and caricature proportions of the skater reference, not garden gnome proportions. All writing surfaces and papers are blank pale cream. NO painted text. Sharp black rough outlines and muted flat colors."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-0efbc3f2-75fd-4ac8-acaa-2ec1dffd703c.png",
+      "output": "public/art/world-v3/decor/npc-orp.webp",
+      "compileMode": "atlas --islands",
+      "prompt": "Use case: stylized-concept. Production side-view 2D game sprite sheet npc-orp. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEXACTLY four columns × two rows, eight isolated complete poses. Use 2048 × 1280 canvas, each spacious source cell 512 × 640, intended import 256 × 320 with footline 312. All figures face RIGHT. Identical scale within a row, feet or desk bases on the same horizontal line. Leave at least 30 transparent pixels on EVERY side of every cell; all extended limbs and props must fit. True RGBA transparency around each object, no ground or shadow, no checkerboard, no grid, frames, numbers, lettering or logos.\nTop row: SAME ORP clerk, upper body behind SAME counter, counter included to the footline. Poses: stamps; yawns; looks at a tiny unnumbered clock; beckons next person. Bottom row: SAME person seated on SAME waiting-room chair, blank ticket in hand, chair included. Poses: waits; sighs; sleeps head back; looks at ticket.\nHumans have the height and caricature proportions of the skater reference, not garden gnome proportions. All writing surfaces and papers are blank pale cream. NO painted text. Sharp black rough outlines and muted flat colors."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-e3b3606c-c228-4e19-ac4c-80fe8f8d4d23.png",
+      "output": "public/art/world-v3/decor/npc-factory.webp",
+      "compileMode": "atlas --islands",
+      "prompt": "Use case: stylized-concept. Production side-view 2D game sprite sheet npc-factory. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEXACTLY four columns × two rows, eight isolated complete poses. Use 2048 × 1280 canvas, each spacious source cell 512 × 640, intended import 256 × 320 with footline 312. All figures face RIGHT. Identical scale within a row, feet or desk bases on the same horizontal line. Leave at least 30 transparent pixels on EVERY side of every cell; all extended limbs and props must fit. True RGBA transparency around each object, no ground or shadow, no checkerboard, no grid, frames, numbers, lettering or logos.\nTop row: SAME medieval brass CV-sorting robot, monocle scanner. Poses: scans blank sheet; red rejection light glows; stamps blank sheet; rests. Bottom row: SAME tired goblin factory worker. Poses: carries a stack of blank paper; feeds paper into a small chute; wipes forehead; falls asleep standing.\nHumans have the height and caricature proportions of the skater reference, not garden gnome proportions. All writing surfaces and papers are blank pale cream. NO painted text. Sharp black rough outlines and muted flat colors."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-08ac9502-7970-4478-bacc-a7bf0b69d760.png",
+      "output": "public/art/world-v3/decor/setpiece-plaine-scarecrow.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Use case: stylized-concept. Isolated production setpiece setpiece-plaine-scarecrow for side-view 2D game, source 1536 × 1024. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nA scarecrow dressed as a medieval recruiter: floppy jacket, tie, briefcase, weary deadpan face, planted in a tiny field where rolled blank CV parchments grow like cereal ears. One compact isolated scene with only a small oval grass base directly below the object. No sign needed.\nTrue RGBA transparency all around the silhouette. Keep an ample transparent margin and the base of the object near the bottom. Only a tiny ground island immediately under the subject, no landscape extending sideways, no horizon or backdrop. NO ground shadows, checkerboard paint, borders, frames, captions, logos, letters, numbers or painted text. Blank flat cream frontal writing surfaces where specified. Strong instantly readable funny silhouette, sharp ink; quiet absurdity about the recruitment system."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-fbe3c729-5a87-40ad-9757-16367afde71a.png",
+      "output": "public/art/world-v3/decor/setpiece-foret-shredder.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Use case: stylized-concept. Isolated production setpiece setpiece-foret-shredder for side-view 2D game, source 1536 × 1024. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nAn old gnarled tree turned into a medieval wooden CV-shredding machine: big hopper filled with blank letters, visible shredder rollers in the trunk, piles of paper confetti at its roots. On the right side leave a simple round axle socket for a crank, but DO NOT draw the moving crank; it will be a separate asset. One compact small earth base. All paper completely blank.\nTrue RGBA transparency all around the silhouette. Keep an ample transparent margin and the base of the object near the bottom. Only a tiny ground island immediately under the subject, no landscape extending sideways, no horizon or backdrop. NO ground shadows, checkerboard paint, borders, frames, captions, logos, letters, numbers or painted text. Blank flat cream frontal writing surfaces where specified. Strong instantly readable funny silhouette, sharp ink; quiet absurdity about the recruitment system."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-d8682ded-4e65-4e91-ae15-912ea1ee9fb3.png",
+      "output": "public/art/world-v3/decor/setpiece-marais-bottles.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Use case: stylized-concept. Isolated production setpiece setpiece-marais-bottles for side-view 2D game, source 1536 × 1024. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nSeveral corked bottles containing rolled blank follow-up letters, half sunk in mud and reeds; beside them an office briefcase slowly sinking into a tiny patch of marsh. Side view, compact isolated cluster with only a small muddy base. Clearly readable bottles and briefcase, no people.\nTrue RGBA transparency all around the silhouette. Keep an ample transparent margin and the base of the object near the bottom. Only a tiny ground island immediately under the subject, no landscape extending sideways, no horizon or backdrop. NO ground shadows, checkerboard paint, borders, frames, captions, logos, letters, numbers or painted text. Blank flat cream frontal writing surfaces where specified. Strong instantly readable funny silhouette, sharp ink; quiet absurdity about the recruitment system."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-71f87d0a-b79d-425a-b6bd-f8b63f69ea8d.png",
+      "output": "public/art/world-v3/decor/setpiece-pont-toll.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Use case: stylized-concept. Isolated production setpiece setpiece-pont-toll for side-view 2D game, source 1536 × 1024. Five attached images are style references only. Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nA small medieval wooden toll booth, striped barrier raised halfway, large flat front-facing blank cream sign attached to the booth. No troll: the animated troll is a separate sprite. Compact booth with only a tiny stone-and-earth base. No writing on any surface.\nTrue RGBA transparency all around the silhouette. Keep an ample transparent margin and the base of the object near the bottom. Only a tiny ground island immediately under the subject, no landscape extending sideways, no horizon or backdrop. NO ground shadows, checkerboard paint, borders, frames, captions, logos, letters, numbers or painted text. Blank flat cream frontal writing surfaces where specified. Strong instantly readable funny silhouette, sharp ink; quiet absurdity about the recruitment system."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-e1862156-d2fe-44af-9766-8e4bf2e5e3a3.png",
+      "output": "public/art/world-v3/decor/setpiece-cascade-letters.webp",
+      "compileMode": "cutout --output-width=683 --output-height=1024",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production sprite for Chômage & Dragons. All five attached images are style references only.\nA tall slender rocky spur with a waterfall made entirely from individual blank rejection parchment envelopes instead of water, falling into a small basin of letters at its foot. Portrait 1024 × 1536. No symbols or writing.\nTrue transparent RGBA background, no painted background or checkerboard, no glow or ground shadow, no frame, no text, letters, numbers or logos. Side-on view, only a very small grass/earth base. Whole object isolated with generous transparent margin, base near bottom. Crisp ink, muted flat colours."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-0592ba8a-99c1-4e81-9973-03b97e14c6f3.png",
+      "output": "public/art/world-v3/decor/setpiece-montagne-ladder.webp",
+      "compileMode": "cutout --output-width=683 --output-height=1024",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production sprite for Chômage & Dragons. All five attached images are style references only.\nA very tall career ladder leaning against a narrow cliff, many missing rungs, a tiny medieval office hut perched at the very top, one blank flat pale frontal sign at the foot. Portrait 1024 × 1536. Keep the whole tall silhouette visible.\nTrue transparent RGBA background, no painted background or checkerboard, no glow or ground shadow, no frame, no text, letters, numbers or logos. Side-on view, only a very small grass/earth base. Whole object isolated with generous transparent margin, base near bottom. Crisp ink, muted flat colours."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-d22d205b-d899-4639-a599-5176f808d63a.png",
+      "output": "public/art/world-v3/decor/setpiece-desert-mirage.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production sprite for Chômage & Dragons. All five attached images are style references only.\nAn isolated small oasis mirage: two palm trees, a little pool, and a golden office door frame with its closed door standing alone in sand. Landscape 1536 × 1024. Door has a broad completely blank light nameplate. Compact small sand base only.\nTrue transparent RGBA background, no painted background or checkerboard, no glow or ground shadow, no frame, no text, letters, numbers or logos. Side-on view, only a very small grass/earth base. Whole object isolated with generous transparent margin, base near bottom. Crisp ink, muted flat colours."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-fb6690f4-2652-4713-8db8-621da861461f.png",
+      "output": "public/art/world-v3/decor/setpiece-taverne-afterwork.webp",
+      "compileMode": "cutout --output-width=1024 --output-height=683",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production sprite for Chômage & Dragons. All five attached images are style references only.\nAn obligatory afterwork gathering place: a wide blank pale frontal banner stretched between two poles decorated with little pennants; one barrel with exactly two mugs on it below. Landscape 1536 × 1024. Banner must be flat, pale and wide for runtime lettering, and has absolutely no painted lettering or marks.\nTrue transparent RGBA background, no painted background or checkerboard, no glow or ground shadow, no frame, no text, letters, numbers or logos. Side-on view, only a very small grass/earth base. Whole object isolated with generous transparent margin, base near bottom. Crisp ink, muted flat colours."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-1a6c7ca0-35e5-4823-9ae9-04f2eac10790.png",
+      "output": "public/art/world-v3/decor/setpiece-foret-shredder-crank.webp",
+      "compileMode": "cutout --output-width=512 --output-height=512 --pivot-x=192 --pivot-y=206",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nEdit target: FIRST attached image. Other five images are style references. Keep only the iron circular axle hub, bent crank arm, and wooden grip. Completely REMOVE the wooden mounting post, bolts above/below the hub, grass, and ground. Transparent RGBA around the isolated mechanism. Center the circular hub axis precisely at (256,256) in a 512 × 512 output. Crank and grip fully contained with margins. No text, no shadow. It must rotate freely as one mechanical sprite, without a post rotating with it.\nThe two landscapes are combined on attachment 2; all original references remain included."
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-536b47dc-32bb-4627-86c9-bbb12d3c2a7c.png",
+      "output": "public/art/world-v3/decor/interior-orp-wall.webp",
+      "compileMode": "tile --output-width=2048 --output-height=1024 --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 1024. The six attached images are style references only.\nOpaque pale institutional green back wall, straight frontal side-scrolling dollhouse interior. Two small windows at eye level with blurry sky and landscape. Blank pale noticeboards, one large completely blank pale frontal number-call display, an analog clock with hands but no numbers. Thin ceiling fluorescent strips. Below y=860 only baseboard and the beginning of the floor. Flat evenly lit surfaces, no near furniture, no foreground, no front wall. Perfect horizontal repeat; same flat green wall edge both sides.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. Fully opaque edge to edge.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-824357f8-54da-4684-a8de-5c6defc9083b.png",
+      "output": "public/art/world-v3/decor/interior-orp-floor.webp",
+      "compileMode": "tile --output-width=1672 --output-height=361 --trim --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 1672 × 361. The six attached images are style references only.\nA full-bleed opaque horizontal floor strip of worn checkerboard tiles in pale institutional green and cream, shallow side view matching the road-universal game strip. Walkable line at top edge, floor extends down. No walls, no furniture, no side walls, no characters. Repeats horizontally and when mirrored. Both ends have identical tile colours and depth; unobtrusive seams.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. Fully opaque edge to edge.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-de7e9c1c-f77b-4b25-9321-c3e049da4e0e.png",
+      "output": "public/art/world-v3/decor/interior-orp-ceiling.webp",
+      "compileMode": "tile --output-width=2048 --output-height=256 --trim --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 256. The six attached images are style references only.\nA very wide narrow strip of beams and suspended fluorescent lamps for an institutional medieval office ceiling. Transparent RGBA under and around hanging lamps. Flat side view. No walls, no floor, no characters. Horizontal seamless repeat, identical beam at both edges. Entire lamps visible inside the strip.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-d2481170-9c8c-4128-99f5-2c192c5f544b.png",
+      "output": "public/art/world-v3/decor/interior-orp-facade.webp",
+      "compileMode": "cutout --output-width=1536 --output-height=1536",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 1536 × 1536. The six attached images are style references only.\nSide exterior of an austere medieval administrative building, sliced open cleanly along its RIGHT side to reveal a dark cutaway interior. The sliced vertical boundary shows roof, wall and floor cross section. Only left portion of building exists; transparent empty space to the right. Open door at ground level on the path, flags, a short queue lane marked on ground toward door. Broad blank pale frontal sign above the door. No characters. Isolated complete silhouette, small base only, no ground shadow.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ],
+      "supersededBy": "public/art/world-v3/decor/exterior-orp.webp (see scene-door-prompts.json)"
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-6b29c880-53ca-40ff-b748-adf296cb6e7a.png",
+      "output": "public/art/world-v3/decor/interior-orp-props.webp",
+      "compileMode": "atlas --islands --columns=4 --rows=2 --cell-width=512 --cell-height=512 --baseline=496",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. New side-scrolling cutaway interior game asset, 2048 × 1024. The six attached images are style references only.\nA strict sprite sheet, 4 columns by 2 rows, eight isolated props with wide transparent gutters, every base on same line within each cell. Side view, no characters. Row 1 left-to-right: waiting bench of three chairs; ticket dispenser with blank ticket; dying potted plant; medieval brass out-of-order coffee machine with a blank pale frontal plate. Row 2: two queue posts connected by rope; water dispenser; unstable tall pile of folders; empty glass service counter (no clerk). All text surfaces completely blank. No cells touching, no grids, no captions. Designed for import to 512 × 512 cells baseline 496.\nNo painted text, letters, numerals or logos, no checkerboard, no captions, no frame, no cast ground shadows. All lettering areas flat, pale and frontal for game-rendered text. Crisp silhouettes and restrained paper grain. True RGBA transparency, preserve clean alpha.\nAttachment 1 is a combined reference board with both the plain and forest original references; other attachments are gnomes, tavern life, skater and tavern exterior.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-a0ea4a8a-5c9a-40c3-9e37-e5c407324e16.png",
+      "output": "public/art/world-v3/decor/interior-factory-wall.webp",
+      "compileMode": "tile --output-width=2048 --output-height=1024 --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 1024. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nOpaque back wall of a medieval CV processing factory: muted brown bricks, brass pipes, large gears, steam vents, elevated conveyor belts near the ceiling. Two frontal rectangular eye-level windows with blurred landscape and sky. Below y=860 a metal baseboard and beginning of floor. Straight frontal dollhouse interior, flat side-scrolling perspective. No near machinery or front wall, no people. Perfect horizontal repeat, matching brick edges at left and right.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. Fully opaque edge to edge.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-e86d4032-724c-4f7f-b0a5-dd7bf4fc275f.png",
+      "output": "public/art/world-v3/decor/interior-factory-floor.webp",
+      "compileMode": "tile --output-width=1672 --output-height=361 --trim --opaque --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 1672 × 361. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nFull-bleed opaque horizontal floor strip, worn riveted metal plates mixed with wooden planks. Same shallow side view and walkable top edge as a game road strip, floor extends down. No furniture, walls, props or people. Seamless horizontally including mirrored tiling, consistent matching depth at ends.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. Fully opaque edge to edge.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-66cede83-d267-4bf9-94db-cba484f2b93d.png",
+      "output": "public/art/world-v3/decor/interior-factory-ceiling.webp",
+      "compileMode": "tile --output-width=2048 --output-height=256 --trim --palette=12 --smooth",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 256. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nVery wide narrow ceiling strip: industrial medieval timber and iron beams, a few suspended warm lamps and copper pipes. True RGBA transparency below lamps and pipes. No walls or floor. Flat side view, seamless horizontal repeat, identical beam edge at both ends. All lamps and pipe shapes contained with margin.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-4b7849ba-9619-4505-8d9f-1d395d2afd0b.png",
+      "output": "public/art/world-v3/decor/interior-factory-facade.webp",
+      "compileMode": "cutout --output-width=1536 --output-height=1536",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 1536 × 1536. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nSide exterior of a medieval brick CV processing factory with tall chimney and copper pipes, cleanly sliced open on its RIGHT side exposing a dark dollhouse interior cross section. Only the left portion of the building; transparent empty space beyond the right cut. Open ground-level door aligned to walking path. One broad blank pale frontal sign above doorway. No people. Small base only, isolated silhouette.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ],
+      "supersededBy": "public/art/world-v3/decor/exterior-factory.webp (see scene-door-prompts.json)"
+    },
+    {
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-a6981ceb-43df-42db-8ca0-b0df226bd4e5.png",
+      "output": "public/art/world-v3/decor/interior-factory-props.webp",
+      "compileMode": "atlas --islands --columns=4 --rows=2 --cell-width=512 --cell-height=512 --baseline=496",
+      "prompt": "Same hand-inked muted medieval cartoon artwork as the references: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour about unemployment and job hunting. Sharp game art, clear silhouettes.\nUse case: stylized-concept. Production cutaway side-scrolling game interior, 2048 × 1024. All attached images are style references; attachment 1 combines the plain and forest originals, the remaining attachments show gnomes, tavern life, skater and tavern exterior.\nStrict sprite sheet 4 columns × 2 rows, eight isolated medieval industrial props, side view, wide transparent gutters, bases aligned within each cell, no text anywhere. Row 1 left to right: short conveyor belt section; stamping press body with open space for a separate head (DO NOT include head); isolated stamping press head and vertical piston, attachment at TOP CENTER; paper shredder. Row 2: CV hopper with pipe; crate of blank parchments; one isolated toothed gear centered in its cell, pivot at exact center; lever. No labels, grid, captions, shadows or people. Each part completely separate, suitable for 512 × 512 cells baseline 496.\nAbsolutely no painted letters, numbers, logos, labels or grid. Pale frontal blank surfaces for runtime lettering. Crisp ink and flat muted colour; subtle grain only. True transparent RGBA around the isolated asset, no backdrop and no ground shadow.",
+      "references": [
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/plaine-mid.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/foret-back.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/gnomes.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/animations/tavern-life.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/characters/skater.webp",
+        "/Users/mika/Documents/Projects/louchomage/public/art/world-v3/runtime/taverne-mid-animated.webp"
+      ]
+    }
+  ],
+  "referencePacking": {
+    "reason": "ImageGen accepts at most five attachments; plain + forest originals are packed unchanged into one contact board.",
+    "board": "docs/decor-previews/style-landscapes.png",
+    "sources": [
+      "public/art/world-v3/runtime/plaine-mid.webp",
+      "public/art/world-v3/runtime/foret-back.webp"
+    ]
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "tool": "image_gen.imagegen (built-in)",
+  "date": "2026-09-25",
+  "prompt": "Use case: background-extraction. Edit target: supplied 1024x1280 RGBA game sprite animation atlas, exactly 4 columns x 4 rows of 256x320 cells. Precisely remove ONLY the thin pale white/cream cutout fringe surrounding each of the 16 silhouettes. Preserve all black ink outlines, interior colors, facial expressions, props, poses, exact positions, exact sizes, cell layout and transparent gutters. Keep solid interiors fully opaque and antialiasing on edges. Output real RGBA transparency without white contamination. No background, shadow, added outline or text. Do not redraw or restyle. Preserve canvas aspect 4:5 and ideally exact 1024x1280 dimensions, with unchanged sprite registration. This is precise matte cleanup of all 16 poses.",
+  "exceptions": {
+    "barde": "Use case: background-extraction. Edit target: the supplied 1024x1280 RGBA game sprite animation atlas of a bard, exactly 4 columns x 4 rows, each cell 256x320. Precisely remove ONLY the thin pale white/cream cutout fringe surrounding each of the 16 silhouettes. Preserve the black ink outlines, every internal pixel detail, color, facial expression, prop, pose, exact position, exact scale, 4x4 cell layout and transparent gutters. Output real RGBA transparency, no background, checkerboard, shadow, newly added outline or text. This is a precise matte cleanup, NOT a redraw or new character design. Preserve exact full canvas dimensions 1024x1280. Keep alpha antialiasing at the black ink edges, with no white contamination. All 16 silhouettes and their existing placement must stay identical so current animation frame coordinates continue to work.",
+    "fee": "Append: Preserve the delicate wings, their existing opacity and their pale interior colors.",
+    "squelette": "Append: Preserve all pale bone interiors and tiny fingers."
+  },
+  "unchanged": [
+    "licorne",
+    "voleur"
+  ],
+  "assets": [
+    {
+      "id": "barde",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-ad991f7e-c30a-418f-bc2f-ec13345df709.png",
+      "destination": "public/art/world-v3/animations/barde.webp"
+    },
+    {
+      "id": "skater",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-eb3cbaef-48b6-4b4e-b35e-a1fefc20efd9.png",
+      "destination": "public/art/world-v3/animations/skater.webp"
+    },
+    {
+      "id": "chevalier",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-2ee6effd-0bee-44d5-9283-dfe62f70be2f.png",
+      "destination": "public/art/world-v3/animations/chevalier.webp",
+      "register": true
+    },
+    {
+      "id": "teddy",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-0cff3fbd-e849-4692-90cb-2a7892a695fd.png",
+      "destination": "public/art/world-v3/animations/teddy.webp",
+      "register": true
+    },
+    {
+      "id": "archimage",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-59783e67-e856-4f45-8e87-ce0f9b8c6d3d.png",
+      "destination": "public/art/world-v3/animations/archimage.webp"
+    },
+    {
+      "id": "demon",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-f76089bc-c83c-40cd-9829-d25241a7fbdd.png",
+      "destination": "public/art/world-v3/animations/demon.webp",
+      "register": true
+    },
+    {
+      "id": "druidesse",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-b527730c-adc0-499e-a867-50d1e0c6f49c.png",
+      "destination": "public/art/world-v3/animations/druidesse.webp"
+    },
+    {
+      "id": "fee",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-c7a5f9b1-069b-45ac-b197-07073959de74.png",
+      "destination": "public/art/world-v3/animations/fee.webp",
+      "register": true
+    },
+    {
+      "id": "necromancien",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-c773c3a1-2485-48ca-834f-f668aa0dfcf9.png",
+      "destination": "public/art/world-v3/animations/necromancien.webp"
+    },
+    {
+      "id": "paladin",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-cd94369e-7cd4-4b27-bbee-f7b836fa60a8.png",
+      "destination": "public/art/world-v3/animations/paladin.webp",
+      "register": true
+    },
+    {
+      "id": "sorciere",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-0f8e2295-57f6-440f-9959-c916f7d1f5e4.png",
+      "destination": "public/art/world-v3/animations/sorciere.webp"
+    },
+    {
+      "id": "squelette",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-0c7ec0f3-b1b2-4849-93e8-96ce9b45f78f.png",
+      "destination": "public/art/world-v3/animations/squelette.webp"
+    },
+    {
+      "id": "vampire",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-75575f77-018a-484d-9a3d-370b46a13a1a.png",
+      "destination": "public/art/world-v3/animations/vampire.webp"
+    }
+  ],
+  "import": "node scripts/import-character-cleanup.mjs ID SOURCE.png --reference 2a3a1b8 [--register for marked assets]",
+  "referenceCommit": "2a3a1b8"
+}

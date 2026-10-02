@@ -190,7 +190,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
         {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{word}</span>)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="pts" record={record} best={best} /></> :
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${RAIN.required} mots à attraper · ${RAIN.badAllowed} faute tolérée` :
         status === "running" ? (bad > 0 ? "Le robot fronce ses diodes. Plus de faute !" : "Glisse sur l’image, ou flèches ← →") : won ? "Le robot tamponne…" : "Le robot déchiquette…"}</span>}
     primary={{

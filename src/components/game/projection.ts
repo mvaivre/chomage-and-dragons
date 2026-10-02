@@ -3,6 +3,14 @@ export function parallaxX(worldX: number, cameraX: number, viewWidth: number, fa
   return (worldX - cameraX - viewWidth / 2) * factor + viewWidth / 2;
 }
 
+/** A tall resident near the HUD gets a lateral bubble so its face stays visible. */
+export function environmentBubble(anchor: { x: number; y: number; height: number }, width: number, top: number) {
+  const bottom = anchor.y - anchor.height / 2 - 14, floor = top + 70;
+  const side = width >= 760 && bottom < floor ? anchor.x > width / 2 ? "left" : "right" : "above";
+  const margin = Math.min(140, width / 2);
+  return { left: Math.max(margin, Math.min(width - margin, anchor.x + (side === "left" ? -200 : side === "right" ? 200 : 0))), top: Math.max(floor, bottom), side };
+}
+
 /** A repeated strip needs only its visible tiles and one spare tile at each end. */
 export function visibleTiles(cameraX: number, viewWidth: number, tileWidth: number, origin: number): [number, number] {
   return [

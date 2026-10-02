@@ -6,6 +6,21 @@ retenues sont compilées dans le dépôt. Les originaux de génération restent 
 
 Le jeu charge seulement les personnages présents et les biomes visibles, pas ce catalogue entier.
 
+## Nettoyage des contours — 25 septembre 2026
+
+Treize planches ont été retouchées avec ImageGen intégré pour supprimer le liseré
+clair autour des personnages. La licorne et le voleur, déjà propres, sont conservés.
+Les portraits statiques et les métadonnées de taille ne changent pas. Les 16 poses
+gardent leur ordre ; cinq exports sont recalés cellule par cellule sur leurs
+dimensions et pieds d’origine avant encodage en WebP. Aucun filtre ne tourne dans le jeu.
+
+Sources et prompts exacts : [character-cleanup-prompts.json](character-cleanup-prompts.json).
+Import : `node scripts/import-character-cleanup.mjs ID SOURCE.png --reference 2a3a1b8`
+(ajouter `--register` pour les entrées correspondantes du manifeste).
+Le script contrôle les silhouettes et leurs pieds ; les tests contrôlent les
+gouttières et la contamination claire des pixels semi-transparents des quinze classes.
+Comparaison sur fond sombre : [avant / après](decor-previews/character-cleanup.jpg).
+
 ## Livrables
 
 - `public/art/world-v3/animations/{personnage}.webp` : 15 planches de 16 poses,

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
+import { roomAt, sameRoom } from "@/lib/game/doors";
 import { markMotion, scene } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 
@@ -19,11 +20,13 @@ export function JourneyChest({ x, y, opened = false, opening = false, big = fals
 }) {
   const texture = useDirectTexture("/art/world-v3/runtime/chest-journey.webp");
   const frames = texture ? atlasFrames(texture, 5, 1) : null;
+  const root = useRef<Container>(null);
   const sprite = useRef<Sprite>(null);
   const glint = useRef<Container>(null);
   const elapsed = useRef(0);
   const finished = useRef(false);
   useTick(ticker => {
+    if (root.current) root.current.visible = sameRoom(roomAt(x), scene.room);
     if (!opening) return;
     markMotion();
     elapsed.current += ticker.elapsedMS;
@@ -38,7 +41,7 @@ export function JourneyChest({ x, y, opened = false, opening = false, big = fals
     if (glint.current) glint.current.alpha = Math.sin(Math.min(1, t) * Math.PI) * 0.7;
     if (t >= 1 && !finished.current) { finished.current = true; onDone?.(); }
   });
-  return <pixiContainer x={x} y={y}>
+  return <pixiContainer ref={root} x={x} y={y}>
     <pixiGraphics draw={drawShadow} />
     {frames ? <pixiSprite ref={sprite} texture={frames[opened ? 4 : 0]} anchor={{ x: 0.5, y: 312 / 320 }} scale={0.34} /> : null}
     {opening ? <pixiContainer ref={glint} alpha={0} y={-40}>

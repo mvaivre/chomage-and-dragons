@@ -3,6 +3,10 @@
 > Document de référence. Capture des idées initiales telles que formulées au départ.
 > Statut : vision complète, **pas** un backlog. On construit par étapes, en partant du plus simple.
 
+> **Décision du 25 septembre 2026 :** les points ont été supprimés. La règle actuelle
+> utilise uniquement les pas (actions, bonus et classement) ; voir [SCENE_DOORS.md](SCENE_DOORS.md).
+> Le texte ci-dessous conserve le pitch initial et ses anciennes questions.
+
 ## Concept
 
 Jeu web humoristique entre ami·es pour rendre la recherche d'emploi plus amusante.

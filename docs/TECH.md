@@ -124,12 +124,13 @@ soit quelques centaines de Ko. On utilise moins d'un millième du tier gratuit.
 changer plus tard.
 
 Chaque action est enregistrée comme une ligne immuable (`qui`, `quoi`, `quand`). Les
-scores sont **recalculés à la lecture**, jamais stockés comme total.
+pas et classements sont **recalculés à la lecture**, jamais stockés comme total.
 
 Ce que ça résout gratuitement :
 
 - **Annulation d'une candidature** cliquée par erreur → retirer/marquer une ligne.
-- **Couronne du mois** → filtrer sur un intervalle de dates. Impossible avec des
+- **Couronne du mois** → rejouer le journal avec le plancher à zéro, puis sommer
+  les déplacements effectifs du mois (bonus compris). Impossible avec des
   compteurs, qui ne savent pas *quand* ils ont été incrémentés.
 - **Palmarès des mois passés** → existe sans effort supplémentaire.
 - **Fil d'anecdotes** pour l'ambiance.

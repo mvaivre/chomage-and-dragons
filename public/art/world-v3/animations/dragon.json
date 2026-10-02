@@ -1,0 +1,18 @@
+{
+  "columns": 4,
+  "rows": 2,
+  "width": 512,
+  "height": 512,
+  "baseline": 476,
+  "referenceHeight": 440,
+  "poses": [
+    "flight-up",
+    "flight-down",
+    "mouth",
+    "swallow",
+    "belly",
+    "strain",
+    "relief",
+    "sleep"
+  ]
+}

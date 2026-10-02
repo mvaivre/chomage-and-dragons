@@ -5,7 +5,7 @@ import type { ActionKind, GameEvent, GameState, MiniGameAttempt, MiniGameKind, M
 /**
  * Optional mini-games decorate the official actions. Each one is offered once
  * per action ordinal (or per chest) and only ever adds journey steps or loot:
- * the ranking points of the action stay exactly what the journal says.
+ * bonus steps also count in the journey standings.
  */
 
 export interface MiniGameCopy {
@@ -17,6 +17,7 @@ export interface MiniGameCopy {
 }
 
 export const MINI_GAMES: Record<MiniGameKind, MiniGameCopy> = {
+  dragon: { kind: "dragon", misery: "Le courrier a un prédateur", title: "La part du dragon", winFeedback: "Butin volé au dragon" },
   pigeon: { kind: "pigeon", misery: "Courrier presque prioritaire", title: "Le pigeon à reculons", winFeedback: "Livraison à reculons ×2" },
   keywords: { kind: "keywords", misery: "Le robot trieur de CV", title: "Le CV à mots-clés", winFeedback: "CV validé par le robot ×2" },
   stamp: { kind: "stamp", misery: "Les preuves de recherches", title: "Le Tampon de l’ORP", winFeedback: "Dossier conforme" },
@@ -25,10 +26,10 @@ export const MINI_GAMES: Record<MiniGameKind, MiniGameCopy> = {
   slots: { kind: "slots", misery: "Salaire : selon expérience", title: "Salaire selon expérience", winFeedback: "Jackpot : un butin de plus" },
 };
 
-/** Applications alternate between the two courier games; other actions have one each. */
+/** Applications rotate through three courier challenges; other actions have one each. */
 export function miniGameForAction(action: ActionKind, slot: number): MiniGameKind | null {
   switch (action) {
-    case "candidature": return slot % 2 === 0 ? "pigeon" : "keywords";
+    case "candidature": return (["pigeon", "keywords", "dragon"] as const)[slot % 3];
     case "refus": return "stamp";
     case "entretien": return "quiz";
     case "rejetApresEntretien": return "ghosting";

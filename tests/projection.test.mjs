@@ -25,7 +25,7 @@ test('slow layers can show a biome several world screens away', () => {
 
 test('ground tiles cover the complete viewport, including world edges and wide cameras', () => {
   for (const width of [560, 1280, 2560]) {
-    for (const tileWidth of [1672, 2065]) {
+    for (const tileWidth of [1024, 1672, 2065]) {
       for (let camera = -240; camera < 15500; camera += 137) {
         const [first, last] = visibleTiles(camera, width, tileWidth, -1280);
         assert.ok(-1280 + first * tileWidth <= camera);

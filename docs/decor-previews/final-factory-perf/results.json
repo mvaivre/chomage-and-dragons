@@ -1,0 +1,64 @@
+{
+  "label": "final-factory-perf",
+  "captures": 0,
+  "steps": [],
+  "sizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      844,
+      390
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "hours": [
+    12,
+    22
+  ],
+  "results": [
+    {
+      "step": 34,
+      "viewport": [
+        1280,
+        720
+      ],
+      "throttle": 1,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 2.9981447420808642,
+      "maxFrameMS": 50,
+      "p95FrameMS": 16.700000000000728
+    },
+    {
+      "step": 34,
+      "viewport": [
+        390,
+        844
+      ],
+      "throttle": 4,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 11.281734362506237,
+      "maxFrameMS": 66.69999999999982,
+      "p95FrameMS": 16.799999999999272
+    }
+  ],
+  "errors": []
+}

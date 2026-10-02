@@ -1,0 +1,55 @@
+{
+  "columns": 4,
+  "rows": 2,
+  "width": 512,
+  "height": 512,
+  "baseline": 496,
+  "heights": [
+    250,
+    403,
+    278,
+    402,
+    326,
+    370,
+    353,
+    296
+  ],
+  "frames": [
+    {
+      "id": "bench"
+    },
+    {
+      "id": "ticket",
+      "text": [
+        204,
+        174,
+        96,
+        57
+      ]
+    },
+    {
+      "id": "plant"
+    },
+    {
+      "id": "coffee",
+      "text": [
+        146,
+        242,
+        103,
+        60
+      ]
+    },
+    {
+      "id": "queue"
+    },
+    {
+      "id": "water"
+    },
+    {
+      "id": "folders"
+    },
+    {
+      "id": "counter"
+    }
+  ]
+}

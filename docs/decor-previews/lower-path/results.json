@@ -1,0 +1,28 @@
+{
+  "label": "lower-path",
+  "captures": 6,
+  "steps": [
+    0,
+    14
+  ],
+  "sizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "hours": [
+    12
+  ],
+  "character": "barde",
+  "results": [],
+  "errors": []
+}

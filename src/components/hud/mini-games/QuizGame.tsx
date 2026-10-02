@@ -108,7 +108,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
       <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }} /></span>
       <span className="mini-game__score"><b>{correct}</b> ✓ sur {QUIZ.needed} requises</span>
     </>}
-    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><span>{won ? `Recul réduit d’un pas grâce au mensonge` : "Le recul prévu. Rien de plus."}</span><ScoreLine score={points} unit="pts" record={record} best={best} /></> :
+    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><span>{won ? `Recul réduit d’un pas grâce au mensonge` : "Le recul prévu. Rien de plus."}</span><ScoreLine score={points} unit="" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${QUIZ.needed} bonnes réponses sur ${QUIZ.questions}` : status === "reveal" && aside ? `Le recruteur : « ${aside} »` : "La bonne réponse est celle du recruteur, pas la tienne."}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",

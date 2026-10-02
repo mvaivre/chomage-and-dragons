@@ -5,6 +5,7 @@ import { heroFrame } from '../src/components/game/animation.ts';
 import { gnomeFrame, crownedChickenFrame } from '../src/components/game/ambient-animation.ts';
 import { subscribeTick } from '../src/components/game/tickSubscription.ts';
 import { frameComposition, chestXForStep } from '../src/components/game/projection.ts';
+import { JOURNEY_SURFACE_Y } from '../src/lib/game/world.ts';
 
 test('all animation states address valid poses and movement has four distinct drawings', () => {
   for (const motion of ['idle', 'walk', 'send', 'hurt', 'celebrate']) {
@@ -66,8 +67,8 @@ test('ambient atlases have transparent gutters and registered feet across charac
 
 test('lowest lane and name plate stay above the action dock in portrait, tall and landscape views', () => {
   for (const [w, h, top, bottom] of [[320, 568, 215, 220], [320, 740, 170, 210], [390, 844, 175, 230], [900, 1400, 235, 275], [1280, 720, 200, 180], [1920, 900, 235, 210], [844, 390, 90, 100]]) {
-    const { scale, screenOffsetY } = frameComposition(w, h, top, bottom, 602);
-    const feet = (602 + 48) * scale + screenOffsetY;
+    const { scale, screenOffsetY } = frameComposition(w, h, top, bottom, JOURNEY_SURFACE_Y);
+    const feet = (JOURNEY_SURFACE_Y + 4 + 48) * scale + screenOffsetY;
     const labelBottom = feet + 38 * scale;
     assert.ok(labelBottom + (w <= 760 || h <= 500 ? 40 : 12) <= h - bottom, `${w}×${h}: label overlaps dock`);
     assert.ok(feet - (164 + 48) * scale > top, `${w}×${h}: character overlaps the HUD`);
@@ -109,6 +110,9 @@ test('every playable character has a compiled animation sheet with matching scal
   const { CHARACTERS } = await import('../src/lib/game/characters.ts');
   const { CHARACTER_ANIMATIONS, poseFacing } = await import('../src/components/game/animation.ts');
   const { readFile, stat } = await import('node:fs/promises');
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
   for (const character of CHARACTERS) {
     const animation = CHARACTER_ANIMATIONS[character.id];
     assert.ok(animation, `Missing animation for ${character.id}`);
@@ -118,6 +122,25 @@ test('every playable character has a compiled animation sheet with matching scal
     assert.equal(meta.count, 16);
     assert.equal(animation.referenceHeight, meta.referenceHeight);
     assert.equal(animation.baseline, meta.baseline);
+    const { data, info } = await sharp(file.pathname).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    assert.equal(info.width, meta.width * meta.columns);
+    assert.equal(info.height, meta.height * meta.rows);
+    let partial = 0, pale = 0;
+    for (let cell = 0; cell < meta.count; cell++) {
+      let bottom = -1;
+      for (let y = 0; y < meta.height; y++) for (let x = 0; x < meta.width; x++) {
+        const i = ((Math.floor(cell / meta.columns) * meta.height + y) * info.width + cell % meta.columns * meta.width + x) * 4;
+        const alpha = data[i + 3];
+        if (alpha > 128) bottom = y;
+        if (x === 0 || y === 0 || x === meta.width - 1 || y === meta.height - 1) assert.ok(alpha < 20, `${character.id}:${cell} bleeds into the next pose`);
+        if (alpha >= 20 && alpha < 220) {
+          partial++;
+          if (Math.min(data[i], data[i+1], data[i+2]) > 160) pale++;
+        }
+      }
+      assert.ok(bottom >= meta.baseline - 5 && bottom <= meta.baseline, `${character.id}:${cell} lost its foot registration`);
+    }
+    assert.ok(pale / Math.max(1, partial) < .1, `${character.id} has a pale matte fringe`);
   }
   assert.equal(poseFacing('squelette', 0), -1);
   assert.equal(poseFacing('squelette', 2), 1);

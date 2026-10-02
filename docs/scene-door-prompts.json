@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-25",
+  "assets": [
+    {
+      "output": "public/art/world-v3/decor/exterior-orp.webp",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-7616fbcc-5918-488a-af85-18a735492855.png",
+      "tool": "image_gen.imagegen (built-in)",
+      "prompt": "Edit this game-art building into a complete CLOSED exterior medieval unemployment office, not a cutaway. Preserve the exact hand-inked muted medieval cartoon style, rough wobbly black outlines, flat muted colours, subtle paper grain. Replace the open right-hand wall and visible rooms with opaque plaster and timber exterior and two small windows. One large, inviting open arched doorway at ground level on the LEFT third, with dark interior visible only through that door. Door human scale, 45% of building height. Small blank parchment sign above door. Low slate roof, one storey, compact silhouette. No interior furniture visible through wall, no people, no steps or foreground fence blocking entry. Keep all building pixels inside frame with transparent margin, real transparent RGBA background, no landscape or sky. Sharp 1536x1536 game sprite. Readable door, grounded on flat baseline. No lettering; sign will be lettered in-game.",
+      "compileMode": "cutout --output-width=1254 --output-height=1254"
+    },
+    {
+      "output": "public/art/world-v3/decor/interior-door.webp",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-ec5f3407-acc5-4874-a7a3-3baddffe77a8.png",
+      "tool": "image_gen.imagegen (built-in)",
+      "prompt": "Use this building only as a STYLE reference. Create ONE standalone open medieval interior doorway game sprite, isolated on real transparent RGBA background. Same hand-inked muted medieval cartoon artwork: rough wobbly black ink outlines, flat muted colours, subtle paper grain, deadpan absurd humour. Front view, no perspective ground, no building around it. Irregular ochre stone arch frame and a heavy timber door partly open, dark gap behind, worn iron hinge straps, small brass handle. The door is walk-through, bottom at ground level, no steps, no floor platform. Small blank wooden rectangular plaque above arch. Door and frame only; alpha immediately outside irregular stone outline. No people, text, landscape, cast shadow or furniture. Narrow portrait sprite centered inside a square canvas with transparent gutters, sharp at 1024x1024. It must match the attached game's inked building.",
+      "compileMode": "cutout --output-width=1254 --output-height=1254"
+    },
+    {
+      "output": "public/art/world-v3/decor/exterior-factory.webp",
+      "source": "/Users/mika/.codex/generated_images/01a0d775-4bf9-7ee0-a6a4-a00e8bcd4608/exec-bfe9dc7a-6c03-4254-9638-88b702feef29.png",
+      "tool": "image_gen.imagegen (built-in)",
+      "prompt": "Adapt this closed exterior medieval office game sprite into a compact CV-processing factory. Preserve exact overall footprint, one-storey roof height, flat baseline and especially the arched doorway's position and size in the LEFT third of image. Keep blank sign over that door in same position and geometry. Change office heraldry to an unlettered cog emblem; plaster to soot-stained brick; roof to patched slate and add small smoking chimney, but no opaque background. Two small industrial windows on the right, simple visible wooden/iron pipes fixed to exterior wall, an absurd tiny parchment intake slot. CLOSED exterior, no cutaway, no interiors or machines visible through walls. No people, no text. Same hand-inked muted medieval cartoon artwork as reference: rough wobbly black ink outlines, flat muted colours, subtle paper grain, sharp game sprite. Real transparent RGBA background and gutters. All pixels contained inside 1254x1254 square, full building isolated, no landscape. Keep doorway at ground and clearly walkable with no steps.",
+      "compileMode": "cutout --output-width=1254 --output-height=1254"
+    }
+  ]
+}

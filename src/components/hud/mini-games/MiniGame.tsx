@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { MiniGameKind } from "@/lib/data/types";
+import { DragonGame } from "./DragonGame";
 import { GhostingGame } from "./GhostingGame";
 import { KeywordsGame } from "./KeywordsGame";
 import type { MiniGameProps } from "./MiniGameShell";
@@ -18,6 +19,7 @@ export function MiniGame({ kind, ...live }: MiniGameProps & { kind: MiniGameKind
   const [standing] = useState(() => ({ record: live.record ?? null, best: live.best ?? null }));
   const props = { ...live, record: standing.record, best: standing.best };
   switch (kind) {
+    case "dragon": return <DragonGame {...props} />;
     case "pigeon": return <PigeonGame {...props} />;
     case "keywords": return <KeywordsGame {...props} />;
     case "stamp": return <StampGame {...props} />;

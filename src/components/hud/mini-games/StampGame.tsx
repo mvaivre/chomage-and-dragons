@@ -232,7 +232,7 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
         {Array.from({ length: DESK.missesAllowed }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < misses} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de refus + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="pts" record={record} best={best} /></> :
+    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de refus + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="" record={record} best={best} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${DESK.dossiers} dossiers · ${DESK.missesAllowed} ratés tolérés` :
         status === "running" ? (misses > 0 ? `Le gnome : « ${GRUMBLES[(misses - 1) % GRUMBLES.length]} »` : "Touche l’image, Espace ou Entrée") : won ? "Le gnome relit tout…" : "Le gnome sort le formulaire de suspension…"}</span>}
     primary={{

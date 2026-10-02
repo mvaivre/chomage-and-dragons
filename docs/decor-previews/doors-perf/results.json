@@ -1,0 +1,64 @@
+{
+  "label": "doors-perf",
+  "captures": 0,
+  "steps": [],
+  "sizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      844,
+      390
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "hours": [
+    12,
+    22
+  ],
+  "results": [
+    {
+      "step": 14,
+      "viewport": [
+        1280,
+        720
+      ],
+      "throttle": 1,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 9.700207905980394,
+      "maxFrameMS": 33.399999999999636,
+      "p95FrameMS": 16.799999999999272
+    },
+    {
+      "step": 14,
+      "viewport": [
+        390,
+        844
+      ],
+      "throttle": 4,
+      "renderer": {
+        "type": 1,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"
+      },
+      "idleCPU": 4.471779091588193,
+      "maxFrameMS": 50,
+      "p95FrameMS": 16.700000000000728
+    }
+  ],
+  "errors": []
+}

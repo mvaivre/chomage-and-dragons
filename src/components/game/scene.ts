@@ -1,3 +1,4 @@
+import type { RoomLocation } from "@/lib/game/doors";
 import { VIEW } from "@/lib/game/world";
 
 /**
@@ -27,7 +28,12 @@ export interface Camera {
 }
 
 export interface Scene {
+  room: RoomLocation | null;
+  doorTransition: { elapsed: number; destination: RoomLocation | null; switched: boolean } | null;
+  momentActive: boolean;
   reducedMotion: boolean;
+  atmosphereEnabled: boolean;
+  atmosphereTime: number;
   camera: Camera;
   /** Screen pixels occupied by the action dock, measured when it resizes. */
   bottomInset: number;
@@ -55,6 +61,7 @@ export interface Scene {
   lowPower: boolean;
   /** Live feet position of every hero, so effects can follow the one they celebrate. */
   heroes: Map<string, { x: number; y: number }>;
+  heroEffects: Map<string, { owner: symbol; x: number; y: number; scale: number; alpha: number; rotation: number }>;
   /** Camera zoom around the ground line; the moment of an action leans in. */
   zoom: number;
   zoomTarget: number;
@@ -98,7 +105,7 @@ export function slowMotion(scale: number, ms: number): void {
 /** Seconds of world time in this frame, after hit-stop and slow motion. */
 export function worldDelta(elapsedMS: number): number {
   const now = performance.now();
-  if (now < scene.freezeUntil) return 0;
+  if (now < scene.freezeUntil || scene.doorTransition) return 0;
   const seconds = elapsedMS / 1000;
   return now < scene.slowUntil ? seconds * scene.slowScale : seconds;
 }
@@ -135,7 +142,12 @@ export function markMotion(): void {
 }
 
 export const scene: Scene = {
+  room: null,
+  doorTransition: null,
+  momentActive: false,
   reducedMotion: false,
+  atmosphereEnabled: true,
+  atmosphereTime: 0,
   bottomInset: 170,
   topInset: 160,
   camera: {
@@ -156,6 +168,7 @@ export const scene: Scene = {
   lastMotion: 0,
   lowPower: false,
   heroes: new Map(),
+  heroEffects: new Map(),
   zoom: 1,
   zoomTarget: 1,
   anchor: 0.36,
@@ -170,6 +183,10 @@ export const scene: Scene = {
 
 /** Remise à zéro au montage du canvas, pour ne pas hériter d'une partie précédente. */
 export function resetScene(): void {
+  scene.atmosphereTime = 0;
+  scene.room = null;
+  scene.doorTransition = null;
+  scene.momentActive = false;
   scene.camera = {
     x: 0,
     y: 0,
@@ -187,6 +204,7 @@ export function resetScene(): void {
   scene.dragging = false;
   scene.lastMotion = 0;
   scene.heroes.clear();
+  scene.heroEffects.clear();
   scene.zoom = 1;
   scene.zoomTarget = 1;
   scene.anchor = FOLLOW_ANCHOR;
@@ -197,3 +215,10 @@ export function resetScene(): void {
 
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */
 export const WORLD_BOTTOM = VIEW.height + 1040;
+
+/** Camera browsing may leave an interior; actual room and music still follow the hero. */
+export function viewingInterior(): boolean {
+  if (!scene.room) return false;
+  const center = scene.camera.x + scene.camera.viewW / 2;
+  return center >= scene.room.from - 100 && center <= scene.room.to + 100;
+}

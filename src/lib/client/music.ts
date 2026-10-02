@@ -4,7 +4,7 @@ import { currentDaylight } from "./daylight";
 import { audioOutput, onMuteChange } from "./sound";
 
 /**
- * Discreet background music, composed live with WebAudio: no file to download,
+ * Background music, composed live with WebAudio: no file to download,
  * a new phrase every two bars, and a mood for each land. A soft pad holds the
  * chords, a plucked voice improvises on the scale with short repeated motifs, a
  * low note marks the bars. At night the tempo slows and the notes thin out.
@@ -25,21 +25,34 @@ export interface Mood {
   voice: "lute" | "flute" | "bell" | "harp";
   /** Six eighths to the bar for a jig, eight otherwise. */
   jig?: boolean;
+  /** Acoustic dance arrangement: open fifths, strummed strings and whistle. */
+  folk?: boolean;
   drum?: boolean;
+  /** A driving adventure pulse, kept lively even after sunset. */
+  march?: boolean;
+  /** A recognisable two-bar theme, expressed as scale degrees. */
+  motif?: Array<number | null>;
 }
 
-const MAJOR_PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+const DORIAN = [0, 2, 3, 5, 7, 9, 10, 12];
 const MINOR_PENTA = [0, 3, 5, 7, 10, 12, 15, 17];
 
 export const MOODS: Record<string, Mood> = {
-  plaine: { root: 62, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [0, 4, 7], [7, 11, 14]], bpm: 84, density: 0.42, voice: "lute" },
+  intro: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [0, 7, 12], [5, 12, 17]], bpm: 84, density: 0.5, voice: "lute", jig: true, folk: true,
+    motif: [0, null, 2, 3, 2, 1, 0, null, 4, 3, 1, 0] },
+  // Keep eight degrees: a phrase begun outdoors must survive the change of room.
+  orp: { root: 60, scale: [0, 4, 7, 9, 12, 16, 19, 21], chords: [[0, 4, 7, 11], [2, 5, 9, 12], [0, 4, 7, 11], [-1, 2, 5, 9]], bpm: 66, density: 0.22, voice: "bell" },
+  factory: { root: 50, scale: [0, 0, 7, 12, 12, 19, 24, 24], chords: [[0, 7, 12], [0, 7, 12], [-2, 5, 10], [0, 7, 12]], bpm: 96, density: 0.6, voice: "lute", drum: true },
+  plaine: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [5, 12, 17], [0, 7, 12]], bpm: 116, density: 0.85, voice: "flute", jig: true, folk: true, drum: true,
+    motif: [0, 2, 3, 4, 3, 2, 1, 3, 4, 6, 4, 2] },
   foret: { root: 64, scale: [0, 2, 3, 7, 9, 10, 12, 14], chords: [[0, 3, 7], [5, 9, 12], [0, 3, 7], [-2, 2, 5]], bpm: 74, density: 0.36, voice: "flute" },
   marais: { root: 57, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [5, 8, 12], [0, 3, 7]], bpm: 64, density: 0.28, voice: "harp" },
   lac: { root: 65, scale: [0, 2, 4, 6, 7, 11, 12, 14], chords: [[0, 4, 7], [2, 6, 9], [0, 4, 7], [7, 11, 14]], bpm: 70, density: 0.32, voice: "bell" },
   cascade: { root: 60, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]], bpm: 70, density: 0.36, voice: "harp" },
   montagne: { root: 67, scale: [0, 2, 4, 5, 7, 9, 10, 12], chords: [[0, 4, 7], [-2, 2, 5], [5, 9, 12], [0, 4, 7]], bpm: 78, density: 0.34, voice: "flute" },
   desert: { root: 62, scale: [0, 1, 4, 5, 7, 8, 10, 12], chords: [[0, 7, 12], [0, 7, 12], [1, 5, 8], [0, 7, 12]], bpm: 88, density: 0.38, voice: "lute", drum: true },
-  taverne: { root: 67, scale: MAJOR_PENTA, chords: [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]], bpm: 108, density: 0.55, voice: "lute", jig: true, drum: true },
+  taverne: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [5, 12, 17], [-2, 5, 10], [0, 7, 12]], bpm: 126, density: 0.9, voice: "flute", jig: true, folk: true, drum: true,
+    motif: [4, 3, 2, 0, 2, 3, 4, 6, 7, 6, 4, 2] },
 };
 
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
@@ -55,8 +68,15 @@ export class Composer {
   private mood: Mood;
   private night = 0;
   private pending: { mood: Mood; night: number } | null = null;
+  private percussion: AudioBuffer | null = null;
+  private ctx: BaseAudioContext;
+  private dest: AudioNode;
+  private random: Rand;
 
-  constructor(private ctx: BaseAudioContext, private dest: AudioNode, mood: Mood, private random: Rand = Math.random) {
+  constructor(ctx: BaseAudioContext, dest: AudioNode, mood: Mood, random: Rand = Math.random) {
+    this.ctx = ctx;
+    this.dest = dest;
+    this.random = random;
     this.mood = mood;
   }
 
@@ -83,18 +103,28 @@ export class Composer {
   }
 
   private play(t: number) {
-    const position = this.step % this.perBar;
-    const bar = Math.floor(this.step / this.perBar);
+    let position = this.step % this.perBar;
+    let bar = Math.floor(this.step / this.perBar);
     if (position === 0) {
       if (this.pending) {
+        const changed = this.mood !== this.pending.mood;
         this.mood = this.pending.mood;
         this.night = this.pending.night;
         this.pending = null;
+        if (changed) {
+          // A new theme starts on its own tonic and first phrase, including 6/8 rooms.
+          this.step = 0;
+          this.chord = -1;
+          this.motif = [];
+          position = 0;
+          bar = 0;
+        }
       }
       if (bar % 2 === 0) this.changeChord(t);
       this.bass(t);
     }
     if (!this.mood.jig && position === 4) this.bass(t, 0.6);
+    if (this.mood.march && (position === 2 || position === 6)) this.bass(t, 0.45, 7);
     if (this.mood.drum) this.drum(t, position);
 
     const phrase = this.step % (this.perBar * 2);
@@ -106,12 +136,28 @@ export class Composer {
   private changeChord(t: number) {
     this.chord = (this.chord + 1) % this.mood.chords.length;
     const length = this.eighth * this.perBar * 2;
-    for (const interval of this.mood.chords[this.chord]) this.pad(t, hz(this.mood.root - 12 + interval), length);
+    if (this.mood.folk) {
+      // A lute strum, then an open drone: no sustained electronic chord pad.
+      this.mood.chords[this.chord].forEach((interval, i) => {
+        const at = t + i * 0.032;
+        const gain = this.envelope(at, 0.026, 0.006, 1.2);
+        gain.connect(this.dest);
+        this.voice("triangle", hz(this.mood.root - 12 + interval), at, 1.2, gain);
+        this.voice("sine", hz(this.mood.root - 12 + interval) * 2, at, 0.35, gain, 3);
+      });
+      const drone = this.envelope(t, 0.016, 0.18, length);
+      drone.connect(this.dest);
+      this.voice("triangle", hz(this.mood.root - 24), t, length, drone);
+    } else for (const interval of this.mood.chords[this.chord]) this.pad(t, hz(this.mood.root - 12 + interval), length);
   }
 
   /** A two-bar phrase, repeated with small changes half of the time: music, not noise. */
   private compose() {
     const length = this.perBar * 2;
+    if (this.mood.motif) {
+      this.motif = [...this.mood.motif];
+      return;
+    }
     const density = this.mood.density * (1 - this.night * 0.45);
     if (this.motif.length === length && this.random() < 0.5) {
       this.motif = this.motif.map((note) => (this.random() < 0.2 ? this.pick(note) : note));
@@ -164,11 +210,11 @@ export class Composer {
     this.voice("triangle", freq, t, length + 1.2, filter, 6);
   }
 
-  private bass(t: number, weight = 1) {
+  private bass(t: number, weight = 1, interval = 0) {
     const root = this.mood.chords[Math.max(0, this.chord)][0];
     const gain = this.envelope(t, 0.07 * weight, 0.02, this.eighth * 3.5);
     gain.connect(this.dest);
-    this.voice("sine", hz(this.mood.root - 24 + root), t, this.eighth * 3.5, gain);
+    this.voice("sine", hz(this.mood.root - 24 + root + interval), t, this.eighth * 3.5, gain);
   }
 
   private melody(t: number, degree: number, accent: boolean) {
@@ -180,6 +226,12 @@ export class Composer {
       const gain = this.envelope(t, peak * 1.1, 0.07, length);
       gain.connect(this.dest);
       const osc = this.voice("sine", freq, t, length, gain);
+      if (this.mood.folk && accent) {
+        // A short grace note gives the whistle its Irish lift.
+        const grace = this.envelope(t, peak * 0.3, 0.008, 0.055);
+        grace.connect(this.dest);
+        this.voice("sine", freq * Math.pow(2, 2 / 12), t, 0.055, grace);
+      }
       const lfo = this.ctx.createOscillator();
       const depth = this.ctx.createGain();
       lfo.frequency.value = 5;
@@ -189,7 +241,7 @@ export class Composer {
       lfo.stop(t + length + 0.05);
       return;
     }
-    if (voice === "bell" || this.night > 0.6) {
+    if (voice === "bell" || (this.night > 0.6 && !this.mood.march && !this.mood.folk)) {
       const length = 2.2;
       const gain = this.envelope(t, peak * 0.7, 0.004, length);
       gain.connect(this.dest);
@@ -212,6 +264,32 @@ export class Composer {
   }
 
   private drum(t: number, position: number) {
+    if (this.mood.march) {
+      // A low hand drum, a dry backbeat and light eighth-note shakers.
+      if (position === 0 || position === 4) {
+        const gain = this.envelope(t, 0.15, 0.003, 0.2);
+        gain.connect(this.dest);
+        const osc = this.voice("sine", 135, t, 0.22, gain);
+        osc.frequency.exponentialRampToValueAtTime(48, t + 0.18);
+      }
+      if (!this.percussion) {
+        this.percussion = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * 0.18), this.ctx.sampleRate);
+        const samples = this.percussion.getChannelData(0);
+        for (let i = 0; i < samples.length; i++) samples[i] = this.random() * 2 - 1;
+      }
+      const backbeat = position === 2 || position === 6;
+      const length = backbeat ? 0.14 : 0.045;
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = this.percussion;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = backbeat ? 1300 : 6200;
+      const gain = this.envelope(t, backbeat ? 0.065 : position % 2 ? 0.016 : 0.025, 0.003, length);
+      noise.connect(filter).connect(gain).connect(this.dest);
+      noise.start(t);
+      noise.stop(t + length);
+      return;
+    }
     const strong = this.mood.jig ? position % 3 === 0 : position % 4 === 0;
     if (!strong && this.random() > 0.3) return;
     const gain = this.envelope(t, strong ? 0.09 : 0.03, 0.003, strong ? 0.22 : 0.08);
@@ -250,6 +328,8 @@ let composer: Composer | null = null;
 let bus: { input: GainNode; level: GainNode } | null = null;
 let timer: number | null = null;
 let land = "plaine";
+export type MusicPhase = "intro" | "adventure";
+let phase: MusicPhase = "intro";
 let night = { value: 0, at: 0 };
 let duck = 1;
 /** The music's gain into the master: about 10 dB under the effects' peaks. */
@@ -301,11 +381,11 @@ function tick() {
   if (!bus) {
     bus = musicBus(ctx, out);
     bus.level.gain.value = 0.0001;
-    applyLevel(3);
+    applyLevel(phase === "intro" ? 3 : 0.8);
   }
   // The hour moves slowly: read it twice a minute.
   if (performance.now() - night.at > 30_000) night = { value: currentDaylight().night, at: performance.now() };
-  const mood = MOODS[land] ?? MOODS.plaine;
+  const mood = phase === "intro" ? MOODS.intro : MOODS[land] ?? MOODS.plaine;
   if (!composer) composer = new Composer(ctx, bus.input, mood);
   composer.setMood(mood, night.value);
   composer.schedule(ctx.currentTime + 0.9);
@@ -319,7 +399,7 @@ function run() {
 
 /**
  * Start the music once the page may make sound; it waits for the first gesture.
- * The land and the hour steer it, and it steps back under a mini-game.
+ * The title screen has its own theme; the land and hour steer the adventure.
  */
 export function startMusic(): () => void {
   // Diagnostics only: `?debug` can render a few seconds of any land offline.
@@ -335,13 +415,10 @@ export function startMusic(): () => void {
     document.removeEventListener("visibilitychange", onVisible);
     if (timer !== null) window.clearInterval(timer);
     timer = null;
-    if (bus) {
-      const { level } = bus;
-      level.gain.setTargetAtTime(0.0001, level.context.currentTime, 0.2);
-      window.setTimeout(() => level.disconnect(), 1200);
-    }
-    bus = null;
-    composer = null;
+    releasePiece();
+    phase = "intro";
+    land = "plaine";
+    duck = 1;
   };
 }
 
@@ -362,7 +439,34 @@ export async function renderPreview(where: string, seconds: number, dark = 0): P
 }
 
 export function steerMusic(where: string, ducked: boolean): void {
+  setMusicPlace(where);
+  setMusicDucked(ducked);
+}
+
+export function setMusicPlace(where: string): void {
   land = where;
+}
+
+function releasePiece() {
+  if (bus) {
+    const { level } = bus;
+    level.gain.cancelScheduledValues(level.context.currentTime);
+    level.gain.setTargetAtTime(0.0001, level.context.currentTime, 0.12);
+    window.setTimeout(() => level.disconnect(), 1200);
+  }
+  bus = null;
+  composer = null;
+}
+
+/** Enter on the first beat of the new theme, with a short fade from the menu. */
+export function setMusicPhase(next: MusicPhase): void {
+  if (phase === next) return;
+  phase = next;
+  releasePiece();
+  tick();
+}
+
+export function setMusicDucked(ducked: boolean): void {
   const nextDuck = ducked ? 0.3 : 1;
   if (nextDuck !== duck) {
     duck = nextDuck;
