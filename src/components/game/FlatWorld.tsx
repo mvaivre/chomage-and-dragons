@@ -19,7 +19,8 @@ import { scene, WORLD_BOTTOM } from "./scene";
 import { JourneyChest } from "./JourneyChest";
 import { chestXForStep, parallaxX, visibleTiles } from "./projection";
 import { CascadeLife } from "./CascadeLife";
-import { TerrainRoad, TerrainDetails } from "./Terrain";
+import { TerrainRoad } from "./Terrain";
+import { GROUND_TILE_WIDTH, terrainBaseColor } from "@/lib/game/terrain";
 import { WindmillLife, TavernLife } from "./LandmarkLife";
 
 /**
@@ -274,16 +275,7 @@ function TransitionLandmarksLayer() {
  */
 const paintUnderworld = (start: number) => (g: Graphics) => {
   g.clear();
-  for (let x = 0; x < 2048; x += 128) g.rect(x, GROUND_Y + 158, 128, WORLD_BOTTOM - GROUND_Y + 980).fill(paletteAt(start + x + 64).groundDark);
-
-  for (let x = 0; x < 2048; x += 86) {
-    const y = GROUND_Y + 210 + ((x * 17) % 190 + 190) % 190;
-    g.ellipse(x + 30, y, 20 + (Math.abs(x) % 19), 8).stroke({
-      width: 2,
-      color: 0x4c3a29,
-      alpha: 0.42,
-    });
-  }
+  for (let x = 0; x < 2048; x += 128) g.rect(x, GROUND_Y + 158, 128, WORLD_BOTTOM - GROUND_Y + 980).fill(terrainBaseColor(start + x + 64));
 };
 
 function useStripTiles(tileWidth: number, factor = 1) {
@@ -300,36 +292,8 @@ function useStripTiles(tileWidth: number, factor = 1) {
 }
 
 function RoadStrip() {
-  const texture = useDirectTexture(`${ART_ROOT}/road-universal.webp`);
-  const indices = useStripTiles(texture?.width ?? 1672);
-  if (!texture) return null;
-
+  const indices = useStripTiles(GROUND_TILE_WIDTH);
   return <TerrainRoad indices={indices} groundY={GROUND_Y} />;
-}
-
-function VergeStrip() {
-  const texture = useDirectTexture(`${ART_ROOT}/verge-universal.webp`);
-  const indices = useStripTiles(texture?.width ?? 2065);
-  if (!texture) return null;
-
-  const tileWidth = texture.width;
-  return (
-    <pixiContainer>
-      {indices.map((index) => {
-        const start = -VIEW.width + index * tileWidth;
-        const mirrored = Math.abs(index % 2) === 1;
-        return (
-          <pixiSprite
-            key={index}
-            texture={texture}
-            x={mirrored ? start + tileWidth : start}
-            y={GROUND_Y + 8 - texture.height}
-            scale={{ x: mirrored ? -1 : 1, y: 1 }}
-          />
-        );
-      })}
-    </pixiContainer>
-  );
 }
 
 interface JourneyMarkersProps {
@@ -353,12 +317,9 @@ export function FlatJourneyMarkers({ earnedChests, pendingChestStep, activeChest
 
 function GroundLayerLayer() {
   const tiles = useStripTiles(2048);
-  const details = useStripTiles(512);
   return <pixiContainer>
     {tiles.map(index => <pixiGraphics key={index} x={-VIEW.width + index * 2048} draw={paintUnderworld(-VIEW.width + index * 2048)} />)}
-    <VergeStrip />
     <RoadStrip />
-    <TerrainDetails tiles={details} />
   </pixiContainer>;
 }
 

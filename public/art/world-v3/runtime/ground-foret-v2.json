@@ -1,0 +1,14 @@
+{
+  "width": 2048,
+  "height": 512,
+  "worldWidth": 1024,
+  "topMargin": 24,
+  "contactY": 24,
+  "baseColor": 2365967,
+  "sourceCrop": {
+    "left": 0,
+    "top": 80,
+    "width": 1774,
+    "height": 359
+  }
+}
