@@ -1,0 +1,14 @@
+{
+  "columns": 4,
+  "rows": 1,
+  "cellWidth": 512,
+  "cellHeight": 512,
+  "referenceHeight": 440,
+  "baseline": 476,
+  "poses": [
+    "near-contact",
+    "far-passing",
+    "far-contact",
+    "near-passing"
+  ]
+}

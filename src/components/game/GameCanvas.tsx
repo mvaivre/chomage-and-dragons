@@ -438,8 +438,6 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
-  environmentBlocked?: boolean;
-  environmentPreviewX?: number;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
   onSceneReady: () => void;
@@ -460,8 +458,6 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
-  environmentBlocked = false,
-  environmentPreviewX,
   onReturnToMe,
   onDragonChallenge,
   onSceneReady,
@@ -574,7 +570,7 @@ function GameCanvas({
         ↶ Retrouver mon personnage
       </button> : null}
       <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
-      <EnvironmentOverlay meId={meId} paused={paused} blocked={environmentBlocked} previewX={environmentPreviewX} />
+      <EnvironmentOverlay meId={meId} paused={paused} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}

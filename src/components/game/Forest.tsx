@@ -9,17 +9,23 @@ import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
-import { reactionProgress, updateEnvironmentTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
+import { isDrawn, reactionProgress, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
 
 function TreeResidents({ height, target }: { height: number; target: RefObject<EnvironmentTarget> }) {
   const source = useDirectTexture("/art/world-v3/animations/woodland-life.webp");
   const frames = source ? atlasFrames(source, 4, 2) : null;
   const squirrel = useRef<Sprite>(null), spirit = useRef<Sprite>(null), companion = useRef<Sprite>(null);
   const time = useRef(height % 9);
+  const squirrelId = `${target.current.id}:squirrel`, spiritId = `${target.current.id}:spirit`, companionId = `${target.current.id}:companion`;
+  const squirrelTarget = useEnvironmentTarget(squirrelId, "squirrel", target.current.homeX);
+  const spiritTarget = useEnvironmentTarget(spiritId, "spirit", target.current.homeX);
+  const companionTarget = useEnvironmentTarget(companionId, "spirit", target.current.homeX);
   useSceneTick(ticker => {
-    if (!frames || !target.current.visible) return;
+    if (!frames || !target.current.visible) {
+      updateSpriteTarget(squirrelId, null, 38); updateSpriteTarget(spiritId, null, 48); updateSpriteTarget(companionId, null, 36); return;
+    }
     if (!scene.reducedMotion) time.current += Math.min(100, ticker.elapsedMS) / 1000;
-    const t = time.current, p = reactionProgress(target.current), active = p < 1 && !scene.reducedMotion;
+    const t = time.current, p = Math.min(reactionProgress(target.current), reactionProgress(squirrelTarget.current), reactionProgress(spiritTarget.current), reactionProgress(companionTarget.current)), active = p < 1 && !scene.reducedMotion;
     if (squirrel.current) {
       // Register the feet to the oak's painted branch near source pixel (620, 450).
       const leap = active ? Math.sin(p * Math.PI) : 0;
@@ -38,6 +44,9 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
       companion.current.alpha = active ? Math.sin(p * Math.PI) * 0.9 : 0;
       companion.current.texture = frames[6];
     }
+    updateSpriteTarget(squirrelId, squirrel.current, 38, 44);
+    updateSpriteTarget(spiritId, spirit.current, 48);
+    updateSpriteTarget(companionId, companion.current, 36);
   });
   return <pixiContainer>
     {frames ? <>
@@ -58,7 +67,7 @@ export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; 
     if (!root.current) return;
     root.current.visible = worldX > scene.camera.x - 400 && worldX < scene.camera.x + scene.camera.viewW + 400;
     const hit = target.current;
-    updateEnvironmentTarget(`tree:${worldX}`, { visible: Boolean(texture && root.current.visible), worldX, worldY: WALKABLE_GROUND_Y + 30 - height * 0.16, width: 90, height: height * 0.25 });
+    updateEnvironmentTarget(`tree:${worldX}`, { visible: Boolean(texture && isDrawn(root.current)), worldX: worldX + height * .11, worldY: WALKABLE_GROUND_Y + 30 - height * 0.16, width: 90, height: height * 0.25 });
     if (!root.current.visible || !crown.current) return;
     if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
     // Roots remain registered: a tiny crown shear reads as wind, without floating the tree.

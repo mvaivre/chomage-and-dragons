@@ -2,16 +2,18 @@ import { BIOMES, WORLD_LENGTH } from "./world";
 import { roomAt } from "./doors";
 import { decorForLap } from "./decor";
 
-export type EnvironmentKind = "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit";
+export type EnvironmentKind = "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit" | "squirrel" | "recruiter" | "coach" | "clerk" | "worker" | "traveller" | "dragon";
 export interface EnvironmentSite { id: string; kind: EnvironmentKind; x: number; factor: number; biome: string; }
 
-export const ENVIRONMENT_REACH = 320;
-export function canExploreTarget(heroX: number | undefined, homeX: number, walking: boolean, paused: boolean, inside: boolean): boolean {
-  return heroX !== undefined && Number.isFinite(heroX) && Number.isFinite(homeX) && !walking && !paused && !inside && Math.abs(heroX - homeX) <= ENVIRONMENT_REACH;
+/** Scenery conversations follow what is visible, independently of the hero's journey. */
+export function canExploreTarget(visible: boolean, paused: boolean): boolean {
+  return visible && !paused;
 }
 
 export const ENVIRONMENT_LABELS: Record<EnvironmentKind, string> = {
   troll: "Parler au troll", tree: "Réveiller l’arbre", hen: "Taquiner la poule", toad: "Taquiner le crapaud", gnome: "Trinquer avec le gnome", ghost: "Appeler le fantôme", skeleton: "Interrompre le squelette", crow: "Déranger le corbeau", spirit: "Réveiller l’esprit",
+  squirrel: "Saluer l’écureuil", recruiter: "Parler au recruteur", coach: "Interrompre le coach", clerk: "Parler au guichetier", worker: "Parler à l’ouvrier", traveller: "Saluer le voyageur",
+  dragon: "Parler au dragon",
 };
 const LINES: Record<EnvironmentKind, string[]> = {
   troll: ["Même mon pont veut pas de toi.", "Ton CV ? Du PQ.", "Non. Et dégage.", "T’as essayé d’être riche ?"],
@@ -23,6 +25,13 @@ const LINES: Record<EnvironmentKind, string[]> = {
   skeleton: ["Ils m’ont payé en exposition.", "Le poste ? Encore vacant.", "Je suis là depuis le stage."],
   crow: ["Ton CV fera un bon nid.", "Pièce jointe volée.", "Croâ. Dégage."],
   spirit: ["T’es vivant ? Quelle erreur.", "Le calme. Tu connais ?", "Même ici, pas de poste."],
+  squirrel: ["Ta carrière ? Une coquille vide.", "Pas de noisette. Pas de service.", "Va grimper ailleurs."],
+  recruiter: ["On a trouvé moins cher.", "Même le dragon refuse ton CV.", "Tu coûtes déjà trop cher."],
+  coach: ["Achète ma formation. Puis crève.", "Ton échec paie mon loyer.", "Le talent ? Je vends autre chose."],
+  clerk: ["Mauvaise file. Mauvaise vie.", "Il manque le formulaire du formulaire.", "Reviens quand je serai mort."],
+  worker: ["La pause ? Une légende.", "Ils appellent ça une opportunité.", "Mon salaire ? De la fiction."],
+  traveller: ["Encore toi. Quelle chance.", "Une quête ? Trouver un salaire.", "On avance. Ça empire."],
+  dragon: ["Ton CV me donne des gaz.", "Même les RH sont plus digestes.", "Le salaire ? Dans mon cul."],
 };
 export function environmentLine(kind: EnvironmentKind, visit: number): string { return LINES[kind][Math.max(0, Math.floor(visit)) % LINES[kind].length]; }
 
@@ -31,7 +40,7 @@ export const ENVIRONMENT_BIOMES = new Set(BIOMES.map(biome => biome.id));
 const RESIDENTS: Record<string, EnvironmentKind[]> = {
   plaine: ["hen", "troll", "gnome"], foret: ["troll"], marais: ["toad", "ghost"], lac: ["toad", "gnome"], cascade: ["spirit", "toad"], montagne: ["troll", "ghost"], desert: ["skeleton", "troll"], taverne: ["gnome", "hen"],
 };
-/** Physical homes stay clear of doors; parallax never moves an encounter's arrival gate. */
+/** Physical homes stay clear of doors across every parallax plane. */
 export function environmentSites(left: number, right: number, factor: number): EnvironmentSite[] {
   const result: EnvironmentSite[] = [];
   for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {

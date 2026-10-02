@@ -10,6 +10,7 @@ import { scene } from "./scene";
 import { useLayerBiomes } from "./FlatWorld";
 import { gnomeFrame } from "./ambient-animation";
 import { AnimatedTuft } from "./LandmarkLife";
+import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 
 const RESIDENT_FRAMES = [[0, 0, 1, 0, 2, 3], [0, 1, 2, 3], [0, 0, 1, 2, 0, 3], [0, 1, 2, 3]];
 
@@ -24,21 +25,26 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   const frames = source ? atlasFrames(source, 4, kind === 2 ? 2 : 4) : null;
   const sprite = useRef<Sprite>(null);
   const time = useRef(worldX % 17);
+  const targetId = `ambient:${factor}:${kind}:${worldX}`;
+  const target = useEnvironmentTarget(targetId, (["hen", "crow", "gnome", "toad"] as const)[kind], worldX, factor);
   useTick(ticker => {
     const node = sprite.current;
-    if (!node || !frames) return;
+    if (!node || !frames) { updateSpriteTarget(targetId, null, 60); return; }
     const x = parallaxX(worldX, scene.camera.x, scene.camera.viewW, factor);
     node.visible = x > -260 && x < scene.camera.viewW + 260;
-    if (!node.visible) return;
+    if (!node.visible) { updateSpriteTarget(targetId, null, 60); return; }
     if (!scene.reducedMotion) time.current += Math.min(ticker.deltaMS, 60) / 1000;
     const t = time.current;
     const sequence = RESIDENT_FRAMES[kind];
     // Gnomes raise their mug, or hop with their broom, as your hero walks past.
-    const cheering = kind === 2 && !scene.reducedMotion && performance.now() < scene.walkingUntil && Math.abs(x - (scene.focus - scene.camera.x)) < 240;
+    const reacting = reactionProgress(target.current) < 1;
+    const cheering = kind === 2 && !scene.reducedMotion && (reacting || performance.now() < scene.walkingUntil && Math.abs(x - (scene.focus - scene.camera.x)) < 240);
     node.texture = frames[kind === 2 ? (cheering ? (variant === 1 ? 4 : 2 + (Math.floor(t * 3.3) % 2)) : gnomeFrame(variant, t)) : kind * 4 + sequence[Math.floor(t * (kind === 1 ? 7 : 2)) % sequence.length]];
     node.x = worldX * factor + (kind === 1 ? Math.sin(t * 0.22) * 180 : kind === 0 ? Math.sin(t * 0.3) * 18 : 0);
     node.y = WALKABLE_GROUND_Y + (kind === 1 ? -210 + Math.sin(t * 0.8) * 12 : kind === 2 ? 10 - (cheering ? Math.abs(Math.sin(t * 9)) * 9 : 0) : -4);
+    if (reacting && !scene.reducedMotion && kind !== 2) node.y -= Math.abs(Math.sin(reactionProgress(target.current) * Math.PI * 2)) * (kind === 3 ? 30 : 10);
     if (kind === 1) node.scale.x = Math.abs(node.scale.x) * (Math.cos(t * 0.22) < 0 ? -1 : 1);
+    updateSpriteTarget(targetId, node, [36, 46, 67, 21][kind], kind === 1 ? 65 : undefined, factor);
   });
   if (!frames) return null;
   const scale = [0.18, 0.24, 0.26, 0.15][kind];

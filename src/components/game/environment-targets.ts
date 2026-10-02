@@ -1,12 +1,33 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import type { Container } from "pixi.js";
 import type { EnvironmentKind } from "@/lib/game/environment";
+import { scene } from "./scene";
 
 export interface EnvironmentTarget {
   id: string; kind: EnvironmentKind; homeX: number; factor: number;
   worldX: number; worldY: number; width: number; height: number; visible: boolean;
   startedAt: number; visits: number;
+  label?: string;
+}
+
+export function isDrawn(node: Container | null): boolean {
+  if (!node) return false;
+  for (let parent: Container | null = node; parent; parent = parent.parent) if (!parent.visible || !parent.renderable || parent.alpha <= 0) return false;
+  return true;
+}
+
+/** Use the actual transformed feet, including parent offsets, rooms and parallax. */
+export function updateSpriteTarget(id: string, node: Container | null, height: number, width = height * .7, factor = 1) {
+  if (!node || !isDrawn(node)) { updateEnvironmentTarget(id, { visible: false }); return; }
+  const point = node.getGlobalPosition();
+  const { camera } = scene;
+  updateEnvironmentTarget(id, {
+    visible: true, width, height,
+    worldX: camera.x + camera.viewW / 2 + (point.x / camera.scale - camera.viewW / 2) / factor,
+    worldY: (point.y - camera.screenOffsetY) / camera.scale + camera.y * factor - height / 2,
+  });
 }
 export const environmentTargets = new Map<string, EnvironmentTarget>();
 export function updateEnvironmentTarget(id: string, geometry: Partial<EnvironmentTarget>) {

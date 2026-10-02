@@ -33,8 +33,8 @@ Use case: stylized-concept. Production prop sprite for the hand-drawn medieval 2
 
 ## Règles
 
-- La proximité dépend du vrai personnage de cet appareil : 320 unités autour du domicile de la rencontre. Explorer avec la caméra ou suivre un autre joueur dans le classement ne débloque aucun clic.
-- Interactions bloquées pendant son trajet, dans les bâtiments ou lorsqu’une fenêtre de jeu suspend la scène. Aucun score, événement serveur ou progression n’est créé par ces clics.
+- Tout personnage visible est cliquable, même loin du héros ou pendant son trajet. Explorer avec la caméra permet de parler aux habitants rencontrés.
+- Seule une fenêtre de jeu qui suspend la scène bloque les dialogues. Aucun score, événement serveur ou progression n’est créé par ces clics.
 - Petits boutons transparents placés sur les sprites, avec repère discret, nom accessible et activation au clavier. Les plus petits disposent d’une zone d’au moins 44 pixels.
 - Glisser sur un habitant déplace la caméra. Un mouvement de plus de huit pixels annule l’activation ; annulation du pointeur et perte de capture libèrent le déplacement.
 - Une seule bulle à la fois, fermeture manuelle ou après 4,5 secondes. Elle suit son habitant et se place sur le côté si l’interface supérieure laisserait trop peu de place au-dessus.
@@ -42,7 +42,7 @@ Use case: stylized-concept. Production prop sprite for the hand-drawn medieval 2
 - Dessin et clics partagent la même projection de parallax. Les effets sont convertis dans le plan du monde. Les silhouettes restent derrière les joueurs, sans nouveau décor opaque devant leur corps.
 - Mouvement réduit : silhouettes fixes, changement de pose lisible et particules limitées. Les paramètres audio existants s’appliquent aux nouveaux sons.
 
-Le panneau DEV ajoute « Rencontre de test » et « Tester les interactions ici ». Il permet d’inspecter les rencontres sans modifier les pas d’un joueur. Le contournement de proximité est uniquement disponible en développement.
+Le panneau DEV propose « Rencontre de test » pour placer la caméra sans modifier les pas d’un joueur. Aucun contournement de proximité n’est nécessaire.
 
 ## Validation visuelle
 
@@ -54,11 +54,11 @@ La forêt a été réalisée et validée avant l’extension : 1280×720, 390×8
 
 Les autres familles ont été inspectées dans le vrai jeu, biome par biome. Le vol des corbeaux a été abaissé pour rester lisible sous l’interface. Une bulle latérale garde le visage des grands habitants visible sur ordinateur.
 
-Vérifications manuelles : arbre et troll sur mobile, activation au clavier, glissement sur troll sans dialogue, verrouillage après déplacement libre de la caméra, poule et troll accessibles au vrai personnage sans mode DEV, interactions de corbeaux dans le plan de parallax. Le score est resté inchangé pendant ces rencontres.
+Vérifications manuelles : arbre et troll sur mobile, activation au clavier, glissement sur troll sans dialogue, accès après déplacement libre de la caméra, poule et troll accessibles au vrai personnage sans mode DEV, interactions de corbeaux dans le plan de parallax. Le score est resté inchangé pendant ces rencontres.
 
 Captures : [forêt mobile](environment-previews/forest-mobile.png), [forêt large](environment-previews/forest-wide.png), [troll et bulle finale](environment-previews/troll-final.png), [corbeau et bulle finale](environment-previews/parallax-crow-final.png), autres biomes dans `environment-previews/`.
 
-Contrôles automatisés : proximité et états bloquants, placements des huit biomes sur trois tours, dégagement des bâtiments et des arbres, dialogues, transparence et marges des atlases, disposition des bulles. Suite complète : 76 tests. TypeScript, ESLint des fichiers concernés et compilation de production.
+Contrôles automatisés initiaux : proximité et états bloquants (remplacés le 2 octobre par visibilité et pause), placements des huit biomes sur trois tours, dégagement des bâtiments et des arbres, dialogues, transparence et marges des atlases, disposition des bulles. Suite complète : 76 tests. TypeScript, ESLint des fichiers concernés et compilation de production.
 
 ## Images et provenance
 
@@ -81,3 +81,21 @@ Use case: stylized-concept. Asset type: production 2D side-scrolling game charac
 #### woodlandLife
 
 Use case: stylized-concept. Asset type: production small woodland residents sprite atlas for a 2D side-scrolling game. Reference image is ONLY for bold black hand-drawn ink outlines, muted gouache colours and fine paper-textured shading, not for subject. Exact FOUR columns TWO rows, eight equal square cells ideally total 2048x1024, real transparent background and ample transparent gutters. Row one contains the SAME mischievous russet squirrel with expressive half-closed eyes and large curled bushy tail, facing RIGHT: 1 perched sitting idle, 2 munching an acorn, 3 startled with tail up, 4 full-body leaping to the right with legs stretched. Row two contains the SAME small pale mint-blue woodland spirit with leafy ear tufts, dark oval eyes, tiny arms and tapering wispy tail: 5 quietly floating, 6 eyes wide startled, 7 spinning/dancing, 8 laughing arms up. Each row has a consistent character scale, aligned bottom baseline, full complete silhouettes. No scenes, no background haze, no rectangular glows, no labels, no shadows underneath, no text, no other creatures. Small restrained translucent rim around the spirit is fine, outside silhouette is transparent. Appealing slightly sarcastic fantasy residents, highly readable when shown small in a tree.
+
+## Personnages cliquables et marche du troll — 2 octobre 2026
+
+Tous les personnages animés visibles peuvent être salués pendant l’exploration, indépendamment de la position du héros : joueurs, voyageurs, recruteurs, coachs, guichetiers, ouvriers, animaux, esprits et dragons. Les dialogues restent locaux. Les mini-jeux conservent leur propre règle d’arrivée.
+
+Les zones suivent les pieds réellement projetés, y compris les parents, les pièces et les plans de parallax. Un parent masqué masque aussi le clic. Les troncs passent sous les habitants dans l’ordre des zones de clic. Le glissement conserve son seuil de huit pixels.
+
+Le troll parcourt 120 unités en sept secondes, s’arrête trois secondes puis repart dans l’autre sens. Il ralentit avant son demi-tour ; son animation dépend de la distance parcourue, et s’arrête pendant sa réponse. Les quatre nouvelles poses de marche partagent une ligne de pieds fixe, sans étirement vertical.
+
+Validation dans le vrai jeu : dialogue du troll en forêt avec le héros à 7 pas dans la plaine ; autre joueur, écureuil, recruteur, gnome, corbeau et dragon cliqués. Glissement sur troll sans dialogue puis activation avec Entrée validés. Composition contrôlée à 1280×720, 390×844 et 1920×900. Aucun score modifié. Captures : `docs/character-click-previews/`. Suite complète : 82 tests ; TypeScript, ESLint ciblé et compilation de production réussis.
+
+Asset : `public/art/world-v3/animations/environment-troll-walk.webp` (2048×512, quatre cellules), métadonnées voisines. Outil ImageGen intégré, référence du troll existant ; Sharp a uniquement recadré les silhouettes sur l’alpha, conservé une échelle commune, aligné les pieds à 476 et converti en WebP. Source : `/Users/mika/.codex/generated_images/01a0f857-9351-71e1-9fca-d726ac59efaa/exec-7920b914-25e4-459d-b57b-aaf693dc1d54.png`.
+
+Prompt exact :
+
+```text
+Use case: identity-preserve. Asset: four-frame 2D side-scrolling troll walk animation on a truly transparent background. Input image is identity and rendering style reference ONLY. Preserve this exact lanky green, long brown-haired, huge orange hooked-nose troll, tired eyes, torn brown waistcoat, beige rag shirt, patched brown shorts, bare large feet, ink outlines and textured hand-painted game illustration. Create FOUR full-body poses in a SINGLE horizontal row, evenly spaced in four equal cells, every pose facing RIGHT. A real alternating walk cycle: pose 1 near leg forward and far leg back, both feet contacting baseline; pose 2 far leg passes forward lifted, near foot planted beneath body; pose 3 far leg forward and near leg back, both feet contacting baseline; pose 4 near leg passes forward lifted, far foot planted beneath body. Arms swing opposite legs. Two visibly different legs must alternate, not the same front foot in all poses. Consistent head/body dimensions and feet baseline in all cells. Neutral annoyed expression. All figures fully visible with generous transparent padding, no overlap. No idle or reaction poses. No labels, grid, text, props, ground, painted shadows or background. Sharp illustrated linework at source resolution. Wide sprite sheet, four equal cells.
+```

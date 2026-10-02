@@ -5,6 +5,7 @@ import type { Sprite } from "pixi.js";
 import { seedFrom } from "@/lib/game/random";
 import { scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
+import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 import { atlasFrames, useDirectTexture } from "./textures";
 import hype from "../../../public/art/world-v3/decor/npc-hype.json";
 import recruiters from "../../../public/art/world-v3/decor/npc-recruiters.json";
@@ -23,10 +24,14 @@ export function DecorNpc({ sheet, row = 0, x, y = 0, height = 144, worldX = x, g
   const ref = useRef<Sprite>(null);
   const time = useRef(seedFrom(`${sheet}:${row}:${worldX}`) % 1700 / 100);
   const reacted = useRef(false), response = useRef(0);
+  const kind = sheet === "afterlife" ? ghost ? "ghost" : "skeleton" : sheet === "recruiters" ? "recruiter" : sheet === "orp" ? "clerk" : sheet === "factory" ? "worker" : "coach";
+  const targetId = `npc:${sheet}:${row}:${worldX}`;
+  const target = useEnvironmentTarget(targetId, kind, worldX);
   useSceneTick(ticker => {
     const node = ref.current;
-    if (!node || !frames) return;
+    if (!node || !frames) { updateSpriteTarget(targetId, null, height); return; }
     node.visible = worldX > scene.camera.x - 260 && worldX < scene.camera.x + scene.camera.viewW + 260;
+    updateSpriteTarget(targetId, node, height);
     if (!node.visible) return;
     const near = performance.now() < scene.walkingUntil && Math.abs(scene.focus - worldX) < 240;
     if (near && !reacted.current) response.current = 2.4;
@@ -35,7 +40,8 @@ export function DecorNpc({ sheet, row = 0, x, y = 0, height = 144, worldX = x, g
     time.current += ticker.elapsedMS / 1000;
     response.current = Math.max(0, response.current - ticker.elapsedMS / 1000);
     const cycle = time.current % 22;
-    const pose = response.current > 0 ? 1 + Math.floor((2.4 - response.current) * 2) % 3 : cycle < 19 ? 0 : 1 + Math.floor(cycle - 19);
+    const clicked = reactionProgress(target.current);
+    const pose = clicked < 1 ? 1 + Math.floor(clicked * 6) % 3 : response.current > 0 ? 1 + Math.floor((2.4 - response.current) * 2) % 3 : cycle < 19 ? 0 : 1 + Math.floor(cycle - 19);
     node.texture = frames[row * 4 + pose];
     node.y = y + (ghost ? Math.sin(time.current * 0.7) * 4 : 0);
     node.alpha = ghost ? 0.58 + Math.sin(time.current * 0.45) * 0.09 : 1;

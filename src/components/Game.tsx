@@ -258,7 +258,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     });
   }, [sceneReady]);
   const [devExplore, setDevExplore] = useState(false);
-  const [devEnvironmentPreview, setDevEnvironmentPreview] = useState(false);
   const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
   const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
   const [devCameraTarget, setDevCameraTarget] = useState<{
@@ -838,8 +837,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
-        environmentBlocked={awaitingTravel}
-        environmentPreviewX={DEV_BUILD && devEnvironmentPreview ? devCameraTarget?.worldX : undefined}
         onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
         onSceneReady={handleSceneReady}
         paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
@@ -881,7 +878,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
           </button>
           {devExplore ? (
             <nav className="dev-explorer__biomes" aria-label="Biomes de test">
-              <button type="button" aria-pressed={devEnvironmentPreview} onClick={() => setDevEnvironmentPreview(value => !value)}>Tester les interactions ici</button>
               <select aria-label="Rencontre de test" value="" onChange={event => { if (event.target.value) { const progress = Number(event.target.value) / WORLD_LENGTH; handleDevBiome(progress, progress); } }}>
                 <option value="">Rencontre de décor…</option>
                 {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}

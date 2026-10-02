@@ -7,18 +7,15 @@ registerHooks({ resolve(s,c,next) {
  if(c.parentURL?.endsWith('.ts') && s.startsWith('.') && !/\.[a-z]+$/i.test(s)) return next(`${s}.ts`,c);
  return next(s,c);
 }});
-const {canExploreTarget,environmentSites,environmentLine,ENVIRONMENT_REACH,ENVIRONMENT_LABELS}=await import('../src/lib/game/environment.ts');
+const {canExploreTarget,environmentSites,environmentLine,ENVIRONMENT_LABELS}=await import('../src/lib/game/environment.ts');
 const {BIOMES,WORLD_LENGTH}=await import('../src/lib/game/world.ts');
 const {roomAt}=await import('../src/lib/game/doors.ts');
 
-test('encounters require the actual hero to arrive, even when the camera follows someone else',()=>{
- assert.equal(canExploreTarget(undefined,1000,false,false,false),false);
- assert.equal(canExploreTarget(1000,1000,true,false,false),false);
- assert.equal(canExploreTarget(1000,1000,false,true,false),false);
- assert.equal(canExploreTarget(1000,1000,false,false,true),false);
- assert.equal(canExploreTarget(1000-ENVIRONMENT_REACH,1000,false,false,false),true);
- assert.equal(canExploreTarget(1000+ENVIRONMENT_REACH+1,1000,false,false,false),false);
- for(const value of [NaN,Infinity,-Infinity]) assert.equal(canExploreTarget(value,1000,false,false,false),false);
+test('visible characters are interactive while exploring, only a paused scene blocks conversation',()=>{
+ assert.equal(canExploreTarget(true,false),true);
+ assert.equal(canExploreTarget(false,false),false);
+ assert.equal(canExploreTarget(true,true),false);
+ assert.equal(canExploreTarget(false,true),false);
 });
 test('life spans every biome and parallax plane on successive laps without entering doors',()=>{
  for(const factor of [1,0.76]){
@@ -65,4 +62,54 @@ test('speech moves beside tall residents under the HUD and stays within mobile e
  const bubble=environmentBubble({...tall,x},width,200);
  assert.ok(bubble.left>=Math.min(140,width/2));assert.ok(bubble.left<=width-Math.min(140,width/2));
  }
+});
+
+const {trollPatrol,trollWalkFrame}=await import('../src/lib/game/troll-motion.ts');
+test('troll patrol stops at either end, turns without teleporting and repeats smoothly',()=>{
+ for(let t=0;t<40;t+=.05){
+  const a=trollPatrol(t),b=trollPatrol(t+.01);
+  assert.ok(a.offset>=-60 && a.offset<=60);
+  assert.ok(Math.abs(a.offset-b.offset)<.3);
+  const repeated=trollPatrol(t+20);assert.ok(Math.abs(repeated.offset-a.offset)<1e-8);assert.equal(repeated.direction,a.direction);
+  assert.ok([0,1,2,3].includes(trollWalkFrame(a.distance)));
+ }
+ for(const [time,offset,direction] of [[8,60,1],[18,-60,-1]]){
+  const p=trollPatrol(time);assert.equal(p.moving,false);assert.equal(p.offset,offset);assert.equal(p.direction,direction);
+ }
+ for(const time of [0,7,10,17,20]){
+  assert.ok(Math.abs(trollPatrol(time+.01).offset-trollPatrol(time-.01).offset)<.001);
+ }
+ assert.deepEqual([0,10,20,30,40].map(trollWalkFrame),[0,1,2,3,0]);
+});
+
+const {Container}=await import('pixi.js');
+const {scene}=await import('../src/components/game/scene.ts');
+const {environmentTargets,updateSpriteTarget}=await import('../src/components/game/environment-targets.ts');
+test('click targets follow transformed feet and disappear with hidden room or scenery parents',()=>{
+ const previous={...scene.camera};
+ const stage=new Container(),layer=new Container(),parent=new Container(),feet=new Container();
+ stage.addChild(layer);layer.addChild(parent);parent.addChild(feet);
+ Object.assign(scene.camera,{x:400,y:60,scale:1.25,viewW:1280,screenOffsetY:25});
+ stage.scale.set(1.25);stage.y=25;
+ parent.position.set(950,602);feet.position.set(35,10);
+ for(const factor of [1,.76]){
+  layer.x=(0-400-640)*factor+640;layer.y=-60*factor;
+  environmentTargets.set('test-foot',{});
+  updateSpriteTarget('test-foot',feet,100,70,factor);
+  const t=environmentTargets.get('test-foot');
+  assert.equal(t.visible,true);assert.ok(Math.abs(t.worldX-985/factor)<1e-8);assert.equal(t.worldY,562);
+  parent.visible=false;updateSpriteTarget('test-foot',feet,100,70,factor);assert.equal(t.visible,false);parent.visible=true;
+ }
+ environmentTargets.delete('test-foot');Object.assign(scene.camera,previous);stage.destroy({children:true});
+});
+
+test('troll walk atlas keeps four distinct complete poses on a shared foot baseline',async()=>{
+ const require=createRequire(import.meta.url);const sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
+ const path=new URL('../public/art/world-v3/animations/environment-troll-walk.webp',import.meta.url);
+ const meta=JSON.parse(await readFile(new URL('../public/art/world-v3/animations/environment-troll-walk.json',import.meta.url)));
+ const {data,info}=await sharp(await readFile(path)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+ assert.equal(info.width,2048);assert.equal(info.height,512);assert.equal(meta.poses.length,4);assert.ok((await stat(path)).size<650000);
+ const silhouettes=[];
+ for(let i=0;i<4;i++){let solid=0,foot=0,signature='';for(let y=0;y<512;y++)for(let x=0;x<512;x++){const a=data[(y*2048+i*512+x)*4+3];if(a>24){solid++;foot=Math.max(foot,y);assert.ok(x>3 && x<508 && y>3 && y<508,`walk ${i} cropped`);}if(x%16===0 && y%16===0)signature+=a>24?'1':'0';}assert.ok(solid>15000);assert.ok(Math.abs(foot-meta.baseline)<=2);silhouettes.push(signature);}
+ assert.equal(new Set(silhouettes).size,4);
 });

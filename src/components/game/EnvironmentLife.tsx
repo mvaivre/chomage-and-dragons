@@ -4,17 +4,20 @@ import { useRef, useState } from "react";
 import type { Graphics, Sprite } from "pixi.js";
 import { environmentSites, type EnvironmentSite } from "@/lib/game/environment";
 import { WALKABLE_GROUND_Y } from "@/lib/game/world";
+import { trollPatrol, trollWalkFrame } from "@/lib/game/troll-motion";
 import { parallaxX } from "./projection";
 import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
-import { reactionProgress, updateEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
+import { isDrawn, reactionProgress, updateEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
 
 function Resident({ site }: { site: EnvironmentSite }) {
   const { kind, x, factor } = site;
   const special = kind === "troll" || kind === "spirit", afterlife = kind === "ghost" || kind === "skeleton";
   const url = kind === "troll" ? "/art/world-v3/animations/environment-troll.webp" : kind === "spirit" ? "/art/world-v3/animations/woodland-life.webp" : afterlife ? "/art/world-v3/decor/npc-afterlife.webp" : kind === "gnome" ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp";
   const texture = useDirectTexture(url);
+  const walkTexture = useDirectTexture(kind === "troll" ? "/art/world-v3/animations/environment-troll-walk.webp" : url);
+  const walkFrames = kind === "troll" && walkTexture ? atlasFrames(walkTexture, 4, 1) : null;
   const frames = texture ? atlasFrames(texture, 4, special || afterlife || kind === "gnome" ? 2 : 4) : null;
   const sprite = useRef<Sprite>(null), shadow = useRef<Graphics>(null), ripple = useRef<Graphics>(null);
   const time = useRef(x % 11), wander = useRef(x % 11), heading = useRef(1);
@@ -29,14 +32,15 @@ function Resident({ site }: { site: EnvironmentSite }) {
     const projected = parallaxX(x, scene.camera.x, scene.camera.viewW, factor);
     const visible = projected > -260 && projected < scene.camera.viewW + 260;
     node.visible = visible;
-    updateEnvironmentTarget(site.id, { visible });
+    updateEnvironmentTarget(site.id, { visible: visible && isDrawn(node) });
     if (shadow.current) shadow.current.visible = visible;
     if (ripple.current) ripple.current.visible = visible;
     if (!visible) return;
     const p = reactionProgress(hit), reacting = p < 1, motion = !scene.reducedMotion;
     if (motion) { time.current += Math.min(100, ticker.elapsedMS) / 1000; if (!reacting) wander.current += Math.min(100, ticker.elapsedMS) / 1000; }
     const t = time.current;
-    const roam = motion ? Math.sin(wander.current * 0.25) * (kind === "troll" ? 60 : kind === "hen" ? 45 : kind === "crow" ? 95 : 0) : 0;
+    const patrol = trollPatrol(wander.current);
+    const roam = motion ? kind === "troll" ? patrol.offset : Math.sin(wander.current * 0.25) * (kind === "hen" ? 45 : kind === "crow" ? 95 : 0) : 0;
     let dy = kind === "crow" ? -70 : kind === "spirit" ? (factor < 1 ? -85 : -35) : kind === "ghost" ? -28 : 0;
     if (motion) {
       if (kind === "crow" || kind === "spirit" || kind === "ghost") dy += Math.sin(t * 1.7) * 7;
@@ -44,17 +48,19 @@ function Resident({ site }: { site: EnvironmentSite }) {
       if (reacting && kind === "crow") dy -= Math.sin(p * Math.PI) * 30;
       if (reacting && kind === "spirit") dy -= Math.sin(p * Math.PI) * (factor < 1 ? 30 : 60);
     }
-    if (!reacting && motion) heading.current = Math.cos(wander.current * 0.25) < 0 ? -1 : 1;
+    if (!reacting && motion) heading.current = kind === "troll" ? patrol.direction : Math.cos(wander.current * 0.25) < 0 ? -1 : 1;
     node.position.set((x + roam) * factor, ground + dy);
     const scale = height / refHeight;
-    node.scale.set(scale * ((kind === "troll" || kind === "hen" || kind === "crow") ? heading.current : 1), scale * (motion ? 1 + Math.sin(t * 2) * 0.018 : 1));
+    node.scale.set(scale * ((kind === "troll" || kind === "hen" || kind === "crow") ? heading.current : 1), scale * (motion && kind !== "troll" ? 1 + Math.sin(t * 2) * 0.018 : 1));
     node.rotation = motion && reacting && (kind === "ghost" || kind === "spirit") ? Math.sin(p * 24) * 0.2 * (1 - p) : 0;
     node.alpha = kind === "ghost" ? (reacting ? 0.92 : 0.68) : 1;
-    const pose = kind === "troll" ? reacting ? 5 + Math.min(2, Math.floor(p * 3)) : motion ? 1 + Math.floor(t * 3) % 3 : 0
+    const pose = kind === "troll" ? reacting ? 4 + Math.min(3, Math.floor(p * 4)) : motion && patrol.moving ? trollWalkFrame(patrol.distance) : 0
       : kind === "crow" ? Math.floor(t * 7) % 4
         : reacting ? 1 + Math.floor(p * 6) % 3 : Math.floor(t * 0.8) % 4;
-    node.texture = frames[row + (scene.reducedMotion ? reacting ? kind === "troll" ? 6 : 1 : 0 : pose)];
-    updateEnvironmentTarget(site.id, { worldX: x + roam, worldY: ground + dy - height / 2, width: kind === "troll" ? 105 : kind === "crow" ? 90 : height * 0.72, height });
+    node.texture = kind === "troll" && !reacting && motion && patrol.moving && walkFrames
+      ? walkFrames[pose]
+      : frames[row + (scene.reducedMotion ? reacting ? kind === "troll" ? 6 : 1 : 0 : kind === "troll" && !reacting ? 0 : pose)];
+    updateEnvironmentTarget(site.id, { worldX: x + roam, worldY: ground + dy - height / 2, width: kind === "troll" ? 132 : kind === "crow" ? 90 : height * 0.72, height });
     if (shadow.current) { shadow.current.x = (x + roam) * factor; shadow.current.alpha = dy < -100 ? 0 : Math.max(0.08, 0.25 + dy / 400); }
     if (ripple.current) {
       const g = ripple.current; g.clear();

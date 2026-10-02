@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
+import { reactionProgress, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
@@ -164,6 +165,8 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const lantern = useRef<Sprite>(null);
 
   const target = worldXFor(player.position) + lane.dx;
+  const interactionId = `hero:${player.id}`;
+  const interaction = useEnvironmentTarget(interactionId, "traveller", target);
   const at = useRef(target);
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
@@ -416,11 +419,15 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     }
     if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
+    updateSpriteTarget(interactionId, art.current, HERO_HEIGHT * lane.scale, HERO_HEIGHT * lane.scale * .7);
+    updateEnvironmentTarget(interactionId, { label: `Saluer ${player.name}` });
+    const greetingProgress = reactionProgress(interaction.current);
+    const greeting = !moving && actionTimer.current <= 0 && greetingProgress < 1;
     const knocked = moving && gait === "knockback" && legIndex === 0;
     const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : knocked ? "hurt" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
-      : "idle");
-    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : 1 - actionTimer.current / actionDuration.current;
+      : greeting ? "celebrate" : "idle");
+    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : greeting ? greetingProgress : 1 - actionTimer.current / actionDuration.current;
     const frame = characterFrame(character.id, motion, scene.reducedMotion ? 0 : elapsed.current, progress);
     if (art.current && poses) art.current.texture = poses[frame];
 

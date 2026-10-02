@@ -5,7 +5,7 @@ import { canExploreTarget, environmentLine, ENVIRONMENT_LABELS } from "@/lib/gam
 import { sfx } from "@/lib/client/sound";
 import { environmentTargets, type EnvironmentTarget } from "./environment-targets";
 import { environmentBubble, parallaxX } from "./projection";
-import { markMotion, scene, viewingInterior } from "./scene";
+import { markMotion, scene } from "./scene";
 import { fx } from "./fx";
 
 function pulse(target: EnvironmentTarget) {
@@ -21,6 +21,9 @@ function pulse(target: EnvironmentTarget) {
     case "spirit": case "ghost": fx.burst({ preset: "stars", x, y, count, colors: [0xb2e5bd, 0xdaffff] }); sfx.chime(); break;
     case "skeleton": fx.burst({ preset: "dust", x, y: y + 25, count: 4 }); sfx.pop(); break;
     case "troll": sfx.croak(); break;
+    case "squirrel": sfx.pop(); break;
+    case "dragon": sfx.croak(); break;
+    case "recruiter": case "coach": case "clerk": case "worker": case "traveller": sfx.press(); break;
   }
 }
 interface Place { id: string; x: number; y: number; width: number; height: number; available: boolean; label: string; }
@@ -29,7 +32,7 @@ function TargetButton({ place, onActivate }: { place: Place; onActivate: (id: st
   const drag = useRef<{ x: number; y: number; pan: number; moved: boolean } | null>(null);
   const moved = useRef(false);
   return <button type="button" className="environment-target" aria-label={place.label} aria-disabled={!place.available}
-    title={place.available ? place.label : `${place.label} · rejoins cet endroit`}
+    title={place.label}
     data-available={place.available} style={{ left: place.x, top: place.y, width: place.width, height: place.height }}
     onPointerDown={event => {
       event.stopPropagation();
@@ -52,35 +55,33 @@ function TargetButton({ place, onActivate }: { place: Place; onActivate: (id: st
 }
 
 /** Sparse hit areas and one small anchored speech bubble; the game keeps playing underneath. */
-export function EnvironmentOverlay({ meId, paused, blocked, previewX }: { meId: string | null; paused: boolean; blocked: boolean; previewX?: number }) {
+export function EnvironmentOverlay({ meId, paused }: { meId: string | null; paused: boolean }) {
   const [frame, setFrame] = useState<{ places: Place[]; width: number; top: number }>({ places: [], width: 0, top: 0 });
   const [speech, setSpeech] = useState<{ id: string; line: string } | null>(null);
   useEffect(() => {
     const sync = () => {
       const { camera } = scene;
-      const inside = viewingInterior(), walking = previewX === undefined && (blocked || performance.now() < scene.walkingUntil);
-      const heroX = previewX ?? (meId ? scene.heroes.get(meId)?.x : undefined);
       const width = Math.round(camera.viewW * camera.scale), bottom = camera.viewH * camera.scale - scene.bottomInset;
       const places: Place[] = [];
-      if (meId && !paused && !inside) for (const target of environmentTargets.values()) {
+      const targets = [...environmentTargets.values()].sort((a, b) => a.factor - b.factor || Number(b.kind === "tree") - Number(a.kind === "tree") || b.width * b.height - a.width * a.height);
+      if (meId && !paused) for (const target of targets) {
         if (!target.visible || target.width <= 0 || target.height <= 0) continue;
         const x = Math.round(parallaxX(target.worldX, camera.x, camera.viewW, target.factor) * camera.scale);
         const y = Math.round(camera.screenOffsetY + (target.worldY - camera.y * target.factor) * camera.scale);
-        if (x < 24 || x > width - 24 || y < scene.topInset + 18 || y > bottom - 24) continue;
+        if (x + target.width * camera.scale / 2 < 0 || x - target.width * camera.scale / 2 > width || y + target.height * camera.scale / 2 < 0 || y - target.height * camera.scale / 2 > bottom) continue;
         places.push({ id: target.id, x, y, width: Math.max(44, Math.round(target.width * camera.scale)), height: Math.max(44, Math.round(target.height * camera.scale)),
-          available: canExploreTarget(heroX, target.homeX, walking, paused, inside), label: ENVIRONMENT_LABELS[target.kind] });
+          available: canExploreTarget(target.visible, paused), label: target.label ?? ENVIRONMENT_LABELS[target.kind] });
       }
       const next = { places, width, top: Math.round(scene.topInset + 12) };
       setFrame(before => JSON.stringify(before) === JSON.stringify(next) ? before : next);
     };
     sync(); const timer = window.setInterval(sync, 100);
     return () => window.clearInterval(timer);
-  }, [meId, paused, blocked, previewX]);
+  }, [meId, paused]);
   useEffect(() => { if (!speech) return; const timer = window.setTimeout(() => setSpeech(null), 4500); return () => window.clearTimeout(timer); }, [speech]);
   const activate = (id: string) => {
     const target = environmentTargets.get(id);
-    const heroX = previewX ?? (meId ? scene.heroes.get(meId)?.x : undefined);
-    if (!target?.visible || !canExploreTarget(heroX, target.homeX, previewX === undefined && (blocked || performance.now() < scene.walkingUntil), paused, viewingInterior()) || performance.now() - target.startedAt < 900) return;
+    if (!target || !canExploreTarget(target.visible, paused) || performance.now() - target.startedAt < 900) return;
     target.startedAt = performance.now();
     setSpeech({ id, line: environmentLine(target.kind, target.visits++) });
     pulse(target); markMotion();

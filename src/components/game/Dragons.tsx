@@ -7,17 +7,22 @@ import { surfaceAt } from "@/lib/game/world";
 import { scene, viewingInterior } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
+import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 
 function Resident({ x }: { x: number }) {
   const texture = useDirectTexture("/art/world-v3/animations/dragon.webp");
   const frames = texture ? atlasFrames(texture, 4, 2) : null;
   const sprite = useRef<Sprite>(null), time = useRef(x % 11);
+  const targetId = `nest:${x}`;
+  const target = useEnvironmentTarget(targetId, "dragon", x);
   useSceneTick(ticker => {
-    if (!sprite.current) return;
+    if (!sprite.current) { updateSpriteTarget(targetId, null, 240); return; }
     sprite.current.visible = x > scene.camera.x - 300 && x < scene.camera.x + scene.camera.viewW + 300;
-    if (!sprite.current.visible) return;
+    if (!sprite.current.visible) { updateSpriteTarget(targetId, null, 240); return; }
     if (!scene.reducedMotion) time.current += ticker.elapsedMS / 1000;
     sprite.current.scale.set(0.62, 0.62 * (1 + (scene.reducedMotion ? 0 : Math.sin(time.current * 1.8) * 0.035)));
+    sprite.current.rotation = scene.reducedMotion ? 0 : Math.sin(reactionProgress(target.current) * Math.PI * 4) * .02 * (1 - reactionProgress(target.current));
+    updateSpriteTarget(targetId, sprite.current, 240, 320);
   });
   return frames ? <pixiSprite ref={sprite} texture={frames[7]} x={x} y={surfaceAt(x) - 45} anchor={{ x: 0.5, y: 476 / 512 }} scale={0.62} label="dragon-nest" /> : null;
 }
