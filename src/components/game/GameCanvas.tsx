@@ -358,7 +358,6 @@ function WorldScene({
 
       <Layer factor={1} shade={0.62}>
         <TransitionLandmarks />
-        <Forest />
       </Layer>
 
       <PaperMotes />
@@ -368,6 +367,7 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.6}>
+        <Forest />
         <GroundDwellers />
       </Layer>
 

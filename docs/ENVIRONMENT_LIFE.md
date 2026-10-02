@@ -34,6 +34,10 @@ Le panneau DEV ajoute « Rencontre de test » et « Tester les interactions ici 
 
 ## Validation visuelle
 
+Correction du 2 octobre 2026 : les chênes passent après le sol, toujours derrière les héros ; leurs racines chevauchent le bord arrière du chemin de 30 unités. La branche procédurale sous les écureuils est supprimée. Leurs pieds sont ancrés sur la branche peinte près du pixel source (620, 450), avec une hauteur de 38 unités et un petit bond qui revient à cette position.
+
+L’interface supérieure est compactée : portrait de 40 px, carte de voyage limitée à 600 px, classement de 240 px et commandes plus courtes. La zone voyage + commandes mesure 131 px à 1280×720, contre environ 250 px avant correction. Les commandes mobiles conservent 44 px de hauteur. Validation dans le vrai jeu à 1280×720, 390×844 et 1920×900 : racines au contact, écureuils sur les branches, absence de barre, personnages lisibles et aucun débordement horizontal mobile. Ouverture du classement et de sa carte vérifiée ; clic sur un tronc : bulle « On dormait. Bordel. ». Le mode de test des interactions est ensuite désactivé. Captures : `docs/forest-ui-previews/`.
+
 La forêt a été réalisée et validée avant l’extension : 1280×720, 390×844 et 1920×900. Racines fixes, habitants nets, pas de bandes opaques supplémentaires, héros devant le décor. Le premier essai a révélé un chevauchement des clics entre troll et arbre : les domiciles sont désormais au milieu des intervalles entre les troncs et la marche est limitée à 60 unités.
 
 Les autres familles ont été inspectées dans le vrai jeu, biome par biome. Le vol des corbeaux a été abaissé pour rester lisible sous l’interface. Une bulle latérale garde le visage des grands habitants visible sur ordinateur.
