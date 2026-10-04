@@ -61,10 +61,12 @@ export const DECOR_SPACING = 600;
 export const TRANSITION_CLEARANCE = 250;
 export const INTERIOR_CLEARANCE = 150;
 
+/** Read in tickers: a plain loop, no closure per call. */
 export function interiorAt(x: number) {
   if (x < 0) return undefined;
   const local = x % WORLD_LENGTH;
-  return INTERIORS.find(room => local >= room.from && local <= room.to);
+  for (let i = 0; i < INTERIORS.length; i++) if (local >= INTERIORS[i].from && local <= INTERIORS[i].to) return INTERIORS[i];
+  return undefined;
 }
 
 export function interiorsInRange(left: number, right: number) {
@@ -104,9 +106,28 @@ export function decorIntervals(): Array<[number, number]> {
   return intervals;
 }
 
-/** Packed before drawing, with a small seeded slack; 40 stops per 200-step lap. */
+/** In the woods, a plain stop is lettered into an oak; personal stops keep their board. */
+export function isCarvedTree(site: Pick<DecorSite, "biome" | "kind" | "setpiece">): boolean {
+  return site.biome === "foret" && !site.setpiece && site.kind !== "crown" && site.kind !== "daily" && site.kind !== "friend" && site.kind !== "grave";
+}
+
+const laps = new Map<number, readonly DecorSite[]>();
+
+/**
+ * Packed before drawing, with a small seeded slack; 43 stops per 200-step lap.
+ * Deterministic, so the few laps around the camera are kept; callers never mutate them.
+ */
 export function decorForLap(lap: number): DecorSite[] {
   const cycle = Math.max(0, Math.floor(lap));
+  let sites = laps.get(cycle);
+  if (!sites) {
+    if (laps.size >= 8) laps.delete(laps.keys().next().value!);
+    laps.set(cycle, sites = packLap(cycle));
+  }
+  return sites as DecorSite[];
+}
+
+function packLap(cycle: number): DecorSite[] {
   const random = mulberry32(seedFrom(`decor-v1:${cycle}`));
   const sites: DecorSite[] = [];
   const categories = ["refusal", "direction", "refusal", "offer", "wanted", "epitaph", "coach", "influencer"] as const;
@@ -122,11 +143,12 @@ export function decorForLap(lap: number): DecorSite[] {
     }
   }
   const count = new Map<string, number>();
+  const lastForest = sites.filter(s => s.biome === "foret").length - 1;
   return sites.map((original, siteIndex) => {
     const site = cycle === 0 && siteIndex === 0 ? { ...original, x: 0 } : original;
     const index = count.get(site.biome) ?? 0;
     count.set(site.biome, index + 1);
-    const target = site.biome === "plaine" ? 0 : site.biome === "foret" ? sites.filter(s => s.biome === "foret").length - 1 : 1;
+    const target = site.biome === "plaine" ? 0 : site.biome === "foret" ? lastForest : 1;
     return { ...site, setpiece: index === target };
   });
 }

@@ -45,9 +45,14 @@ export function atmosphereSample(center: number, interval: number, count: number
   return { worldX, opacity: 1 - smoothstep(reach - interval * .7, reach, Math.abs(worldX - center)) };
 }
 
+/** How much of the breeze a point of the oak takes: zero on the painted trunk and roots. */
+export function canopyWeight(u: number, v: number) {
+  return (1 - smoothstep(.38, .60, v)) * smoothstep(.07, .28, Math.abs(u - .65));
+}
+
 /** The painted trunk and every root stay fixed; only outer branches can flex. */
 export function canopyOffset(u: number, v: number, time: number, worldX: number, wake = 0) {
-  const weight = (1 - smoothstep(.38, .60, v)) * smoothstep(.07, .28, Math.abs(u - .65));
+  const weight = canopyWeight(u, v);
   if (weight === 0) return { x: 0, y: 0 };
   const wind = windAt(time, worldX);
   return {

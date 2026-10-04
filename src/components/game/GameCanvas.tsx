@@ -10,7 +10,7 @@ import { EnvironmentLife } from "./EnvironmentLife";
 import { EnvironmentOverlay } from "./EnvironmentOverlay";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
-import type { GroupDecor } from "@/lib/game/decor";
+import { interiorAt, type GroupDecor } from "@/lib/game/decor";
 import { setMusicPlace } from "@/lib/client/music";
 import { Interiors, ExteriorBuildings } from "./Interiors";
 import { Outdoors, SceneDoors } from "./SceneDoors";
@@ -23,7 +23,7 @@ import {
   WORLD_LENGTH,
   JOURNEY_SURFACE_Y,
 } from "@/lib/game/world";
-import { depthLight, markMotion, resetScene, scene } from "./scene";
+import { depthLight, markMotion, resetScene, scene, sceneFrameListeners, viewingInterior } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
@@ -53,8 +53,15 @@ const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
 
-function MusicPosition() {
-  useTick(() => setMusicPlace(scene.room?.id ?? biomeAt(scene.focus).id));
+/**
+ * The music follows the player's own hero: glancing at a friend or browsing never
+ * retunes it. While the camera follows that hero, the room changes under the fade.
+ */
+function MusicPosition({ meId, followingMe }: { meId: string | null; followingMe: boolean }) {
+  useTick(() => {
+    const x = (meId ? scene.heroes.get(meId)?.x : undefined) ?? scene.focus;
+    setMusicPlace((followingMe ? scene.room?.id : interiorAt(x)?.id) ?? biomeAt(x).id);
+  });
   return null;
 }
 
@@ -145,12 +152,15 @@ function CameraRig({
 
     node.scale.set(camera.scale);
 
-    const jitter = scene.shake * 18 * camera.scale;
+    // Reduced motion keeps every impact, without shaking the world.
+    const jitter = scene.reducedMotion ? 0 : scene.shake * 18 * camera.scale;
     node.x = (Math.random() - 0.5) * jitter;
     node.y = camera.screenOffsetY + (Math.random() - 0.5) * jitter;
 
     // Décroissance par défaut ; un effet actif réécrit la valeur à chaque image.
     if (scene.shake > 0) scene.shake = Math.max(0, scene.shake - dt * 2.6);
+    // One reading of the framed room for the whole frame: layers, heroes, chests, particles.
+    scene.viewedRoom = viewingInterior() ? scene.room : null;
   }});
 
   return <pixiContainer eventMode="none" ref={root}>{cameraReady ? children : null}</pixiContainer>;
@@ -205,6 +215,8 @@ function configureRenderer(app: PixiApplication) {
   const active = scene.lowPower ? CALM_FPS : ACTIVE_FPS;
   const calm = scene.lowPower ? 20 : CALM_FPS;
   app.ticker.maxFPS = active;
+  // DOM hit areas and bubbles follow the world once it has moved, just before it renders.
+  app.ticker.add(() => { for (const follow of sceneFrameListeners) follow(); }, undefined, -20);
   // Ambient life reads fine at half rate; walking, effects and the camera do not.
   app.ticker.add(() => {
     const wanted = performance.now() - scene.lastMotion < 700 ? active : calm;
@@ -327,7 +339,7 @@ function WorldScene({
     <RenderLifecycle paused={paused} />
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
-      <MusicPosition />
+      <MusicPosition meId={meId} followingMe={!focusPlayerId || focusPlayerId === meId} />
       <AtmosphereClock enabled={atmosphere} />
       <Outdoors>
       <Sky />
@@ -386,7 +398,8 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
+        {/* Residents roam behind the stops: personal signs (crown, daily champion) stay readable. */}
+        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -433,7 +446,7 @@ function WorldScene({
             />
           );
         })}
-        <Outdoors><AmbientWeather /></Outdoors>
+        <AmbientWeather />
         <FxLayer />
       </Layer>
     </CameraRig>
@@ -551,6 +564,8 @@ function GameCanvas({
     const root = host.current;
     if (!root || !freeCamera) return;
     const onWheel = (event: WheelEvent) => {
+      // Pinch and Ctrl+wheel still zoom the page.
+      if (event.ctrlKey) return;
       event.preventDefault();
       const delta =
         Math.abs(event.deltaX) > Math.abs(event.deltaY)

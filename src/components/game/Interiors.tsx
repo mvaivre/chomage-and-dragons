@@ -1,10 +1,10 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import { interiorsInRange, type InteriorId } from "@/lib/game/decor";
 import { WALKABLE_GROUND_Y } from "@/lib/game/world";
-import { scene, viewingInterior } from "./scene";
+import { scene, viewedX } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { DecorLabel } from "./DecorSetpiece";
@@ -47,8 +47,13 @@ function Conveyor({x}:{x:number}) {
     if(!scene.reducedMotion)clock.current+=ticker.elapsedMS/1000;
     nodes.current.forEach((node,i)=>{if(node)node.x=x-90+((i*70+clock.current*24)%210);});
   });
-  return <>{[0,1,2].map(i=><pixiGraphics key={i} ref={node=>{nodes.current[i]=node;}} x={x-90+i*70} y={-65} draw={g=>{g.clear().poly([-10,-3,9,-6,14,0,-5,4]).fill(0xe9dfbd).stroke({color:0x332b22,width:1.5});}}/>)}</>;
+  return <>{[0,1,2].map(i=><pixiGraphics key={i} ref={node=>{nodes.current[i]=node;}} x={x-90+i*70} y={-65} draw={paintParchment}/>)}</>;
 }
+
+// Stable drawings: a new draw function on a re-render would repaint the Graphics.
+const paintParchment=(g:Graphics)=>{g.clear().poly([-10,-3,9,-6,14,0,-5,4]).fill(0xe9dfbd).stroke({color:0x332b22,width:1.5});};
+const WALL_FILL={orp:(g:Graphics)=>{g.clear().rect(-4000,-2500,10000,3000).fill(0x979c77);},factory:(g:Graphics)=>{g.clear().rect(-4000,-2500,10000,3000).fill(0x816145);}};
+const FLOOR_FILL={orp:(g:Graphics)=>{g.clear().rect(-4000,WALKABLE_GROUND_Y,10000,2500).fill(0x9c997f);},factory:(g:Graphics)=>{g.clear().rect(-4000,WALKABLE_GROUND_Y,10000,2500).fill(0x564d41);}};
 
 const WALL_OFFSETS = Array.from({length: 10}, (_, i) => (i - 4) * TILE);
 
@@ -56,7 +61,7 @@ function Wall({id}:{id:InteriorId}) {
   const texture=useDirectTexture(url(id,"wall")), ceiling=useDirectTexture(url(id,"ceiling"));
   const root=useRef<Container>(null), glass=useRef<Graphics>(null);
   const meta=id==="orp"?orpWall:factoryWall;
-  const paintWindows=(g:Graphics)=>{g.clear();for(const offset of WALL_OFFSETS)for(const [x,y,w,h]of meta.windows)g.rect(offset+x*TILE/2048,y*WALL_HEIGHT/1024,w*TILE/2048,h*WALL_HEIGHT/1024).fill(0x15254d);};
+  const paintWindows=useCallback((g:Graphics)=>{g.clear();for(const offset of WALL_OFFSETS)for(const [x,y,w,h]of meta.windows)g.rect(offset+x*TILE/2048,y*WALL_HEIGHT/1024,w*TILE/2048,h*WALL_HEIGHT/1024).fill(0x15254d);},[meta]);
   useSceneTick(()=>{
     const safe=(scene.topInset+8-scene.camera.screenOffsetY)/scene.camera.scale+scene.camera.y;
     const height=Math.min(WALL_HEIGHT,Math.max(235,WALKABLE_GROUND_Y-safe));
@@ -64,7 +69,7 @@ function Wall({id}:{id:InteriorId}) {
     if(glass.current)glass.current.alpha=scene.night*0.8;
   });
   return <pixiContainer ref={root} y={WALKABLE_GROUND_Y-WALL_HEIGHT}>
-    <pixiGraphics draw={g=>{g.clear().rect(-4000,-2500,10000,3000).fill(id==="orp"?0x979c77:0x816145);}}/>
+    <pixiGraphics draw={WALL_FILL[id]}/>
     {WALL_OFFSETS.map(offset=><pixiContainer key={offset} x={offset}>
       {texture?<pixiSprite texture={texture} width={TILE} height={WALL_HEIGHT}/>:null}
       {id==="orp"?<DecorLabel text="N° 000 · Votre numéro : 4 812" rect={orpWall.text.map((v,i)=>v*(i%2===0?TILE/2048:WALL_HEIGHT/1024))}/>:null}
@@ -80,7 +85,8 @@ function Building({id,x,mirror}:{id:InteriorId;x:number;mirror:boolean}) {
   // Door centre is the trigger; the rest of the building extends away from it.
   const scale=0.47, doorX=meta.doorX, sign=meta.text;
   const root=useRef<Container>(null);
-  useSceneTick(()=>{if(root.current)root.current.visible=mirror?scene.focus>=x-1:scene.focus<=x+1;});
+  // Same reference as the outdoor switch: the place framed for the followed hero, panning included.
+  useSceneTick(()=>{if(root.current)root.current.visible=mirror?viewedX()>=x-1:viewedX()<=x+1;});
   return <pixiContainer ref={root} x={x} y={WALKABLE_GROUND_Y+4} label={`building:${id}:${mirror?"exit":"entry"}`}>
     {texture?<pixiSprite texture={texture} x={(mirror?1:-1)*doorX*scale} y={-meta.baseline*scale} scale={{x:(mirror?-1:1)*scale,y:scale}}/>:null}
     <DecorLabel text={id==="orp"?"Centre ORP":"Usine à CV"} angle={mirror?-meta.textAngle:meta.textAngle} rect={[(mirror?doorX-sign[0]-sign[2]:sign[0]-doorX)*scale,(sign[1]-meta.baseline)*scale,sign[2]*scale,sign[3]*scale]}/>
@@ -100,10 +106,10 @@ function Room({id,from,to}:{id:InteriorId;from:number;to:number}) {
   const floor=useDirectTexture(url(id,"floor"));
   const length=to-from;
   const root=useRef<Container>(null);
-  useSceneTick(()=>{if(root.current)root.current.visible=viewingInterior()&&scene.room?.from===from;});
+  useSceneTick(()=>{if(root.current)root.current.visible=scene.viewedRoom?.from===from;});
   return <pixiContainer ref={root} x={from} visible={false} label={`interior:${id}:${from}`}>
     <Wall id={id}/>
-    <pixiGraphics draw={g=>{g.clear().rect(-4000,WALKABLE_GROUND_Y,10000,2500).fill(id==="orp"?0x9c997f:0x564d41);}}/>
+    <pixiGraphics draw={FLOOR_FILL[id]}/>
     {floor?[-3,-2,-1,0,1,2,3].map(i=><pixiSprite key={i} texture={floor} x={i*length} y={WALKABLE_GROUND_Y} width={length} height={361}/>):null}
     <pixiContainer y={WALKABLE_GROUND_Y}>
       {id==="orp"?<>
@@ -124,19 +130,22 @@ function Room({id,from,to}:{id:InteriorId;from:number;to:number}) {
   </pixiContainer>;
 }
 
+/** Rooms near the camera, in 800-unit buckets; React only hears about bucket crossings. */
+function useNearbyRooms(margin:number) {
+  const left=()=>Math.max(0,Math.floor((scene.camera.x-margin)/800)), right=()=>Math.ceil((scene.camera.x+scene.camera.viewW+margin)/800);
+  const [range,setRange]=useState(()=>[left(),right()] as const);
+  useSceneTick(()=>{const a=left(),b=right();if(a!==range[0]||b!==range[1])setRange([a,b]);});
+  return useMemo(()=>interiorsInRange(range[0]*800,range[1]*800),[range]);
+}
+
 function InteriorsLayer() {
-  const measure=()=>`${Math.max(0,Math.floor((scene.camera.x-600)/800))}:${Math.ceil((scene.camera.x+scene.camera.viewW+600)/800)}`;
-  const [range,setRange]=useState(measure);
-  useSceneTick(()=>{const next=measure();if(next!==range)setRange(next);});
-  const rooms=useMemo(()=>{const[a,b]=range.split(":").map(n=>Number(n)*800);return interiorsInRange(a,b);},[range]);
+  const rooms=useNearbyRooms(600);
   return <pixiContainer>{rooms.map(room=><Room key={room.from} {...room}/>)}</pixiContainer>;
 }
 export const Interiors=memo(InteriorsLayer);
 
-export function ExteriorBuildings() {
-  const measure=()=>`${Math.max(0,Math.floor((scene.camera.x-900)/800))}:${Math.ceil((scene.camera.x+scene.camera.viewW+900)/800)}`;
-  const [range,setRange]=useState(measure);
-  useSceneTick(()=>{const next=measure();if(next!==range)setRange(next);});
-  const rooms=useMemo(()=>{const[a,b]=range.split(":").map(n=>Number(n)*800);return interiorsInRange(a,b);},[range]);
+function ExteriorBuildingsLayer() {
+  const rooms=useNearbyRooms(900);
   return <>{rooms.map(room=><pixiContainer key={room.from}><Building id={room.id} x={room.from} mirror={false}/><Building id={room.id} x={room.to} mirror/></pixiContainer>)}</>;
 }
+export const ExteriorBuildings=memo(ExteriorBuildingsLayer);

@@ -1,5 +1,7 @@
 import { extend } from "@pixi/react";
 import { Container, Graphics, MeshPlane, Sprite, Text } from "pixi.js";
+// `renderer.prepare` uploads a room's art under the door fade instead of on its first frame.
+import "pixi.js/prepare";
 
 /**
  * Catalogue des classes Pixi exposées en JSX.

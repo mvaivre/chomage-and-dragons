@@ -274,10 +274,19 @@ function TransitionLandmarksLayer() {
  * Matière sous la route. Elle évite tout vide sur les écrans portrait sans étirer
  * une immense image : l'essentiel de la texture reste le ruban net au niveau des pieds.
  */
-const paintUnderworld = (start: number) => (g: Graphics) => {
-  g.clear();
-  for (let x = 0; x < 2048; x += 128) g.rect(x, GROUND_Y + 158, 128, WORLD_BOTTOM - GROUND_Y + 980).fill(terrainBaseColor(start + x + 64));
-};
+const underworlds = new Map<number, (g: Graphics) => void>();
+/** One stable painter per tile: a new function on each re-render would repaint every tile. */
+function paintUnderworld(start: number) {
+  let draw = underworlds.get(start);
+  if (!draw) {
+    if (underworlds.size > 64) underworlds.clear();
+    underworlds.set(start, draw = (g: Graphics) => {
+      g.clear();
+      for (let x = 0; x < 2048; x += 128) g.rect(x, GROUND_Y + 158, 128, WORLD_BOTTOM - GROUND_Y + 980).fill(terrainBaseColor(start + x + 64));
+    });
+  }
+  return draw;
+}
 
 function useStripTiles(tileWidth: number, factor = 1) {
   const measure = () => visibleTiles(scene.camera.x * factor - scene.camera.viewW * (1 - factor) / 2, scene.camera.viewW, tileWidth, -VIEW.width);

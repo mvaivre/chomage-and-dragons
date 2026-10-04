@@ -28,7 +28,10 @@ export interface Camera {
 }
 
 export interface Scene {
+  /** The room the followed hero stands in; the door fade switches it under the black. */
   room: RoomLocation | null;
+  /** `room` while the camera frames it, null once browsing has left it. Set by the camera rig. */
+  viewedRoom: RoomLocation | null;
   doorTransition: { elapsed: number; destination: RoomLocation | null; switched: boolean } | null;
   momentActive: boolean;
   reducedMotion: boolean;
@@ -141,8 +144,21 @@ export function markMotion(): void {
   scene.lastMotion = performance.now();
 }
 
+/**
+ * DOM overlays that follow the scene run on its ticker, after the world moved: at the
+ * scene's own rate (30 or 60 fps, nothing while paused), never at the display's 120 Hz.
+ */
+export const sceneFrameListeners = new Set<() => void>();
+
+/** Drop any browsing offset: the camera goes back to framing the followed hero. */
+export function recenterCamera(): void {
+  scene.pan = 0;
+  scene.exploreCenter = null;
+}
+
 export const scene: Scene = {
   room: null,
+  viewedRoom: null,
   doorTransition: null,
   momentActive: false,
   reducedMotion: false,
@@ -185,6 +201,7 @@ export const scene: Scene = {
 export function resetScene(): void {
   scene.atmosphereTime = 0;
   scene.room = null;
+  scene.viewedRoom = null;
   scene.doorTransition = null;
   scene.momentActive = false;
   scene.camera = {
@@ -216,9 +233,18 @@ export function resetScene(): void {
 /** Le bas du monde, assez loin pour que les remplissages couvrent tout tremblement. */
 export const WORLD_BOTTOM = VIEW.height + 1040;
 
+/**
+ * The world x framed at the followed hero's place on screen, panning included.
+ * The screen centre runs 0.14 of a view ahead of a resting hero: it would leave a
+ * room early, near its exit.
+ */
+export function viewedX(): number {
+  return scene.camera.x + scene.camera.viewW * scene.anchor;
+}
+
 /** Camera browsing may leave an interior; actual room and music still follow the hero. */
 export function viewingInterior(): boolean {
   if (!scene.room) return false;
-  const center = scene.camera.x + scene.camera.viewW / 2;
-  return center >= scene.room.from - 100 && center <= scene.room.to + 100;
+  const at = viewedX();
+  return at >= scene.room.from - 100 && at <= scene.room.to + 100;
 }

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import type { Container, Graphics, Sprite } from "pixi.js";
-import { roomAt, sameRoom } from "@/lib/game/doors";
+import { inRoom } from "@/lib/game/doors";
 import { markMotion, scene } from "./scene";
 import { atlasFrames, useDirectTexture } from "./textures";
 
@@ -26,7 +26,8 @@ export function JourneyChest({ x, y, opened = false, opening = false, big = fals
   const elapsed = useRef(0);
   const finished = useRef(false);
   useTick(ticker => {
-    if (root.current) root.current.visible = sameRoom(roomAt(x), scene.room);
+    // An opening chest stays on screen: its sparks would otherwise float over a facade.
+    if (root.current) root.current.visible = opening || inRoom(x, scene.viewedRoom);
     if (!opening) return;
     markMotion();
     elapsed.current += ticker.elapsedMS;

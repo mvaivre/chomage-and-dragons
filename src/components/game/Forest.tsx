@@ -1,16 +1,16 @@
 "use client";
 
-import { useRef, type RefObject } from "react";
+import { memo, useMemo, useRef, type RefObject } from "react";
 import type { Container, MeshPlane, Sprite } from "pixi.js";
-import { interiorAt } from "@/lib/game/decor";
+import { decorForLap, interiorAt, isCarvedTree } from "@/lib/game/decor";
 import { BIOMES, WALKABLE_GROUND_Y, WORLD_LENGTH } from "@/lib/game/world";
-import { canopyOffset } from "@/lib/game/atmosphere";
+import { canopyOffset, canopyWeight, windAt } from "@/lib/game/atmosphere";
 import { useLayerBiomes } from "./FlatWorld";
 import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
-import { isDrawn, reactionProgress, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
+import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
 
 function TreeResidents({ height, target }: { height: number; target: RefObject<EnvironmentTarget> }) {
   const source = useDirectTexture("/art/world-v3/animations/woodland-life.webp");
@@ -59,18 +59,30 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
   </pixiContainer>;
 }
 
+/** The 7 × 13 bending grid of the oak mesh, with each vertex's share of the breeze. */
+const CANOPY = (() => {
+  const u: number[] = [], v: number[] = [], weights: number[] = [], arc: number[] = [];
+  for (let row = 0; row < 13; row++) for (let col = 0; col < 7; col++) {
+    u.push(col / 6); v.push(row / 12); weights.push(canopyWeight(col / 6, row / 12)); arc.push(Math.sin(col / 6 * Math.PI));
+  }
+  return { u, v, weights, arc };
+})();
+
 export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; worldX: number; height?: number; text?: string }) {
   const texture = useDirectTexture("/art/world-v3/runtime/forest-oak.webp");
-  const inscription = useSignTexture(text ?? "", "refusal", "tree", 190, 96, "#302318");
+  const inscription = useSignTexture(text ?? null, "refusal", "tree", 190, 96, "#302318");
   const root = useRef<Container>(null), crown = useRef<MeshPlane>(null);
   const resting = useRef(false);
-  const target = useEnvironmentTarget(`tree:${worldX}`, "tree", worldX);
+  const targetId = `tree:${worldX}`;
+  const target = useEnvironmentTarget(targetId, "tree", worldX);
   useSceneTick(() => {
     if (!root.current) return;
     root.current.visible = worldX > scene.camera.x - 400 && worldX < scene.camera.x + scene.camera.viewW + 400;
-    const hit = target.current;
-    updateEnvironmentTarget(`tree:${worldX}`, { visible: Boolean(texture && isDrawn(root.current)), worldX: worldX + height * .11, worldY: WALKABLE_GROUND_Y + 30 - height * 0.16, width: 90, height: height * 0.25 });
-    if (!root.current.visible || !crown.current) return;
+    const hit = target.current, drawn = isDrawn(root.current);
+    showEnvironmentTarget(targetId, Boolean(texture && drawn));
+    moveEnvironmentTarget(targetId, worldX + height * .11, WALKABLE_GROUND_Y + 30 - height * 0.16, 90, height * 0.25);
+    // Hidden behind a room's walls too: no mesh to bend nor buffer to upload.
+    if (!drawn || !crown.current) return;
     const animated = scene.atmosphereEnabled && !scene.reducedMotion;
     if (!animated && resting.current) return;
     resting.current = !animated;
@@ -78,10 +90,12 @@ export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; 
     const p = reactionProgress(hit), wake = p < 1 && !scene.reducedMotion ? Math.sin(p * 32) * (1 - p) : 0;
     const mesh = crown.current, positions = mesh.geometry.positions;
     const width = mesh.texture.width, fullHeight = mesh.texture.height;
-    for (let row = 0; row < 13; row++) for (let col = 0; col < 7; col++) {
-      const u = col / 6, v = row / 12, i = (row * 7 + col) * 2;
-      const offset = animated ? canopyOffset(u, v, scene.atmosphereTime, worldX, wake) : { x: 0, y: 0 };
-      positions[i] = u * width + offset.x; positions[i + 1] = v * fullHeight + offset.y;
+    // Same motion as `canopyOffset`, with the breeze read once per tree and nothing allocated.
+    const time = scene.atmosphereTime, wind = animated ? windAt(time, worldX) : 0;
+    for (let k = 0; k < CANOPY.weights.length; k++) {
+      const u = CANOPY.u[k], w = animated ? CANOPY.weights[k] : 0, i = k * 2;
+      positions[i] = u * width + (w && w * (wind * 12 + Math.sin(time * 1.3 + u * 5) * 2 + wake * 24));
+      positions[i + 1] = CANOPY.v[k] * fullHeight + (w && w * (wind * CANOPY.arc[k] * 2 + wake * 4));
     }
     mesh.geometry.getBuffer("aPosition").update();
     if (p < 1) markMotion();
@@ -96,16 +110,24 @@ export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; 
 }
 
 /** Rooted trunks overlap the rear edge of the floor and remain behind the heroes. */
-export function Forest() {
+function ForestLayer() {
   const indices = useLayerBiomes(1, 900);
-  const forest = BIOMES.find(b => b.id === "foret")!;
-  const trees = indices.filter(({ index }) => BIOMES[index].id === "foret").flatMap(({ offset }) => {
-    const result = [];
-    for (let x = forest.from * WORLD_LENGTH + 120; x < forest.to * WORLD_LENGTH - 280; x += 390) {
-      if (interiorAt(x - 200) || interiorAt(x + 200) || interiorAt(x)) continue;
-      result.push(x + offset);
-    }
-    return result;
-  });
-  return <pixiContainer y={WALKABLE_GROUND_Y + 10}>{trees.map((x, i) => <ForestTree key={x} x={x} worldX={x} height={540 + (i % 3) * 65} />)}</pixiContainer>;
+  const trees = useMemo(() => {
+    const forest = BIOMES.find(b => b.id === "foret")!;
+    return indices.filter(({ index }) => BIOMES[index].id === "foret").flatMap(({ offset }) => {
+      const result: Array<{ x: number; height: number }> = [];
+      // A carved oak of the decor already stands there: no twin trunk drawn behind it.
+      const carved = decorForLap(offset / WORLD_LENGTH).filter(isCarvedTree);
+      let order = 0;
+      for (let x = forest.from * WORLD_LENGTH + 120; x < forest.to * WORLD_LENGTH - 280; x += 390) {
+        if (interiorAt(x - 200) || interiorAt(x + 200) || interiorAt(x)) continue;
+        const height = 540 + (order++ % 3) * 65;
+        if (carved.some(site => Math.abs(site.x - (x + offset)) < 120)) continue;
+        result.push({ x: x + offset, height });
+      }
+      return result;
+    });
+  }, [indices]);
+  return <pixiContainer y={WALKABLE_GROUND_Y + 10}>{trees.map(({ x, height }) => <ForestTree key={x} x={x} worldX={x} height={height} />)}</pixiContainer>;
 }
+export const Forest = memo(ForestLayer);
