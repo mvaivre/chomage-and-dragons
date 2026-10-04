@@ -307,12 +307,21 @@ Le catalogue compte 86 raisons de refus et des directions, offres, avis, épitap
 phrases de coach, d'influenceur et de guichet. Chaque message compte au plus huit mots.
 
 `Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
-le sol et avant les héros. Les messages sont peints à résolution double en temps
-mort, après `document.fonts.ready`, avec les familles résolues des variables CSS
-Pirata et Garamond. Le cache partagé libère les textures huit secondes après leur
-dernier utilisateur. Seuls les arrêts proches sont montés. Les réactions de passage
-modifient des transforms ou une texture précuite ; la réduction des mouvements les
-fige. La foule réutilise les atlas des héros, en plus petit et avec une teinte terne.
+le sol, après les résidents (les panneaux personnels restent lisibles) et avant les
+héros. Les messages sont peints en temps mort, après `document.fonts.ready` et le
+chargement des deux faces, avec les familles résolues des variables CSS Pirata et
+Garamond. Un panneau ou une planche d’arbre n’est jamais affiché au-delà de la moitié
+de sa taille d’art : il est peint à une unité de canvas par unité (texture déclarée à
+résolution 0,5, les échelles des sprites ne changent pas), soit quatre fois moins de
+pixels qu’avant ; les petits libellés gardent deux unités. Les lettres suivent le
+quadrilatère mesuré par une seule transformation affine (les quads de `signs.json` sont
+des parallélogrammes à deux pixels près). Le cache partagé libère les textures huit
+secondes après leur dernier utilisateur, et une cuisson que plus personne n’attend
+quand vient le temps mort est abandonnée. Les chênes gravés et les scènes qui lettrent
+leur propre surface ne cuisent aucun panneau. Seuls les arrêts proches sont montés.
+Les réactions de passage modifient des transforms ou une texture précuite ; la
+réduction des mouvements les fige. La foule réutilise les atlas des héros, en plus
+petit et avec une teinte terne.
 
 `groupDecor` dérive les hommages au groupe, les huit derniers refus, la couronne du
 mois (aucun gagnant inventé en cas d'égalité), le défi du jour et les engagé·es. Les
@@ -424,3 +433,32 @@ Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache 
 sa forte valeur maximale ne constitue donc pas la preuve d’un gain causé par cette
 PR. Aucun test sur téléphone physique n’a été effectué ; ces chiffres ne garantissent
 pas le même résultat sur tous les appareils.
+
+## Règles de coût par image (revue du 4 octobre)
+
+- **Un `Graphics.clear()` reconstruit toute la liste de rendu** de son groupe (Pixi 8 :
+  un contexte modifié et « batchable » force `structureDidChange`). On n’efface donc
+  qu’autour d’un dessin réel : éclairs, résidu du dragon après 4,3 s, rides d’un crapaud
+  qui réagit. Ce qui se redessine à chaque image vit dans son propre groupe de rendu
+  (`isRenderGroup`) : particules et éclairs (`FxLayer`), eau de la cascade, qui ne se
+  redessine pas hors champ, derrière une salle, en mouvement réduit ou en rendu logiciel.
+  Changer `visible` a le même effet : les particules recyclées restent dans leur groupe.
+- **Fonctions `draw` stables** : une nouvelle fonction à chaque rendu React repeint le
+  Graphics (sous-sol par tuile, murs, sols, convoyeur, bulles, ombres des résidents).
+- **Pas d’allocation par image et par objet** : cibles d’interaction écrites en place
+  (`showEnvironmentTarget`, `moveEnvironmentTarget`, un `Point` réutilisé), salle
+  comparée sans construire d’objet (`inRoom`), houle des chênes précalculée par sommet.
+- **Le DOM qui suit la scène tourne sur son ticker** (`sceneFrameListeners`) : à 30 ou
+  60 images par seconde, rien en pause, jamais aux 120 Hz de l’écran ; les boutons
+  d’interaction bougent par `transform` et n’écrivent un style que s’il change. React ne
+  voit que l’arrivée ou le départ d’une cible.
+- **Le canvas mémoïsé reçoit des props stables** (`useCallback`), sinon chaque mise à
+  jour du HUD réconcilie tout l’arbre Pixi.
+- **Chargement** : l’atlas du héros du joueur part seul (`loadFirst`), les autres
+  textures attendent qu’il arrive (trois secondes au plus), puis six téléchargements au
+  plus à la fois, dans l’ordre de montage, donc du plus proche au plus lointain.
+
+Mesures A/B alternées sur la même machine (Chrome/ANGLE Metal, M1 Max ; mobile 390×844
+DPR 3 avec CPU ×4), avant → après la revue : au repos, tick Pixi −9 à −24 %, rendu
+−19 à −31 %, CPU du fil principal −7 à −19 % ; pendant le fondu d’une porte sur mobile,
+pire image 25,6 → 17,6 ms et aucune image au-delà de 20 ms ; textures GPU −3 Mo.
