@@ -351,8 +351,13 @@ source sont irrégulières ; les pieds sont recalés sur l’alpha visible aprè
 réduction. Les rectangles de lettrage ont été mesurés sur les sorties. Les tuiles
 sont jointes par recouvrement des bords, puis encodées sans perte pour préserver
 leur égalité exacte après décodage. Un filtre médian de 3 px et une palette de
-12 couleurs réduisent leur grain et leur poids ; les autres sprites restent en
-WebP qualité 92. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
+12 couleurs réduisent leur grain et leur poids. Les autres sprites sont encodés en WebP
+qualité 85 (`smartSubsample`, alpha sans perte) après un alpha net : ≥ 246 devient
+opaque, ≤ 6 vide, les bords anticrénelés restent intacts. Avant, les corps des sprites
+nettoyés restaient transparents à 1 % et leur alpha pesait près d’un tiers des fichiers.
+Les 49 WebP avec pertes ajoutés ou retouchés par la passe décor sont passés de 14,3 à
+8,6 Mo (−40 %, PSNR ≥ 35 dB sur les pixels visibles), vérifiés en jeu dans les huit
+contrées et les deux salles ; les six tuiles sans perte n’ont pas changé. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
 de raccord et budget total.
 
 Les panneaux illustrés sont composés avec leur texte une seule fois, en temps

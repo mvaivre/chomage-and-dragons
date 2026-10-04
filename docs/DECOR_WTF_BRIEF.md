@@ -185,7 +185,8 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 La demande suivante remplace les raccords en coupe par des scènes séparées sous
 fondu. Nouvelles découpes dans `public/art/world-v3/decor/` : `exterior-orp.webp`,
 `exterior-factory.webp` et `interior-door.webp`. Les deux anciennes façades en coupe
-sont retirées. Total actuel : 26 WebP, 5 527 554 octets. Les sources et prompts exacts
+sont retirées. Total actuel : 26 WebP, 3 649 936 octets après le ré-encodage du 4 octobre
+(qualité 85, alpha net ; 5 527 554 octets auparavant). Les sources et prompts exacts
 sont dans `scene-door-prompts.json` ; les captures finales, dans
 [`docs/decor-previews/doors-final/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/doors-final/) et [`docs/decor-previews/welcome-final/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/welcome-final/).
 Les points sont supprimés au profit des pas ; règles, migration par relecture du

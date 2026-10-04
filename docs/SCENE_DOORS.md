@@ -65,7 +65,8 @@ ont été produites avec ImageGen intégré, puis importées en WebP avec alpha 
 `exterior-orp.webp`, `exterior-factory.webp`, `interior-door.webp` dans
 `public/art/world-v3/decor/`. Prompts exacts, sources et commandes :
 [scene-door-prompts.json](scene-door-prompts.json). Les 26 WebP de décor occupent
-5 527 554 octets, sous le budget de 6 Mo.
+3 649 936 octets depuis leur ré-encodage du 4 octobre (qualité 85, alpha net ;
+5 527 554 octets avant), sous le budget de 6 Mo.
 
 ## Vérifications
 

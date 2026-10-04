@@ -6,6 +6,16 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { default: sharp } = await import(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
 
+/**
+ * Nearly opaque bodies become opaque and nearly empty gutters empty; antialiased edges
+ * keep their alpha. Sprites stop being 1 % see-through and their alpha compresses well.
+ */
+async function snapAlpha(image) {
+  const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let i = 3; i < data.length; i += 4) data[i] = data[i] >= 246 ? 255 : data[i] <= 6 ? 0 : data[i];
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } });
+}
+
 /** Generated gutters aren't always a perfect grid. Find the large isolated silhouettes. */
 function islands(data, width, height, count, columns) {
   const seen = new Uint8Array(width * height), owners = new Int32Array(width * height), queue = new Int32Array(width * height), found = [];
@@ -151,7 +161,11 @@ async function main() {
     output = sharp(data, { raw }).resize(...size, { fit: 'fill' });
   }
   await fs.mkdir(path.dirname(destination), { recursive: true });
-  await output.webp({ quality: 92, effort: 6, lossless: mode === 'tile' }).toFile(destination + '.tmp');
+  // Tiles stay lossless for exact seams. Cutouts: opaque bodies, empty gutters, q85.
+  const encoded = mode === 'tile'
+    ? output.webp({ quality: 92, effort: 6, lossless: true })
+    : (await snapAlpha(output)).webp({ quality: 85, effort: 6, smartSubsample: true, alphaQuality: 100 });
+  await encoded.toFile(destination + '.tmp');
   await fs.rename(destination + '.tmp', destination);
   if (mode === 'cutout') {
     const {data: pixels, info: size} = await sharp(destination).ensureAlpha().raw().toBuffer({resolveWithObject:true});

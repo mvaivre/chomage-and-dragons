@@ -70,6 +70,8 @@ for (let cell = 0; cell < metadata.count; cell++) {
   reports.push({ cell, overlap: +overlap.toFixed(3), footShift: bottom[1] - bottom[0], colorError: +colorError.toFixed(2), oldPaleEdge, paleEdge });
 }
 const temporary = destination.replace('.webp', '.tmp.webp');
-await sharp(raw, { raw: { width, height, channels: 4 } }).webp({ quality: 90, effort: 6 }).toFile(temporary);
+// Opaque bodies, empty gutters, antialiased edges kept: no see-through hero, smaller alpha.
+for (let i = 3; i < raw.length; i += 4) raw[i] = raw[i] >= 246 ? 255 : raw[i] <= 6 ? 0 : raw[i];
+await sharp(raw, { raw: { width, height, channels: 4 } }).webp({ quality: 85, effort: 6, smartSubsample: true, alphaQuality: 100 }).toFile(temporary);
 await fs.rename(temporary, destination);
 console.log(JSON.stringify({ id, source, destination, reports }));
