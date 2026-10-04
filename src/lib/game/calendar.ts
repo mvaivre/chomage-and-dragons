@@ -36,20 +36,21 @@ export function monthLabel(key: string): string {
   return LABEL_FORMAT.format(new Date(Date.UTC(year, month - 1, 15, 12)));
 }
 
-/** Les mois de la saison déjà commencés, du plus récent au plus ancien. */
-export function seasonMonthKeys(now: Date = new Date()): string[] {
-  const start = new Date(SEASON.start);
-  const end = new Date(SEASON.end);
+/**
+ * Les mois de la saison déjà commencés, du plus récent au plus ancien, mois en cours
+ * compris dès le 1er. Tout est compté en clés de Zurich : la saison commence à minuit
+ * le 1er janvier à Zurich, soit le 31 décembre en UTC.
+ */
+export function seasonMonthKeys(current: string = currentMonthKey()): string[] {
+  const first = monthKey(new Date(SEASON.start));
+  const last = monthKey(new Date(Date.parse(SEASON.end) - 1));
   const keys: string[] = [];
-
-  const cursor = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 15, 12),
-  );
-
-  while (cursor < end && cursor <= now) {
-    keys.push(monthKey(cursor));
-    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  let [year, month] = first.split("-").map(Number);
+  for (let key = first; key <= last && key <= current;) {
+    keys.push(key);
+    month += 1;
+    if (month > 12) { month = 1; year += 1; }
+    key = `${year}-${String(month).padStart(2, "0")}`;
   }
-
   return keys.reverse();
 }

@@ -19,7 +19,8 @@ import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
 import { applyAction, type ActionContext, type GameAction } from "@/lib/game/reducer";
 import {
   collectiveTotals,
-  soleLeader,
+  crownOf,
+  monthlyStandings,
   standings,
   type Standing,
 } from "@/lib/game/standings";
@@ -37,8 +38,6 @@ export interface PlayerView {
   id: string;
   name: string;
   characterId: string;
-  /** Progression nette du mois en cours. */
-  monthSteps: number;
   applications: number;
   /** Effort de voyage cumulé, toutes les actions positives pour le trajet comprises. */
   journeySteps: number;
@@ -237,10 +236,6 @@ export function useGame(mode: GameMode = LOCAL) {
   );
 
   const players = useMemo<PlayerView[]>(() => {
-    const monthStepsById = new Map(
-      monthStandings.map((s) => [s.playerId, s.steps]),
-    );
-
     return state.players.map((player) => {
       const standing = seasonStandings.find((s) => s.playerId === player.id);
       const applications = standing?.counts.candidature ?? 0;
@@ -252,7 +247,6 @@ export function useGame(mode: GameMode = LOCAL) {
         id: player.id,
         name: player.name,
         characterId: player.characterId,
-        monthSteps: monthStepsById.get(player.id) ?? 0,
         applications,
         journeySteps: steps,
         earnedChests,
@@ -279,7 +273,7 @@ export function useGame(mode: GameMode = LOCAL) {
         hiredAt: player.hiredAt,
       };
     });
-  }, [state.players, state.events, state.casts, state.miniGames, seasonStandings, monthStandings]);
+  }, [state.players, state.events, state.casts, state.miniGames, seasonStandings]);
 
   const totals = useMemo(() => collectiveTotals(state.events), [state]);
 
@@ -287,20 +281,11 @@ export function useGame(mode: GameMode = LOCAL) {
    * Le palmarès des couronnes mensuelles, du mois courant au plus ancien.
    * Recalculé depuis le journal, donc toujours d'accord avec le reste.
    */
-  const crowns = useMemo<Crown[]>(
-    () =>
-      seasonMonthKeys().map((key) => {
-        const rows = standings(state.events, state.players, key);
-        const leader = soleLeader(rows);
-        return {
-          monthKey: key,
-          playerId: leader?.playerId ?? null,
-          steps: rows[0]?.steps ?? 0,
-          tied: rows.length > 1 && rows[0]?.steps === rows[1]?.steps,
-        };
-      }),
-    [state],
-  );
+  const crowns = useMemo<Crown[]>(() => {
+    const months = seasonMonthKeys(monthKeyNow);
+    const byMonth = monthlyStandings(state.events, state.players, months);
+    return months.map((key) => ({ monthKey: key, ...crownOf(byMonth.get(key) ?? []) }));
+  }, [state, monthKeyNow]);
 
   const takenCharacters = new Set(state.players.map((p) => p.characterId));
   const freeCharacters = CHARACTERS.filter((c) => !takenCharacters.has(c.id));
