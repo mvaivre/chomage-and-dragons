@@ -132,7 +132,8 @@ export function CompactLeaderboard({
 
 function CompactRow({ row, isMe, selected, onLocate }: { row: Row; isMe: boolean; selected: boolean; onLocate: (id: string) => void }) {
   return (
-    <li><button type="button" className={`leaderboard-row ${isMe ? "leaderboard-row--me" : ""}`} onClick={() => onLocate(row.player.id)} aria-label={`Voir ${row.player.name} dans le monde`} aria-pressed={selected} title={`Voir ${row.player.name} dans le monde`}>
+    // The row's own text names it, rank and steps included; only the action is added.
+    <li><button type="button" className={`leaderboard-row ${isMe ? "leaderboard-row--me" : ""}`} onClick={() => onLocate(row.player.id)} aria-current={selected ? "true" : undefined} data-selected={selected} title={`Voir ${row.player.name} dans le monde`}>
       <span className="leaderboard-row__rank">
         {row.rank}
       </span>
@@ -141,6 +142,7 @@ function CompactRow({ row, isMe, selected, onLocate }: { row: Row; isMe: boolean
       </span>
       <ShotTally count={row.player.shotsOwed} compact />
       <span className="font-display text-xl text-parchment-ink">{row.steps} pas</span>
+      <span className="sr-only">, voir dans le monde</span>
     </button></li>
   );
 }
@@ -327,7 +329,7 @@ function Standings({
           return (
             <li
               key={row.player.id}
-            ><button type="button" onClick={() => onLocate(row.player.id)} aria-label={`Voir ${row.player.name} dans le monde`} title={`Voir ${row.player.name} dans le monde`}
+            ><button type="button" onClick={() => onLocate(row.player.id)} title={`Voir ${row.player.name} dans le monde`}
               className={`standing-row ${
                 isMe ? "standing-row--me" : ""
               }`}
@@ -377,6 +379,7 @@ function Standings({
                 <strong className="block font-display text-2xl leading-none">{row.steps}</strong>
                 <small className="text-xs text-parchment-ink/45">pas</small>
               </span>
+              <span className="sr-only">, voir dans le monde</span>
             </button></li>
           );
         })}

@@ -2378,14 +2378,12 @@ html, body { height: 100%; height: 100dvh; }
 /* The company map owns the screen; its header stays reachable while scrolling. */
 
 /* Mobile prioritizes the journey: identity and progress fit in two short rows. */
-.journey-card__mobile-score { display: none; }
 .company-map-pin strong small { display: block; margin-top: 3px; font-size: 0.65rem; }
 .action-dock__prompt { max-width: 100%; overflow-wrap: anywhere; }
 @media (max-width: 760px) and (min-height: 501px) {
   .journey-card__identity { padding: 5px 8px; gap: 4px; }
   .journey-card__identity h2 { font-size: 1.3rem; }
   .journey-card__level { font-size: 0.72rem; padding: 1px 4px; }
-  .journey-card__mobile-score { display: block; margin-left: auto; white-space: nowrap; font-size: 0.85rem; }
   .journey-card__main { padding: 5px 8px; }
   .journey-card__main .journey-card__place { font-size: 1rem; }
   .journey-card__summary { gap: 6px; align-items: center; }
@@ -2626,13 +2624,13 @@ main[data-moment="on"] .hud-controls,
 main[data-moment="on"] .hud-bottom { opacity: 0.35; }
 /* Counters bump when their value lands. */
 .journey-card__stats dd { display: inline-block; }
-.journey-card__stats dd[data-bump="1"], .journey-card__mobile-score[data-bump="1"] { animation: hud-bump-a 420ms ease-out; }
-.journey-card__stats dd[data-bump="0"], .journey-card__mobile-score[data-bump="0"] { animation: hud-bump-b 420ms ease-out; }
+.journey-card__stats dd[data-bump="1"] { animation: hud-bump-a 420ms ease-out; }
+.journey-card__stats dd[data-bump="0"] { animation: hud-bump-b 420ms ease-out; }
 @keyframes hud-bump-a { 0% { transform: scale(1); } 35% { transform: scale(1.35); color: var(--janky-yellow); } 100% { transform: scale(1); } }
 @keyframes hud-bump-b { 0% { transform: scale(1); } 35% { transform: scale(1.35); color: var(--janky-yellow); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
   .moment-flash, .moment-letterbox i { animation-duration: 1ms; }
-  .journey-card__stats dd, .journey-card__mobile-score { animation: none !important; }
+  .journey-card__stats dd { animation: none !important; }
 }
 
 /* ------------------------------------------------------------------ invitation au défi */
@@ -2964,7 +2962,7 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 .dragon-arena__gold { position:absolute; transform:translate(-50%,-50%); color:#ffd665; font-size:31px; text-shadow:0 0 10px #ffa62f; }
 .dragon-controls { display:flex; justify-content:center; gap:12px; padding:8px 0; }
 .dragon-controls button { min-width:110px; min-height:44px; border:1px solid #c5a868; border-radius:5px; background:#443726; color:#f4e4b5; font-weight:700; }
-.dragon-controls button:disabled { opacity:.35; }
+.dragon-controls button:disabled, .dragon-controls button[aria-disabled="true"] { opacity:.35; }
 @media(max-width:600px){.dragon-arena {height:220px}.dragon-arena__dragon{width:130px;height:130px}.dragon-arena__rider{font-size:34px}.dragon-arena__fire{width:32px;height:20px}}
 
 .dragon-encounter { position:absolute; z-index:4; transform:translateX(-50%); max-width:200px; padding:7px 10px; color:#f1ddb0; border:1px solid #ad8c53; border-radius:5px; background:#282016e8; font:600 13px var(--font-garamond),serif; cursor:pointer; }
@@ -2980,7 +2978,7 @@ main[data-invite="on"] .action-dock__prompt, .action-dock__prompt[data-empty="tr
 .leaderboard-card:hover { transform:none; }
 button.leaderboard-row, button.standing-row { width:100%; text-align:left; cursor:pointer; }
 button.leaderboard-row { min-height:44px; }
-button.leaderboard-row:hover, button.leaderboard-row[aria-pressed="true"], button.standing-row:hover { border-color:#e3bd61; background:#e3bd6126; }
+button.leaderboard-row:hover, button.leaderboard-row[data-selected="true"], button.standing-row:hover { border-color:#e3bd61; background:#e3bd6126; }
 .leaderboard-open { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:44px; margin-top:10px; border:2px solid #e2c47780; color:#f4dfa4; background:#d6ad3c19; font-size:1rem; cursor:pointer; }
 .leaderboard-open svg { width:20px; height:20px; }
 .leaderboard-open:hover { background:#d6ad3c35; }
@@ -2989,6 +2987,8 @@ button.company-map-pin { cursor:pointer; }
 .journey-map button.company-map-pin, .journey-map button.company-map-pin.is-me { width:44px; height:44px; }
 .journey-map button.company-map-pin strong { display:none; pointer-events:none; }
 .journey-map button.company-map-pin:hover strong, .journey-map button.company-map-pin:focus-visible strong { display:block; }
+/* Without hover, a tap locates at once: your own name stays written on the map. */
+@media (hover:none) { .journey-map button.company-map-pin.is-me strong { display:block; } }
 .journey-map__connections { position:absolute; inset:0; pointer-events:none; }
 .journey-map__connections line { stroke:#4f3523; stroke-width:2; stroke-dasharray:3 3; }
 .leaderboard-open:focus-visible, button.leaderboard-row:focus-visible, button.standing-row:focus-visible, button.company-map-pin:focus-visible, button.leaderboard-card__mobile:focus-visible { outline:3px solid #ffe198; outline-offset:3px; }
@@ -3049,14 +3049,15 @@ button.company-map-pin { cursor:pointer; }
 }
 
 .environment-overlay { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
-.environment-target { position:absolute; transform:translate(-50%,-50%); pointer-events:auto; cursor:pointer; touch-action:none; border:0; border-radius:45%; background:transparent; }
+/* Placed every frame through `transform` from the scene; left and top stay at the origin. */
+.environment-target { position:absolute; left:0; top:0; transform:translate(-50%,-50%); pointer-events:auto; cursor:pointer; touch-action:none; border:0; border-radius:45%; background:transparent; }
 .environment-target > span { position:absolute; right:0; top:4px; min-width:18px; height:16px; padding:0 2px; border:1px solid #e5c99277; border-radius:9px; background:#302e24b0; color:#f2e5ba; font:bold 14px/8px Georgia,serif; opacity:.55; pointer-events:none; }
 .environment-target[aria-disabled="true"] { cursor:grab; }
 .environment-target[aria-disabled="true"] > span { opacity:.18; }
 .environment-target:hover > span, .environment-target:focus-visible > span { opacity:1; }
 .environment-target[data-available="true"]:hover { background:#fff2b10b; box-shadow:inset 0 0 16px #f4d97a1c; }
 .environment-target:focus-visible { outline:2px dashed #f6d277; outline-offset:2px; }
-.environment-speech { position:absolute; transform:translate(-50%,-100%); display:flex; align-items:flex-start; gap:7px; width:max-content; max-width:min(270px,calc(100vw - 24px)); padding:11px 12px; pointer-events:auto; color:#302a20; background:#f0dfb1; border:3px solid #302a20; border-radius:13px; box-shadow:3px 4px 0 #1d211c66; font:700 18px/1.15 var(--font-garamond),serif; }
+.environment-speech { position:absolute; left:0; top:0; transform:translate(-50%,-100%); display:flex; align-items:flex-start; gap:7px; width:max-content; max-width:min(270px,calc(100vw - 24px)); padding:11px 12px; pointer-events:auto; color:#302a20; background:#f0dfb1; border:3px solid #302a20; border-radius:13px; box-shadow:3px 4px 0 #1d211c66; font:700 18px/1.15 var(--font-garamond),serif; }
 .environment-speech::after { content:''; position:absolute; bottom:-12px; left:calc(50% - 10px); width:16px; height:16px; background:#f0dfb1; border-right:3px solid #302a20; border-bottom:3px solid #302a20; transform:rotate(45deg); }
 .environment-speech[data-side="left"]::after { left:auto; right:-11px; top:calc(50% - 8px); transform:rotate(-45deg); }
 .environment-speech[data-side="right"]::after { left:-11px; top:calc(50% - 8px); transform:rotate(135deg); }

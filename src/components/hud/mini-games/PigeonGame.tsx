@@ -217,7 +217,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
         {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="m" record={record} best={best} /></> :
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="m" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? `Une seule tentative · ${COURSE.towers} tours · ${COURSE.feathers} plumes` :
         status === "flying" ? `${feathers} plume${feathers > 1 ? "s" : ""} · Touche l’image, Espace ou Entrée` : won ? "Livraison en cours…" : "Atterrissage forcé…"}</span>}
     primary={{
