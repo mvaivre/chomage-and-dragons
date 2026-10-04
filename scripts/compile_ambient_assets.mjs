@@ -163,7 +163,7 @@ async function main() {
   if (registration) await fs.writeFile(destination.replace(/\.webp$/, '.json'), JSON.stringify(registration, null, 2) + '\n');
   // Contact sheets are review artifacts, never downloaded by the game.
   if (destination.includes('/decor/')) {
-    const preview = path.join('docs/decor-previews', path.basename(destination, '.webp') + '.png');
+    const preview = path.join('.qa', 'contact-sheets', path.basename(destination, '.webp') + '.png');
     await fs.mkdir(path.dirname(preview), { recursive: true });
     await sharp(destination).flatten({ background: '#d3cbc0' }).resize({ width: 960, withoutEnlargement: true }).png().toFile(preview);
   }

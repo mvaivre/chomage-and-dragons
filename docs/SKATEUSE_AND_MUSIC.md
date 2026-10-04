@@ -32,9 +32,9 @@ nuit, le silence, la baisse de volume et les changements de mesure entre lieux.
 Les tests d’assets vérifient les marges, le sol et les métadonnées. Contrôle visuel
 dans le jeu réel, dont une candidature et son déplacement :
 
-- [Desktop 1280 × 720](skateuse-previews/desktop.png)
-- [Mobile 390 × 844](skateuse-previews/mobile.png)
-- [Écran large 1920 × 900](skateuse-previews/wide.png)
+- [Desktop 1280 × 720](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/skateuse-previews/desktop.png)
+- [Mobile 390 × 844](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/skateuse-previews/mobile.png)
+- [Écran large 1920 × 900](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/skateuse-previews/wide.png)
 
 ## Prompt ImageGen final
 

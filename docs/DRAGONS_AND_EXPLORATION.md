@@ -20,13 +20,13 @@ Un clic sur un nom du classement compact suit ce personnage dans le monde. Le bo
 
 Les repères de carte ont des cibles de 44 pixels et sont espacés lorsqu’ils se chevaucheraient ; un trait les relie à leur vraie position sur le parcours. Le classement compact indique la personne observée et les commandes ont un focus clavier visible.
 
-Vérification CUA avec deux joueurs locaux à 2 et 6 pas : nom compact, ligne détaillée, repère mobile, touche Entrée, ouverture dédiée et retour au héros. Desktop 1280×720 et téléphone 390×844. Captures `leaderboard-locate-desktop.png`, `leaderboard-locate-mobile.png` et `leaderboard-map-mobile.png` dans `dragon-previews/`.
+Vérification CUA avec deux joueurs locaux à 2 et 6 pas : nom compact, ligne détaillée, repère mobile, touche Entrée, ouverture dédiée et retour au héros. Desktop 1280×720 et téléphone 390×844. Captures `leaderboard-locate-desktop.png`, `leaderboard-locate-mobile.png` et `leaderboard-map-mobile.png` dans [`docs/dragon-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/dragon-previews).
 
 `pnpm test` : 70 tests réussis. TypeScript, ESLint des fichiers modifiés et `pnpm build --webpack` réussis.
 
 Les tests couvrent notamment les étapes du sort et les huit poses, les nids hors bâtiments, le verrouillage à distance, les contrôles et le score du mini-jeu, quarante graines à trois fréquences d’images, les transitions musicales, l’atlas et son budget.
 
-Contrôles dans le vrai jeu via CUA : forêt à 1280×720, 390×844 et 1920×900 ; cascades desktop/mobile ; transition montagne-désert en grand écran ; pont en bois desktop ; nid inaccessible depuis la caméra ; mini-jeu mobile jusqu’au résultat ; caméra à la molette et retour ; ingestion, digestion, expulsion et restauration du héros. Les captures sont dans `dragon-previews/`.
+Contrôles dans le vrai jeu via CUA : forêt à 1280×720, 390×844 et 1920×900 ; cascades desktop/mobile ; transition montagne-désert en grand écran ; pont en bois desktop ; nid inaccessible depuis la caméra ; mini-jeu mobile jusqu’au résultat ; caméra à la molette et retour ; ingestion, digestion, expulsion et restauration du héros. Les captures sont dans [`docs/dragon-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/dragon-previews).
 
 ## Assets générés
 

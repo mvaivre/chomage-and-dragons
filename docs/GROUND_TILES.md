@@ -10,7 +10,7 @@ Chaque tuile occupe 1024 unités monde, soit une réduction à 50 %. La marge tr
 
 ## Validation visuelle
 
-Premier pilote : taverne validée dans le vrai jeu à 1280 × 720, 390 × 844 et 1920 × 900 avant extension. Puis inspection des sept autres matériaux à 1280 × 720 : contact des pieds, lisibilité, netteté, répétition, échelle et ordre des couches. Raccord boue–bois vérifié sur desktop ; neige–sable vérifié sur mobile et vue large. Captures dans `docs/ground-previews/`. Aucun grand rectangle n’occulte le corps des joueurs.
+Premier pilote : taverne validée dans le vrai jeu à 1280 × 720, 390 × 844 et 1920 × 900 avant extension. Puis inspection des sept autres matériaux à 1280 × 720 : contact des pieds, lisibilité, netteté, répétition, échelle et ordre des couches. Raccord boue–bois vérifié sur desktop ; neige–sable vérifié sur mobile et vue large. Captures dans [`docs/ground-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/ground-previews). Aucun grand rectangle n’occulte le corps des joueurs.
 
 ## Vérifications techniques
 

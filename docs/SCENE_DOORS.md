@@ -72,8 +72,8 @@ ont été produites avec ImageGen intégré, puis importées en WebP avec alpha 
 Révision du 25 septembre : ORP repoussé de 600 unités, joueurs et coffres descendus
 de 44 unités par rapport au raccord des illustrations. La caméra réserve toujours
 la place des noms au-dessus des actions. Captures à jour :
-`decor-previews/lower-path/` (départ et ORP, desktop/mobile/large) et
-`decor-previews/lower-path-later/` (approche, coffre à vingt pas, sortie, usine).
+[`docs/decor-previews/lower-path/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/lower-path/) (départ et ORP, desktop/mobile/large) et
+[`docs/decor-previews/lower-path-later/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/lower-path-later/) (approche, coffre à vingt pas, sortie, usine).
 Les treize planches présentant un liseré clair sont retouchées ; voir
 [ANIMATION_ASSETS.md](ANIMATION_ASSETS.md).
 
@@ -84,7 +84,7 @@ exercent accueil, rechargement, marche complète après fondu, annulation, sorti
 retour et observation d’un ami dans une autre salle. Les parcours complets et les
 parties à deux appareils sont également rejoués.
 
-Captures de référence dans `decor-previews/doors-final/` : départ, ORP, usine et
+Captures de référence dans [`docs/decor-previews/doors-final/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/doors-final/) : départ, ORP, usine et
 sortie, aux formats 390×844, 1280×720 et 1920×1080, de jour et de nuit.
 Le contrôle est effectué dans Chrome desktop avec émulation mobile, sans téléphone
 physique. La compilation locale utilise `pnpm build --webpack` ; le problème
@@ -99,4 +99,4 @@ Mesure isolée au pas 14, Chrome/ANGLE Metal sur M1 Max : P95 16,8 ms, maximum
 33,4 ms sur 1280×720 ; P95 16,7 ms, maximum 50 ms sur 390×844 avec CPU ×4.
 CPU repos observé : 9,70 % et 4,47 %. Ces mesures ponctuelles sur deux compositions
 différentes ne sont pas une comparaison de performances entre appareils.
-[Données brutes](decor-previews/doors-perf/results.json).
+[Données brutes](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/doors-perf/results.json).

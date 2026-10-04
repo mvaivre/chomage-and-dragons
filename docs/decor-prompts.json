@@ -243,7 +243,7 @@
   ],
   "referencePacking": {
     "reason": "ImageGen accepts at most five attachments; plain + forest originals are packed unchanged into one contact board.",
-    "board": "docs/decor-previews/style-landscapes.png",
+    "board": "https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/style-landscapes.png",
     "sources": [
       "public/art/world-v3/runtime/plaine-mid.webp",
       "public/art/world-v3/runtime/foret-back.webp"

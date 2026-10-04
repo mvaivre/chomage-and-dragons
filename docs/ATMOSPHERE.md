@@ -64,7 +64,7 @@ comparer sur la même scène. Les commandes DEV déplacent uniquement les repèr
 visuels ; aucun score n'est modifié.
 
 La forêt a servi de pilote avant l'extension des profils. Les captures du vrai
-jeu sont dans `atmosphere-previews/` : desktop 1280 × 720, mobile 390 × 844 et
+jeu sont dans [`docs/atmosphere-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/atmosphere-previews) : desktop 1280 × 720, mobile 390 × 844 et
 vue large 1920 × 900. Les vues vérifient les contacts au sol, la lisibilité des
 héros et des panneaux, les limites transparentes et l'ordre des plans.
 
@@ -73,11 +73,11 @@ La forêt et la taverne ont aussi été contrôlées au crépuscule (`hour=21`)
 et en pleine nuit (`hour=22`). Le défilement libre et le dialogue à distance
 avec le troll ont été vérifiés sans changer les scores.
 
-- [Forêt, desktop](atmosphere-previews/forest-desktop.png)
-- [Forêt, mobile](atmosphere-previews/forest-mobile.png)
-- [Forêt, nuit](atmosphere-previews/forest-night-desktop.png)
-- [Forêt, défilement](atmosphere-previews/forest-pan.png)
-- [Taverne, nuit](atmosphere-previews/tavern-night-desktop.png)
+- [Forêt, desktop](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/atmosphere-previews/forest-desktop.png)
+- [Forêt, mobile](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/atmosphere-previews/forest-mobile.png)
+- [Forêt, nuit](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/atmosphere-previews/forest-night-desktop.png)
+- [Forêt, défilement](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/atmosphere-previews/forest-pan.png)
+- [Taverne, nuit](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/atmosphere-previews/tavern-night-desktop.png)
 
 Sur la composition de forêt desktop, le compteur DEV a mesuré environ 30 fps
 avec les effets et 29–30 fps sans, avec un p95 proche de 41 ms dans les deux cas.

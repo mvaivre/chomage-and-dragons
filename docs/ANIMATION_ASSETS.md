@@ -19,7 +19,7 @@ Import : `node scripts/import-character-cleanup.mjs ID SOURCE.png --reference 2a
 (ajouter `--register` pour les entrées correspondantes du manifeste).
 Le script contrôle les silhouettes et leurs pieds ; les tests contrôlent les
 gouttières et la contamination claire des pixels semi-transparents des quinze classes.
-Comparaison sur fond sombre : [avant / après](decor-previews/character-cleanup.jpg).
+Comparaison sur fond sombre : [avant / après](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/character-cleanup.jpg).
 
 ## Livrables
 

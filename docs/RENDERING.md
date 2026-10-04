@@ -341,7 +341,7 @@ avec Chrome et WebGL Metal (Apple M1 Max). `GAME_TEST_URL`, `DECOR_STEPS`,
 ### Illustrations et intérieurs
 
 Les 25 nouvelles images vivent dans `public/art/world-v3/decor/` : 5 716 692 octets
-WebP au total. Les PNG de `docs/decor-previews/` sont des contrôles d’import et des
+WebP au total. Les PNG de [`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews) sont des contrôles d’import et des
 captures, jamais des téléchargements du jeu. Les prompts exacts et les commandes
 retenues sont consignés dans `docs/decor-prompts.json`.
 
@@ -406,7 +406,7 @@ Les huit contrées et les deux intérieurs ont été contrôlés aux cinq format
 brief, de jour et de nuit, avec le renderer WebGL Metal. Les entrées, centres et
 sorties des salles ont des captures dédiées. Les scènes rares sont figées à une
 heure de test pour contrôler leur lettrage et leurs plans. Voir la
-[sélection avant/après et les commandes](decor-previews/README.md).
+[sélection avant/après et les commandes](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/README.md).
 
 Mesures sur Chrome/ANGLE Metal, Apple M1 Max. « CPU » désigne le temps de tâche du
 renderer (`Performance.TaskDuration / Timestamp`), sur cinq secondes au repos.
@@ -423,9 +423,9 @@ autour d’un refus. Le mobile 390 × 844 utilise un ralentissement CPU ×4 ; le
 | Après, usine pas 34 | Desktop | 3,00 % | 50,0 ms | 16,7 ms |
 | Après, usine pas 34 | Mobile ×4 | 11,28 % | 66,7 ms | 16,8 ms |
 
-Données brutes : [avant](decor-previews/baseline/results.json),
-[après](decor-previews/final-perf/results.json),
-[usine](decor-previews/final-factory-perf/results.json).
+Données brutes : [avant](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/baseline/results.json),
+[après](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-perf/results.json),
+[usine](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-factory-perf/results.json).
 Le P95 reste autour d’une frame à 60 Hz ; le coût CPU au repos augmente d’environ
 1,4 point sur desktop et de 0,08 point sur le mobile simulé au même endroit.
 Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache et
@@ -433,6 +433,14 @@ Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache 
 sa forte valeur maximale ne constitue donc pas la preuve d’un gain causé par cette
 PR. Aucun test sur téléphone physique n’a été effectué ; ces chiffres ne garantissent
 pas le même résultat sur tous les appareils.
+
+## Captures de revue
+
+Les captures, planches-contact et mesures brutes de ces passes ne sont plus versionnées
+(44 Mo, 70 % du poids que la PR ajoutait au dépôt). Les liens de cette documentation pointent
+vers le commit `aeeb109`, où elles restent consultables. `scripts/decor-qa.mjs` et la
+planche-contact de `scripts/compile_ambient_assets.mjs` écrivent désormais dans `.qa/`,
+ignoré par git : on joint les images utiles à la PR plutôt qu’au dépôt.
 
 ## Règles de coût par image (revue du 4 octobre)
 
