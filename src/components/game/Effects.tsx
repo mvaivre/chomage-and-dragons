@@ -39,6 +39,9 @@ const easeOutBack = (t: number) => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
 const BUBBLE_STYLE = { fontFamily: BODY, fontSize: 21, fontWeight: "700" as const, fill: INK, wordWrap: true, wordWrapWidth: 250, align: "center" as const };
+// Stable drawings: a new function on each render would repaint the Graphics.
+const NO_DRAWING = () => {};
+const paintBubble = (g: Graphics) => { g.clear().roundRect(-140, -58, 280, 104, 16).fill(0xfbf3dc).stroke({ width: 3, color: INK }).poly([112, 40, 150, 58, 96, 44], true).fill(0xfbf3dc); };
 
 /**
  * A reaction in three beats: the art enters, the impact fires its effects and
@@ -280,13 +283,13 @@ function Reaction({ kind, origin, playerId, loud = false, onDone }: EffectProps 
   });
 
   return <pixiContainer>
-    {c.prop === "carpet" || c.prop === "crater" || c.prop === "ropes" ? <pixiGraphics ref={prop} draw={() => {}} /> : null}
+    {c.prop && c.prop !== "gnomes" ? <pixiGraphics ref={prop} draw={NO_DRAWING} /> : null}
     {c.prop === "gnomes" && gnomes ? Array.from({ length: 4 }, (_, index) => <pixiSprite key={index} ref={(node) => { helpers.current[index] = node; }} texture={atlasFrames(gnomes, 4, 2)[2]} anchor={{ x: 0.5, y: 312 / 320 }} alpha={0} />) : null}
     {c.prop === "ropes" && pigeon ? Array.from({ length: 4 }, (_, index) => <pixiSprite key={index} ref={(node) => { helpers.current[index] = node; }} texture={pigeon} anchor={0.5} alpha={0} />) : null}
     {texture ? c.copies?.map((_, index) => <pixiSprite key={index} ref={(node) => { copies.current[index] = node; }} texture={texture} anchor={0.5} alpha={0} />) : null}
     {texture ? <pixiSprite ref={art} texture={texture} anchor={0.5} x={origin.x} y={origin.y - 300} alpha={0} /> : null}
     {c.bubble ? <pixiContainer ref={bubble} alpha={0}>
-      <pixiGraphics draw={(g) => { g.clear().roundRect(-140, -58, 280, 104, 16).fill(0xfbf3dc).stroke({ width: 3, color: INK }).poly([112, 40, 150, 58, 96, 44], true).fill(0xfbf3dc); }} />
+      <pixiGraphics draw={paintBubble} />
       <pixiText text={c.bubble} anchor={0.5} y={-6} style={BUBBLE_STYLE} />
     </pixiContainer> : null}
     {c.label ? <pixiText ref={label} text={c.label} anchor={0.5} alpha={0}

@@ -208,8 +208,17 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await passGame(page);
       await ready(page);
       await statsMatch(page, /4/);
+      await page.locator('.action-button--candidature').click(); // Third application: the dragon's share.
+      await passGame(page);
+      await ready(page);
+      await statsMatch(page, /6/);
+      // An interview steps back, so the next applications stay short of the ten-step chest.
+      await page.locator('.action-button--entretien').click();
+      await passGame(page);
+      await ready(page);
+      await statsMatch(page, /3/);
       await page.emulateMedia({reducedMotion: 'no-preference'});
-      await page.locator('.action-button--candidature').click();
+      await page.locator('.action-button--candidature').click(); // The rotation comes back to the pigeon.
       await playGame(page);
       await page.getByRole('button', {name: 'Décoller !'}).click(); // Then never flap again: three ground hits.
       await page.waitForFunction(() => document.querySelector('.mini-game__arena')?.dataset.status === 'crashed');
@@ -217,13 +226,13 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       assert.equal(await page.locator('.mini-game__feather[data-lost="true"]').count(), 3);
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
-      await statsMatch(page, /6/);
+      await statsMatch(page, /5/);
       await page.locator('.action-button--candidature').click();
       await playGame(page);
       await page.locator('.mini-game--keywords').waitFor();
       await page.reload(); // Interrupt an unresolved game: preserve base, consume attempt.
       await ready(page);
-      await statsMatch(page, /8/);
+      await statsMatch(page, /7/);
       assert.equal(await page.locator('.mini-game').count(), 0);
       await page.locator('.action-undo').click();
       await ready(page);

@@ -1,6 +1,6 @@
 import { BIOMES, WORLD_LENGTH } from "./world";
 import { roomAt } from "./doors";
-import { decorForLap } from "./decor";
+import { decorForLap, isCarvedTree } from "./decor";
 
 export type EnvironmentKind = "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit" | "squirrel" | "recruiter" | "coach" | "clerk" | "worker" | "traveller" | "dragon";
 export interface EnvironmentSite { id: string; kind: EnvironmentKind; x: number; factor: number; biome: string; }
@@ -48,7 +48,7 @@ export function environmentSites(left: number, right: number, factor: number): E
       if (!ENVIRONMENT_BIOMES.has(biome.id)) continue;
       const start = lap * WORLD_LENGTH + biome.from * WORLD_LENGTH;
       const woods = biome.id === "foret" && factor === 1;
-      const carvedTrees = woods ? decorForLap(lap).filter(site => site.biome === "foret" && !site.setpiece && !["crown", "daily", "friend", "grave"].includes(site.kind)) : [];
+      const carvedTrees = woods ? decorForLap(lap).filter(isCarvedTree) : [];
       for (let x = start + (factor === 1 ? woods ? 315 : 340 : 610), n = 0; x < lap * WORLD_LENGTH + biome.to * WORLD_LENGTH - 260; x += factor === 1 ? woods ? 780 : 760 : 1080, n++) {
         if (x < left || x > right || [-210, 0, 210].some(offset => roomAt(x + offset))) continue;
         if (carvedTrees.some(tree => Math.abs(tree.x - x) < 170)) continue;

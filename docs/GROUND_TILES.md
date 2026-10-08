@@ -4,13 +4,13 @@ Huit textures natives remplacent la route universelle teintée et ses formes pro
 
 ## Production
 
-Assets générés avec l’outil ImageGen intégré, fond transparent, référence de trait `public/art/world-v3/runtime/road-universal.webp`. Sharp réalise uniquement le recadrage de la première bande, le redimensionnement et l’assemblage dans une tuile transparente de 2048 × 512 px. Les originaux restent conservés dans le répertoire de génération ci-dessous. Les WebP et métadonnées de production sont dans `public/art/world-v3/runtime/ground-<biome>-v2.{webp,json}` (environ 2,6 Mio au total).
+Assets générés avec l’outil ImageGen intégré, fond transparent, référence de trait `public/art/world-v3/runtime/road-universal.webp`. Sharp réalise uniquement le recadrage de la première bande, le redimensionnement et l’assemblage dans une tuile transparente de 2048 × 512 px. Les originaux restent conservés dans le répertoire de génération ci-dessous. Les WebP et métadonnées de production sont dans `public/art/world-v3/runtime/ground-<biome>-v2.{webp,json}` (environ 1,1 Mio au total depuis leur ré-encodage en qualité 85, alpha net ; 2,5 Mio auparavant).
 
 Chaque tuile occupe 1024 unités monde, soit une réduction à 50 %. La marge transparente supérieure de 24 px est compensée à l’affichage : le contact arrière reste à Y=602. Les joueurs et les coffres conservent leur voie sur le chemin. L’alternance miroir assure le raccord des répétitions. Les transitions utilisent le fondu existant de 320 unités monde, en bandes de 8 unités ; les portions uniformes restent un sprite. Le fond profond reprend la couleur du bas de chaque matériau. Les paysages lointains sont conservés.
 
 ## Validation visuelle
 
-Premier pilote : taverne validée dans le vrai jeu à 1280 × 720, 390 × 844 et 1920 × 900 avant extension. Puis inspection des sept autres matériaux à 1280 × 720 : contact des pieds, lisibilité, netteté, répétition, échelle et ordre des couches. Raccord boue–bois vérifié sur desktop ; neige–sable vérifié sur mobile et vue large. Captures dans `docs/ground-previews/`. Aucun grand rectangle n’occulte le corps des joueurs.
+Premier pilote : taverne validée dans le vrai jeu à 1280 × 720, 390 × 844 et 1920 × 900 avant extension. Puis inspection des sept autres matériaux à 1280 × 720 : contact des pieds, lisibilité, netteté, répétition, échelle et ordre des couches. Raccord boue–bois vérifié sur desktop ; neige–sable vérifié sur mobile et vue large. Captures dans [`docs/ground-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/ground-previews). Aucun grand rectangle n’occulte le corps des joueurs.
 
 ## Vérifications techniques
 

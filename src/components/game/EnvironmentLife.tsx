@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import type { Graphics, Sprite } from "pixi.js";
 import { environmentSites, type EnvironmentSite } from "@/lib/game/environment";
 import { WALKABLE_GROUND_Y } from "@/lib/game/world";
@@ -9,9 +9,20 @@ import { parallaxX } from "./projection";
 import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
-import { isDrawn, reactionProgress, updateEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
+import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
 
-function Resident({ site }: { site: EnvironmentSite }) {
+// Stable drawings: a Graphics repaints whenever its draw function changes, and every
+// repaint rebuilds the scene's render list.
+const shadows = new Map<number, (g: Graphics) => void>();
+function shadowFor(width: number) {
+  let draw = shadows.get(width);
+  if (!draw) shadows.set(width, draw = g => { g.clear().ellipse(0, 0, width, 4).fill(0x211b18); });
+  return draw;
+}
+const RIPPLE_COLOR = { color: 0x79b0b5, alpha: 0.25 };
+const paintRipple = (g: Graphics) => { g.clear().ellipse(0, 0, 38, 7).fill(RIPPLE_COLOR); };
+
+const Resident = memo(function Resident({ site }: { site: EnvironmentSite }) {
   const { kind, x, factor } = site;
   const special = kind === "troll" || kind === "spirit", afterlife = kind === "ghost" || kind === "skeleton";
   const url = kind === "troll" ? "/art/world-v3/animations/environment-troll.webp" : kind === "spirit" ? "/art/world-v3/animations/woodland-life.webp" : afterlife ? "/art/world-v3/decor/npc-afterlife.webp" : kind === "gnome" ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp";
@@ -20,6 +31,7 @@ function Resident({ site }: { site: EnvironmentSite }) {
   const walkFrames = kind === "troll" && walkTexture ? atlasFrames(walkTexture, 4, 1) : null;
   const frames = texture ? atlasFrames(texture, 4, special || afterlife || kind === "gnome" ? 2 : 4) : null;
   const sprite = useRef<Sprite>(null), shadow = useRef<Graphics>(null), ripple = useRef<Graphics>(null);
+  const rippling = useRef(false);
   const time = useRef(x % 11), wander = useRef(x % 11), heading = useRef(1);
   const target = useEnvironmentTarget(site.id, kind, x, factor);
   const height = kind === "troll" ? 172 : kind === "ghost" ? 120 : kind === "skeleton" ? 115 : kind === "gnome" ? 98 : kind === "crow" ? 78 : kind === "spirit" ? 52 : 72;
@@ -28,11 +40,11 @@ function Resident({ site }: { site: EnvironmentSite }) {
   const ground = WALKABLE_GROUND_Y + 10;
   useSceneTick(ticker => {
     const node = sprite.current, hit = target.current;
-    if (!node || !frames) { updateEnvironmentTarget(site.id, { visible: false }); return; }
+    if (!node || !frames) { showEnvironmentTarget(site.id, false); return; }
     const projected = parallaxX(x, scene.camera.x, scene.camera.viewW, factor);
     const visible = projected > -260 && projected < scene.camera.viewW + 260;
     node.visible = visible;
-    updateEnvironmentTarget(site.id, { visible: visible && isDrawn(node) });
+    showEnvironmentTarget(site.id, visible && isDrawn(node));
     if (shadow.current) shadow.current.visible = visible;
     if (ripple.current) ripple.current.visible = visible;
     if (!visible) return;
@@ -60,32 +72,40 @@ function Resident({ site }: { site: EnvironmentSite }) {
     node.texture = kind === "troll" && !reacting && motion && patrol.moving && walkFrames
       ? walkFrames[pose]
       : frames[row + (scene.reducedMotion ? reacting ? kind === "troll" ? 6 : 1 : 0 : kind === "troll" && !reacting ? 0 : pose)];
-    updateEnvironmentTarget(site.id, { worldX: x + roam, worldY: ground + dy - height / 2, width: kind === "troll" ? 132 : kind === "crow" ? 90 : height * 0.72, height });
+    moveEnvironmentTarget(site.id, x + roam, ground + dy - height / 2, kind === "troll" ? 132 : kind === "crow" ? 90 : height * 0.72, height);
     if (shadow.current) { shadow.current.x = (x + roam) * factor; shadow.current.alpha = dy < -100 ? 0 : Math.max(0.08, 0.25 + dy / 400); }
-    if (ripple.current) {
-      const g = ripple.current; g.clear();
-      if (kind === "toad") {
-        g.ellipse(x * factor, ground + 2, 38, 7).fill({ color: 0x79b0b5, alpha: 0.25 });
-        if (reacting) for (let i = 0; i < 3; i++) { const q = (p * 2 + i / 3) % 1; g.ellipse(x * factor, ground + 2, 20 + q * 55, 3 + q * 10).stroke({ color: 0xd3e7d7, width: 2, alpha: (1 - q) * 0.6 }); }
-      }
+    // A toad's rings spread only while it reacts; at rest the puddle is drawn once.
+    const g = ripple.current;
+    if (g && reacting && motion) {
+      rippling.current = true;
+      paintRipple(g);
+      for (let i = 0; i < 3; i++) { const q = (p * 2 + i / 3) % 1; g.ellipse(0, 0, 20 + q * 55, 3 + q * 10).stroke({ color: 0xd3e7d7, width: 2, alpha: (1 - q) * 0.6 }); }
+    } else if (g && rippling.current) {
+      rippling.current = false;
+      paintRipple(g);
     }
     if (reacting) markMotion();
   });
   return <pixiContainer label={`environment:${site.id}`}>
-    <pixiGraphics ref={shadow} x={x * factor} y={ground + 2} draw={g => { g.clear().ellipse(0, 0, height * 0.28, 4).fill(0x211b18); }} alpha={0.25} />
-    <pixiGraphics ref={ripple} draw={g => { g.clear(); }} />
+    <pixiGraphics ref={shadow} x={x * factor} y={ground + 2} draw={shadowFor(height * 0.28)} alpha={0.25} />
+    {kind === "toad" ? <pixiGraphics ref={ripple} x={x * factor} y={ground + 2} draw={paintRipple} /> : null}
     {frames ? <pixiSprite ref={sprite} texture={frames[row]} x={x * factor} y={ground} anchor={{ x: 0.5, y: special ? 476 / 512 : 312 / 320 }} scale={height / refHeight} /> : null}
   </pixiContainer>;
-}
+});
 
 /** Materialize only nearby physical homes; each resident culls its own parallax projection. */
-export function EnvironmentLife({ factor }: { factor: number }) {
-  const measure = () => {
+function EnvironmentLifeLayer({ factor }: { factor: number }) {
+  const left = () => {
     const center = scene.camera.x + scene.camera.viewW / 2, reach = (scene.camera.viewW / 2 + 400) / factor;
-    return `${Math.floor((center - reach) / 500)}:${Math.ceil((center + reach) / 500)}`;
+    return Math.floor((center - reach) / 500);
   };
-  const [range, setRange] = useState(measure);
-  useSceneTick(() => { const next = measure(); if (next !== range) setRange(next); });
-  const [left, right] = range.split(":").map(value => Number(value) * 500);
-  return <pixiContainer>{environmentSites(left, right, factor).map(site => <Resident key={site.id} site={site} />)}</pixiContainer>;
+  const right = () => {
+    const center = scene.camera.x + scene.camera.viewW / 2, reach = (scene.camera.viewW / 2 + 400) / factor;
+    return Math.ceil((center + reach) / 500);
+  };
+  const [range, setRange] = useState(() => [left(), right()] as const);
+  useSceneTick(() => { const a = left(), b = right(); if (a !== range[0] || b !== range[1]) setRange([a, b]); });
+  const sites = useMemo(() => environmentSites(range[0] * 500, range[1] * 500, factor), [range, factor]);
+  return <pixiContainer>{sites.map(site => <Resident key={site.id} site={site} />)}</pixiContainer>;
 }
+export const EnvironmentLife = memo(EnvironmentLifeLayer);

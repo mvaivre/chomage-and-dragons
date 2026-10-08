@@ -8,7 +8,9 @@ import { sfx } from "@/lib/client/sound";
 import { MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 
 export function DragonGame({ seedId, onResolve, onDone, practice, record, best, characterId = "chevalier" }: MiniGameProps) {
-  const run = useRef<DragonRun>(createDragonRun(seedFrom(seedId)));
+  // The live run is mutated by the loop; `view` is the snapshot React draws.
+  const [course] = useState(() => createDragonRun(seedFrom(seedId)));
+  const run = useRef<DragonRun>(course);
   const [view, setView] = useState(() => createDragonRun(seedFrom(seedId)));
   const [started, setStarted] = useState(false);
   const resolved = useRef(false);
@@ -54,7 +56,7 @@ export function DragonGame({ seedId, onResolve, onDone, practice, record, best, 
       event.preventDefault(); steer(event.key === "ArrowUp" ? -1 : 1);
     }}
     hud={<><span>Butin <b>{view.gold}/{DRAGON_GAME.required}</b></span><span>Armure <b>{"◆".repeat(Math.max(0, view.lives))}{"◇".repeat(DRAGON_GAME.lives - Math.max(0, view.lives))}</b></span><span><b>{Math.max(0, Math.ceil(DRAGON_GAME.duration - view.t))} s</b></span></>}
-    status={finished ? <><strong>{won ? practice ? "Dragon battu" : "+2 pas bonus" : "Roussi·e, mais vivant·e"}</strong><ScoreLine score={dragonScore(view)} unit="" record={record} best={best} /></> : <span>{started ? "Les flammes arrivent de la droite." : "Aucun pas perdu si tu rates."}</span>}
+    status={finished ? <><strong>{won ? practice ? "Dragon battu" : "+2 pas bonus" : "Roussi·e, mais vivant·e"}</strong><ScoreLine score={dragonScore(view)} unit="" record={record} best={best} practice={practice} /></> : <span>{started ? "Les flammes arrivent de la droite." : "Aucun pas perdu si tu rates."}</span>}
     primary={{ label: finished ? "Continuer le voyage" : started ? "Le dragon attaque…" : "Voler le butin", disabled: started && !finished, onClick: () => finished ? onDone() : setStarted(true) }}
     skip={!finished ? { label: "Passer", onClick: leave } : null}>
     <div className="mini-game__arena dragon-arena" data-running={started && !finished}>
@@ -64,6 +66,7 @@ export function DragonGame({ seedId, onResolve, onDone, practice, record, best, 
       {view.objects.map(object => <div key={object.id} className={`dragon-arena__${object.kind}`} style={{ left: `${object.x}%`, top: `${object.lane * 27 + 15}%` }} aria-hidden>{object.kind === "gold" ? "◆" : ""}</div>)}
       {finished ? <span className="mini-game__stamp">{won ? "BUTIN VOLÉ" : "BIEN CUIT"}</span> : null}
     </div>
-    <div className="dragon-controls"><button type="button" disabled={!started || finished || view.lane === 0} onClick={() => steer(-1)}>↑ Monter</button><button type="button" disabled={!started || finished || view.lane === 2} onClick={() => steer(1)}>↓ Descendre</button></div>
+    {/* At a lane's end the button stays focusable: disabling it under the keyboard would drop focus out of the game. */}
+    <div className="dragon-controls"><button type="button" disabled={!started || finished} aria-disabled={view.lane === 0} onClick={() => steer(-1)}>↑ Monter</button><button type="button" disabled={!started || finished} aria-disabled={view.lane === 2} onClick={() => steer(1)}>↓ Descendre</button></div>
   </MiniGameShell>;
 }

@@ -42,7 +42,7 @@
 - **Contrôle** : pour chaque asset, vérifier l'alpha aux bords, l'absence de cellule
   vide ou rognée, l'alignement des bases, et pour les tuiles l'égalité des colonnes de
   bord gauche et droite. Produire une planche-contact PNG de contrôle dans
-  `docs/decor-previews/` (non utilisée par le jeu).
+  [`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews) (non utilisée par le jeu).
 
 ## Groupe A — Panneaux vierges (priorité 1)
 
@@ -173,7 +173,7 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 ## Livraison
 
 - Un commit par groupe (A, B, C, puis un par intérieur), branche poussée.
-- `docs/decor-prompts.json` complet ; planches-contact dans `docs/decor-previews/`.
+- `docs/decor-prompts.json` complet ; planches-contact dans [`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews).
 - Un court récapitulatif dans ce fichier, section « Livré », avec les chemins, tailles
   et toute limite rencontrée (texte parasite, raccord imparfait, pose ratée), pour que
   l'intégration sache quoi corriger.
@@ -185,9 +185,10 @@ les personnages. Deux intérieurs, **Centre ORP** puis **Usine à CV**, avec pou
 La demande suivante remplace les raccords en coupe par des scènes séparées sous
 fondu. Nouvelles découpes dans `public/art/world-v3/decor/` : `exterior-orp.webp`,
 `exterior-factory.webp` et `interior-door.webp`. Les deux anciennes façades en coupe
-sont retirées. Total actuel : 26 WebP, 5 527 554 octets. Les sources et prompts exacts
+sont retirées. Total actuel : 26 WebP, 3 649 936 octets après le ré-encodage du 4 octobre
+(qualité 85, alpha net ; 5 527 554 octets auparavant). Les sources et prompts exacts
 sont dans `scene-door-prompts.json` ; les captures finales, dans
-`decor-previews/doors-final/` et `decor-previews/welcome-final/`.
+[`docs/decor-previews/doors-final/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/doors-final/) et [`docs/decor-previews/welcome-final/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews/welcome-final/).
 Les points sont supprimés au profit des pas ; règles, migration par relecture du
 journal et validation des portes sont détaillées dans [SCENE_DOORS.md](SCENE_DOORS.md).
 
@@ -196,7 +197,7 @@ journal et validation des portes sont détaillées dans [SCENE_DOORS.md](SCENE_D
 
 25 WebP et leurs JSON dans `public/art/world-v3/decor/`, **5 716 692 octets** au total
 (plafond : 6 000 000). Chaque sortie possède sa planche-contact PNG dans
-`docs/decor-previews/`. Les prompts exacts, références jointes, sources retenues et
+[`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews). Les prompts exacts, références jointes, sources retenues et
 commandes d’import sont dans `docs/decor-prompts.json`.
 
 | Groupe | Sorties | Dimensions | Poids WebP |
@@ -245,4 +246,4 @@ Limites et traitements :
 
 Les paysages lointains existants sont conservés. Le protocole, les captures
 représentatives et les mesures sont référencés dans `docs/RENDERING.md` et
-`docs/decor-previews/README.md`.
+[`docs/decor-previews/README.md`](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/README.md).

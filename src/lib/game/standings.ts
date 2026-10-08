@@ -44,30 +44,55 @@ function emptyCounts(): Record<ActionKind, number> {
   };
 }
 
-/** Replay all history so a month's net movement respects the journey's floor at zero. */
-export function standings(events: GameEvent[], players: Player[], month?: string): Standing[] {
-  const byPlayer = new Map<string, Standing>(
-    players.map((p) => [
-      p.id,
-      { playerId: p.id, steps: 0, counts: emptyCounts() },
-    ]),
-  );
-
-  const positions = new Map<string, number>();
+/**
+ * Replay the journal once, in its order of play, with the journey's floor at zero.
+ * Each move is credited to a Zurich month that never goes back for a player: two
+ * actions sent around midnight with a slightly late clock cannot hand a month steps
+ * the journey never made, and the months always add up to the season.
+ */
+function replay(events: readonly GameEvent[], known: (playerId: string) => boolean, onMove: (event: GameEvent, month: string, steps: number) => void) {
+  const positions = new Map<string, number>(), months = new Map<string, string>();
   for (const event of events) {
-    if (month && eventMonthKey(event.at) > month) continue;
-    const standing = byPlayer.get(event.playerId);
-    if (!standing) continue;
+    if (!known(event.playerId)) continue;
     const before = positions.get(event.playerId) ?? 0;
     const after = Math.max(0, before + stepsForEvent(event));
     positions.set(event.playerId, after);
-    if (!month || eventMonthKey(event.at) === month) {
-      standing.steps += after - before;
-      standing.counts[event.kind] += 1;
-    }
+    const stamped = eventMonthKey(event.at), previous = months.get(event.playerId);
+    const month = previous !== undefined && previous > stamped ? previous : stamped;
+    months.set(event.playerId, month);
+    onMove(event, month, after - before);
   }
+}
 
-  return [...byPlayer.values()].sort((a, b) => b.steps - a.steps);
+function emptyRows(players: readonly Pick<Player, "id">[]) {
+  return new Map<string, Standing>(players.map((p) => [p.id, { playerId: p.id, steps: 0, counts: emptyCounts() }]));
+}
+
+const ranked = (rows: Map<string, Standing>) => [...rows.values()].sort((a, b) => b.steps - a.steps);
+
+/** The season, or one month's net movement, replayed from the whole history. */
+export function standings(events: GameEvent[], players: Player[], month?: string): Standing[] {
+  const byPlayer = emptyRows(players);
+  replay(events, (id) => byPlayer.has(id), (event, key, steps) => {
+    if (month && key !== month) return;
+    const standing = byPlayer.get(event.playerId)!;
+    standing.steps += steps;
+    standing.counts[event.kind] += 1;
+  });
+  return ranked(byPlayer);
+}
+
+/** Several months from a single replay: the palmarès costs one pass, not one per month. */
+export function monthlyStandings(events: GameEvent[], players: Player[], months: readonly string[]): Map<string, Standing[]> {
+  const byMonth = new Map(months.map((key) => [key, emptyRows(players)]));
+  const known = new Set(players.map((p) => p.id));
+  replay(events, (id) => known.has(id), (event, key, steps) => {
+    const standing = byMonth.get(key)?.get(event.playerId);
+    if (!standing) return;
+    standing.steps += steps;
+    standing.counts[event.kind] += 1;
+  });
+  return new Map([...byMonth].map(([key, rows]) => [key, ranked(rows)]));
 }
 
 /**
@@ -103,6 +128,15 @@ export function collectiveTotals(events: GameEvent[]) {
   }
 
   return { counts, steps: [...positions.values()].reduce((sum, steps) => sum + steps, 0), total: events.length };
+}
+
+/**
+ * A month's crown from its ranked rows. Nobody moving forward is not a tie, just a
+ * month without exploits.
+ */
+export function crownOf(rows: Standing[]): { playerId: string | null; steps: number; tied: boolean } {
+  const top = rows[0]?.steps ?? 0;
+  return { playerId: soleLeader(rows)?.playerId ?? null, steps: top, tied: top > 0 && rows.length > 1 && rows[1].steps === top };
 }
 
 /** Le/la meneur·euse, ou null en cas d'égalité ou de tableau vide. */

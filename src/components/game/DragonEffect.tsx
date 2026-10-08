@@ -11,6 +11,7 @@ import { fx } from "./fx";
 import type { EffectProps } from "./Effects";
 
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
+const NO_DRAWING = () => {};
 
 /** A single timeline owns the swallow, hidden victim and rear exit. */
 export function DragonEffect({ origin, playerId, loud, onDone }: EffectProps) {
@@ -71,17 +72,16 @@ export function DragonEffect({ origin, playerId, loud, onDone }: EffectProps) {
       scene.heroEffects.set(playerId, { owner: owner.current, x: dx, y: dy, scale, alpha, rotation });
     }
     const g = residue.current;
-    if (g) {
+    // Nothing lies on the road before the release: no repaint, no render-list rebuild.
+    if (g && t > 4300) {
       g.clear();
-      if (t > 4300) {
-        const fade = 1 - clamp((t - 5300) / 1100), px = x + 220 * unit;
-        g.ellipse(px, y + 4, 52 * unit, 8 * unit).fill({ color: 0x251d15, alpha: 0.3 * fade });
-        g.ellipse(px, y - 5, 35 * unit, 13 * unit).fill({ color: 0x68502c, alpha: fade }).stroke({ color: 0x2e2519, width: 2, alpha: fade });
-        g.ellipse(px - 4 * unit, y - 17 * unit, 21 * unit, 13 * unit).fill({ color: 0x8a6c38, alpha: fade });
-        if (!scene.reducedMotion) for (let i = 0; i < 3; i++) {
-          const rise = ((t / 1300 + i / 3) % 1);
-          g.moveTo(px - 20 + i * 18, y - 22 - rise * 40).bezierCurveTo(px - 35 + i * 18, y - 32 - rise * 40, px + i * 18, y - 40 - rise * 40, px - 10 + i * 18, y - 48 - rise * 40).stroke({ color: 0xa9bb71, width: 3, alpha: (1 - rise) * fade * 0.6 });
-        }
+      const fade = 1 - clamp((t - 5300) / 1100), px = x + 220 * unit;
+      g.ellipse(px, y + 4, 52 * unit, 8 * unit).fill({ color: 0x251d15, alpha: 0.3 * fade });
+      g.ellipse(px, y - 5, 35 * unit, 13 * unit).fill({ color: 0x68502c, alpha: fade }).stroke({ color: 0x2e2519, width: 2, alpha: fade });
+      g.ellipse(px - 4 * unit, y - 17 * unit, 21 * unit, 13 * unit).fill({ color: 0x8a6c38, alpha: fade });
+      if (!scene.reducedMotion) for (let i = 0; i < 3; i++) {
+        const rise = ((t / 1300 + i / 3) % 1);
+        g.moveTo(px - 20 + i * 18, y - 22 - rise * 40).bezierCurveTo(px - 35 + i * 18, y - 32 - rise * 40, px + i * 18, y - 40 - rise * 40, px - 10 + i * 18, y - 48 - rise * 40).stroke({ color: 0xa9bb71, width: 3, alpha: (1 - rise) * fade * 0.6 });
       }
     }
     if (t >= DRAGON_DURATION) {
@@ -90,7 +90,7 @@ export function DragonEffect({ origin, playerId, loud, onDone }: EffectProps) {
       onDone();
     }
   });
-  return <pixiContainer><pixiGraphics ref={residue} draw={g => { g.clear(); }} />
+  return <pixiContainer><pixiGraphics ref={residue} draw={NO_DRAWING} />
     {frames ? <pixiSprite ref={art} texture={frames[0]} anchor={{ x: 0.5, y: 476 / 512 }} /> : null}
   </pixiContainer>;
 }

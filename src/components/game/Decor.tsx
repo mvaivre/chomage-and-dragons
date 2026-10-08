@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useRef, useState } from "react";
 import type { Container, Graphics, Sprite } from "pixi.js";
-import { decorForLap, personaliseDecor, type DecorSite, type GroupDecor } from "@/lib/game/decor";
+import { decorForLap, isCarvedTree, personaliseDecor, type DecorSite, type GroupDecor } from "@/lib/game/decor";
 import { WALKABLE_GROUND_Y, WORLD_LENGTH } from "@/lib/game/world";
 import { useSceneTick } from "./useSceneTick";
 import { scene } from "./scene";
@@ -13,6 +13,14 @@ import { ForestTree } from "./Forest";
 import { DecorNpc } from "./DecorNpc";
 import { DecorSetpiece, type DecorLand } from "./DecorSetpiece";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+
+const CHANGED_TEXT = "Finalement, le poste exige un dragon";
+
+/** A hero walks by this stop, near the followed one. No array is built per frame. */
+function heroPassing(x: number): boolean {
+  for (const hero of scene.heroes.values()) if (Math.abs(hero.x - x) < 155 && Math.abs(hero.x - scene.focus) < 360) return true;
+  return false;
+}
 
 const shadow = (g: Graphics) => { g.clear().ellipse(0, 0, 45, 5).fill({ color: 0x211b18, alpha: 0.2 }); };
 const pedestal = (g: Graphics) => { g.clear().poly([-54, 0, -47, -45, 47, -45, 54, 0]).fill(0xaca590).stroke({ color: 0x302b27, width: 3 }).poly([-16, -180, -20, -198, -5, -190, 0, -204, 8, -190, 20, -198, 16, -180]).fill(0xd0ac54).stroke({ color: 0x302b27, width: 2 }); };
@@ -29,8 +37,9 @@ function WaitingHero({ id, x, worldX, statue = false }: { id: string; x: number;
     if (!sprite.current || !frames) { updateSpriteTarget(targetId, null, 118); return; }
     if (!scene.reducedMotion && !statue) time.current += ticker.elapsedMS / 1000;
     // Everyone, even the fairy, waits with their feet at rest here.
-    const greeting = reactionProgress(target.current);
-    sprite.current.texture = frames[statue || scene.reducedMotion ? 0 : characterFrame(id === "fee" ? "barde" : id, greeting < 1 ? "celebrate" : "idle", time.current, greeting)];
+    const greeting = reactionProgress(target.current), pose = id === "fee" ? "barde" : id;
+    // Reduced motion freezes the wait, not the answer: a greeted extra holds one cheering pose.
+    sprite.current.texture = frames[statue ? 0 : scene.reducedMotion ? greeting < 1 ? characterFrame(pose, "celebrate", 0, 0.5) : 0 : characterFrame(pose, greeting < 1 ? "celebrate" : "idle", time.current, greeting)];
     updateSpriteTarget(targetId, sprite.current, 118);
   });
   return frames ? <pixiSprite ref={sprite} texture={frames[0]} x={x} y={statue ? -44 : 0} anchor={{ x: 0.5, y: sheet.baseline / sheet.height }} scale={118 / sheet.referenceHeight} tint={statue ? 0xb3ac90 : 0xa6a799} /> : null;
@@ -38,10 +47,12 @@ function WaitingHero({ id, x, worldX, statue = false }: { id: string; x: number;
 
 function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
   const illustrated = site.setpiece;
-  const carved = site.biome === "foret" && !illustrated && !["crown", "daily", "friend", "grave"].includes(site.kind);
+  const carved = isCarvedTree(site);
   const sceneOnly = illustrated && (site.biome === "lac" || site.biome === "taverne");
-  const texture = useSignTexture(site.text, site.kind);
-  const changed = useSignTexture(site.reaction === "change" ? "Finalement, le poste exige un dragon" : site.text, site.kind);
+  // Carved oaks and scene-only setpieces letter their own surfaces: no board to bake.
+  const boarded = !carved && !sceneOnly;
+  const texture = useSignTexture(boarded ? site.text : null, site.kind);
+  const changed = useSignTexture(boarded && site.reaction === "change" ? CHANGED_TEXT : null, site.kind);
   const root = useRef<Container>(null);
   const sign = useRef<Sprite>(null);
   const react = useRef(0);
@@ -55,7 +66,7 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     const baseScale = (site.kind === "welcome" ? 0.25 : 0.22) * Math.min(1, scene.camera.viewW * 0.8 / 320, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
     sign.current.scale.y = baseScale;
     sign.current.x = illustrated && site.biome === "desert" ? 230 : illustrated && scene.camera.viewW > 650 ? 105 : 0;
-    const passing = performance.now() < scene.walkingUntil && [...scene.heroes.values()].some(hero => Math.abs(hero.x - site.x) < 155 && Math.abs(hero.x - scene.focus) < 360);
+    const passing = performance.now() < scene.walkingUntil && heroPassing(site.x);
     if (passing && !active.current) react.current = 1;
     active.current = passing;
     if (scene.reducedMotion) { react.current = 0; sign.current.rotation = 0; sign.current.scale.x = baseScale; sign.current.texture = texture ?? sign.current.texture; return; }

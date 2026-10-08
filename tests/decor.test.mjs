@@ -49,7 +49,10 @@ test('group signs honour the journal, crowns, daily runs and all hired companion
   assert.equal(result.crown.characterId,'barde');
   assert.match(result.daily,/Mika/);
   assert.match(result.hired[0],/Mika.*Engagé·e/);
-  assert.deepEqual(result,groupDecor({...group,players:[...players].reverse(),events:[...events].reverse()}));
+  // The group's order never matters. The journal's order is the order of play, which the
+  // crown replays; only the graves are sorted by date.
+  assert.deepEqual(result,groupDecor({...group,players:[...players].reverse()}));
+  assert.deepEqual(groupDecor({...group,events:[...events].reverse()}).graves,result.graves);
   const sites=decorForLap(0), decorated=personaliseDecor(sites,result);
   assert.deepEqual(decorated.map(s=>s.x),sites.map(s=>s.x));
   assert.equal(decorated.filter(s=>s.kind==='grave').length,8);

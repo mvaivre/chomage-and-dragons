@@ -43,12 +43,20 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
 
   useEffect(() => { primaryButton.current?.focus(); }, [focusKey]);
 
+  // Disabling the focused primary (a run that starts, a lane at its end) drops focus to the
+  // page: arrows and digits would then miss the dialog. The dialog takes focus back.
+  useEffect(() => {
+    const node = dialog.current, active = document.activeElement;
+    if (primary.disabled && node && (!active || active === document.body || !node.contains(active))) node.focus({ preventScroll: true });
+  }, [primary.disabled, focusKey]);
+
   // Chrome may close a modal on Escape without firing cancel when it opened right after
   // another one closed; onClose keeps the game state in step with the browser either way.
   // The check on `open` ignores the close queued by a development-only remount (StrictMode),
   // which has already reopened the dialog by the time the event fires.
-  return <dialog ref={dialog} className={`mini-game mini-game--${kind}`} aria-labelledby="mini-game-title" aria-describedby="mini-game-instructions"
-    onKeyDown={onKeyDown} onCancel={event => { event.preventDefault(); onLeave(); }}
+  // Keys stay in the dialog: a digit for a quiz answer must not declare an action behind it.
+  return <dialog ref={dialog} tabIndex={-1} className={`mini-game mini-game--${kind}`} aria-labelledby="mini-game-title" aria-describedby="mini-game-instructions"
+    onKeyDown={event => { onKeyDown?.(event); event.stopPropagation(); }} onCancel={event => { event.preventDefault(); onLeave(); }}
     onClose={event => { if (!event.currentTarget.open) onLeave(); }}>
     <button type="button" className="mini-game__close" onClick={onLeave} aria-label="Fermer le mini-jeu">×</button>
     <header>
@@ -82,9 +90,10 @@ export interface MiniGameProps {
   best?: number | null;
 }
 
-/** "Score · record" line under a finished game. */
-export function ScoreLine({ score, unit, record, best }: { score: number | null; unit: string; record?: { score: number; holder: string } | null; best?: number | null }) {
+/** "Score · record" line under a finished game. A practice run is never a record. */
+export function ScoreLine({ score, unit, record, best, practice = false }: { score: number | null; unit: string; record?: { score: number; holder: string } | null; best?: number | null; practice?: boolean }) {
   if (score === null) return null;
+  if (practice) return <p className="mini-game__score-line"><b>{score} {unit}</b><span>Entraînement · non enregistré</span></p>;
   const newRecord = !record || score > record.score;
   const newBest = best === null || best === undefined || score > best;
   return <p className="mini-game__score-line" data-record={newRecord}>

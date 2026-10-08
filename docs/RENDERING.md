@@ -307,12 +307,21 @@ Le catalogue compte 86 raisons de refus et des directions, offres, avis, épitap
 phrases de coach, d'influenceur et de guichet. Chaque message compte au plus huit mots.
 
 `Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
-le sol et avant les héros. Les messages sont peints à résolution double en temps
-mort, après `document.fonts.ready`, avec les familles résolues des variables CSS
-Pirata et Garamond. Le cache partagé libère les textures huit secondes après leur
-dernier utilisateur. Seuls les arrêts proches sont montés. Les réactions de passage
-modifient des transforms ou une texture précuite ; la réduction des mouvements les
-fige. La foule réutilise les atlas des héros, en plus petit et avec une teinte terne.
+le sol, après les résidents (les panneaux personnels restent lisibles) et avant les
+héros. Les messages sont peints en temps mort, après `document.fonts.ready` et le
+chargement des deux faces, avec les familles résolues des variables CSS Pirata et
+Garamond. Un panneau ou une planche d’arbre n’est jamais affiché au-delà de la moitié
+de sa taille d’art : il est peint à une unité de canvas par unité (texture déclarée à
+résolution 0,5, les échelles des sprites ne changent pas), soit quatre fois moins de
+pixels qu’avant ; les petits libellés gardent deux unités. Les lettres suivent le
+quadrilatère mesuré par une seule transformation affine (les quads de `signs.json` sont
+des parallélogrammes à deux pixels près). Le cache partagé libère les textures huit
+secondes après leur dernier utilisateur, et une cuisson que plus personne n’attend
+quand vient le temps mort est abandonnée. Les chênes gravés et les scènes qui lettrent
+leur propre surface ne cuisent aucun panneau. Seuls les arrêts proches sont montés.
+Les réactions de passage modifient des transforms ou une texture précuite ; la
+réduction des mouvements les fige. La foule réutilise les atlas des héros, en plus
+petit et avec une teinte terne.
 
 `groupDecor` dérive les hommages au groupe, les huit derniers refus, la couronne du
 mois (aucun gagnant inventé en cas d'égalité), le défi du jour et les engagé·es. Les
@@ -332,7 +341,7 @@ avec Chrome et WebGL Metal (Apple M1 Max). `GAME_TEST_URL`, `DECOR_STEPS`,
 ### Illustrations et intérieurs
 
 Les 25 nouvelles images vivent dans `public/art/world-v3/decor/` : 5 716 692 octets
-WebP au total. Les PNG de `docs/decor-previews/` sont des contrôles d’import et des
+WebP au total. Les PNG de [`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews) sont des contrôles d’import et des
 captures, jamais des téléchargements du jeu. Les prompts exacts et les commandes
 retenues sont consignés dans `docs/decor-prompts.json`.
 
@@ -342,8 +351,13 @@ source sont irrégulières ; les pieds sont recalés sur l’alpha visible aprè
 réduction. Les rectangles de lettrage ont été mesurés sur les sorties. Les tuiles
 sont jointes par recouvrement des bords, puis encodées sans perte pour préserver
 leur égalité exacte après décodage. Un filtre médian de 3 px et une palette de
-12 couleurs réduisent leur grain et leur poids ; les autres sprites restent en
-WebP qualité 92. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
+12 couleurs réduisent leur grain et leur poids. Les autres sprites sont encodés en WebP
+qualité 85 (`smartSubsample`, alpha sans perte) après un alpha net : ≥ 246 devient
+opaque, ≤ 6 vide, les bords anticrénelés restent intacts. Avant, les corps des sprites
+nettoyés restaient transparents à 1 % et leur alpha pesait près d’un tiers des fichiers.
+Les 49 WebP avec pertes ajoutés ou retouchés par la passe décor sont passés de 14,3 à
+8,6 Mo (−40 %, PSNR ≥ 35 dB sur les pixels visibles), vérifiés en jeu dans les huit
+contrées et les deux salles ; les six tuiles sans perte n’ont pas changé. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
 de raccord et budget total.
 
 Les panneaux illustrés sont composés avec leur texte une seule fois, en temps
@@ -397,7 +411,7 @@ Les huit contrées et les deux intérieurs ont été contrôlés aux cinq format
 brief, de jour et de nuit, avec le renderer WebGL Metal. Les entrées, centres et
 sorties des salles ont des captures dédiées. Les scènes rares sont figées à une
 heure de test pour contrôler leur lettrage et leurs plans. Voir la
-[sélection avant/après et les commandes](decor-previews/README.md).
+[sélection avant/après et les commandes](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/README.md).
 
 Mesures sur Chrome/ANGLE Metal, Apple M1 Max. « CPU » désigne le temps de tâche du
 renderer (`Performance.TaskDuration / Timestamp`), sur cinq secondes au repos.
@@ -414,9 +428,9 @@ autour d’un refus. Le mobile 390 × 844 utilise un ralentissement CPU ×4 ; le
 | Après, usine pas 34 | Desktop | 3,00 % | 50,0 ms | 16,7 ms |
 | Après, usine pas 34 | Mobile ×4 | 11,28 % | 66,7 ms | 16,8 ms |
 
-Données brutes : [avant](decor-previews/baseline/results.json),
-[après](decor-previews/final-perf/results.json),
-[usine](decor-previews/final-factory-perf/results.json).
+Données brutes : [avant](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/baseline/results.json),
+[après](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-perf/results.json),
+[usine](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-factory-perf/results.json).
 Le P95 reste autour d’une frame à 60 Hz ; le coût CPU au repos augmente d’environ
 1,4 point sur desktop et de 0,08 point sur le mobile simulé au même endroit.
 Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache et
@@ -424,3 +438,40 @@ Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache 
 sa forte valeur maximale ne constitue donc pas la preuve d’un gain causé par cette
 PR. Aucun test sur téléphone physique n’a été effectué ; ces chiffres ne garantissent
 pas le même résultat sur tous les appareils.
+
+## Captures de revue
+
+Les captures, planches-contact et mesures brutes de ces passes ne sont plus versionnées
+(44 Mo, 70 % du poids que la PR ajoutait au dépôt). Les liens de cette documentation pointent
+vers le commit `aeeb109`, où elles restent consultables. `scripts/decor-qa.mjs` et la
+planche-contact de `scripts/compile_ambient_assets.mjs` écrivent désormais dans `.qa/`,
+ignoré par git : on joint les images utiles à la PR plutôt qu’au dépôt.
+
+## Règles de coût par image (revue du 4 octobre)
+
+- **Un `Graphics.clear()` reconstruit toute la liste de rendu** de son groupe (Pixi 8 :
+  un contexte modifié et « batchable » force `structureDidChange`). On n’efface donc
+  qu’autour d’un dessin réel : éclairs, résidu du dragon après 4,3 s, rides d’un crapaud
+  qui réagit. Ce qui se redessine à chaque image vit dans son propre groupe de rendu
+  (`isRenderGroup`) : particules et éclairs (`FxLayer`), eau de la cascade, qui ne se
+  redessine pas hors champ, derrière une salle, en mouvement réduit ou en rendu logiciel.
+  Changer `visible` a le même effet : les particules recyclées restent dans leur groupe.
+- **Fonctions `draw` stables** : une nouvelle fonction à chaque rendu React repeint le
+  Graphics (sous-sol par tuile, murs, sols, convoyeur, bulles, ombres des résidents).
+- **Pas d’allocation par image et par objet** : cibles d’interaction écrites en place
+  (`showEnvironmentTarget`, `moveEnvironmentTarget`, un `Point` réutilisé), salle
+  comparée sans construire d’objet (`inRoom`), houle des chênes précalculée par sommet.
+- **Le DOM qui suit la scène tourne sur son ticker** (`sceneFrameListeners`) : à 30 ou
+  60 images par seconde, rien en pause, jamais aux 120 Hz de l’écran ; les boutons
+  d’interaction bougent par `transform` et n’écrivent un style que s’il change. React ne
+  voit que l’arrivée ou le départ d’une cible.
+- **Le canvas mémoïsé reçoit des props stables** (`useCallback`), sinon chaque mise à
+  jour du HUD réconcilie tout l’arbre Pixi.
+- **Chargement** : l’atlas du héros du joueur part seul (`loadFirst`), les autres
+  textures attendent qu’il arrive (trois secondes au plus), puis six téléchargements au
+  plus à la fois, dans l’ordre de montage, donc du plus proche au plus lointain.
+
+Mesures A/B alternées sur la même machine (Chrome/ANGLE Metal, M1 Max ; mobile 390×844
+DPR 3 avec CPU ×4), avant → après la revue : au repos, tick Pixi −9 à −24 %, rendu
+−19 à −31 %, CPU du fil principal −7 à −19 % ; pendant le fondu d’une porte sur mobile,
+pire image 25,6 → 17,6 ms et aucune image au-delà de 20 ms ; textures GPU −3 Mo.

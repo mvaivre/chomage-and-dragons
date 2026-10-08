@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import type { Container } from "pixi.js";
+import { Point, type Container } from "pixi.js";
 import type { EnvironmentKind } from "@/lib/game/environment";
 import { scene } from "./scene";
 
@@ -18,21 +18,36 @@ export function isDrawn(node: Container | null): boolean {
   return true;
 }
 
-/** Use the actual transformed feet, including parent offsets, rooms and parallax. */
+const feet = new Point();
+
+/**
+ * Use the actual transformed feet, including parent offsets, rooms and parallax.
+ * Called every frame for every resident: fields are written in place.
+ */
 export function updateSpriteTarget(id: string, node: Container | null, height: number, width = height * .7, factor = 1) {
-  if (!node || !isDrawn(node)) { updateEnvironmentTarget(id, { visible: false }); return; }
-  const point = node.getGlobalPosition();
+  const target = environmentTargets.get(id);
+  if (!target) return;
+  if (!node || !isDrawn(node)) { target.visible = false; return; }
+  const point = node.getGlobalPosition(feet);
   const { camera } = scene;
-  updateEnvironmentTarget(id, {
-    visible: true, width, height,
-    worldX: camera.x + camera.viewW / 2 + (point.x / camera.scale - camera.viewW / 2) / factor,
-    worldY: (point.y - camera.screenOffsetY) / camera.scale + camera.y * factor - height / 2,
-  });
+  target.visible = true; target.width = width; target.height = height;
+  target.worldX = camera.x + camera.viewW / 2 + (point.x / camera.scale - camera.viewW / 2) / factor;
+  target.worldY = (point.y - camera.screenOffsetY) / camera.scale + camera.y * factor - height / 2;
 }
 export const environmentTargets = new Map<string, EnvironmentTarget>();
 export function updateEnvironmentTarget(id: string, geometry: Partial<EnvironmentTarget>) {
   const target = environmentTargets.get(id);
   if (target) Object.assign(target, geometry);
+}
+/** Per-frame writes go straight into the registered target: nothing is allocated. */
+export function showEnvironmentTarget(id: string, visible: boolean) {
+  const target = environmentTargets.get(id);
+  if (target) target.visible = visible;
+}
+export function moveEnvironmentTarget(id: string, worldX: number, worldY: number, width: number, height: number) {
+  const target = environmentTargets.get(id);
+  if (!target) return;
+  target.worldX = worldX; target.worldY = worldY; target.width = width; target.height = height;
 }
 
 /** The Pixi ticker supplies geometry; the accessible DOM supplies pointer/keyboard input. */

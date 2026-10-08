@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlayerView } from "@/hooks/useGame";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 /** Height of the painted route at a point of the traversal, in percent of the map. */
 function mapRouteY(progress: number): number {
@@ -16,7 +16,8 @@ function mapRouteY(progress: number): number {
 export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[]; meId: string | null; onLocate: (id: string) => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 400 });
-  useEffect(() => {
+  // Measured before the first paint: pins never jump from a default size on small screens.
+  useLayoutEffect(() => {
     const node = root.current;
     if (!node) return;
     const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });
@@ -45,12 +46,13 @@ export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[];
     <svg className="journey-map__connections" aria-hidden="true" width="100%" height="100%">
       {pins.map((pin, index) => <line key={players[index].id} x1={pin.routeX} y1={pin.routeY} x2={pin.x} y2={pin.y} />)}
     </svg>
-    <div className="journey-map__pins" aria-label="Position des joueurs">
+    <div className="journey-map__pins" role="group" aria-label="Position des joueurs">
       {players.map((player, index) => {
+        // The visible label only shows on hover: the accessible name carries the same facts.
         return <button type="button"
           key={player.id}
           onClick={() => onLocate(player.id)}
-          aria-label={`Voir ${player.name} dans le monde`}
+          aria-label={`${player.name} · ${player.journeySteps} pas · voyage ${Math.max(1, Math.ceil(player.position))}, voir dans le monde`}
           title={`Voir ${player.name} dans le monde`}
           className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
           style={{

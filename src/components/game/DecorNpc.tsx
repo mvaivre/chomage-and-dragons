@@ -36,7 +36,8 @@ export function DecorNpc({ sheet, row = 0, x, y = 0, height = 144, worldX = x, g
     const near = performance.now() < scene.walkingUntil && Math.abs(scene.focus - worldX) < 240;
     if (near && !reacted.current) response.current = 2.4;
     reacted.current = near;
-    if (scene.reducedMotion) { node.texture = frames[row * 4]; node.y = y; node.alpha = ghost ? 0.6 : 1; return; }
+    // Reduced motion: no idle loop, but a click still gets a readable change of pose.
+    if (scene.reducedMotion) { node.texture = frames[row * 4 + (reactionProgress(target.current) < 1 ? 1 : 0)]; node.y = y; node.alpha = ghost ? 0.6 : 1; return; }
     time.current += ticker.elapsedMS / 1000;
     response.current = Math.max(0, response.current - ticker.elapsedMS / 1000);
     const cycle = time.current % 22;

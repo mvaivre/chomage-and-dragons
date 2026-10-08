@@ -9,7 +9,7 @@ const steps = (process.env.DECOR_STEPS ?? '1,19').split(',').filter(Boolean).map
 const character = process.env.DECOR_CHARACTER ?? 'skater';
 const hours = (process.env.DECOR_HOURS ?? '12,22').split(',').map(Number);
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3123';
-const folder = `docs/decor-previews/${label}`;
+const folder = `.qa/decor-previews/${label}`;
 await fs.mkdir(folder, { recursive: true });
 const openBrowser = () => chromium.launch({ timeout: 30_000, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 let browser = await openBrowser();

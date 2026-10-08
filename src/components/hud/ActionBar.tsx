@@ -67,7 +67,8 @@ export function ActionBar({
 }: ActionBarProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // A dialog that handled the key (a quiz answer, a lane change) keeps it.
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
 
       const target = event.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;

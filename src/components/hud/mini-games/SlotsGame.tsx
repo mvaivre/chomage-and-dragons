@@ -156,7 +156,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
       <span className="mini-game__progress"><span style={{ width: `${stopped / SLOTS.reels * 100}%` }} /></span>
       <span className="mini-game__score">CHF : <b>{jackpotCount(sim)}</b></span>
     </>}
-    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><span>{won ? "Un pouvoir supplémentaire à lancer" : "Le coffre ne se retire jamais."}</span><ScoreLine score={score} unit="CHF" record={record} best={best} /></> :
+    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><span>{won ? "Un pouvoir supplémentaire à lancer" : "Le coffre ne se retire jamais."}</span><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? "Une seule tentative · trois arrêts · pas de retour" : "Touche l’image, Espace ou Entrée"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",

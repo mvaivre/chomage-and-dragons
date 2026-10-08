@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chestXForStep } from "@/components/game/projection";
 import type { Effect, EffectKind } from "@/components/game/Effects";
 import GameCanvas from "@/components/game/GameCanvas";
-import { heroOrigin } from "@/components/game/lanes";
+import { heroOrigin, laneFor } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
 import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
-import { retainTextures } from "@/components/game/textures";
+import { loadFirst, retainTextures } from "@/components/game/textures";
 import { CHARACTER_ANIMATIONS } from "@/components/game/animation";
 import { decodedImage, whenIdle } from "@/lib/client/preload";
 import { ACTION_ART, MINI_GAME_IMAGES, POWER_ART } from "@/lib/game/art";
@@ -35,8 +35,7 @@ import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
-import { interiorAt } from "@/lib/game/decor";
-import { laneFor } from "@/components/game/lanes";
+import { groupDecor, interiorAt } from "@/lib/game/decor";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { JourneyMap } from "@/components/hud/JourneyMap";
@@ -49,14 +48,13 @@ import { reactionTiming } from "@/components/game/Effects";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
-import { leanIn, leanOut, markMotion, scene } from "@/components/game/scene";
+import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/game/scene";
 import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
 import { weeklyStreak } from "@/lib/game/streak";
 import { PowerArtwork } from "@/components/hud/Artwork";
-import { groupDecor } from "@/lib/game/decor";
 import { useGame, type GameMode } from "@/hooks/useGame";
 import { RemoteStore } from "@/lib/data/remote-store";
 import Link from "next/link";
@@ -193,8 +191,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     removePlayer,
   } = useGame(mode);
 
-  const decorDay = zurichDay();
-  const decor = useMemo(() => groupDecor({ players, events, daily, day: decorDay, month: monthKeyNow }), [players, events, daily, decorDay, monthKeyNow]);
+  // One Zurich day for the whole render: today's challenge and the decor's daily sign.
+  const today = zurichDay();
+  const decor = useMemo(() => groupDecor({ players, events, daily, day: today, month: monthKeyNow }), [players, events, daily, today, monthKeyNow]);
 
   const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -271,7 +270,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
   // Today's challenge: the same game and course for everyone in the group.
-  const today = zurichDay();
   const todayGame = useMemo(() => dailyChallenge(today), [today]);
   const [dailyOpen, setDailyOpen] = useState(false);
   const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
@@ -292,11 +290,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const me = meIndex === -1 ? null : players[meIndex];
   // Your own hero gates the action bar: request its atlas before the scenery.
   const myAtlas = me ? CHARACTER_ANIMATIONS[me.characterId]?.url : undefined;
-  useEffect(() => { if (myAtlas) retainTextures([myAtlas]); }, [myAtlas]);
+  useEffect(() => { if (myAtlas) loadFirst([myAtlas]); }, [myAtlas]);
 
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
+  // One condition renders the welcome, pauses the world and locks the actions.
+  const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
   useEffect(() => {
     if (loaded) setMusicPhase(identity ? "adventure" : "intro");
   }, [loaded, identity]);
@@ -372,8 +372,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      // The native mini-game dialog owns Escape, Space, Enter and focus; the invitation owns Escape.
-      if (miniGameVisible || inviteVisible) return;
+      // The native mini-game dialog owns Escape, Space, Enter and focus, the daily one
+      // included; the invitation owns Escape. Preventing Escape here would keep a dialog open.
+      if (miniGameVisible || inviteVisible || dailyOpen || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -399,7 +400,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen]);
 
   useEffect(
     () => () => {
@@ -547,8 +548,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       actionInFlight.current = true;
       setAwaitingTravel(true);
       setObservedPlayerId(null);
-      scene.pan = 0;
-      scene.exploreCenter = null;
+      recenterCamera();
 
       const { event, offer, chestGame } = addEvent(me.id, kind);
       if (!event) {
@@ -686,13 +686,14 @@ export function Game({ slug = null }: { slug?: string | null }) {
     (power: AvailablePower, targetId: string) => {
       if (!me) return;
       setObservedPlayerId(null);
-      scene.pan = 0;
-      scene.exploreCenter = null;
+      recenterCamera();
       const targetIndex = players.findIndex((player) => player.id === targetId);
       const target = players[targetIndex];
       if (!target) return;
 
       const cast = castPower(me.id, targetId, power.kind, power.slot);
+      // A word in the dock's live region: the effect alone says nothing to a screen reader.
+      setActionFeedback({ id: cast.id, text: `${POWERS[power.kind].name} → ${target.name}` });
       if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
       setEffectFocusId(targetId);
       focusTimeout.current = window.setTimeout(() => {
@@ -719,8 +720,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     actionInFlight.current = true;
     setAwaitingTravel(true);
     setObservedPlayerId(null);
-    scene.pan = 0;
-    scene.exploreCenter = null;
+    recenterCamera();
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
@@ -739,17 +739,32 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setDevExplore((active) => !active);
   }, []);
 
-  const handleLocatePlayer = useCallback((id: string) => {
-    if (!players.some(player => player.id === id)) return;
+  const releaseFocus = useCallback(() => {
     if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
     focusTimeout.current = null;
     setEffectFocusId(null);
+  }, []);
+
+  const handleLocatePlayer = useCallback((id: string) => {
+    // Your own action's moment, banner and chest play where your hero is.
+    if (actionInFlight.current || !players.some(player => player.id === id)) return;
+    releaseFocus();
     setObservedPlayerId(id);
     setRegisterOpen(false);
-    scene.pan = 0;
-    scene.exploreCenter = null;
+    recenterCamera();
     markMotion();
-  }, [players]);
+  }, [players, releaseFocus]);
+
+  // Stable callbacks: the memoised canvas must not re-render with every HUD update.
+  const handleReturnToMe = useCallback(() => {
+    releaseFocus();
+    setObservedPlayerId(null);
+  }, [releaseFocus]);
+  const dragonChallengeOpen = useRef(false);
+  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !rewardMoments.length); });
+  const handleDragonChallenge = useCallback(() => {
+    if (dragonChallengeOpen.current) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
+  }, []);
 
   const handleDevBiome = useCallback((from: number, to: number) => {
     setDevExplore(true);
@@ -839,9 +854,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
         atmosphere={DEV_BUILD ? devAtmosphere : true}
-        onDragonChallenge={() => { if (me && !awaitingTravel && !miniGameOffer && !rewardMoments.length) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` }); }}
+        onDragonChallenge={handleDragonChallenge}
         onSceneReady={handleSceneReady}
-        paused={(welcomeOpen && sceneReady) || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -849,12 +864,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         decor={decor}
         meId={identity}
         focusPlayerId={effectFocusId ?? observedPlayerId}
-        onReturnToMe={() => {
-          if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
-          focusTimeout.current = null;
-          setEffectFocusId(null);
-          setObservedPlayerId(null);
-        }}
+        onReturnToMe={handleReturnToMe}
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
@@ -966,7 +976,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
               canUndo={canUndo}
               hired={Boolean(me.hiredAt)}
               locked={
-                welcomeOpen || registerOpen ||
+                // Every dialog over the world, the daily game and its sheet included: their
+                // digits and letters must never declare an action in the shared journal.
+                welcomeVisible || registerOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
@@ -992,7 +1004,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
-      {me && sceneReady && welcomeOpen ? <Welcome onClose={() => { rememberWelcome(); setWelcomeOpen(false); }} /> : null}
+      {welcomeVisible ? <Welcome onClose={() => { rememberWelcome(); setWelcomeOpen(false); }} /> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay

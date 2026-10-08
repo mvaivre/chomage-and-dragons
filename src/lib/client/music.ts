@@ -28,8 +28,6 @@ export interface Mood {
   /** Acoustic dance arrangement: open fifths, strummed strings and whistle. */
   folk?: boolean;
   drum?: boolean;
-  /** A driving adventure pulse, kept lively even after sunset. */
-  march?: boolean;
   /** A recognisable two-bar theme, expressed as scale degrees. */
   motif?: Array<number | null>;
 }
@@ -68,7 +66,6 @@ export class Composer {
   private mood: Mood;
   private night = 0;
   private pending: { mood: Mood; night: number } | null = null;
-  private percussion: AudioBuffer | null = null;
   private ctx: BaseAudioContext;
   private dest: AudioNode;
   private random: Rand;
@@ -124,7 +121,6 @@ export class Composer {
       this.bass(t);
     }
     if (!this.mood.jig && position === 4) this.bass(t, 0.6);
-    if (this.mood.march && (position === 2 || position === 6)) this.bass(t, 0.45, 7);
     if (this.mood.drum) this.drum(t, position);
 
     const phrase = this.step % (this.perBar * 2);
@@ -241,7 +237,7 @@ export class Composer {
       lfo.stop(t + length + 0.05);
       return;
     }
-    if (voice === "bell" || (this.night > 0.6 && !this.mood.march && !this.mood.folk)) {
+    if (voice === "bell" || (this.night > 0.6 && !this.mood.folk)) {
       const length = 2.2;
       const gain = this.envelope(t, peak * 0.7, 0.004, length);
       gain.connect(this.dest);
@@ -264,32 +260,6 @@ export class Composer {
   }
 
   private drum(t: number, position: number) {
-    if (this.mood.march) {
-      // A low hand drum, a dry backbeat and light eighth-note shakers.
-      if (position === 0 || position === 4) {
-        const gain = this.envelope(t, 0.15, 0.003, 0.2);
-        gain.connect(this.dest);
-        const osc = this.voice("sine", 135, t, 0.22, gain);
-        osc.frequency.exponentialRampToValueAtTime(48, t + 0.18);
-      }
-      if (!this.percussion) {
-        this.percussion = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * 0.18), this.ctx.sampleRate);
-        const samples = this.percussion.getChannelData(0);
-        for (let i = 0; i < samples.length; i++) samples[i] = this.random() * 2 - 1;
-      }
-      const backbeat = position === 2 || position === 6;
-      const length = backbeat ? 0.14 : 0.045;
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = this.percussion;
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = "highpass";
-      filter.frequency.value = backbeat ? 1300 : 6200;
-      const gain = this.envelope(t, backbeat ? 0.065 : position % 2 ? 0.016 : 0.025, 0.003, length);
-      noise.connect(filter).connect(gain).connect(this.dest);
-      noise.start(t);
-      noise.stop(t + length);
-      return;
-    }
     const strong = this.mood.jig ? position % 3 === 0 : position % 4 === 0;
     if (!strong && this.random() > 0.3) return;
     const gain = this.envelope(t, strong ? 0.09 : 0.03, 0.003, strong ? 0.22 : 0.08);
@@ -436,11 +406,6 @@ export async function renderPreview(where: string, seconds: number, dark = 0): P
   composer.setMood(mood, dark);
   composer.schedule(seconds);
   return ctx.startRendering();
-}
-
-export function steerMusic(where: string, ducked: boolean): void {
-  setMusicPlace(where);
-  setMusicDucked(ducked);
 }
 
 export function setMusicPlace(where: string): void {

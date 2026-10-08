@@ -26,6 +26,7 @@ interface Bolt extends BoltRequest {
   branch: Array<[number, number]>;
 }
 
+const NO_DRAWING = () => {};
 const MAX_PARTICLES = 520;
 const MAX_AMBIENT = 60;
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
@@ -53,6 +54,8 @@ function FxLayerImpl() {
   const pending = useRef<Array<BurstRequest & { wait: number }>>([]);
   const liveBolts = useRef<Bolt[]>([]);
   const ambient = useRef(0);
+  /** Whether the lightning Graphics holds a drawing to erase. */
+  const drawn = useRef(false);
 
   const spawn = (request: BurstRequest) => {
     const container = root.current;
@@ -127,7 +130,7 @@ function FxLayerImpl() {
       p.vy = p.vy * keep + p.preset.gravity * dt;
       p.sprite.x += p.vx * dt + (p.preset.flutter ? Math.sin(p.age * 6 + p.phase) * p.preset.flutter * dt : 0);
       p.sprite.y += p.vy * dt;
-      if (p.ambient) p.sprite.visible = !scene.reducedMotion && !scene.room;
+      if (p.ambient) p.sprite.visible = !scene.reducedMotion && !scene.viewedRoom;
       p.sprite.rotation += p.spin * dt;
       const size = (p.preset.size[0] + (p.preset.size[1] - p.preset.size[0]) * t) * p.power;
       const aspect = p.preset.aspect ?? 1;
@@ -141,8 +144,10 @@ function FxLayerImpl() {
     }
 
     const g = bolts.current;
-    if (g) {
+    // Clearing a Graphics rebuilds the render list: only touch it around a strike.
+    if (g && (liveBolts.current.length || drawn.current)) {
       g.clear();
+      drawn.current = liveBolts.current.length > 0;
       liveBolts.current = liveBolts.current.filter((bolt) => {
         bolt.age += dt;
         if (bolt.age < 0) return true;
@@ -168,8 +173,9 @@ function FxLayerImpl() {
     }
   });
 
-  return <pixiContainer eventMode="none">
-    <pixiGraphics ref={bolts} draw={() => {}} />
+  // Its own render group: recycling particles changes only this small render list.
+  return <pixiContainer eventMode="none" isRenderGroup>
+    <pixiGraphics ref={bolts} draw={NO_DRAWING} />
     <pixiContainer ref={root} />
   </pixiContainer>;
 }

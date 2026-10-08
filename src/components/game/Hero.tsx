@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSceneTick as useTick } from "./useSceneTick";
-import { reactionProgress, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { reactionProgress, showEnvironmentTarget, updateEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
-import { nextDoor, roomAt, sameRoom } from "@/lib/game/doors";
+import { inRoom, nextDoor, sameRoom, type RoomLocation } from "@/lib/game/doors";
 import { seededRandom } from "@/lib/rng";
 import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
@@ -47,8 +47,10 @@ export const REACTION_HOLD = { candidature: 0.75, refus: 0.95, entretien: 0.85, 
  */
 type Gait = "trot" | "dash" | "knockback";
 
+/** A threshold on a leg: where the walk waits, in strides from the start of the leg. */
+interface DoorStop { x: number; progress: number; destination: RoomLocation | null }
+
 interface TravelLeg {
-  door?: ReturnType<typeof nextDoor>;
   from: number;
   to: number;
   steps: number;
@@ -57,6 +59,8 @@ interface TravelLeg {
   gait: Gait;
   /** Seconds since the last speed line. */
   streak: number;
+  /** The next door ahead on this leg, if any. */
+  door: DoorStop | null;
 }
 
 /** Seconds per step: a sprint winds up, a knockback flies, then both settle into their pace. */
@@ -72,6 +76,29 @@ function strideEase(leg: TravelLeg, p: number): number {
   if (leg.gait === "dash") return p * p;
   if (leg.gait === "knockback") return 1 - (1 - p) * (1 - p);
   return p;
+}
+
+/** The first door after `x` on the leg; its threshold lies just inside the next place. */
+function doorAfter(leg: TravelLeg, x: number): DoorStop | null {
+  const door = nextDoor(x, leg.to);
+  if (!door) return null;
+  const threshold = door.x + Math.sign(leg.to - leg.from) * 0.1;
+  const progress = (threshold - leg.from) / (leg.to - leg.from) * leg.steps;
+  // A threshold at the very end is reached by the landing; the door fade then follows the camera.
+  return progress < leg.steps ? { x: threshold, progress, destination: door.destination } : null;
+}
+
+/** Strides covered, including the eased share of the current one. */
+function legProgress(leg: TravelLeg): number {
+  return leg.index >= leg.steps ? leg.steps : leg.index + strideEase(leg, Math.min(1, leg.elapsed / strideFor(leg)));
+}
+
+/** Put the leg back at the instant it reaches `progress`, inverting the stride's easing. */
+function rewindLeg(leg: TravelLeg, progress: number) {
+  leg.index = Math.floor(progress);
+  const share = progress - leg.index;
+  const p = leg.index > 0 || leg.gait === "trot" ? share : leg.gait === "dash" ? Math.sqrt(share) : 1 - Math.sqrt(1 - share);
+  leg.elapsed = p * strideFor(leg);
 }
 
 const WATER = new Set(["marais", "lac", "cascade"]);
@@ -167,11 +194,12 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const target = worldXFor(player.position) + lane.dx;
   const interactionId = `hero:${player.id}`;
   const interaction = useEnvironmentTarget(interactionId, "traveller", target);
+  // Registered by the hook's own layout effect just above; the label changes with the name only.
+  useLayoutEffect(() => { updateEnvironmentTarget(interactionId, { label: `Saluer ${player.name}` }); }, [interactionId, player.name]);
   const at = useRef(target);
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
   const travel = useRef<TravelLeg | null>(null);
-  const finishAfterDoor = useRef(false);
   const lastDirection = useRef<1 | -1>(1);
   // Déphasage tiré de l'identifiant : les personnages ne respirent pas à l'unisson,
   // et le tirage reste le même d'un rendu à l'autre.
@@ -249,10 +277,6 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
     const dt = worldDelta(ticker.elapsedMS);
-    if (finishAfterDoor.current && !scene.doorTransition) {
-      finishAfterDoor.current = false;
-      onTravelDone?.(player.id);
-    }
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
@@ -267,20 +291,19 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       } else if (next) {
         const direction = next.target >= at.current ? 1 : -1;
         const gait: Gait = direction < 0 ? "knockback" : next.steps >= 5 ? "dash" : "trot";
-        const door = isFocused ? nextDoor(at.current, next.target) : null;
-        const end = door ? door.x + direction * 0.1 : next.target;
-        const fraction = Math.min(1, Math.abs((end - at.current) / (next.target - at.current)));
-        if (door && Math.abs(next.target - end) > 0.5) travelQueue.current.unshift({ target: next.target, steps: Math.max(1, Math.round(next.steps * (1 - fraction))) });
-        travel.current = {
-          door,
+        const leg: TravelLeg = {
           from: at.current,
-          to: end,
-          steps: Math.max(1, Math.round(next.steps * fraction)),
+          to: next.target,
+          steps: Math.max(1, next.steps),
           index: 0,
           elapsed: 0,
           gait,
           streak: 0,
+          door: null,
         };
+        // One leg, one gait and one landing: doors only pause it on their threshold.
+        leg.door = doorAfter(leg, leg.from);
+        travel.current = leg;
         lastDirection.current = direction;
         if (!scene.reducedMotion && root.current?.visible) {
           const feet = surfaceAt(at.current) + 4 + lane.dy;
@@ -318,7 +341,23 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
         if (juicy) footfall(at.current, feetY, activeTravel.gait === "dash" ? 7 : isMe ? 5 : 3, lastDirection.current);
       }
 
-      if (activeTravel.index >= activeTravel.steps) {
+      // The followed hero waits on each threshold while the room changes under the fade.
+      // Others walk through, and so does a hero whose room the camera already switched.
+      let threshold: DoorStop | null = null;
+      while (activeTravel.door && legProgress(activeTravel) >= activeTravel.door.progress) {
+        const door = activeTravel.door;
+        activeTravel.door = doorAfter(activeTravel, door.x);
+        if (!isFocused || sameRoom(scene.room, door.destination)) continue;
+        rewindLeg(activeTravel, door.progress);
+        threshold = door;
+        break;
+      }
+
+      if (threshold) {
+        at.current = threshold.x;
+        strideProgress = activeTravel.elapsed / strideFor(activeTravel);
+        scene.doorTransition ??= { elapsed: 0, destination: threshold.destination, switched: false };
+      } else if (activeTravel.index >= activeTravel.steps) {
         at.current = activeTravel.to;
         travel.current = null;
         moving = false;
@@ -332,10 +371,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
             if (isMe) sfx.land();
           }
         }
-        if (activeTravel.door) {
-          scene.doorTransition = { elapsed: 0, destination: activeTravel.door.destination, switched: false };
-          finishAfterDoor.current = travelQueue.current.length === 0;
-        } else { onTravelDone?.(player.id); }
+        onTravelDone?.(player.id);
       } else {
         strideProgress = activeTravel.elapsed / strideFor(activeTravel);
         // A steady speed between steps, except where the gait itself accelerates or brakes.
@@ -397,8 +433,12 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       node.rotation = effect?.rotation ?? 0;
       node.x = at.current + (effect?.x ?? 0);
       node.y = surfaceAt(at.current) + 4 + lane.dy + (effect?.y ?? 0);
-      node.visible = (isFocused || sameRoom(roomAt(at.current), scene.room)) && at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
-      if (!node.visible) return;
+      node.visible = (isFocused || inRoom(at.current, scene.viewedRoom)) && at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
+      if (!node.visible) {
+        // No greeting badge where nobody is drawn.
+        showEnvironmentTarget(interactionId, false);
+        return;
+      }
     }
 
     if (labelRoot.current) {
@@ -420,7 +460,6 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     if (selfGlow.current) selfGlow.current.alpha = scene.reducedMotion ? 0.6 : 0.45 + Math.sin(phase.current * 1.6) * 0.15;
 
     updateSpriteTarget(interactionId, art.current, HERO_HEIGHT * lane.scale, HERO_HEIGHT * lane.scale * .7);
-    updateEnvironmentTarget(interactionId, { label: `Saluer ${player.name}` });
     const greetingProgress = reactionProgress(interaction.current);
     const greeting = !moving && actionTimer.current <= 0 && greetingProgress < 1;
     const knocked = moving && gait === "knockback" && legIndex === 0;
