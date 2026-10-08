@@ -1,7 +1,9 @@
-import type { ActionKind, Cheer, CheerEmoji, DailyRun, GameEvent, GameState, MiniGameKind, MiniGameResult, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import type { ActionKind, Cheer, CheerEmoji, DailyRun, Discovery, GameEvent, GameState, MiniGameKind, MiniGameResult, MonthlyMeetup, Player, PowerCast, PowerKind } from "@/lib/data/types";
 import { dailyChallenge, zurichDay } from "@/lib/game/daily";
 import { clampScore } from "@/lib/game/scores";
 import { JOURNEY_STEPS } from "@/lib/config";
+import { validateMeetupInput } from "@/lib/game/monthly-meetup";
+import { hiddenItemForId } from "@/lib/game/hidden-objects";
 
 const ACTION_KINDS = new Set(Object.keys(JOURNEY_STEPS));
 const POWER_KINDS = new Set(["shot", "feuSacré", "fienteDragon", "paperasse", "crapaud"]);
@@ -31,7 +33,9 @@ export type GameAction =
   | { type: "addPlayer"; name: string; characterId: string }
   | { type: "removePlayer"; playerId: string }
   | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji }
-  | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score?: number; start?: boolean };
+  | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score?: number; start?: boolean }
+  | { type: "scheduleMeetup"; playerId: string; monthKey: string; at: string; place: string }
+  | { type: "findHidden"; playerId: string; itemId: string };
 
 export interface ActionContext {
   /** A fresh identifier for anything the action creates. */
@@ -56,6 +60,8 @@ export interface ActionResults {
   removePlayer: { rejected?: string };
   cheer: { cheer: Cheer | null; rejected?: string };
   dailyRun: { run: DailyRun | null; rejected?: string };
+  scheduleMeetup: { meetup: MonthlyMeetup | null; rejected?: string };
+  findHidden: { discovery: Discovery | null; rejected?: string };
 }
 
 export type ActionResult<A extends GameAction> = ActionResults[A["type"]];
@@ -204,6 +210,28 @@ function shiftDay(day: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function scheduleMeetup(state: GameState, action: Extract<GameAction, { type: "scheduleMeetup" }>, context: ActionContext) {
+  if (!state.players.some((player) => player.id === action.playerId)) return { state, result: { meetup: null, rejected: "unknown player" } };
+  const now = context.now();
+  const rejected = validateMeetupInput(action.monthKey, action.at, action.place, new Date(now));
+  if (rejected) return { state, result: { meetup: null, rejected } };
+  const meetup: MonthlyMeetup = { monthKey: action.monthKey, at: action.at, place: action.place.trim(), updatedBy: action.playerId, updatedAt: now };
+  const previous = state.monthlyMeetups ?? [];
+  const existing = previous.find((m) => m.monthKey === action.monthKey);
+  if (existing?.at === meetup.at && existing.place === meetup.place) return { state, result: { meetup: existing } };
+  return { state: { ...state, monthlyMeetups: [...previous.filter((m) => m.monthKey !== action.monthKey), meetup] }, result: { meetup } };
+}
+
+function findHidden(state: GameState, action: Extract<GameAction, { type: "findHidden" }>, context: ActionContext) {
+  if (!state.players.some((player) => player.id === action.playerId)) return { state, result: { discovery: null, rejected: "unknown player" } };
+  if (typeof action.itemId !== "string" || !hiddenItemForId(action.itemId)) return { state, result: { discovery: null, rejected: "unknown hidden item" } };
+  const discoveries = state.discoveries ?? [];
+  const existing = discoveries.find((d) => d.playerId === action.playerId && d.itemId === action.itemId);
+  if (existing) return { state, result: { discovery: existing } };
+  const discovery: Discovery = { playerId: action.playerId, itemId: action.itemId, at: context.now() };
+  return { state: { ...state, discoveries: [...discoveries, discovery] }, result: { discovery } };
+}
+
 /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
 function removePlayer(state: GameState, action: Extract<GameAction, { type: "removePlayer" }>) {
   if (!state.players.some((p) => p.id === action.playerId)) return { state, result: { rejected: "unknown player" } };
@@ -216,6 +244,7 @@ function removePlayer(state: GameState, action: Extract<GameAction, { type: "rem
       miniGames: state.miniGames?.filter((attempt) => attempt.playerId !== action.playerId),
       daily: state.daily?.filter((run) => run.playerId !== action.playerId),
       cheers: state.cheers?.filter((c) => c.playerId !== action.playerId && state.events.some((e) => e.id === c.eventId && e.playerId !== action.playerId)),
+      discoveries: state.discoveries?.filter((d) => d.playerId !== action.playerId),
     },
     result: {},
   };
@@ -233,5 +262,7 @@ export function applyAction<A extends GameAction>(state: GameState, action: A, c
     case "removePlayer": return removePlayer(state, action) as { state: GameState; result: ActionResult<A> };
     case "cheer": return cheer(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "dailyRun": return dailyRun(state, action, context) as { state: GameState; result: ActionResult<A> };
+    case "scheduleMeetup": return scheduleMeetup(state, action, context) as { state: GameState; result: ActionResult<A> };
+    case "findHidden": return findHidden(state, action, context) as { state: GameState; result: ActionResult<A> };
   }
 }

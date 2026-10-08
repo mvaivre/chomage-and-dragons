@@ -24,15 +24,21 @@ export const MINI_GAMES: Record<MiniGameKind, MiniGameCopy> = {
   quiz: { kind: "quiz", misery: "« Quel est votre plus grand défaut ? »", title: "Le Test de personnalité", winFeedback: "Mensonge avec panache" },
   ghosting: { kind: "ghosting", misery: "Sans nouvelles depuis 14 jours", title: "Ne relance pas", winFeedback: "Recruteur attrapé au vol" },
   slots: { kind: "slots", misery: "Salaire : selon expérience", title: "Salaire selon expérience", winFeedback: "Jackpot : un butin de plus" },
+  pigeonRace: { kind: "pigeonRace", misery: "Prioritaire, mais à l’envers", title: "Le Grand Prix des pigeons", winFeedback: "Pigeon champion ×2" },
+  paperCut: { kind: "paperCut", misery: "Veuillez fournir 14 justificatifs", title: "Paperasse Ninja", winFeedback: "Dossiers réduits en confettis ×2" },
+  snake: { kind: "snake", misery: "Votre position dans la file : 404", title: "La file d’attente infinie", winFeedback: "Courrier avalé, recruteur digéré" },
+  maze: { kind: "maze", misery: "Le service est au bout du couloir", title: "Le labyrinthe des recruteurs", winFeedback: "Sortie de l’administration trouvée" },
+  stack: { kind: "stack", misery: "Dossier incomplet, encore une fois", title: "La tour des dossiers", winFeedback: "Paperasse impeccablement empilée" },
+  pong: { kind: "pong", misery: "Nous revenons vers vous", title: "Renvoi à l’expéditeur", winFeedback: "Dossier renvoyé avec panache" },
 };
 
-/** Applications rotate through three courier challenges; other actions have one each. */
+/** Keep the first familiar attempts, then rotate in the arcade challenges. */
 export function miniGameForAction(action: ActionKind, slot: number): MiniGameKind | null {
   switch (action) {
-    case "candidature": return (["pigeon", "keywords", "dragon"] as const)[slot % 3];
-    case "refus": return "stamp";
-    case "entretien": return "quiz";
-    case "rejetApresEntretien": return "ghosting";
+    case "candidature": return (["pigeon", "keywords", "dragon", "pigeonRace", "paperCut"] as const)[slot % 5];
+    case "refus": return (["stamp", "stack"] as const)[slot % 2];
+    case "entretien": return (["quiz", "pong"] as const)[slot % 2];
+    case "rejetApresEntretien": return (["ghosting", "snake", "maze"] as const)[slot % 3];
     default: return null;
   }
 }

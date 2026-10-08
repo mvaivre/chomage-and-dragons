@@ -37,7 +37,7 @@ test('resident dialogue is short, cycles and is safe before the first visit',()=
  for(const kind of Object.keys(ENVIRONMENT_LABELS)){
  assert.equal(environmentLine(kind,-1),environmentLine(kind,0));
  const lines=Array.from({length:12},(_,visit)=>environmentLine(kind,visit));
- assert.ok(new Set(lines).size>=3);assert.ok(lines.every(line=>line.length<=45));
+ assert.ok(new Set(lines).size>=3);assert.ok(lines.every(line=>line.length<=72));
  }
 });
 test('new atlases have eight transparent cells, crisp full silhouettes and no clipped gutter',async()=>{

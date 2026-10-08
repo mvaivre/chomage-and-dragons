@@ -1,0 +1,37 @@
+.adventure-menu { margin:auto; width:min(94vw,720px); max-height:92dvh; padding:clamp(16px,3vw,28px); overflow-y:auto; overscroll-behavior:contain; color:#302b23; background:#f2e1b2; border:3px solid #302b23; border-radius:5px; box-shadow:8px 10px 0 #0007; }
+.adventure-menu::backdrop { background:#142025cf; backdrop-filter:blur(4px); }
+.adventure-menu header { position:relative; padding-right:36px; margin-bottom:18px; }
+.adventure-menu header > small { text-transform:uppercase; letter-spacing:.16em; font-size:11px; font-weight:700; }
+.adventure-menu h2 { font:clamp(26px,6vw,38px)/1.05 var(--font-pirata),Georgia,serif; margin:6px 0 0; }
+.adventure-menu header > button { position:absolute; right:0; top:-8px; width:36px; height:40px; font:32px/1 Georgia,serif; cursor:pointer; }
+.adventure-menu__tabs { display:flex; gap:8px; }
+.adventure-menu__tabs button { flex:1; padding:10px 8px; border:2px solid #665137; border-radius:3px; font-weight:700; font-size:15px; cursor:pointer; }
+.adventure-menu__tabs button[aria-pressed=true] { color:#fae9b9; background:#354840; border-color:#354840; }
+.adventure-menu__intro { font-size:16px; line-height:1.35; margin:16px 0; color:#5e503e; }
+.adventure-menu__initiation { display:block; width:100%; padding:12px; margin-bottom:14px; border:2px solid #735b36; background:#dbc086; border-radius:3px; text-align:left; font:24px var(--font-pirata),serif; cursor:pointer; }
+.adventure-menu__initiation span { display:block; margin-top:4px; font:14px var(--font-garamond),serif; color:#5e503e; }
+.adventure-menu__games { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.adventure-menu__games > button { display:flex; align-items:center; gap:10px; padding:14px 10px; text-align:left; border:1px solid #79634670; border-radius:4px; background:#ffefc266; cursor:pointer; transition:background .15s; }
+.adventure-menu__games > button:hover { background:#fff3d8; }
+.adventure-menu__games > button > span { flex:none; font-size:29px; }
+.adventure-menu__games strong { display:block; font:22px/1.05 var(--font-pirata),Georgia,serif; }
+.adventure-menu__games small { display:block; font-size:12px; line-height:1.15; color:#706049; margin-top:5px; }
+.adventure-menu__games b { margin-left:auto; color:#856a36; }
+.adventure-menu__collection { display:grid; gap:10px; }
+.adventure-menu__collection article { display:flex; align-items:center; gap:14px; border:1px solid #79634655; background:#ead7a7; padding:14px; border-radius:4px; }
+.adventure-menu__collection article[data-found=true] { background:#d5d3a3; }
+.adventure-menu__relic { display:grid; place-items:center; flex:none; width:64px; height:64px; border:1px dashed #8f7447; border-radius:50%; color:#9a825a; font:40px var(--font-pirata),serif; }
+.adventure-menu__relic img { width:64px; height:64px; object-fit:contain; }
+.adventure-menu__collection article > div { min-width:0; }
+.adventure-menu__collection small { text-transform:uppercase; letter-spacing:.09em; font-size:11px; color:#75613f; }
+.adventure-menu__collection h3 { font:24px/1.1 var(--font-pirata),Georgia,serif; margin:3px 0 5px; }
+.adventure-menu__collection p { font-size:15px; line-height:1.25; margin:5px 0; }
+.adventure-menu__collection summary { cursor:pointer; font-size:14px; }
+.adventure-menu__collection button { display:block; min-height:36px; text-decoration:underline; color:#354e43; cursor:pointer; font-weight:700; }
+.adventure-menu__collection b { color:#38553c; font-size:13px; }
+.adventure-menu__complete { font-weight:700; text-align:center; padding-top:16px; }
+.adventure-menu footer { margin-top:20px; }
+.adventure-menu footer button { width:100%; min-height:44px; padding:10px; border:2px solid #665137; border-radius:3px; font-weight:700; cursor:pointer; }
+.adventure-menu button:focus-visible, .adventure-menu summary:focus-visible { outline:3px solid #a46122; outline-offset:3px; }
+@media(max-width:420px) { .adventure-menu__games { grid-template-columns:1fr; } .adventure-menu__tabs button { font-size:14px; } }
+@media(prefers-reduced-motion:reduce) { .adventure-menu__games > button { transition:none; } }
