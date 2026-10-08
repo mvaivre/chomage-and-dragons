@@ -8,6 +8,7 @@ import { Dragons, DragonEncounter } from "./Dragons";
 import { Forest } from "./Forest";
 import { EnvironmentLife } from "./EnvironmentLife";
 import { EnvironmentOverlay } from "./EnvironmentOverlay";
+import { HiddenObjects, HiddenObjectOverlay } from "./HiddenObjects";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
 import { interiorAt, type GroupDecor } from "@/lib/game/decor";
@@ -295,6 +296,7 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  hiddenFoundIds: readonly string[];
   atmosphere: boolean;
   onSceneReady: () => void;
   paused: boolean;
@@ -313,6 +315,7 @@ interface SceneProps {
 }
 
 function WorldScene({
+  hiddenFoundIds,
   atmosphere,
   onSceneReady,
   paused,
@@ -399,7 +402,7 @@ function WorldScene({
 
       <Layer factor={1} shade={0.3}>
         {/* Residents roam behind the stops: personal signs (crown, daily champion) stay readable. */}
-        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /></Outdoors>
+        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /><HiddenObjects foundIds={hiddenFoundIds} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -458,6 +461,8 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  hiddenFoundIds: readonly string[];
+  onFindHidden: (itemId: string) => void;
   atmosphere?: boolean;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
@@ -479,6 +484,8 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  hiddenFoundIds,
+  onFindHidden,
   atmosphere = true,
   onReturnToMe,
   onDragonChallenge,
@@ -595,6 +602,7 @@ function GameCanvas({
       </button> : null}
       <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
       <EnvironmentOverlay meId={meId} paused={paused} />
+      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused} onFind={onFindHidden} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}
@@ -604,6 +612,7 @@ function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          hiddenFoundIds={hiddenFoundIds}
           atmosphere={atmosphere}
           onSceneReady={onSceneReady}
           paused={paused}

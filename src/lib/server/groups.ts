@@ -107,6 +107,8 @@ export function authorize(state: GameState, action: GameAction, tokenPlayer: str
     case "castPower":
     case "removePlayer":
     case "cheer":
+    case "scheduleMeetup":
+    case "findHidden":
     case "dailyRun": return own(action.playerId);
     case "finishMiniGame": {
       const attempt = state.miniGames?.find((a) => a.id === action.attemptId);
@@ -136,11 +138,21 @@ export function validateContext(context: unknown, now = new Date()): ActionConte
   return { id: () => id, now: () => at };
 }
 
-const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun"]);
+const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun", "scheduleMeetup", "findHidden"]);
 
 export function validateAction(action: unknown): GameAction {
   const given = action as { type?: unknown } | null;
   if (!given || typeof given !== "object" || typeof given.type !== "string" || !ACTION_TYPES.has(given.type)) throw new GroupError(400, "Action inconnue.");
+  if (given.type === "scheduleMeetup") {
+    const meetup = given as Partial<Extract<GameAction, { type: "scheduleMeetup" }>>;
+    if (typeof meetup.playerId !== "string" || typeof meetup.monthKey !== "string" || typeof meetup.at !== "string" || typeof meetup.place !== "string") {
+      throw new GroupError(400, "Personnage, mois, date et lieu du verre requis.");
+    }
+  }
+  if (given.type === "findHidden") {
+    const discovery = given as Partial<Extract<GameAction, { type: "findHidden" }>>;
+    if (typeof discovery.playerId !== "string" || typeof discovery.itemId !== "string") throw new GroupError(400, "Personnage et objet caché requis.");
+  }
   return given as GameAction;
 }
 
