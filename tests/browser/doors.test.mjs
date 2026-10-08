@@ -10,7 +10,7 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   const context=await browser.newContext({viewport:{width:390,height:844}});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(({steps,welcome})=>{
    if(localStorage.getItem('louchomage:v2'))return;
-   const at=new Date().toISOString();if(!welcome)localStorage.setItem('chomage:welcome:steps-v1','seen');
+   const at=new Date().toISOString();if(!welcome)localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
    localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at},{id:'lou',name:'Lou',characterId:'barde',joinedAt:at}],events:Array.from({length:steps/2},(_,i)=>({id:`s${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));
   },{steps,welcome});
   await page.goto(`${url}/local?debug&hour=12&variant=classic`);
@@ -26,15 +26,15 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   const x=steps*30240/200-80;
   await page.waitForFunction(({x,room})=>Math.abs((window.__decorScene?.heroes.get('test')?.x??Infinity)-x)<.5&&!window.__decorScene.doorTransition&&(window.__decorScene.room?.id??null)===room,{x,room},{timeout:15000});
  }
- await t.test('one brief welcome, keyboard isolation, persistence and reopenable help',async()=>{
+ await t.test('playable initiation isolates keys, persists dismissal and reopens from quests',async()=>{
   const{page,context,errors}=await fixture(0,true);
-  const dialog=page.getByRole('dialog',{name:'Les refus font avancer.'});await dialog.waitFor();
+  const dialog=page.getByRole('dialog',{name:'Le baptême de l’air'});await dialog.waitFor();
   await page.keyboard.press('2');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).events.length),0);
-  assert.ok((await dialog.innerText()).includes('+3 pas'));
-  await dialog.getByRole('button',{name:'C’est parti !'}).click();await page.reload();
+  assert.match(await dialog.innerText(),/Rite 1 sur 3/i);
+  await dialog.getByRole('button',{name:'Passer l’initiation'}).click();await page.reload();
   await page.waitForFunction(()=>!document.querySelector('.action-button--refus')?.disabled);
-  assert.equal(await page.locator('.welcome-card').count(),0);
-  await page.getByRole('button',{name:'Aide',exact:true}).click();await dialog.waitFor();await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
+  assert.equal(await page.locator('.initiation-card').count(),0);
+  await page.getByRole('button',{name:'Quêtes',exact:true}).click();await page.getByRole('button',{name:/Les rites d’initiation/}).click();await dialog.waitFor();await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('an action crosses the entrance, pauses for the fade and completes all steps; undo returns outside',async()=>{

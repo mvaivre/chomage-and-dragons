@@ -28,6 +28,9 @@ import {
 } from "@/components/hud/Leaderboard";
 import { Welcome, hasSeenWelcome, rememberWelcome } from "@/components/hud/Welcome";
 import { QuestHud } from "@/components/hud/QuestHud";
+import { MonthlyMeetup } from "@/components/hud/MonthlyMeetup";
+import { AdventureMenu } from "@/components/hud/AdventureMenu";
+import { hiddenItemForId } from "@/lib/game/hidden-objects";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
@@ -189,6 +192,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
     undoLast,
     addPlayer,
     removePlayer,
+    monthlyMeetups,
+    scheduleMeetup,
+    discoveries,
+    findHidden,
   } = useGame(mode);
 
   // One Zurich day for the whole render: today's challenge and the decor's daily sign.
@@ -200,13 +207,15 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // This component never renders on the server, so the origin is known at once.
   const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
   const [registerOpen, setRegisterOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome());
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
+  const [adventureOpen, setAdventureOpen] = useState(false);
+  const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
   const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
-  const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string } | null>(null);
+  const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string; source?: "arcade" } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
   const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
@@ -295,6 +304,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
+  const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
+  const handleFindHidden = useCallback((itemId: string) => {
+    if (!identity) return;
+    const item = hiddenItemForId(itemId);
+    if (!item) return;
+    const result = findHidden(identity, itemId);
+    if (result.rejected) return;
+    sfx.chime();
+    setNotice({ title: item.name, body: item.found });
+  }, [findHidden, identity]);
   // One condition renders the welcome, pauses the world and locks the actions.
   const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
   useEffect(() => {
@@ -303,11 +322,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
-  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen), [miniGameVisible, dailyOpen]);
+  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen || welcomeVisible), [miniGameVisible, dailyOpen, welcomeVisible]);
   useEffect(() => {
     scene.momentActive = momentActive || miniGameVisible || dailyOpen;
     return () => { scene.momentActive = false; };
@@ -374,7 +393,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const onKeyDown = (event: KeyboardEvent) => {
       // The native mini-game dialog owns Escape, Space, Enter and focus, the daily one
       // included; the invitation owns Escape. Preventing Escape here would keep a dialog open.
-      if (miniGameVisible || inviteVisible || dailyOpen || event.defaultPrevented) return;
+      if (miniGameVisible || inviteVisible || dailyOpen || adventureOpen || meetupOpen || welcomeVisible || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -400,7 +419,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen, adventureOpen, meetupOpen, welcomeVisible]);
 
   useEffect(
     () => () => {
@@ -803,6 +822,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setSceneReady(false);
     saveSession(playerId, scope);
     setMeId(playerId);
+    setWelcomeOpen(!hasSeenWelcome(`${scope}:${playerId}`));
   }, [resetPresentation, scope]);
 
   // In a group, a character belongs to one device: any other one has to show its PIN first.
@@ -853,10 +873,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        hiddenFoundIds={hiddenFoundIds}
+        onFindHidden={handleFindHidden}
         atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={handleDragonChallenge}
         onSceneReady={handleSceneReady}
-        paused={welcomeVisible || registerOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -940,7 +962,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       ) : null}
 
       {me ? (
-        <div hidden={registerOpen} className="hud-layer pointer-events-none absolute inset-0 z-10">
+        <div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
               <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
@@ -955,8 +977,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
-                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => setWelcomeOpen(true)}>Aide</button>
+                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => setAdventureOpen(true)}>Quêtes</button>
               </div>
+              <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} />
             </div>
             <CompactLeaderboard
               players={players}
@@ -978,7 +1001,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               locked={
                 // Every dialog over the world, the daily game and its sheet included: their
                 // digits and letters must never declare an action in the shared journal.
-                welcomeVisible || registerOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
+                welcomeVisible || registerOpen || adventureOpen || meetupOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
@@ -1004,7 +1027,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
-      {welcomeVisible ? <Welcome onClose={() => { rememberWelcome(); setWelcomeOpen(false); }} /> : null}
+      {welcomeVisible ? <Welcome key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
+      {adventureOpen ? <AdventureMenu foundIds={hiddenFoundIds} onClose={() => setAdventureOpen(false)}
+        onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
+        onPlay={kind => { setAdventureOpen(false); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
+        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} /> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay
@@ -1035,7 +1062,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         />
       ) : null}
 
-      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => {}} onDone={() => setPracticeMiniGame(null)} /> :
+      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => {}} onDone={() => { const reopen = practiceMiniGame.source === "arcade"; setPracticeMiniGame(null); if (reopen) setAdventureOpen(true); }} /> :
         inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)}
           onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
           onPass={handlePassMiniGame} /> :

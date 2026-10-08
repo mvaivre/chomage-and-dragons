@@ -1,6 +1,7 @@
 import { BIOMES, WORLD_LENGTH } from "./world";
 import { roomAt } from "./doors";
 import { decorForLap, isCarvedTree } from "./decor";
+import { residentPunchline } from "./punchlines";
 
 export type EnvironmentKind = "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit" | "squirrel" | "recruiter" | "coach" | "clerk" | "worker" | "traveller" | "dragon";
 export interface EnvironmentSite { id: string; kind: EnvironmentKind; x: number; factor: number; biome: string; }
@@ -33,7 +34,12 @@ const LINES: Record<EnvironmentKind, string[]> = {
   traveller: ["Encore toi. Quelle chance.", "Une quête ? Trouver un salaire.", "On avance. Ça empire."],
   dragon: ["Ton CV me donne des gaz.", "Même les RH sont plus digestes.", "Le salaire ? Dans mon cul."],
 };
-export function environmentLine(kind: EnvironmentKind, visit: number): string { return LINES[kind][Math.max(0, Math.floor(visit)) % LINES[kind].length]; }
+export function environmentLine(kind: EnvironmentKind, visit: number): string {
+  const n = Math.max(0, Math.floor(visit));
+  // Every other remark comes from the wider roast bank; themed dialogue still gives
+  // each resident a voice, instead of making every NPC say exactly the same things.
+  return n % 2 ? residentPunchline(kind, Math.floor(n / 2)) : LINES[kind][Math.floor(n / 2) % LINES[kind].length];
+}
 
 // The forest pilot passed desktop, mobile and wide-camera visual checks.
 export const ENVIRONMENT_BIOMES = new Set(BIOMES.map(biome => biome.id));

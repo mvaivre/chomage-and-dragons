@@ -15,11 +15,15 @@ export function zurichDay(date: Date = new Date()): string {
 }
 
 /** Games that make a fair daily race; the chest slot machine is luck and stays out. */
-export const DAILY_GAMES: readonly MiniGameKind[] = ["pigeon", "keywords", "stamp", "quiz", "ghosting"];
+export const LEGACY_DAILY_GAMES: readonly MiniGameKind[] = ["pigeon", "keywords", "stamp", "quiz", "ghosting"];
+export const DAILY_GAMES: readonly MiniGameKind[] = [...LEGACY_DAILY_GAMES, "pigeonRace", "paperCut", "snake", "maze", "stack", "pong"];
+/** Never change the challenge after friends already played it on launch day. */
+export const ARCADE_DAILY_FROM = "2026-10-09";
 
 export function dailyChallenge(day: string, groupKey = "groupe"): { kind: MiniGameKind; seedId: string } {
   const random = mulberry32(seedFrom(`daily:${groupKey}:${day}`));
-  const kind = DAILY_GAMES[Math.floor(random() * DAILY_GAMES.length)];
+  const pool = day < ARCADE_DAILY_FROM ? LEGACY_DAILY_GAMES : DAILY_GAMES;
+  const kind = pool[Math.floor(random() * pool.length)];
   return { kind, seedId: `daily-${groupKey}-${day}` };
 }
 

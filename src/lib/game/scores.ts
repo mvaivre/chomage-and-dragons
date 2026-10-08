@@ -20,6 +20,12 @@ export const SCORE_UNITS: Record<MiniGameKind, string> = {
   quiz: "",
   ghosting: "",
   slots: "CHF",
+  pigeonRace: "pts",
+  paperCut: "pts",
+  snake: "pts",
+  maze: "pts",
+  stack: "pts",
+  pong: "pts",
 };
 
 export function pigeonScore(sim: PigeonSim): number {
@@ -64,6 +70,12 @@ export const SCORE_CAPS: Record<MiniGameKind, number> = {
   quiz: QUIZ.questions * 20 + QUIZ.questions * QUIZ.secondsPerQuestion * 3,
   ghosting: 100,
   slots: SLOTS.reels,
+  pigeonRace: 400,
+  paperCut: 400,
+  snake: 400,
+  maze: 1000,
+  stack: 4000,
+  pong: 500,
 };
 
 export function clampScore(kind: MiniGameKind, score: unknown): number | undefined {

@@ -111,8 +111,11 @@ entretien −3, rejet après entretien +6. Les bonus comptent aussi. La couronne
 récompense la progression nette du mois (Europe/Zurich), sans reporter les pas antérieurs.
 Les sauvegardes existantes sont recalculées depuis leur journal, sans migration destructive.
 
-Deux panneaux accueillent le personnage au départ. Une fenêtre courte présente les règles
-au premier lancement ; « Aide » la rouvre. Les lettres suivent les surfaces inclinées.
+Deux panneaux accueillent le personnage au départ. Trois rites jouables présentent le jeu
+au premier lancement : piloter un dragon, déclarer des démarches dans un camp d’essai,
+puis ouvrir un coffre et viser la couronne du mois. « Quêtes » permet de les rejouer.
+La progression de l’initiation se reprend sur cet appareil, par personnage et par groupe,
+sans toucher aux vraies actions. Les lettres suivent les surfaces inclinées.
 L’ORP et l’usine sont des scènes séparées : porte extérieure, fondu, salle entière,
 puis sortie vers le paysage avec le bâtiment à gauche. Les pas restants continuent
 automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.md).
@@ -177,6 +180,22 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   retour un récapitulatif de ce qui s'est passé pendant ton absence
 - le **défi du jour** toujours visible dans le HUD : un tap pour jouer, puis le
   classement du jour
+- le **verre du mois** : compte à rebours jusqu’à la clôture à minuit à Zurich,
+  date/heure et lieu modifiables par chaque membre, sauvegardés avec le groupe.
+  Le rendez-vous peut se tenir jusqu’au 14 du mois suivant sans déplacer la couronne
+- une **salle des défis** dans « Quêtes », pour jouer librement aux treize mini-jeux,
+  dont six nouveaux : Grand Prix des pigeons à l’envers, découpe de dossiers,
+  serpent administratif, labyrinthe des recruteurs, pile de dossiers et renvoi à
+  l’expéditeur. Clavier, glisser et boutons tactiles ; les entraînements restent
+  sans effet sur la course. Les nouveautés alternent avec les anciens jeux sur
+  les actions et entrent dans les défis quotidiens à partir du 9 octobre 2026,
+  pour conserver le parcours déjà joué le jour de leur ajout
+- **huit objets cachés**, un par contrée, à toucher dans le décor. Exploration
+  libre, indices et collection dans « Quêtes » ; les trouvailles se conservent
+  par personnage, y compris après un changement d’appareil dans un groupe.
+  Elles ne changent ni les pas ni le butin
+- **vingt-quatre nouvelles punchlines**, alternées avec les dialogues des habitants
+  et tirées de façon stable à la fin des nouveaux défis
 - une **série hebdomadaire** 🔥
 - le **classement** s'ouvre sur la carte peinte de la compagnie, avec la position de
   chacun·e, puis le mois, la saison et le palmarès

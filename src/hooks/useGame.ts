@@ -80,10 +80,19 @@ export function useGame(mode: GameMode = LOCAL) {
   const [groupName, setGroupName] = useState<string | null>(null);
   const [remoteMe, setRemoteMe] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<{ status: number; message: string } | null>(null);
+  const [monthKeyNow, setMonthKeyNow] = useState(currentMonthKey);
   const version = useRef(0);
   const inflight = useRef(0);
   /** Counts the actions sent; a poll that overlapped one is stale and ignored. */
   const commits = useRef(0);
+
+  // A crown changes month even when nobody logs an action at midnight.
+  useEffect(() => {
+    const refreshMonth = () => setMonthKeyNow(currentMonthKey());
+    const timer = window.setInterval(refreshMonth, 60_000);
+    window.addEventListener("focus", refreshMonth);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refreshMonth); };
+  }, []);
 
   const adopt = useCallback((snapshot: { state: GameState; version: number; name?: string; me?: string | null }) => {
     version.current = snapshot.version;
@@ -209,6 +218,15 @@ export function useGame(mode: GameMode = LOCAL) {
     commit(state, { type: "cheer", playerId, eventId, emoji }, freshContext());
   }, [state, commit]);
 
+  /** Every participant may fix or move the group's shared drink. */
+  const scheduleMeetup = useCallback((playerId: string, monthKey: string, at: string, place: string) => {
+    return commit(state, { type: "scheduleMeetup", playerId, monthKey, at, place }, freshContext()).result;
+  }, [state, commit]);
+
+  const findHidden = useCallback((playerId: string, itemId: string) => {
+    return commit(state, { type: "findHidden", playerId, itemId }, freshContext()).result;
+  }, [state, commit]);
+
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
     commit(state, { type: "removePlayer", playerId }, freshContext());
@@ -222,8 +240,6 @@ export function useGame(mode: GameMode = LOCAL) {
   }, [remote]);
 
   const clearSyncError = useCallback(() => setSyncError(null), []);
-
-  const monthKeyNow = currentMonthKey();
 
   const seasonStandings = useMemo(
     () => standings(state.events, state.players),
@@ -303,6 +319,10 @@ export function useGame(mode: GameMode = LOCAL) {
     casts: state.casts,
     cheers: state.cheers ?? NONE,
     daily: state.daily ?? NONE,
+    monthlyMeetups: state.monthlyMeetups ?? NONE,
+    discoveries: state.discoveries ?? NONE,
+    scheduleMeetup,
+    findHidden,
     startDaily,
     recordDaily,
     miniGames: state.miniGames ?? NONE,

@@ -3063,4 +3063,24 @@ button.company-map-pin { cursor:pointer; }
 .environment-speech[data-side="right"]::after { left:-11px; top:calc(50% - 8px); transform:rotate(135deg); }
 .environment-speech button { flex:none; width:24px; height:24px; margin:-5px -6px 0 0; font-size:23px; line-height:24px; cursor:pointer; }
 .environment-speech button:focus-visible { outline:2px solid #805424; }
+.hud-journey > .monthly-meetup { display:grid; grid-template-columns:minmax(100px,.8fr) minmax(0,1.2fr); max-width:none; margin-top:6px; border-radius:3px; background:#292b2ce6; }
+.hud-journey .monthly-meetup__clock { flex-direction:column; justify-content:center; align-items:flex-start; gap:1px; border-bottom:0; border-right:1px solid #e6c87424; padding:5px 9px; font-family:var(--font-garamond),serif; }
+.hud-journey .monthly-meetup__date { min-height:44px; padding:4px 8px; }
+.hud-journey .monthly-meetup__date small { display:none; }
+.hud-journey .monthly-meetup__previous { grid-column:1/-1; }
+@media(max-width:760px) {
+  .hud-controls { flex-wrap:wrap; }
+  .hud-controls .daily-button { flex:1 0 130px; }
+  .hud-journey .monthly-meetup__edit { display:none; }
+  .hud-journey .monthly-meetup__date > span:first-child { font-size:17px; }
+  .hud-journey .monthly-meetup__date em { display:none; }
+  .hud-journey .monthly-meetup__clock { padding:4px 6px; font-size:10px; line-height:1.2; }
+  .hud-journey .monthly-meetup__clock > span { white-space:nowrap; }
+}
+@media(max-width:760px) and (max-height:650px) and (orientation:portrait) {
+  .journey-card { grid-template-columns:minmax(0,1fr) auto; }
+  .journey-card__identity { padding:4px 6px; }
+  .journey-card__main { padding:4px 6px; align-self:center; }
+  .journey-card__summary > div, .journey-card__chest { display:none; }
+}
 @media(max-width:600px) { .environment-speech { font-size:17px; padding:9px 10px; } }
