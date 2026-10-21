@@ -16,7 +16,7 @@ const folder=process.env.BIOME_SCREENSHOTS;
 test('each biome renders its own animated resident with grounded feet and working interaction',{timeout:180000},async t=>{
  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,args:['--use-angle=metal','--enable-gpu','--ignore-gpu-blocklist']});
  t.after(()=>browser.close());if(folder)await mkdir(folder,{recursive:true});
- for(const[kind,profile]of Object.entries(BIOME_RESIDENTS).filter(([kind])=>!process.env.BIOME_ONLY||kind===process.env.BIOME_ONLY))await t.test(kind,async()=>{
+ for(const kind of Object.keys(BIOME_RESIDENTS).filter(kind=>!process.env.BIOME_ONLY||kind===process.env.BIOME_ONLY))await t.test(kind,async()=>{
   const site=sites.find(s=>s.kind===kind),count=Math.round((site.x+80)/WORLD_LENGTH*JOURNEY_TARGET/2);
   const context=await browser.newContext({viewport:sizes[0][1]}),page=await context.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));

@@ -72,16 +72,24 @@ export function dragonIdleFrame(seconds: number, attentive = false, reducedMotio
   return phase >= 24 && phase < 25 ? 2 : 6;
 }
 
+const forest = BIOMES.find(b => b.id === "foret")!;
+const mountain = BIOMES.find(b => b.id === "montagne")!;
+const marsh = BIOMES.find(b => b.id === "marais")!;
+const volcano = BIOMES.find(b => b.id === "volcan")!;
+const tavern = BIOMES.find(b => b.id === "taverne")!;
+const NEST_POSITIONS = [
+  forest.from * WORLD_LENGTH + 300,
+  mountain.from * WORLD_LENGTH + 600,
+  (marsh.from + marsh.to) * WORLD_LENGTH / 2,
+  (volcano.from + volcano.to) * WORLD_LENGTH / 2,
+  tavern.from * WORLD_LENGTH + 1200,
+];
+
 /** Nests belong to the road, not the camera. Forest nest stays outside the factory. */
 export function dragonNests(left: number, right: number): number[] {
-  const positions = [BIOMES.find(b => b.id === "foret")!.from * WORLD_LENGTH + 300,
-    BIOMES.find(b => b.id === "montagne")!.from * WORLD_LENGTH + 600,
-    (BIOMES.find(b => b.id === "marais")!.from + BIOMES.find(b => b.id === "marais")!.to) * WORLD_LENGTH / 2,
-    (BIOMES.find(b => b.id === "volcan")!.from + BIOMES.find(b => b.id === "volcan")!.to) * WORLD_LENGTH / 2,
-    BIOMES.find(b => b.id === "taverne")!.from * WORLD_LENGTH + 1200];
   const result: number[] = [];
   for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
-    for (const x of positions) if (x + lap * WORLD_LENGTH >= left && x + lap * WORLD_LENGTH <= right) result.push(x + lap * WORLD_LENGTH);
+    for (const x of NEST_POSITIONS) if (x + lap * WORLD_LENGTH >= left && x + lap * WORLD_LENGTH <= right) result.push(x + lap * WORLD_LENGTH);
   }
   return result;
 }

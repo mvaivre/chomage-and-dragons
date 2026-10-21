@@ -483,3 +483,18 @@ Mesures A/B alternées sur la même machine (Chrome/ANGLE Metal, M1 Max ; mobile
 DPR 3 avec CPU ×4), avant → après la revue : au repos, tick Pixi −9 à −24 %, rendu
 −19 à −31 %, CPU du fil principal −7 à −19 % ; pendant le fondu d’une porte sur mobile,
 pire image 25,6 → 17,6 ms et aucune image au-delà de 20 ms ; textures GPU −3 Mo.
+
+## Budget des nouveaux effets (21 octobre)
+
+La lave, les projections du cratère et les étincelles des dragons reconstruisent
+leur géométrie à 30 Hz. Le fondu des flammes, les mouvements de caméra et les
+éclairages restent à la cadence de rendu. Les dimensions et teintes des lumières
+sont fixées au montage ; seuls leur déplacement et leur intensité changent ensuite.
+Le point de projection du souffle et les positions des nids sont réutilisés.
+
+Sur la même scène volcanique, 120 images simulées à 60 Hz reconstruisaient chacun
+des trois effets 120 fois avant cette passe, contre 60 après. Le test navigateur
+`effect-budget.test.mjs` vérifie aussi le budget à 120 Hz, la continuité des fondus
+et des lumières, le gel en mouvement réduit et en rendu logiciel, puis la reprise.
+Cette mesure porte sur les reconstructions de géométrie, pas sur un gain de FPS.
+Le volcan a été inspecté dans le jeu à 1280×800, 390×844 et 2400×900.

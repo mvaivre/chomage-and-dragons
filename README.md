@@ -250,13 +250,20 @@ Pour les tests dans un vrai navigateur :
 ```sh
 pnpm exec playwright install chromium
 pnpm build
-pnpm test:browser
+pnpm start --port 3100
 ```
 
-Les tests démarrent leur serveur sur le port 3100 et utilisent des contextes isolés,
-sans toucher à la sauvegarde de votre navigateur. `GAME_TEST_URL` permet de choisir
-un serveur déjà lancé. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un
-Chromium installé plutôt que celui fourni par Playwright.
+Puis, dans un autre terminal :
+
+```sh
+GAME_TEST_URL=http://localhost:3100 pnpm test:browser
+```
+
+Les fichiers de tests s’exécutent l’un après l’autre pour éviter que plusieurs
+navigateurs saturent le GPU. Ils utilisent des contextes isolés, sans toucher à la
+sauvegarde de votre navigateur. `GAME_TEST_URL` désigne le serveur à tester.
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un Chromium installé
+plutôt que celui fourni par Playwright.
 
 ### Décor « vie et WTF »
 

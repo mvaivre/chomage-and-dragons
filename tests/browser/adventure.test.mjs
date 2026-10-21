@@ -126,7 +126,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
     await discovery.getByRole('button',{name:'Voir ma collection'}).click();
     await page.locator('.adventure-menu__collection').waitFor();
     assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),1);
-    assert.equal(await page.getByRole('button',{name:'Objets perdus · 1/8'}).getAttribute('aria-pressed'),'true');
+    assert.equal(await page.getByRole('button',{name:`Objets perdus · 1/${HIDDEN_ITEMS.length}`}).getAttribute('aria-pressed'),'true');
     if(viewport.width===390){
      await page.getByRole('button',{name:'La salle des défis'}).click();
      await page.locator('.adventure-menu__games button').filter({hasText:MINI_GAMES.pong.title}).click();
@@ -164,7 +164,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
    assert.deepEqual(errors,[]);
   }finally{await context.close();}
  });
- await t.test('eight objects can be found during free exploration and stay collected after reload',async()=>{
+ await t.test('all hidden objects can be found during free exploration and stay collected after reload',async()=>{
   const {context,page,errors}=await fixture();
   try{
    for(const item of HIDDEN_ITEMS){
@@ -177,8 +177,8 @@ test('side quests work in the real renderer without changing the race',{timeout:
    }
    await page.reload();await ready(page);
    await page.getByRole('button',{name:'Quêtes',exact:true}).click();
-   await page.getByRole('button',{name:'Objets perdus · 8/8'}).click();
-   assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),8);
+   await page.getByRole('button',{name:`Objets perdus · ${HIDDEN_ITEMS.length}/${HIDDEN_ITEMS.length}`}).click();
+   assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),HIDDEN_ITEMS.length);
    assert.match(await page.locator('.adventure-menu__complete').innerText(),/Collection complète/);
    const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')));
    assert.equal(state.events.length,2);assert.equal(state.casts.length,0);assert.deepEqual(errors,[]);
