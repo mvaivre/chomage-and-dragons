@@ -13,6 +13,11 @@ export const BIOME_RESIDENTS = {
 
 export type BiomeResidentKind = keyof typeof BIOME_RESIDENTS;
 export type BiomeResidentProfile = (typeof BIOME_RESIDENTS)[BiomeResidentKind];
+/** Additional gestures extend the existing drawings rather than replacing idle art. */
+export const BIOME_GESTURES: Partial<Record<BiomeResidentKind, string>> = {
+  fox: "/art/world-v3/animations/biome-fox-gestures.webp",
+  yeti: "/art/world-v3/animations/biome-yeti-gestures.webp",
+};
 export function biomeResident(kind: string): BiomeResidentProfile | null {
   return BIOME_RESIDENTS[kind as BiomeResidentKind] ?? null;
 }
@@ -23,4 +28,23 @@ export function biomeResidentFrame(time: number, reacting: boolean, reducedMotio
   if (reacting) return 3;
   const phase = time % 10;
   return phase < 3 ? 0 : phase < 3.18 ? 1 : phase < 6 ? 0 : phase < 7.5 ? 2 : phase < 9 ? 0 : 3;
+}
+
+/** Prepare, hold a readable gesture, lower the paw, then settle back to idle. */
+export function biomeGestureFrame(progress: number, visits: number, reducedMotion: boolean): number {
+  const held = 5 + (Math.max(1, visits) - 1) % 3;
+  if (progress >= 1) return 0;
+  if (reducedMotion) return held;
+  return progress < .1 ? 4 : progress < .8 ? held : progress < .93 ? 4 : 0;
+}
+
+export interface ResidentBlend { frame: number; previous: number; progress: number; }
+export function advanceResidentBlend(blend: ResidentBlend, frame: number, seconds: number, reducedMotion: boolean): number {
+  if (frame !== blend.frame) {
+    blend.previous = blend.frame;
+    blend.frame = frame;
+    blend.progress = 0;
+  }
+  blend.progress = reducedMotion ? 1 : Math.min(1, blend.progress + Math.max(0, seconds) / .12);
+  return blend.progress * blend.progress * (3 - 2 * blend.progress);
 }

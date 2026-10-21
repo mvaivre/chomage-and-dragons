@@ -52,6 +52,24 @@ Quatre poses par habitant permettent un repos, un clignement, un geste et une
 réaction. La respiration garde les pieds fixes et les mouvements réduits
 suppriment les animations d’attente.
 
+## Gestes et transitions
+
+Le renard et le yéti disposent chacun de quatre poses supplémentaires : préparation,
+doigt d’honneur, haussement de patte ou de main et rire moqueur. Les trois réactions
+alternent au fil des clics. Un geste se prépare, reste lisible puis revient au repos.
+Les atlas d’attente existants sont conservés.
+
+Les neuf habitants utilisent un fondu bref de 120 ms avec accélération et décélération
+entre les poses. Les deux dessins partagent le même pivot au sol et la sélection
+par viewport les traite comme un seul personnage. Les mouvements réduits affichent
+directement la pose et la gardent fixe pendant la réaction.
+
+- Atlas : `public/art/world-v3/animations/biome-fox-gestures.webp` et `biome-yeti-gestures.webp`, avec métadonnées `.json`
+- Prompts ImageGen intégré : [renard](fox-gestures.prompt.txt) et [yéti](yeti-gestures.prompt.txt)
+- Références : atlas existants du renard, du yéti et du troll
+- Sources ImageGen dans `/Users/mika/.codex/generated_images/01a11c1c-8b80-7b32-a69a-18095959e64f/` : `exec-f91a6603-7033-4772-976b-35efa0867816.png` et `exec-1a264be1-9ea5-4f16-aa7d-e209a4ebc305.png`
+- Import déterministe : `compile_ambient_assets.mjs`, grille 2 × 2, cellules 384 × 384, pieds à 356, option `--islands`
+
 ## Un seul exemplaire visible
 
 Les habitants du chemin, de l’arrière-plan et des arbres partagent une sélection

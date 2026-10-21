@@ -4,7 +4,7 @@ import {registerHooks} from 'node:module';
 import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 registerHooks({resolve(s,c,next){if(s.startsWith('@/'))return next(new URL(`../../src/${s.slice(2)}.ts`,import.meta.url).href,c);if(c.parentURL?.endsWith('.ts')&&s.startsWith('.')&&!/\.[a-z]+$/i.test(s))return next(`${s}.ts`,c);return next(s,c);}});
-const {BIOME_RESIDENTS}=await import('../../src/lib/game/biome-residents.ts');
+const {BIOME_RESIDENTS,BIOME_GESTURES}=await import('../../src/lib/game/biome-residents.ts');
 const {environmentSites}=await import('../../src/lib/game/environment.ts');
 const {WORLD_LENGTH,WALKABLE_GROUND_Y}=await import('../../src/lib/game/world.ts');
 const {JOURNEY_TARGET}=await import('../../src/lib/config.ts');
@@ -31,26 +31,27 @@ test('each biome renders its own animated resident with grounded feet and workin
     await page.setViewportSize(viewport);
     await page.evaluate(x=>{window.__decorScene.exploreCenter=x;window.__decorScene.pan=0;},site.x);
     const label=`biome-resident:${kind}:${site.x}`;
-    await page.waitForFunction(label=>window.__pixiApp.stage.getChildByLabel(label,true)?.getChildByLabel(`biome-body:${label.split(':')[1]}`)?.texture.width>1,label);
+    await page.waitForFunction(label=>window.__pixiApp.stage.getChildByLabel(label,true)?.getChildByLabel(`biome-body:${label.split(':')[1]}`,true)?.texture.width>1,label);
     await page.waitForTimeout(650);
-    const inspect=()=>page.evaluate(({label,kind})=>{const root=window.__pixiApp.stage.getChildByLabel(label,true),node=root.getChildByLabel(`biome-body:${kind}`),camera=window.__decorScene.camera;
+    const inspect=()=>page.evaluate(({label,kind})=>{const root=window.__pixiApp.stage.getChildByLabel(label,true),node=root.getChildByLabel(`biome-body:${kind}`,true),camera=window.__decorScene.camera;
      return {y:node.y,anchor:node.anchor.y*node.texture.orig.height,rotation:node.rotation,source:node.texture.source.label,
       foot:node.getGlobalPosition().y,ground:camera.screenOffsetY+(node.y-camera.y)*camera.scale,
       pose:node.texture.frame.x/384+node.texture.frame.y/384*2,scale:node.scale.y};
     },{label,kind});
     const standing=await inspect();assert.equal(standing.y,WALKABLE_GROUND_Y+10);assert.equal(standing.anchor,356);assert.equal(standing.rotation,0);
-    assert.ok(Math.abs(standing.foot-standing.ground)<1,`${kind} ${name} ground contact`);assert.match(standing.source,new RegExp(`biome-${kind}(?:-v2)?\\.webp$`));
+    assert.ok(Math.abs(standing.foot-standing.ground)<1,`${kind} ${name} ground contact`);assert.match(standing.source,new RegExp(`biome-${kind}(?:-v2|-gestures)?\\.webp$`));
     if(folder)await page.screenshot({path:`${folder}/${kind}-${name}.png`});
     if(name==='mobile'){
      const button=page.locator(`[data-environment-id="${site.id}"]`);await button.waitFor({state:'visible'});
      // A tall resident's centre can be covered by the hero in the nearer lane.
      await button.click(kind==='yeti'?{position:{x:20,y:20}}:{});
      await page.locator('.environment-speech').waitFor();
-     await page.waitForFunction(({label,kind})=>{const n=window.__pixiApp.stage.getChildByLabel(label,true).getChildByLabel(`biome-body:${kind}`);return n.texture.frame.x===384&&n.texture.frame.y===384;},{label,kind});
+     const reactionPose=BIOME_GESTURES[kind]?1:3;
+     await page.waitForFunction(({label,kind,pose,gestures})=>{const n=window.__pixiApp.stage.getChildByLabel(label,true).getChildByLabel(`biome-body:${kind}`,true);return n.texture.frame.x/384+n.texture.frame.y/384*2===pose&&(!gestures||n.texture.source.label.includes('gestures'))&&n.alpha>.99;},{label,kind,pose:reactionPose,gestures:Boolean(BIOME_GESTURES[kind])});
      assert.equal((await inspect()).y,standing.y);await page.getByRole('button',{name:'Fermer le dialogue',exact:true}).click();
      await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(150);
      const a=await inspect();await page.waitForTimeout(150);const b=await inspect();
-     assert.equal(a.scale,b.scale);assert.equal(b.pose,3);await page.emulateMedia({reducedMotion:'no-preference'});
+     assert.equal(a.scale,b.scale);assert.equal(b.pose,reactionPose);await page.emulateMedia({reducedMotion:'no-preference'});
     }
    }
    assert.equal(await page.evaluate(()=>localStorage.getItem('louchomage:v2')),saved);assert.deepEqual(errors,[]);

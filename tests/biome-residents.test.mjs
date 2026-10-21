@@ -4,7 +4,7 @@ import {registerHooks,createRequire} from 'node:module';
 import {readFile,stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 registerHooks({resolve(s,c,next){if(s.startsWith('@/'))return next(new URL(`../src/${s.slice(2)}.ts`,import.meta.url).href,c);if(c.parentURL?.endsWith('.ts')&&s.startsWith('.')&&!/\.[a-z]+$/i.test(s))return next(`${s}.ts`,c);return next(s,c);}});
-const {BIOME_RESIDENTS,biomeResidentFrame}=await import('../src/lib/game/biome-residents.ts');
+const {BIOME_RESIDENTS,biomeResidentFrame,BIOME_GESTURES,biomeGestureFrame,advanceResidentBlend}=await import('../src/lib/game/biome-residents.ts');
 const {environmentSites,RESIDENTS,BACKGROUND_RESIDENTS}=await import('../src/lib/game/environment.ts');
 const {BIOMES,WORLD_LENGTH}=await import('../src/lib/game/world.ts');
 
@@ -59,4 +59,47 @@ test('idle gestures are sparse, reactions use their own pose and reduced motion 
  assert.equal(biomeResidentFrame(0,false,false),0);assert.equal(biomeResidentFrame(3.1,false,false),1);
  assert.equal(biomeResidentFrame(6.5,false,false),2);assert.equal(biomeResidentFrame(9.5,false,false),3);
  for(let time=0;time<30;time+=.1){assert.equal(biomeResidentFrame(time,false,true),0);assert.equal(biomeResidentFrame(time,true,true),3);assert.equal(biomeResidentFrame(time,true,false),3);}
+});
+
+test('gestures prepare, hold three distinct reactions and settle with frame-rate-independent blending',()=>{
+ for(let visit=1;visit<=6;visit++){
+  assert.equal(biomeGestureFrame(0,visit,false),4);
+  const held=5+(visit-1)%3;
+  assert.equal(biomeGestureFrame(.5,visit,false),held);
+  assert.equal(biomeGestureFrame(.85,visit,false),4);
+  assert.equal(biomeGestureFrame(.95,visit,false),0);
+  assert.equal(biomeGestureFrame(1,visit,false),0);
+  for(let p=0;p<1;p+=.05)assert.equal(biomeGestureFrame(p,visit,true),held);
+ }
+ for(const fps of [20,30,60,120]){
+  const blend={frame:0,previous:0,progress:1};let alpha=0;
+  for(let i=0;i<Math.ceil(fps*.13);i++){
+   const next=advanceResidentBlend(blend,5,1/fps,false);
+   assert.ok(next>=alpha && next<=1);alpha=next;
+  }
+  assert.equal(alpha,1);assert.equal(blend.previous,0);
+  assert.equal(advanceResidentBlend(blend,6,0,true),1);assert.equal(blend.previous,5);
+ }
+});
+
+test('additional gesture drawings preserve complete silhouettes, common feet and transparent margins',async()=>{
+ const require=createRequire(import.meta.url),sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
+ for(const[kind,art]of Object.entries(BIOME_GESTURES)){
+  const file=new URL(`../public${art}`,import.meta.url),meta=JSON.parse(await readFile(new URL(`../public${art.replace('.webp','.json')}`,import.meta.url)));
+  assert.equal(meta.baseline,356);assert.ok((await stat(file)).size<350000);
+  const {data,info}=await sharp(await readFile(file)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  assert.equal(info.width,768);assert.equal(info.height,768);
+  const signatures=[];
+  for(let pose=0;pose<4;pose++){
+   let foot=0,solid=0;const pixels=[];
+   for(let y=0;y<384;y++)for(let x=0;x<384;x++){
+    const i=((Math.floor(pose/2)*384+y)*768+pose%2*384+x)*4,a=data[i+3];
+    if(a>32){solid++;foot=Math.max(foot,y);assert.ok(x>3&&x<380&&y>3&&y<380,`${kind} pose ${pose} clipped`);}
+    if(x%8===0&&y%8===0)pixels.push(...(a>32?data.subarray(i,i+4):[0,0,0,0]));
+   }
+   assert.ok(solid>3000);assert.ok(Math.abs(foot-356)<=2);
+   signatures.push(createHash('sha256').update(Buffer.from(pixels)).digest('hex'));
+  }
+  assert.equal(new Set(signatures).size,4,kind);
+ }
 });
