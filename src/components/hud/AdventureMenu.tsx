@@ -33,7 +33,7 @@ export function AdventureMenu({ foundIds, onClose, onPlay, onExplore, onInitiati
       <button type="button" aria-pressed={tab === "hunt"} onClick={() => setTab("hunt")}>Objets perdus · {foundIds.length}/{HIDDEN_ITEMS.length}</button>
     </div>
     {tab === "games" ? <>
-      <p className="adventure-menu__intro">Choisis ton épreuve. Ici, tu joues librement, sans modifier la course.</p>
+      <p className="adventure-menu__intro">Défis libres · sans changer tes pas.</p>
       <button className="adventure-menu__initiation" type="button" onClick={onInitiation}>🐉 Les rites d’initiation <span>Apprendre à rider un dragon →</span></button>
       <div className="adventure-menu__games">
         {Object.values(MINI_GAMES).map(game => <button key={game.kind} type="button" onClick={() => onPlay(game.kind)}>
@@ -41,7 +41,7 @@ export function AdventureMenu({ foundIds, onClose, onPlay, onExplore, onInitiati
         </button>)}
       </div>
     </> : <>
-      <p className="adventure-menu__intro">Huit objets se sont égarés dans le décor. Glisse le paysage, ouvre l’œil et touche tes trouvailles.</p>
+      <p className="adventure-menu__intro">Glisse pour explorer. Touche les huit objets cachés.</p>
       <div className="adventure-menu__collection">
         {HIDDEN_ITEMS.map(item => {
           const found = foundIds.includes(item.id);
@@ -50,14 +50,14 @@ export function AdventureMenu({ foundIds, onClose, onPlay, onExplore, onInitiati
             <span className="adventure-menu__relic" aria-hidden="true">{found ?
               /* eslint-disable-next-line @next/next/no-img-element -- pre-optimized local alpha art */
               <img src={item.art} width={64} height={64} alt="" /> : "?"}</span>
-            <div><small>{hiddenBiomeLabel(item)}</small><h3>{found ? item.name : "Un objet à retrouver"}</h3>
+            <div><small>{hiddenBiomeLabel(item)}</small><h3>{found ? item.name : "Objet caché"}</h3>
               {found ? <p>{item.found}</p> : <details><summary>Un indice ?</summary><p>{item.clue}</p></details>}
-              {!found ? <button type="button" onClick={() => onExplore((biome.from + .018) * WORLD_LENGTH)}>Explorer cette contrée →</button> : <b>Retrouvé ✓</b>}
+              {!found ? <button type="button" onClick={() => onExplore((biome.from + .018) * WORLD_LENGTH)}>Explorer →</button> : <b>Retrouvé ✓</b>}
             </div>
           </article>;
         })}
       </div>
-      {foundIds.length === HIDDEN_ITEMS.length ? <p className="adventure-menu__complete">Collection complète. Le poste de détective du chômage est à toi.</p> : null}
+      {foundIds.length === HIDDEN_ITEMS.length ? <p className="adventure-menu__complete">Collection complète !</p> : null}
     </>}
     <footer><button type="button" onClick={onClose}>Retour au voyage</button></footer>
   </dialog>;

@@ -10,7 +10,7 @@ import { atlasFrames, useDirectTexture } from "./textures";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
 
 function Resident({ x }: { x: number }) {
-  const texture = useDirectTexture("/art/world-v3/animations/dragon.webp");
+  const texture = useDirectTexture("/art/world-v3/animations/dragon-v2.webp");
   const frames = texture ? atlasFrames(texture, 4, 2) : null;
   const sprite = useRef<Sprite>(null), time = useRef(x % 11);
   const targetId = `nest:${x}`;

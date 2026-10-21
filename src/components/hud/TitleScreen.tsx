@@ -57,8 +57,7 @@ export function TitleScreen({
             <p role="status" className="mx-auto mt-3 max-w-md border border-gold-dim bg-black/40 px-3 py-2 text-sm text-parchment/85">{message}</p>
           ) : null}
           <p className="mt-4 max-w-xl font-body text-base text-parchment/75 italic">
-            Chaque tentative te fait avancer. Huit contrées séparent la Plaine de la
-            Poisse de la Taverne du Triomphe — même les refus deviennent du terrain gagné.
+            Tes démarches font avancer ton personnage.
           </p>
         </header>
 
@@ -184,8 +183,7 @@ function Forge({
     return (
       <section className="frame riveted rise w-full max-w-md p-6 text-center">
         <p className="text-sm text-parchment/75">
-          Les quinze classes sont déjà incarnées. Il faudra qu’un·e camarade se fasse
-          engager pour libérer une place.
+          Toutes les classes sont prises.
         </p>
       </section>
     );

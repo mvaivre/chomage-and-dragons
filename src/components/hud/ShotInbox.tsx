@@ -52,8 +52,7 @@ export function ShotInbox({
             {count > 1 ? "ces verres" : "ce verre"} pendant ton absence.
           </p>
           <p className="shot-inbox-note">
-            Alcoolisé ou non : seule la tournée compte. La dette reste visible dans
-            le classement tant qu’elle n’est pas honorée.
+            Avec ou sans alcool. À marquer une fois bu.
           </p>
         </div>
 

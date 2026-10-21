@@ -14,13 +14,13 @@ export const POWERS: Record<PowerKind, PowerDefinition> = {
     name: "Shot de la défaite",
     short: "Un shot dû",
     description:
-      "Offre un shot — alcoolisé ou non — à un camarade. La dette suivra son classement.",
+      "Offre un shot à un camarade, alcoolisé ou non.",
   },
   feuSacré: {
     kind: "feuSacré",
     name: "Fièvre du recruteur",
     short: "Tête en feu",
-    description: "Embrase la tête d’un camarade sans brûler son CV.",
+    description: "Met la tête d’un camarade en feu.",
   },
   fienteDragon: {
     kind: "fienteDragon",
@@ -32,13 +32,13 @@ export const POWERS: Record<PowerKind, PowerDefinition> = {
     kind: "paperasse",
     name: "Ouragan administratif",
     short: "Pluie de CV",
-    description: "Ensevelit la cible sous une tornade de formulaires inutiles.",
+    description: "Ensevelit la cible sous les formulaires.",
   },
   crapaud: {
     kind: "crapaud",
     name: "Baiser LinkedIn",
     short: "Mode crapaud",
-    description: "Invoque le crapaud corporate et ses recommandations inspirantes.",
+    description: "Invoque le crapaud de LinkedIn.",
   },
 };
 

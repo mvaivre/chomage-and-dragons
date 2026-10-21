@@ -35,7 +35,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
    }
    await page.getByRole('button',{name:'Rite suivant →'}).click();
    await page.getByRole('button',{name:'Refus',exact:true}).click();
-   assert.match(await page.locator('.initiation-feedback').innerText(),/Essaie/);
+   assert.equal(await page.locator('.initiation-feedback--retry').count(),1);
    for(const [index,name]of ['Candidature','Refus','Entretien','Rejet après entretien'].entries()){
     await page.getByRole('button',{name,exact:true}).click();
     if(index<3)await page.getByRole('button',{name:'Démarche suivante →'}).click();
@@ -45,7 +45,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
    await page.getByRole('button',{name:/Viser le gobelin/}).click();
    await page.getByRole('button',{name:'Au plus joli CV'}).click();
    await page.getByRole('button',{name:'Au plus de pas ce mois'}).click();
-   await page.getByRole('button',{name:'Entrer dans la légende'}).click();await ready(page);
+   await page.getByRole('button',{name:'Commencer le voyage'}).click();await ready(page);
    const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')));
    assert.equal(state.events.length,2);assert.equal(state.casts.length,0);
    await page.reload();await ready(page);assert.equal(await page.locator('.initiation-card').count(),0);

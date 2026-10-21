@@ -33,10 +33,10 @@ export function advanceDragonLesson(run: DragonLessonRun, elapsed: number): void
 }
 
 export const INITIATION_ENCOUNTERS = [
-  { kind: "candidature", title: "Le parchemin du destin", prompt: "Ton CV part chez Gobelin & Fils. Que déclares-tu ?", response: "Une candidature. Le voyage commence !" },
-  { kind: "refus", title: "Le hibou du refus", prompt: "« Votre profil ne convient pas. » Le hibou repart, très fier de lui.", response: "Un refus fait avancer. Même une porte fermée nourrit ta légende." },
-  { kind: "entretien", title: "Face au dragon RH", prompt: "On te convoque à un entretien. Le dragon a même réservé une chaise.", response: "Tu recules de trois pas : tu te rapproches de l’emploi !" },
-  { kind: "rejetApresEntretien", title: "Le retour de la poisse", prompt: "Après l’entretien : « Nous avons retenu un autre aventurier. »", response: "Un rejet après entretien vaut six pas. La poisse mérite du panache." },
+  { kind: "candidature", title: "Le parchemin du destin", prompt: "Tu envoies ton CV chez Gobelin & Fils.", response: "Ton héros avance." },
+  { kind: "refus", title: "Le hibou du refus", prompt: "Réponse du recruteur : « C’est non. »", response: "Un refus fait avancer." },
+  { kind: "entretien", title: "Face au dragon RH", prompt: "Le dragon RH te convoque en entretien.", response: "Tu recules vers l’emploi." },
+  { kind: "rejetApresEntretien", title: "Le retour de la poisse", prompt: "Après l’entretien : « Nous avons choisi quelqu’un d’autre. »", response: "Ce refus vaut plus de pas." },
 ] as const;
 export const INITIATION_ACTIONS = [
   { kind: "candidature", label: "Candidature" },

@@ -40,6 +40,18 @@ Outil intégré `image_gen`, sortie transparente. Aucune API ni CLI de générat
 
 ## Prompts exacts
 
+### Refonte du 21 octobre 2026
+
+Dragon redessiné avec l'outil ImageGen intégré : cornes allongées, regard plus expressif,
+grandes ailes et selle. Le même atlas sert à l'initiation, aux défis et aux scènes du monde.
+Le cavalier de l'initiation est posé sur la selle et le dragon regarde les anneaux.
+
+- Asset actif : `public/art/world-v3/animations/dragon-v2.webp` (2048×1024, huit poses, pieds à 476).
+- Métadonnées : `dragon-v2.json`. L'ancien atlas reste disponible pour comparaison.
+- Prompt exact : [`dragon-v2.prompt.txt`](dragon-v2.prompt.txt).
+- Sortie brute : `exec-c14a2e67-8b7a-45ae-a2dd-570a6dda2c7a.png`, dans le dossier ImageGen de ce chat.
+- Import déterministe : `compile_ambient_assets.mjs`, mode atlas avec îlots, cellules de 512×512 et baseline 476.
+
 ### Prompt 1
 
 Use case: stylized-concept. Asset type: 2D game animation sprite sheet. Reference image: style and dragon identity. Create a professional sprite sheet of the SAME comical green dragon with cream belly, plum wing membranes, bold black ink outlines and warm paper-textured gouache shading. TRUE transparent background. Exact uniform grid FOUR columns TWO rows, 8 equal square cells, ideally total 2048x1024. Each cell contains exactly ONE whole dragon, same scale, centred, feet at identical 90% baseline, no clipping, generous margins, no text/numbers/grid lines/shadows behind grid. Side view facing LEFT. Row 1: (1) flying wings high, (2) flying wings low, (3) landed with enormous mouth wide open to swallow a human, (4) jaws shut after swallowing, startled eyes. Row 2: (5) swollen belly, cheeks puffed, (6) straining squat tail lifted (cartoon bathroom gag, no waste/fluids drawn), (7) relieved proud dragon, (8) asleep curled up on ground. Wings/limbs/head must stay readable and consistent. No human or props in any cell. Exaggerate expressions, appealing mischievous tavern-fantasy humour. Dragon fills about 82% of each cell without touching adjacent cells.

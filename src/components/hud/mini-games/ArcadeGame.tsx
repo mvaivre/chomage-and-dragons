@@ -15,12 +15,12 @@ import { arcadeHud, drawArcade } from "./arcade-scene";
 import "./arcade.css";
 
 const COPY: Record<ArcadeKind, { instructions: string; ready: string; won: string; controls: string }> = {
-  pigeonRace: { instructions: "Termine en tête ! Change de couloir pour éviter les colis, puis turbo dès qu’il est prêt.", ready: "Trois pigeons géants. Zéro sens de l’orientation.", won: "Première place. La gravité a déposé une réclamation.", controls: "↑ ↓ : couloirs · Espace : turbo" },
-  paperCut: { instructions: "Découpe 14 dossiers en glissant le doigt. Évite les sceaux rouges de l’ORP : ils coûtent 2 vies.", ready: "La paperasse va enfin connaître une fin digne.", won: "Quatorze dossiers classés. En confettis.", controls: "Glisse pour couper · Flèches : viseur · Espace : tranche" },
-  snake: { instructions: "Avale 10 lettres sans toucher les murs ni ta propre file d’attente. Chaque lettre te fait grandir.", ready: "Un serpent administratif qui a très, très faim.", won: "Toutes les lettres avalées. Aucun recruteur n’a été digéré.", controls: "Flèches ou ZQSD / WASD : tourner" },
-  maze: { instructions: "Ramasse toutes les pièces du labyrinthe et évite les recruteurs fantômes. Les potions turquoise les font fuir.", ready: "L’office des couloirs interminables ouvre ses portes.", won: "Le trésor est à toi. Les recruteurs cherchent encore la sortie.", controls: "Flèches ou ZQSD / WASD : se déplacer" },
-  stack: { instructions: "Complète 4 lignes de dossiers. Tourne les pièces et utilise la silhouette pour préparer leur chute.", ready: "Cette fois, la pile de dossiers sera bien rangée.", won: "Quatre lignes impeccables. L’administration est terrifiée.", controls: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute" },
-  pong: { instructions: "Renvoie le dossier au recruteur. Le premier à 5 gagne. Vise avec les bords de ta raquette pour le surprendre.", ready: "Le recrutement est un sport de renvoi.", won: "Le dossier est revenu chez le recruteur. Cinq fois.", controls: "Glisse la raquette · Maintiens ← → au clavier" },
+  pigeonRace: { instructions: "Évite les colis, active le turbo et termine en tête.", ready: "↑ ↓ : couloirs · Espace : turbo", won: "Pigeon champion.", controls: "↑ ↓ : couloirs · Espace : turbo" },
+  paperCut: { instructions: "Découpe 14 dossiers. Les sceaux rouges coûtent 2 vies.", ready: "Glisse pour couper · Flèches + Espace au clavier", won: "Quatorze dossiers en confettis.", controls: "Glisse pour couper · Flèches + Espace au clavier" },
+  snake: { instructions: "Avale 10 lettres. Évite les murs et ta queue.", ready: "Flèches ou ZQSD / WASD : tourner", won: "Courrier avalé.", controls: "Flèches ou ZQSD / WASD : tourner" },
+  maze: { instructions: "Ramasse tout. Évite les fantômes ; les potions les font fuir.", ready: "Flèches ou ZQSD / WASD : bouger", won: "Labyrinthe vidé.", controls: "Flèches ou ZQSD / WASD : bouger" },
+  stack: { instructions: "Complète 4 lignes de dossiers.", ready: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute", won: "Quatre lignes classées.", controls: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute" },
+  pong: { instructions: "Renvoie le dossier. Premier à 5 points, ou en tête au chrono.", ready: "Glisse ou maintiens ← → : raquette", won: "Dossier renvoyé.", controls: "Glisse ou maintiens ← → : raquette" },
 };
 const DIRECTIONS: Record<string, Direction> = { ArrowUp: "up", ArrowRight: "right", ArrowDown: "down", ArrowLeft: "left", w: "up", z: "up", d: "right", s: "down", a: "left", q: "left" };
 
@@ -51,6 +51,15 @@ export function ArcadeGame({ kind, seedId, onResolve, onDone, practice, record, 
       setHud(before => before.line === line && before.seconds === seconds && before.turbo === turbo ? before : { line, seconds, turbo });
     }
     node.dataset.status = phaseRef.current === "ready" ? "ready" : sim.status;
+    // Match the existing canvas games: expose the live controlled position for
+    // browser regressions without giving tests a way to mutate the simulation.
+    const control = sim.kind === "pigeonRace" ? { lane: sim.lane }
+      : sim.kind === "paperCut" ? sim.blade
+      : sim.kind === "snake" ? { ...sim.body[0], direction: sim.direction }
+      : sim.kind === "maze" ? sim.player
+      : sim.kind === "stack" ? { x: sim.piece.x, y: sim.piece.y, cells: sim.piece.cells }
+      : { x: sim.player };
+    node.dataset.controlState = JSON.stringify(control);
     drawArcade(ctx, sim, viewport.now, viewport.reducedMotion);
   });
   useEffect(() => {
@@ -116,7 +125,7 @@ export function ArcadeGame({ kind, seedId, onResolve, onDone, practice, record, 
       }
     }}
     hud={<><span><b>{hud.line}</b></span><span className="arcade-clock"><b>{hud.seconds} s</b></span></>}
-    status={finished ? <><strong>{won ? "Défi réussi !" : "La revanche t’attend."}</strong><ScoreLine score={arcadeScore(sim)} unit="pts" record={record} best={best} practice={practice} /></>
+    status={finished ? <><strong>{won ? "Réussi !" : "Raté."}</strong><ScoreLine score={arcadeScore(sim)} unit="pts" record={record} best={best} practice={practice} /></>
       : <span>{playing ? copy.controls : copy.ready}</span>}
     primary={{ label: finished ? practice ? "Retour à l’arcade" : "Continuer" : playing ? "Défi en cours…" : "C’est parti !", disabled: playing, onClick: finished ? onDone : start }}
     skip={!finished ? { label: "Passer", onClick: leave } : null}>

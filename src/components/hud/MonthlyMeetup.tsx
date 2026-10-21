@@ -74,7 +74,7 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
     event.preventDefault();
     if (!playerId || !editing) return;
     const at = zurichInputToIso(date);
-    if (!at) { setError("Cette heure n’existe pas ou apparaît deux fois lors du changement d’heure. Choisis une autre heure."); return; }
+    if (!at) { setError("Changement d’heure : choisis une autre heure."); return; }
     const rejected = validateMeetupInput(editing, at, place, new Date());
     if (rejected) { setError(rejected); return; }
     const result = onSchedule(playerId, editing, at, place);
@@ -113,7 +113,7 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
           <button type="button" onClick={() => setEditing(null)} aria-label="Fermer">×</button>
         </div>
         <form onSubmit={submit}>
-          <label htmlFor={monthId}>Verre de la couronne de</label>
+          <label htmlFor={monthId}>Mois de la couronne</label>
           <select id={monthId} value={editing} onChange={(event) => fillMonth(event.target.value, new Date())}>
             {availableMonths.map((key) => <option key={key} value={key}>{monthLabel(key)}</option>)}
           </select>
@@ -121,8 +121,8 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
           <input id={dateId} type="datetime-local" value={date} min={zurichDateTimeInput(new Date(now.getTime() + 60_000))}
             max={meetupLatestInput(editing)} step={60} onChange={(event) => setDate(event.target.value)} required autoFocus />
           <label htmlFor={placeId}>Lieu <span>(facultatif)</span></label>
-          <input id={placeId} type="text" value={place} maxLength={80} placeholder="La taverne de votre choix" onChange={(event) => setPlace(event.target.value)} />
-          <p className="meetup-editor__hint">Toute la compagnie peut changer la date. La couronne reste décernée à la fin du mois.</p>
+          <input id={placeId} type="text" value={place} maxLength={80} placeholder="Votre taverne" onChange={(event) => setPlace(event.target.value)} />
+          <p className="meetup-editor__hint">Date modifiable par tous. Couronne en fin de mois.</p>
           {error ? <p className="meetup-editor__error" role="alert">{error}</p> : null}
           <button type="submit" className="meetup-editor__save">{meetups.some((m) => m.monthKey === editing) ? "Changer le rendez-vous" : "Fixer le rendez-vous"}</button>
         </form>

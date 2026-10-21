@@ -5,6 +5,7 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { QUIZ, dealQuiz, quizPassed } from "@/lib/game/personality-quiz";
 import { ActionArtwork } from "../Artwork";
 import { MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
@@ -87,7 +88,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
     if (!resolved.current) settle("skipped");
     onDone();
   };
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (status !== "question" || event.repeat) return;
     const digit = Number(event.key);
     if (digit >= 1 && digit <= 4) { event.preventDefault(); answer(digit - 1); }
@@ -96,10 +97,10 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
   const won = outcome === "won";
   const finished = status === "won" || status === "lost";
   const instructions = finished
-    ? won ? `Quatre bonnes réponses : mensonge avec panache. L’entretien ne recule que de ${-(base + bonus)} pas.` : "Trop honnête. Trois pas en arrière, comme prévu."
+    ? won ? `Bien menti. ${base + bonus} pas au lieu de ${base}.` : punchlineFor(`quiz:${seedId}`)
     : status === "ready"
-      ? `Le cabinet Hydre & Fils teste ta personnalité. ${QUIZ.questions} questions, ${QUIZ.secondsPerQuestion} secondes chacune : réponds ce que le recruteur veut entendre, pas la vérité.`
-      : `Question ${index + 1} sur ${questions.length}. Touche une réponse, ou 1 à 4 au clavier.`;
+      ? "Réponds ce que le recruteur veut entendre."
+      : "Touche une réponse ou appuie sur 1 à 4.";
 
   return <MiniGameShell kind="quiz" eyebrow={`${practice ? "Entraînement · " : ""}« Quel est votre plus grand défaut ? » · ${base} pas`} title="Le Test de personnalité"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status}
@@ -108,8 +109,8 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
       <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }} /></span>
       <span className="mini-game__score"><b>{correct}</b> ✓ sur {QUIZ.needed} requises</span>
     </>}
-    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><span>{won ? `Recul réduit d’un pas grâce au mensonge` : "Le recul prévu. Rien de plus."}</span><ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Une seule tentative · ${QUIZ.needed} bonnes réponses sur ${QUIZ.questions}` : status === "reveal" && aside ? `Le recruteur : « ${aside} »` : "La bonne réponse est celle du recruteur, pas la tienne."}</span>}
+    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? `${QUIZ.needed}/${QUIZ.questions} bonnes réponses · ${QUIZ.secondsPerQuestion} s par question` : status === "reveal" && aside ? `« ${aside} »` : "Choisis ta réponse."}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",
       disabled: status === "question" || status === "reveal",

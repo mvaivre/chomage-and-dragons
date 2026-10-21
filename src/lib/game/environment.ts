@@ -16,29 +16,8 @@ export const ENVIRONMENT_LABELS: Record<EnvironmentKind, string> = {
   squirrel: "Saluer l’écureuil", recruiter: "Parler au recruteur", coach: "Interrompre le coach", clerk: "Parler au guichetier", worker: "Parler à l’ouvrier", traveller: "Saluer le voyageur",
   dragon: "Parler au dragon",
 };
-const LINES: Record<EnvironmentKind, string[]> = {
-  troll: ["Même mon pont veut pas de toi.", "Ton CV ? Du PQ.", "Non. Et dégage.", "T’as essayé d’être riche ?"],
-  tree: ["On dormait. Bordel.", "Pas de noisette ? Pas d’entretien.", "Va secouer ton patron."],
-  hen: ["Encore un pigeon.", "Cocorico. T’es toujours pauvre.", "J’ai pondu. Et toi ?"],
-  toad: ["Même l’eau te rejette.", "T’as embrassé pire.", "Le prince ? Licencié."],
-  gnome: ["À ton prochain refus.", "Bois. Ça ne résout rien.", "La tournée ? C’est toi."],
-  ghost: ["Mort. Pas disponible.", "Même mort, ils me relancent.", "Hanter les RH ? Déjà fait."],
-  skeleton: ["Ils m’ont payé en exposition.", "Le poste ? Encore vacant.", "Je suis là depuis le stage."],
-  crow: ["Ton CV fera un bon nid.", "Pièce jointe volée.", "Croâ. Dégage."],
-  spirit: ["T’es vivant ? Quelle erreur.", "Le calme. Tu connais ?", "Même ici, pas de poste."],
-  squirrel: ["Ta carrière ? Une coquille vide.", "Pas de noisette. Pas de service.", "Va grimper ailleurs."],
-  recruiter: ["On a trouvé moins cher.", "Même le dragon refuse ton CV.", "Tu coûtes déjà trop cher."],
-  coach: ["Achète ma formation. Puis crève.", "Ton échec paie mon loyer.", "Le talent ? Je vends autre chose."],
-  clerk: ["Mauvaise file. Mauvaise vie.", "Il manque le formulaire du formulaire.", "Reviens quand je serai mort."],
-  worker: ["La pause ? Une légende.", "Ils appellent ça une opportunité.", "Mon salaire ? De la fiction."],
-  traveller: ["Encore toi. Quelle chance.", "Une quête ? Trouver un salaire.", "On avance. Ça empire."],
-  dragon: ["Ton CV me donne des gaz.", "Même les RH sont plus digestes.", "Le salaire ? Dans mon cul."],
-};
 export function environmentLine(kind: EnvironmentKind, visit: number): string {
-  const n = Math.max(0, Math.floor(visit));
-  // Every other remark comes from the wider roast bank; themed dialogue still gives
-  // each resident a voice, instead of making every NPC say exactly the same things.
-  return n % 2 ? residentPunchline(kind, Math.floor(n / 2)) : LINES[kind][Math.floor(n / 2) % LINES[kind].length];
+  return residentPunchline(kind, visit);
 }
 
 // The forest pilot passed desktop, mobile and wide-camera visual checks.

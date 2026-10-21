@@ -222,7 +222,7 @@ export function LeaderboardOverlay({
               La tablée des braves
             </h2>
             <p className="mt-2 text-base text-parchment-ink/60">
-              Chaque refus nourrit la légende. Chaque victoire finit autour d’un verre.
+              Les pas, les couronnes et la compagnie.
             </p>
           </div>
           <button
@@ -260,7 +260,7 @@ export function LeaderboardOverlay({
               <CrownArtwork className="monthly-crown-art" />
               <div>
                 <strong>La récompense de {monthLabel(monthKeyNow)}</strong>
-                <span>La compagnie offre un verre à la personne en tête.</span>
+                <span>Le premier gagne un verre.</span>
               </div>
             </div>
           ) : null}
@@ -400,8 +400,7 @@ function Palmares({
   return (
     <div>
       <p className="mb-2 text-xs text-parchment-ink/55">
-        Une couronne par mois. Arriver en cours de saison ne coûte donc rien : le mois
-        d’arrivée se joue à armes égales.
+        Une couronne par mois. Compteurs à zéro le 1er.
       </p>
       <ul className="flex flex-col">
         {crowns.map((crown) => {
@@ -633,7 +632,7 @@ function Company({
 
       <div className="mt-5 flex items-center gap-2 text-xs text-parchment-ink/55">
         <ChestArtwork className="company-chest-art" />
-        <span>Un coffre s’ouvre tous les dix pas et débloque un butin à offrir.</span>
+        <span>10 pas = 1 butin.</span>
         <button
           type="button"
           onClick={onChangeIdentity}

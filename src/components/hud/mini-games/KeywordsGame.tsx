@@ -5,6 +5,7 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { RAIN, createRainSim, rainAutopilot, startRain, steerBasket, stepRain, wordScreenX, wordWidth, type RainEvent, type RainSim, type RainStatus } from "@/lib/game/keyword-rain";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { keywordsScore } from "@/lib/game/scores";
@@ -157,7 +158,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
     if (!resolved.current) settle("skipped");
     onDone();
   };
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (phase !== "play") return;
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
@@ -173,10 +174,10 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
   const won = outcome === "won";
   const remaining = RAIN.required - caught.length;
   const instructions = phase === "result"
-    ? won ? "Le robot a trouvé tous ses mots. CV validé, compté double." : "Le robot a jeté ton CV. Ta candidature compte quand même."
+    ? won ? "CV validé. Compté double." : punchlineFor(`keywords:${seedId}`)
     : status === "ready"
-      ? `Le robot trieur crache les mots de l’annonce. Glisse ton CV pour attraper les ${RAIN.required} mots demandés. Une faute de goût est pardonnée, pas deux.`
-      : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""} ! Glisse le CV, ou flèches ← →.` : "Le robot réfléchit…";
+      ? `Attrape les ${RAIN.required} mots de l’annonce. Évite les autres.`
+      : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}.` : "Le robot réfléchit…";
 
   return <MiniGameShell kind="keywords" eyebrow={`${practice ? "Entraînement · " : ""}Le robot trieur de CV · +${base} pas acquis`} title="Le CV à mots-clés"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
@@ -190,9 +191,9 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
         {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{word}</span>)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Une seule tentative · ${RAIN.required} mots à attraper · ${RAIN.badAllowed} faute tolérée` :
-        status === "running" ? (bad > 0 ? "Le robot fronce ses diodes. Plus de faute !" : "Glisse sur l’image, ou flèches ← →") : won ? "Le robot tamponne…" : "Le robot déchiquette…"}</span>}
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? `Glisse ou ← → · ${RAIN.badAllowed} erreur permise` :
+        status === "running" ? (bad > 0 ? "Plus d’erreur permise." : "Glisse ou ← →") : won ? "Validé…" : "Rejeté…"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le robot" : status === "running" ? "Ça tombe !" : won ? "Validé…" : "Broyé…",
       disabled: phase === "play" && status !== "ready",

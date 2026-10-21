@@ -54,7 +54,7 @@ export function DailySheet({ kind, runs, players, meId, onClose }: {
     <section className="daily">
       <div className="daily__head">
         <div>
-          <p className="daily__kicker">Défi du jour · même parcours pour toute la compagnie</p>
+          <p className="daily__kicker">Défi du jour · parcours commun</p>
           <h3 id="daily-title">{game.title}</h3>
         </div>
         {mine ? <span className="daily__done">Joué · {mine.score} {SCORE_UNITS[kind]}</span> : null}

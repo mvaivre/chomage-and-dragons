@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { MiniGameKind } from "@/lib/data/types";
+import { useDialogKeyboard } from "../useDialogKeyboard";
+
+export type MiniGameKeyEvent = globalThis.KeyboardEvent;
 
 export interface MiniGameShellProps {
   kind: MiniGameKind;
@@ -16,7 +19,7 @@ export interface MiniGameShellProps {
   skip?: { label: string; onClick: () => void } | null;
   /** Close button and Escape. Games count an unfinished attempt as skipped here. */
   onLeave: () => void;
-  onKeyDown?: (event: KeyboardEvent<HTMLDialogElement>) => void;
+  onKeyDown?: (event: MiniGameKeyEvent) => void;
   /** Changing it moves focus back to the primary button. */
   focusKey?: unknown;
   children: ReactNode;
@@ -30,6 +33,7 @@ export interface MiniGameShellProps {
 export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status, primary, skip, onLeave, onKeyDown, focusKey, children }: MiniGameShellProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const primaryButton = useRef<HTMLButtonElement>(null);
+  useDialogKeyboard(dialog, onKeyDown);
 
   useEffect(() => {
     const node = dialog.current;
@@ -41,13 +45,12 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
     };
   }, []);
 
-  useEffect(() => { primaryButton.current?.focus(); }, [focusKey]);
-
-  // Disabling the focused primary (a run that starts, a lane at its end) drops focus to the
-  // page: arrows and digits would then miss the dialog. The dialog takes focus back.
-  useEffect(() => {
+  // Transfer focus in the same commit as a disabled start button. Some browsers
+  // leave activeElement on that disabled button, where element key handlers miss it.
+  useLayoutEffect(() => {
     const node = dialog.current, active = document.activeElement;
-    if (primary.disabled && node && (!active || active === document.body || !node.contains(active))) node.focus({ preventScroll: true });
+    if (!primary.disabled) primaryButton.current?.focus({ preventScroll: true });
+    else if (node && (!active || active === document.body || !node.contains(active) || active.matches(":disabled"))) node.focus({ preventScroll: true });
   }, [primary.disabled, focusKey]);
 
   // Chrome may close a modal on Escape without firing cancel when it opened right after
@@ -56,7 +59,7 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
   // which has already reopened the dialog by the time the event fires.
   // Keys stay in the dialog: a digit for a quiz answer must not declare an action behind it.
   return <dialog ref={dialog} tabIndex={-1} className={`mini-game mini-game--${kind}`} aria-labelledby="mini-game-title" aria-describedby="mini-game-instructions"
-    onKeyDown={event => { onKeyDown?.(event); event.stopPropagation(); }} onCancel={event => { event.preventDefault(); onLeave(); }}
+    onCancel={event => { event.preventDefault(); onLeave(); }}
     onClose={event => { if (!event.currentTarget.open) onLeave(); }}>
     <button type="button" className="mini-game__close" onClick={onLeave} aria-label="Fermer le mini-jeu">×</button>
     <header>

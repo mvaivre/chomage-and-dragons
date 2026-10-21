@@ -50,10 +50,10 @@
 .initiation-flight__moon { position: absolute; top: 12%; right: 13%; width: 42px; height: 42px; border-radius: 50%; background: #e9dfae; box-shadow: 0 0 35px #f2e4ad50; opacity: .85; }
 .initiation-flight__mountains { position: absolute; inset: 40% -2% -3%; background: url('/art/world-v3/runtime/montagne-far.webp') center bottom / auto 100% repeat-x; opacity: .47; filter: saturate(.5); }
 .initiation-flight__lane { position: absolute; left: 0; right: 0; border-top: 1px dashed #e3e8cf35; }
-.initiation-flight__rider { position: absolute; left: 23%; width: clamp(108px, 21vw, 140px); aspect-ratio: 1; transform: translate(-50%, -50%); transition: top .16s ease-out; }
-.initiation-flight__dragon { position: absolute; inset: 0; background: url('/art/world-v3/animations/dragon.webp') 0 0 / 400% 200% no-repeat; filter: drop-shadow(0 6px 3px #19323155); }
+.initiation-flight__rider { position: absolute; left: 23%; width: clamp(128px, 24vw, 168px); aspect-ratio: 1; transform: translate(-50%, -50%); transition: top .16s ease-out; }
+.initiation-flight__dragon { position: absolute; inset: 0; background: url('/art/world-v3/animations/dragon-v2.webp') 0 0 / 400% 200% no-repeat; transform: scaleX(-1); filter: drop-shadow(0 6px 3px #19323155); }
 .initiation-flight[data-flying='true'] .initiation-flight__dragon { animation: initiation-flap .5s steps(1) infinite; }
-.initiation-flight__knight { position: absolute; width: 32%; height: 42%; left: 35%; top: 2%; background: url('/art/world-v3/characters/chevalier.webp') center / contain no-repeat; transform: rotate(7deg); }
+.initiation-flight__knight { position: absolute; width: 26%; height: 37%; left: 36%; top: 28%; background: url('/art/world-v3/characters/chevalier.webp') center / contain no-repeat; transform: rotate(7deg) scaleX(-1); filter: drop-shadow(0 2px 1px #14241d66); }
 .initiation-flight__ring { position: absolute; width: 35px; height: 58px; transform: translate(-50%, -50%); border: 5px solid #f7d784; border-radius: 50%; box-shadow: 0 0 13px #f7d78460, inset 0 0 8px #f7d78470; background: #f6e6a510; }
 .initiation-flight__ring::after { content: '✦'; position: absolute; top: -17px; right: -16px; color: #fff2c7; font-size: 15px; }
 .initiation-flight__seal { position: absolute; bottom: 8px; right: 10px; font-size: .55rem; font-weight: 700; letter-spacing: .1em; color: #eff1d9c9; text-shadow: 0 1px 2px #1d393f; }
@@ -116,7 +116,7 @@
   .initiation-card h1 { font-size: 2.1rem; }
   .initiation-lead { font-size: .94rem; margin-bottom: 12px; }
   .initiation-flight { height: clamp(170px, 25dvh, 230px); }
-  .initiation-flight__rider { width: 118px; }
+  .initiation-flight__rider { width: 138px; }
   .initiation-choices { grid-template-columns: repeat(2, 1fr); gap: 7px; }
   .initiation-choices > button { flex-direction: row; min-height: 58px; padding: 5px; gap: 3px; text-align: left; font-size: .8rem; }
   .initiation-choices .bitmap-art { width: 44px; height: 44px; }
@@ -149,7 +149,7 @@
   .initiation-road { height: 115px; }
   .initiation-lesson--dragon { display: grid; grid-template-columns: 1.35fr 1fr; gap: 5px 16px; }
   .initiation-lesson--dragon .initiation-flight { grid-column: 1; grid-row: 1 / 5; height: 140px; }
-  .initiation-lesson--dragon .initiation-flight__rider { width: 96px; }
+  .initiation-lesson--dragon .initiation-flight__rider { width: 108px; }
   .initiation-lesson--dragon .initiation-lead { grid-column: 2; grid-row: 1; margin: 0; font-size: .8rem; }
   .initiation-lesson--dragon .initiation-flight__readout { grid-column: 2; grid-row: 2; margin: 0; flex-wrap: wrap; gap: 5px; align-content: start; }
   .initiation-lesson--dragon > .initiation-primary,

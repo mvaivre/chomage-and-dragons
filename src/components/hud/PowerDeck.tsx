@@ -47,7 +47,7 @@ export function PowerDeck({
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="font-display text-xl text-parchment-ink">Sac à malices</p>
-              <p className="text-sm text-parchment-ink/60">Choisis un butin, puis sa cible.</p>
+              <p className="text-sm text-parchment-ink/60">Un butin, puis une cible.</p>
             </div>
             <button
               type="button"
@@ -107,7 +107,7 @@ export function PowerDeck({
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-parchment-ink/55 italic">
-                  Enrôle un camarade pour pouvoir le tourmenter.
+                  Invite un camarade.
                 </p>
               )}
             </div>

@@ -72,8 +72,8 @@ test('the dragon atlas has eight complete transparent poses and a shared foot ba
   const { readFile, stat } = await import('node:fs/promises');
   const require = createRequire(import.meta.url);
   const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
-  const path = new URL('../public/art/world-v3/animations/dragon.webp', import.meta.url);
-  const meta = JSON.parse(await readFile(new URL('../public/art/world-v3/animations/dragon.json', import.meta.url)));
+  const path = new URL('../public/art/world-v3/animations/dragon-v2.webp', import.meta.url);
+  const meta = JSON.parse(await readFile(new URL('../public/art/world-v3/animations/dragon-v2.json', import.meta.url)));
   const { data, info } = await sharp(await readFile(path)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   assert.equal(info.width, meta.columns * meta.width);
   assert.equal(info.height, meta.rows * meta.height);

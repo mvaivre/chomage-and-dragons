@@ -30,27 +30,27 @@ const COPY: Record<
   candidature: {
     eyebrow: "Candidature envoyée",
     title: "Le pigeon est parti.",
-    body: "Une tentative de plus, un morceau de monde qui t’appartient.",
+    body: "Une candidature, des pas en plus.",
   },
   refus: {
     eyebrow: "Refus transformé",
     title: "Leur non devient ton chemin.",
-    body: "Ils ferment une porte. Toi, tu avances quand même.",
+    body: "Tu avances quand même.",
   },
   entretien: {
     eyebrow: "Entretien traversé",
-    title: "Trois pas derrière. Toujours debout.",
-    body: "Une occasion se rapproche : trois pas vers la sortie du chômage.",
+    title: "Entretien décroché.",
+    body: "Trois pas en arrière.",
   },
   rejetApresEntretien: {
     eyebrow: "Rejet légendaire",
     title: "Un refus. La quête continue.",
-    body: "Ce refus-là méritait au minimum un nouveau pays.",
+    body: "Six pas gagnés.",
   },
   embauche: {
     eyebrow: "Quête accomplie",
     title: "La taverne allume ses feux.",
-    body: "Ton parcours reste. Ta place à table aussi.",
+    body: "Ton parcours reste au classement.",
   },
 };
 

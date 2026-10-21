@@ -5,9 +5,11 @@ import {
   advanceDragonLesson, createDragonLesson, DRAGON_RITE_LANES,
   steerDragonLesson, type DragonLessonRun,
 } from "@/lib/game/initiation";
+import { useDialogKeyboard } from "../useDialogKeyboard";
 
 const laneName = ["haut", "milieu", "bas"];
 export function DragonLesson({ complete, onComplete }: { complete: boolean; onComplete: () => void }) {
+  const lesson = useRef<HTMLElement>(null);
   const [initial] = useState(createDragonLesson);
   const run = useRef<DragonLessonRun>(initial);
   const [view, setView] = useState(initial);
@@ -43,13 +45,14 @@ export function DragonLesson({ complete, onComplete }: { complete: boolean; onCo
   }, [paused]);
   const ringLane = DRAGON_RITE_LANES[Math.min(view.collected, DRAGON_RITE_LANES.length - 1)];
   const flightActive = started && !done;
-  return <section className="initiation-lesson initiation-lesson--dragon" aria-label="Rite du dragon" onKeyDown={event => {
+  useDialogKeyboard(lesson, event => {
     if (!["ArrowUp", "ArrowDown", "z", "Z", "w", "W", "s", "S"].includes(event.key)) return;
     event.preventDefault();
     steer(["ArrowUp", "z", "Z", "w", "W"].includes(event.key) ? -1 : 1);
-  }}>
-    <p className="initiation-lead">Traverse les quatre anneaux. Le dragon suit tes ordres. Enfin, à peu près.</p>
-    <div className="initiation-flight" data-flying={flightActive && !paused} role="img" aria-label={done ? "Les quatre anneaux ont été traversés." : `Dragon en ${laneName[view.lane]}, anneau en ${laneName[ringLane]}. ${view.collected} sur quatre traversés.`}>
+  });
+  return <section ref={lesson} className="initiation-lesson initiation-lesson--dragon" aria-label="Rite du dragon">
+    <p className="initiation-lead">Traverse les quatre anneaux.</p>
+    <div className="initiation-flight" data-lane={view.lane} data-flying={flightActive && !paused} role="img" aria-label={done ? "Les quatre anneaux ont été traversés." : `Dragon en ${laneName[view.lane]}, anneau en ${laneName[ringLane]}. ${view.collected} sur quatre traversés.`}>
       <div className="initiation-flight__moon" />
       <div className="initiation-flight__mountains" />
       {[0, 1, 2].map(lane => <div key={lane} className="initiation-flight__lane" style={{ top: `${lane * 22 + 28}%` }} />)}
@@ -58,18 +61,18 @@ export function DragonLesson({ complete, onComplete }: { complete: boolean; onCo
         <div className="initiation-flight__dragon" />
         <div className="initiation-flight__knight" />
       </div>
-      <span className="initiation-flight__seal">{done ? "PERMIS DE DRAGON" : "ÉCOLE DE VOL · SANS ASSURANCE"}</span>
+      <span className="initiation-flight__seal">{done ? "PERMIS DE DRAGON" : "ÉCOLE DE VOL"}</span>
       {paused && !done ? <span className="initiation-flight__pause">Vol en pause</span> : null}
     </div>
     <div className="initiation-flight__readout" aria-live="polite" aria-atomic="true">
       <span className="initiation-ring-count" aria-label={`${done ? 4 : view.collected} anneaux sur quatre`}>{DRAGON_RITE_LANES.map((_, i) => <i key={i} data-collected={done || i < view.collected} aria-hidden />)}</span>
-      <span>{done ? "Le dragon t’adopte. Son service RH, moins." : !started ? "Prêt·e à quitter le plancher des gobelins ?" : paused ? "Prends ton temps. Le ciel attend." : view.misses ? `Anneau en ${laneName[ringLane]}. Raté ? Il revient, sans pénalité.` : `Vise l’anneau en ${laneName[ringLane]}.`}</span>
+      <span>{done ? "Permis de dragon obtenu." : !started ? "Décolle pour commencer." : paused ? "En pause." : view.misses ? `L’anneau revient. Vise en ${laneName[ringLane]}.` : `Vise en ${laneName[ringLane]}.`}</span>
     </div>
     {!started && !done ? <button className="initiation-primary" type="button" onClick={() => { run.current.status = "flying"; setStarted(true); }}>Décoller</button> : !done ? <div className="initiation-flight-controls">
       <button ref={upControl} type="button" onClick={() => steer(-1)} aria-label="Monter le dragon" aria-disabled={paused || view.lane === 0}>↑ Monter</button>
       <button type="button" className="initiation-flight-controls__pause" onClick={() => setPaused(value => !value)} aria-label={paused ? "Reprendre le vol" : "Mettre le vol en pause"}>{paused ? "▶" : "Ⅱ"}</button>
       <button type="button" onClick={() => steer(1)} aria-label="Descendre le dragon" aria-disabled={paused || view.lane === 2}>↓ Descendre</button>
     </div> : null}
-    {!done ? <p className="initiation-hint">Flèches ↑ ↓ ou boutons · Aucun chrono, aucune vie perdue.</p> : null}
+    {!done ? <p className="initiation-hint">Flèches ↑ ↓ ou boutons.</p> : null}
   </section>;
 }

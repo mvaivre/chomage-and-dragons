@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { characterArt } from "@/lib/game/characters";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { advanceDragonRun, createDragonRun, dragonScore, DRAGON_GAME, steerDragonRun, type DragonRun } from "@/lib/game/dragon-flight";
 import { sfx } from "@/lib/client/sound";
 import { MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
@@ -48,15 +49,15 @@ export function DragonGame({ seedId, onResolve, onDone, practice, record, best, 
   const leave = () => { if (!resolved.current) { resolved.current = true; onResolve("skipped"); } onDone(); };
   const won = view.status === "won";
   return <MiniGameShell kind="dragon" eyebrow={practice ? "Rencontre · entraînement" : "Le dragon garde le courrier"} title="La part du dragon"
-    instructions={finished ? won ? "Butin récupéré. Le dragon peut aller se faire cuire un œuf." : "Le dragon garde le butin. Tes pas restent acquis."
-      : "Monte ou descends pour esquiver les flammes. Attrape 5 pièces et tiens 16 secondes. Flèches ↑ ↓ ou boutons."}
+    instructions={finished ? won ? "Butin volé au dragon." : punchlineFor(`dragon:${seedId}`)
+      : `Attrape ${DRAGON_GAME.required} pièces et tiens ${DRAGON_GAME.duration} secondes. Évite les flammes.`}
     focusKey={started ? finished ? "done" : "play" : "ready"}
     onLeave={leave} onKeyDown={event => {
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       event.preventDefault(); steer(event.key === "ArrowUp" ? -1 : 1);
     }}
     hud={<><span>Butin <b>{view.gold}/{DRAGON_GAME.required}</b></span><span>Armure <b>{"◆".repeat(Math.max(0, view.lives))}{"◇".repeat(DRAGON_GAME.lives - Math.max(0, view.lives))}</b></span><span><b>{Math.max(0, Math.ceil(DRAGON_GAME.duration - view.t))} s</b></span></>}
-    status={finished ? <><strong>{won ? practice ? "Dragon battu" : "+2 pas bonus" : "Roussi·e, mais vivant·e"}</strong><ScoreLine score={dragonScore(view)} unit="" record={record} best={best} practice={practice} /></> : <span>{started ? "Les flammes arrivent de la droite." : "Aucun pas perdu si tu rates."}</span>}
+    status={finished ? <><strong>{won ? practice ? "Dragon battu" : "+2 pas bonus" : "Raté."}</strong><ScoreLine score={dragonScore(view)} unit="" record={record} best={best} practice={practice} /></> : <span>↑ ↓ ou boutons : changer de hauteur</span>}
     primary={{ label: finished ? "Continuer le voyage" : started ? "Le dragon attaque…" : "Voler le butin", disabled: started && !finished, onClick: () => finished ? onDone() : setStarted(true) }}
     skip={!finished ? { label: "Passer", onClick: leave } : null}>
     <div className="mini-game__arena dragon-arena" data-running={started && !finished}>

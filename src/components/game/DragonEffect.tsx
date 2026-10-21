@@ -15,7 +15,7 @@ const NO_DRAWING = () => {};
 
 /** A single timeline owns the swallow, hidden victim and rear exit. */
 export function DragonEffect({ origin, playerId, loud, onDone }: EffectProps) {
-  const texture = useDirectTexture("/art/world-v3/animations/dragon.webp");
+  const texture = useDirectTexture("/art/world-v3/animations/dragon-v2.webp");
   const frames = texture ? atlasFrames(texture, 4, 2) : null;
   const art = useRef<Sprite>(null), residue = useRef<Graphics>(null);
   const elapsed = useRef(0), finished = useRef(false), last = useRef("");
