@@ -38,8 +38,6 @@ test('decor rooms, motion preferences and rare events work in the actual rendere
     assert.ok(first.length);await page.waitForTimeout(400);
     assert.deepEqual(await page.evaluate(()=>window.__decorFind('prop:factory:2').map(n=>[n.y,n.rotation])),first);
    }
-   const audio=await page.evaluate(async id=>{const b=await window.__musicPreview(id,12);const v=b.getChannelData(0);return{peak:Math.max(...v.filter((_,i)=>i%20===0)),finite:v.every(Number.isFinite)};},id);
-   assert.ok(audio.finite&&audio.peak>0&&audio.peak<1);
    assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('the office sign lights only on quiet nights and the mirage fades nearby',async()=>{

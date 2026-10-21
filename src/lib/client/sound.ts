@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Every sound of the game is synthesised with WebAudio: nothing to download,
- * a few lines per effect, and the same voice everywhere. Browsers only let a
+ * The game's sound effects are synthesised with WebAudio; recorded background
+ * music shares their master output. Browsers only let a
  * page make noise after a user gesture, which every action click is.
  */
 
