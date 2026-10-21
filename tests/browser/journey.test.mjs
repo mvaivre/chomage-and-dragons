@@ -37,7 +37,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     const page = await context.newPage();
     page.setDefaultTimeout(30_000);
     const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
+    page.on('pageerror', error => errors.push(error.stack ?? error.message));
     await page.addInitScript(({ kinds }) => {
       if (localStorage.getItem('louchomage:v2')) return;
       const at = new Date().toISOString();

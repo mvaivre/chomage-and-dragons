@@ -498,3 +498,9 @@ des trois effets 120 fois avant cette passe, contre 60 après. Le test navigateu
 et des lumières, le gel en mouvement réduit et en rendu logiciel, puis la reprise.
 Cette mesure porte sur les reconstructions de géométrie, pas sur un gain de FPS.
 Le volcan a été inspecté dans le jeu à 1280×800, 390×844 et 2400×900.
+
+Le préchargement des portes prend un instantané des sources de textures partagées,
+dédupliqué par atlas. Il ne place plus de dessins `Graphics` ou de textes vivants
+dans la file asynchrone Pixi : une annulation peut démonter leur salle avant le
+traitement, ce qui provoquait une erreur de contexte détruit. Un test couvre le
+démontage et le parcours navigateur vérifie l’embauche suivie de son annulation.
