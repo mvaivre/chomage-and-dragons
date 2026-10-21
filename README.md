@@ -139,6 +139,9 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   La musique suit le personnage et baisse pendant les mini-jeux
 - un **volcan avant la taverne**, avec caldeira, coulées animées, braises et
   lumières de lave sur le sol. [Décors et rendu](docs/VOLCANO.md)
+- **cinq dragons** : vert, rouge, bleu, noir aux yeux rouges et doré glamour.
+  Ils crachent du feu animé et gardent leur couleur pendant l’ingestion.
+  [Variantes et images](docs/DRAGON_COLOURS.md)
 - **vingt-sept mises en scène** tirées selon leur rareté (six sur dix classiques, trois
   rares, une légendaire), identiques pour tout le groupe, dont trois classiques par
   action : le piqué du pigeon, la douche froide, la porte claquée, le café tiède,

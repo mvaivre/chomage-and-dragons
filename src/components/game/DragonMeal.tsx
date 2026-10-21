@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import type { Graphics, Sprite } from "pixi.js";
-import { dragonMealFrame, DRAGON_MEAL_DURATION } from "@/lib/game/dragon";
+import { dragonMealFrame, DRAGON_MEAL_DURATION, dragonVariantAt, DRAGON_VARIANTS } from "@/lib/game/dragon";
 import { surfaceAt } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
 import type { EffectProps } from "./Effects";
@@ -17,7 +17,7 @@ const drawShadow = (g: Graphics) => { g.clear().ellipse(0, 1, 116, 5).fill({ col
 
 /** The resident eats the live hero, then returns it to its actual road position. */
 export function DragonMeal({ origin, playerId, loud, onDone }: EffectProps) {
-  const texture = useDirectTexture("/art/world-v3/animations/dragon-v3.webp");
+  const texture = useDirectTexture(DRAGON_VARIANTS[dragonVariantAt(origin.x)].art);
   const frames = texture ? atlasFrames(texture, 4, 2) : null;
   const art = useRef<Sprite>(null), elapsed = useRef(0), beat = useRef(-1), done = useRef(false);
   const shadow = useRef<Graphics>(null);

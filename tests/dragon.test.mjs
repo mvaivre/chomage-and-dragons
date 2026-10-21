@@ -7,13 +7,13 @@ registerHooks({ resolve(s, c, next) {
   return next(s, c);
 } });
 const { createDragonRun, advanceDragonRun, steerDragonRun, dragonScore } = await import('../src/lib/game/dragon-flight.ts');
-const { canChallengeDragon, dragonIdleFrame, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION, dragonReply, dragonMealFrame, DRAGON_MEAL_DURATION } = await import('../src/lib/game/dragon.ts');
+const { canChallengeDragon, dragonIdleFrame, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION, dragonReply, dragonMealFrame, DRAGON_MEAL_DURATION, DRAGON_VARIANTS, dragonVariantAt, dragonFirePower } = await import('../src/lib/game/dragon.ts');
 const { roomAt } = await import('../src/lib/game/doors.ts');
 const { WORLD_LENGTH } = await import('../src/lib/game/world.ts');
 
 test('camera browsing cannot unlock a dragon, and nests stay outside interior rooms on every lap', () => {
   const nests = dragonNests(0, WORLD_LENGTH * 3);
-  assert.equal(nests.length, 6);
+  assert.equal(nests.length, 15);
   for (const x of nests) {
     assert.equal(roomAt(x), null);
     assert.equal(canChallengeDragon(x - 211, x, false), false);
@@ -96,13 +96,14 @@ test('dragon input is bounded and outcomes cannot be awarded twice', () => {
   assert.deepEqual(run, before);
 });
 
-test('the dragon atlas has eight complete transparent poses and a shared foot baseline', async () => {
+test('all five dragon coats keep eight complete transparent poses on the shared foot baseline', async () => {
   const { createRequire } = await import('node:module');
   const { readFile, stat } = await import('node:fs/promises');
   const require = createRequire(import.meta.url);
   const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
-  const path = new URL('../public/art/world-v3/animations/dragon-v3.webp', import.meta.url);
-  const meta = JSON.parse(await readFile(new URL('../public/art/world-v3/animations/dragon-v3.json', import.meta.url)));
+  for(const {art} of Object.values(DRAGON_VARIANTS)){
+  const path = new URL(`../public${art}`, import.meta.url);
+  const meta = JSON.parse(await readFile(new URL(`../public${art.replace(/\.webp$/,'.json')}`, import.meta.url)));
   const { data, info } = await sharp(await readFile(path)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   assert.equal(info.width, meta.columns * meta.width);
   assert.equal(info.height, meta.rows * meta.height);
@@ -116,4 +117,41 @@ test('the dragon atlas has eight complete transparent poses and a shared foot ba
     assert.ok(solid > 15_000);
     assert.ok(Math.abs(last - (meta.baseline - 1)) < 4, `floating pose ${cell}: ${last}`);
   }
+  }
+});
+
+test('each journey meets all five colours and a swallowing resident keeps its coat on later laps',()=>{
+ const nests=dragonNests(0,WORLD_LENGTH-1);
+ assert.equal(new Set(nests.map(dragonVariantAt)).size,5);
+ assert.equal(new Set(Object.values(DRAGON_VARIANTS).map(v=>v.art)).size,5);
+ for(const x of nests)for(let lap=0;lap<4;lap++)assert.equal(dragonVariantAt(x+lap*WORLD_LENGTH),dragonVariantAt(x));
+});
+
+test('fire grows and fades between breaths, warns on click three and stays still with reduced motion',()=>{
+ for(let time=0;time<80;time+=.02){
+  const p=dragonFirePower(time,Infinity,0);assert.ok(p>=0&&p<=1);
+  assert.ok(Math.abs(p-dragonFirePower(time+.016,Infinity,0))<.06);
+  assert.ok(Math.abs(p-dragonFirePower(time+18,Infinity,0))<1e-8);
+  assert.equal(dragonFirePower(time,Infinity,0,true),0);
+ }
+ assert.equal(dragonFirePower(0,1,3),1);
+ assert.equal(dragonFirePower(0,1,1),0);assert.equal(dragonFirePower(0,1,2),0);
+ assert.equal(dragonFirePower(0,1,4),0);
+ assert.equal(dragonFirePower(0,.2,3,true),.7);assert.equal(dragonFirePower(0,2.8,3,true),.7);
+ assert.equal(dragonFirePower(0,3.2,3,true),0);
+});
+
+test('the four painted flame frames share one mouth origin and leave transparent margins',async()=>{
+ const {createRequire}=await import('node:module'),{readFile}=await import('node:fs/promises');
+ const require=createRequire(import.meta.url),sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
+ const {data,info}=await sharp(await readFile(new URL('../public/art/world-v3/animations/dragon-fire-v1.webp',import.meta.url))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+ assert.equal(info.width,2048);assert.equal(info.height,256);
+ for(let frame=0;frame<4;frame++){
+  let solid=0,mouth=0;
+  for(let y=0;y<256;y++)for(let x=0;x<512;x++)if(data[(y*2048+frame*512+x)*4+3]>24){
+   solid++;assert.ok(x>=6&&x<508&&y>=5&&y<251,`fire ${frame} clipped`);
+   if(x<30&&Math.abs(y-128)<12)mouth++;
+  }
+  assert.ok(solid>18000);assert.ok(mouth>20,`fire ${frame} detached from mouth`);
+ }
 });

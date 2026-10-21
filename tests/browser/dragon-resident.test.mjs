@@ -8,7 +8,7 @@ registerHooks({ resolve(s, c, next) {
   if (c.parentURL?.endsWith('.ts') && s.startsWith('.') && !/\.[a-z]+$/i.test(s)) return next(`${s}.ts`, c);
   return next(s, c);
 } });
-const { dragonNests } = await import('../../src/lib/game/dragon.ts');
+const { dragonNests, dragonVariantAt, DRAGON_VARIANTS } = await import('../../src/lib/game/dragon.ts');
 const { surfaceAt, WORLD_LENGTH } = await import('../../src/lib/game/world.ts');
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3000';
 const nests = dragonNests(0, WORLD_LENGTH);
@@ -30,7 +30,7 @@ function grounded(pose, x) {
   assert.equal(pose.rotation, 0);
   assert.equal(pose.anchor, 476);
   assert.ok(Math.abs(pose.footY - pose.projectedGround) < 0.5, 'the rendered foot pivot stays on the road');
-  assert.match(pose.source, /dragon-v3\.webp$/);
+  assert.ok(pose.source.endsWith(DRAGON_VARIANTS[dragonVariantAt(x)].art));
 }
 
 test('resident dragons stand on the road and respond to visitors', { timeout: 90_000 }, async t => {
@@ -63,7 +63,7 @@ test('resident dragons stand on the road and respond to visitors', { timeout: 90
     }, x);
   }
 
-  await t.test('forest and mountain keep their feet anchored at desktop, mobile and wide sizes', async () => {
+  await t.test('all five colours keep their feet anchored at desktop, mobile and wide sizes', async () => {
     for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 }, { width: 1920, height: 1080 }]) {
       const { context, page, errors } = await fixture(viewport);
       try {

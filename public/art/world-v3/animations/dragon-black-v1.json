@@ -1,0 +1,24 @@
+{
+  "columns": 4,
+  "rows": 2,
+  "width": 512,
+  "height": 512,
+  "baseline": 476,
+  "heights": [
+    413,
+    260,
+    411,
+    351,
+    466,
+    377,
+    451,
+    321
+  ],
+  "referenceHeight": 455,
+  "nativeFacing": "left",
+  "colour": "black",
+  "mouth": [
+    122,
+    207
+  ]
+}

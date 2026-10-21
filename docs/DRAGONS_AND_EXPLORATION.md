@@ -3,7 +3,7 @@
 ## Comportement livré
 
 - Caméra libre à la molette et par glissement, avec retour au personnage. Explorer ne modifie ni les pas ni le biome musical du héros.
-- Dragons dans la forêt et la montagne. Le défi ne se déverrouille qu’à moins de 210 unités du nid, une fois la marche terminée. La caméra n’intervient pas dans cette règle.
+- Cinq dragons : vert en forêt, noir aux yeux rouges au marais, bleu dans la neige, rouge au volcan et doré glamour avant la taverne. Ils crachent du feu. [Variantes, images et prompts](DRAGON_COLOURS.md). Le défi ne se déverrouille qu’à moins de 210 unités du nid, une fois la marche terminée. La caméra n’intervient pas dans cette règle.
 - « La part du dragon » : trois couloirs, cinq pièces à collecter, trois points d’armure, seize secondes. Entraînement au nid ; une candidature sur trois propose aussi ce défi et sa récompense habituelle.
 - Sort du dragon de 6,4 secondes : arrivée, ingestion, digestion, effort, expulsion et départ. La position réelle du héros reste stable ; les transformations visuelles sont nettoyées à la fin et au démontage. Animation réduite respectée.
 - Gages, feu, paperasse et déplacements : particules et impacts renforcés. Fenêtre de confirmation du sort supprimée.
@@ -54,7 +54,7 @@ Le cavalier de l'initiation est posé sur la selle et le dragon regarde les anne
 
 ### Ajustement du contact et de la vie au repos
 
-- Atlas actif : `public/art/world-v3/animations/dragon-v3.webp`, mêmes huit cellules et même baseline, contours fins et pose éveillée avec les yeux ouverts.
+- Atlas vert conservé : `public/art/world-v3/animations/dragon-v3.webp`, mêmes huit cellules et même baseline, contours fins et pose éveillée avec les yeux ouverts. Les quatre autres couleurs utilisent leurs atlas dédiés.
 - Le résident est ancré directement à `surfaceAt(x)`, avec une petite ombre de contact. Les changements de pose et la respiration gardent les pieds fixes.
 - Cycle de 48 secondes : éveil majoritaire, bref bâillement, sieste de sept secondes. Un personnage proche ou une interaction le garde éveillé ; les poses se fondent en 0,4 seconde.
 - Les mouvements réduits conservent une pose éveillée fixe.
