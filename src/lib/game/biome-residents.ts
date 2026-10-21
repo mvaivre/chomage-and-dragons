@@ -6,6 +6,7 @@ export const BIOME_RESIDENTS = {
   otter: { biome: "lac", art: "/art/world-v3/animations/biome-otter.webp", height: 76, referenceHeight: 240, width: 115 },
   heron: { biome: "cascade", art: "/art/world-v3/animations/biome-heron.webp", height: 112, referenceHeight: 346, width: 108 },
   goat: { biome: "montagne", art: "/art/world-v3/animations/biome-goat.webp", height: 110, referenceHeight: 346, width: 108 },
+  yeti: { biome: "montagne", art: "/art/world-v3/animations/biome-yeti.webp", height: 172, referenceHeight: 346, width: 132 },
   scarab: { biome: "desert", art: "/art/world-v3/animations/biome-scarab.webp", height: 46, referenceHeight: 303, width: 62 },
   innkeeper: { biome: "taverne", art: "/art/world-v3/animations/biome-innkeeper.webp", height: 140, referenceHeight: 346, width: 100 },
 } as const;

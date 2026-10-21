@@ -21,7 +21,7 @@ function pulse(target: EnvironmentTarget) {
     case "gnome": fx.burst({ preset: "puff", x, y: y - 20, count, colors: [0xf4e5bf, 0xe7c575] }); sfx.chime(); break;
     case "spirit": case "ghost": fx.burst({ preset: "stars", x, y, count, colors: [0xb2e5bd, 0xdaffff] }); sfx.chime(); break;
     case "skeleton": fx.burst({ preset: "dust", x, y: y + 25, count: 4 }); sfx.pop(); break;
-    case "troll": sfx.croak(); break;
+    case "troll": case "yeti": sfx.croak(); break;
     case "squirrel": sfx.pop(); break;
     case "dragon": sfx.croak(); break;
     case "recruiter": case "coach": case "clerk": case "worker": case "traveller": sfx.press(); break;

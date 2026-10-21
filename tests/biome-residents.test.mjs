@@ -22,6 +22,17 @@ test('each resident species stays in one habitat across both planes and later la
  }
 });
 
+test('forest trolls and snowy mountain yetis never cross habitats',()=>{
+ assert.ok(RESIDENTS.foret.includes('troll'));
+ assert.ok(RESIDENTS.montagne.includes('yeti'));
+ const sites=[1,.76].flatMap(factor=>environmentSites(0,WORLD_LENGTH*3,factor));
+ for(const[kind,biome]of [['troll','foret'],['yeti','montagne']]){
+  const residents=sites.filter(site=>site.kind===kind);
+  for(let lap=0;lap<3;lap++)assert.ok(residents.some(site=>Math.floor(site.x/WORLD_LENGTH)===lap),`${kind}, lap ${lap}`);
+  assert.ok(residents.every(site=>site.biome===biome),`${kind} stays in ${biome}`);
+ }
+});
+
 test('new resident atlases have four distinct poses with transparent gutters and fixed feet',async()=>{
  const require=createRequire(import.meta.url),sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
  for(const[kind,profile]of Object.entries(BIOME_RESIDENTS)){

@@ -11,14 +11,17 @@ expressions caricaturales.
 | Marais | Champignon vivant | Parchemin |
 | Lac | Loutre | Chope |
 | Cascade | Héron | Boussole |
-| Montagne | Bouquetin | Cristal bleu |
+| Montagne | Bouquetin et yéti | Cristal bleu |
 | Désert | Scarabée | Lampe ancienne |
 | Taverne | Aubergiste | Couronne |
 
 Chaque espèce reste dans son biome, sur les deux plans de parallaxe et les tours
 suivants. Les anciennes poules restent dans la plaine, les corbeaux dans la forêt,
 les crapauds et fantômes dans le marais, les squelettes dans le désert et les
-gnomes dans la taverne. Les petits habitants passent devant les accessoires du
+gnomes dans la taverne. Les trolls restent en forêt et les yétis vivent uniquement
+dans la montagne enneigée. Si un arbre gravé occupe l’emplacement d’un troll,
+celui-ci rejoint l’espace voisin entre les troncs au lieu de disparaître.
+Les petits habitants passent devant les accessoires du
 décor et derrière le joueur pour garder leur silhouette lisible.
 
 Les identifiants des huit trouvailles sont conservés pour préserver les collections
@@ -36,6 +39,14 @@ habitants et les objets ont suivi ces mêmes références.
 - Objets : `public/art/world-v3/collectibles/{letter,key,scroll,tankard,compass,crystal,lamp,crown}.webp`
 - Import : `scripts/compile_ambient_assets.mjs`, cellules de 384 × 384, grille 2 × 2 et pieds à 356 pour les habitants
 - Les découpes et l’encodage WebP préservent la transparence générée
+
+Le yéti utilise `animations/biome-yeti.webp` et ses métadonnées `.json` : quatre
+poses, même grille et même contact au sol que les autres habitants. ImageGen
+intégré, avec `environment-troll.webp` et `ambient.webp` comme références de style.
+Prompt exact : [yeti.prompt.txt](yeti.prompt.txt). Source générée :
+`/Users/mika/.codex/generated_images/01a11c1c-8b80-7b32-a69a-18095959e64f/exec-4ac99b35-58b2-462c-a684-488d5c66a791.png`.
+Import avec `compile_ambient_assets.mjs`, options `--columns=2 --rows=2
+--cell-width=384 --cell-height=384 --baseline=356 --islands`.
 
 Quatre poses par habitant permettent un repos, un clignement, un geste et une
 réaction. La respiration garde les pieds fixes et les mouvements réduits

@@ -42,7 +42,9 @@ test('each biome renders its own animated resident with grounded feet and workin
     assert.ok(Math.abs(standing.foot-standing.ground)<1,`${kind} ${name} ground contact`);assert.match(standing.source,new RegExp(`biome-${kind}(?:-v2)?\\.webp$`));
     if(folder)await page.screenshot({path:`${folder}/${kind}-${name}.png`});
     if(name==='mobile'){
-     const button=page.locator(`[data-environment-id="${site.id}"]`);await button.waitFor({state:'visible'});await button.click();
+     const button=page.locator(`[data-environment-id="${site.id}"]`);await button.waitFor({state:'visible'});
+     // A tall resident's centre can be covered by the hero in the nearer lane.
+     await button.click(kind==='yeti'?{position:{x:20,y:20}}:{});
      await page.locator('.environment-speech').waitFor();
      await page.waitForFunction(({label,kind})=>{const n=window.__pixiApp.stage.getChildByLabel(label,true).getChildByLabel(`biome-body:${kind}`);return n.texture.frame.x===384&&n.texture.frame.y===384;},{label,kind});
      assert.equal((await inspect()).y,standing.y);await page.getByRole('button',{name:'Fermer le dialogue',exact:true}).click();
