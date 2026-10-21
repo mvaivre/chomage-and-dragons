@@ -9,6 +9,7 @@ import { useDirectTexture } from "./textures";
 import { useSceneTick } from "./useSceneTick";
 import { isDrawn } from "./environment-targets";
 import { scene } from "./scene";
+import { parallaxX } from "./projection";
 import meta from "../../../public/art/world-v3/decor/statue-of-tears.json";
 
 const EMPTY=()=>{};
@@ -52,16 +53,17 @@ function paintWater(g:Graphics,time:number) {
   }
 }
 
-function Monument({worldX}:{worldX:number}){
+function Monument({worldX,factor}:{worldX:number;factor:number}){
   const texture=useDirectTexture("/art/world-v3/decor/statue-of-tears.webp");
   const root=useRef<Container>(null),art=useRef<Container>(null),water=useRef<Graphics>(null),shadow=useRef<Graphics>(null);
   const elapsed=useRef(0),drawn=useRef(-Infinity),wasStill=useRef(false);
   useSceneTick(ticker=>{
     const node=root.current,camera=scene.camera;
     if(!node)return;
-    node.visible=Boolean(texture)&&worldX>camera.x-400&&worldX<camera.x+camera.viewW+400;
+    const x=parallaxX(worldX,camera.x,camera.viewW,factor);
+    node.visible=Boolean(texture)&&x>-400&&x<camera.viewW+400;
     if(!node.visible||!art.current||!water.current||!isDrawn(node))return;
-    const safeTop=(scene.topInset+12-camera.screenOffsetY)/camera.scale+camera.y;
+    const safeTop=(scene.topInset+12-camera.screenOffsetY)/camera.scale+camera.y*factor;
     const height=Math.min(445,Math.max(220,WALKABLE_GROUND_Y+TEARS_BASE_OFFSET-safeTop));
     art.current.scale.set(height/meta.heights[0]);
     if(shadow.current)shadow.current.scale.x=height/445;
@@ -74,7 +76,7 @@ function Monument({worldX}:{worldX:number}){
     // A separate render group limits geometry rebuilds to the water, at 30 fps.
     if(elapsed.current-drawn.current>=1/30){paintWater(water.current,elapsed.current);drawn.current=elapsed.current;}
   });
-  return <pixiContainer ref={root} visible={false} x={worldX} y={WALKABLE_GROUND_Y+TEARS_BASE_OFFSET} label={`statue-of-tears:${worldX}`}>
+  return <pixiContainer ref={root} visible={false} x={worldX*factor} y={WALKABLE_GROUND_Y+TEARS_BASE_OFFSET} label={`statue-of-tears:${worldX}`}>
     <pixiGraphics ref={shadow} draw={contact}/>
     <pixiContainer ref={art} scale={400/meta.heights[0]} label="tears-art">
       <pixiContainer x={-meta.width/2} y={-meta.baseline}>
@@ -85,8 +87,8 @@ function Monument({worldX}:{worldX:number}){
   </pixiContainer>;
 }
 
-/** Architecture shares the near road plane; the player's full body stays in front. */
-export function StatueOfTears(){
-  const biomes=useLayerBiomes(1,800);
-  return <pixiContainer label="statues-of-tears">{biomes.filter(({index})=>BIOMES[index].id==="lac").map(({offset})=><Monument key={offset} worldX={offset+TEARS_MONUMENT_X}/>)}</pixiContainer>;
+/** Bank architecture sits behind the walkable road and follows the midground parallax. */
+export function StatueOfTears({factor}:{factor:number}){
+  const biomes=useLayerBiomes(factor,800);
+  return <pixiContainer label="statues-of-tears">{biomes.filter(({index})=>BIOMES[index].id==="lac").map(({offset})=><Monument key={offset} worldX={offset+TEARS_MONUMENT_X} factor={factor}/>)}</pixiContainer>;
 }

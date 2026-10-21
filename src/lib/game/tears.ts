@@ -1,6 +1,6 @@
 /** One roadside monument in the lake; source coordinates are 1024 × 1536. */
 export const TEARS_MONUMENT_X = 13600;
-export const TEARS_BASE_OFFSET = 96;
+export const TEARS_BASE_OFFSET = 12;
 export const TEAR_STREAMS = [
   {start:[391,281],control:[245,680],end:[351,1353],width:[24,85]},
   {start:[500,267],control:[640,670],end:[535,1353],width:[28,108]},

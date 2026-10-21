@@ -6,7 +6,7 @@ La petite fontaine en forme de tête est retirée du plan proche. Les deux ancie
 
 Les deux cascades partent des ouvertures près des yeux et tombent dans le bassin sculpté. Les voiles d’eau, reflets descendants, éclaboussures, brume et remous sont animés séparément de la pierre. La géométrie de l’eau se redessine dans son propre groupe de rendu à 30 images par seconde. Les mouvements réduits et le mode logiciel conservent une image fixe ; hors écran, le calcul s’arrête.
 
-Le socle repose sur le bord proche du chemin. La taille s’adapte à l’espace entre les contrôles et le sol. Le personnage se dessine devant le monument pour garder sa silhouette lisible.
+Le monument et son eau se dessinent sur la berge, dans le plan du décor qui précède le sol. Le chemin masque le bas du socle ; les coffres et les joueurs passent devant. La statue suit la parallaxe du décor proche et sa taille s’adapte à l’espace entre les contrôles et la berge.
 
 ## Fichiers et images
 
@@ -22,4 +22,4 @@ Les images précédentes sont conservées pour comparaison. Les vues avant/aprè
 
 ## Vérification
 
-Contrôle du contact au sol, de la netteté, des plans et du cadrage dans le vrai jeu sur ordinateur, mobile et écran large. `tests/tears.test.mjs` vérifie que les cascades restent raccordées et se déversent dans le bassin. `tests/browser/tears.test.mjs` vérifie les trois compositions, l’eau en mouvement, la pierre fixe, les mouvements réduits, la sortie du champ et la sauvegarde inchangée.
+Contrôle du raccord à la berge, de la netteté, des plans et du cadrage dans le vrai jeu sur ordinateur, mobile et écran large. `tests/tears.test.mjs` vérifie que les cascades restent raccordées et se déversent dans le bassin. `tests/browser/tears.test.mjs` vérifie les trois compositions, l’ordre de dessin de la pierre et de l’eau derrière le sol et les coffres, la parallaxe lors du défilement, l’eau en mouvement, la pierre fixe, les mouvements réduits, la sortie du champ et la sauvegarde inchangée.

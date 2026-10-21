@@ -394,6 +394,7 @@ function WorldScene({
       <Atmosphere depth="air" />
       <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
+        <StatueOfTears factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
         <EnvironmentLife factor={MIDGROUND_FACTOR} />
       </Layer>
@@ -424,7 +425,7 @@ function WorldScene({
 
       <Layer factor={1} shade={0.3}>
         {/* Small inhabitants stand in front of props, below the player's plane. */}
-        <Outdoors><StatueOfTears /><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
