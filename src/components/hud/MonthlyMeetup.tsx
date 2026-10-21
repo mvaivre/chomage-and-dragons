@@ -7,7 +7,6 @@ import {
   editableMeetupMonths, meetupDateLabel, meetupLatestInput, monthClosesAt,
   monthCountdown, shiftMeetupMonth, validateMeetupInput, zurichDateTimeInput, zurichInputToIso,
 } from "@/lib/game/monthly-meetup";
-import "./monthly-meetup.css";
 
 interface Props {
   meetups: Meetup[];
@@ -109,7 +108,7 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setEditing(null);
       }}>
         <div className="meetup-editor__head">
-          <h3 id={titleId}>On trinque quand ?</h3>
+          <h3 id={titleId}>Verre du mois</h3>
           <button type="button" onClick={() => setEditing(null)} aria-label="Fermer">×</button>
         </div>
         <form onSubmit={submit}>
@@ -121,8 +120,8 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
           <input id={dateId} type="datetime-local" value={date} min={zurichDateTimeInput(new Date(now.getTime() + 60_000))}
             max={meetupLatestInput(editing)} step={60} onChange={(event) => setDate(event.target.value)} required autoFocus />
           <label htmlFor={placeId}>Lieu <span>(facultatif)</span></label>
-          <input id={placeId} type="text" value={place} maxLength={80} placeholder="Votre taverne" onChange={(event) => setPlace(event.target.value)} />
-          <p className="meetup-editor__hint">Date modifiable par tous. Couronne en fin de mois.</p>
+          <input id={placeId} type="text" value={place} maxLength={80} placeholder="Lieu du rendez-vous" onChange={(event) => setPlace(event.target.value)} />
+          <p className="meetup-editor__hint">Tout le groupe peut modifier ce rendez-vous</p>
           {error ? <p className="meetup-editor__error" role="alert">{error}</p> : null}
           <button type="submit" className="meetup-editor__save">{meetups.some((m) => m.monthKey === editing) ? "Changer le rendez-vous" : "Fixer le rendez-vous"}</button>
         </form>

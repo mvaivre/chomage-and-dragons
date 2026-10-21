@@ -51,7 +51,6 @@ export function MiniGameInvite({ kind, action, record, onPlay, onPass }: {
       <span className="mini-game-invite__seal"><b>{reward.seal}</b></span>
     </div>
     <div className="mini-game-invite__copy">
-      <p className="mini-game-invite__kicker">{copy.misery}</p>
       <h2 id="mini-game-invite-title">{copy.title}</h2>
       <p className="mini-game-invite__stake">{reward.line}</p>
       {record ? <p className="mini-game-invite__record">Record : {record.score} {SCORE_UNITS[kind]} · {record.holder}</p> : null}

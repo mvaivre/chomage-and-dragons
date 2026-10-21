@@ -48,9 +48,9 @@ export function DragonGame({ seedId, onResolve, onDone, practice, record, best, 
   };
   const leave = () => { if (!resolved.current) { resolved.current = true; onResolve("skipped"); } onDone(); };
   const won = view.status === "won";
-  return <MiniGameShell kind="dragon" eyebrow={practice ? "Rencontre · entraînement" : "Le dragon garde le courrier"} title="La part du dragon"
+  return <MiniGameShell kind="dragon" eyebrow={practice ? "Entraînement" : "Défi"} title="La part du dragon"
     instructions={finished ? won ? "Butin volé au dragon." : punchlineFor(`dragon:${seedId}`)
-      : `Attrape ${DRAGON_GAME.required} pièces et tiens ${DRAGON_GAME.duration} secondes. Évite les flammes.`}
+      : `Attrape ${DRAGON_GAME.required} pièces en évitant les flammes pendant ${DRAGON_GAME.duration} secondes`}
     focusKey={started ? finished ? "done" : "play" : "ready"}
     onLeave={leave} onKeyDown={event => {
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;

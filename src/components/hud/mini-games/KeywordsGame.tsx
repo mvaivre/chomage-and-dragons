@@ -174,12 +174,12 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
   const won = outcome === "won";
   const remaining = RAIN.required - caught.length;
   const instructions = phase === "result"
-    ? won ? "CV validé. Compté double." : punchlineFor(`keywords:${seedId}`)
+    ? won ? "CV validé, pas doublés" : punchlineFor(`keywords:${seedId}`)
     : status === "ready"
-      ? `Attrape les ${RAIN.required} mots de l’annonce. Évite les autres.`
-      : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}.` : "Le robot réfléchit…";
+      ? `Attrape uniquement les ${RAIN.required} mots de l’annonce`
+      : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}` : "Le robot réfléchit…";
 
-  return <MiniGameShell kind="keywords" eyebrow={`${practice ? "Entraînement · " : ""}Le robot trieur de CV · +${base} pas acquis`} title="Le CV à mots-clés"
+  return <MiniGameShell kind="keywords" eyebrow={practice ? "Entraînement" : "Défi"} title="Le CV à mots-clés"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{caught.length}</b> / {RAIN.required} mots</span>

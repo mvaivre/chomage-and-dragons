@@ -22,16 +22,16 @@ export function JourneyLesson({ encounters, onAnswer }: { encounters: number; on
   const choose = (kind: ActionKind) => {
     if (finished || showResult) return;
     if (!answerInitiation(encounters, kind)) {
-      setWrong(true); setFeedback("Essaie une autre action."); return;
+      setWrong(true); setFeedback("Essaie une autre action"); return;
     }
     setWrong(false);
     interacted.current = true;
-    setFeedback(`${encounter.response} ${JOURNEY_STEPS[kind] > 0 ? "+" : ""}${JOURNEY_STEPS[kind]} pas.`);
+    setFeedback(`Tu ${JOURNEY_STEPS[kind] > 0 ? "avances" : "recules"} de ${Math.abs(JOURNEY_STEPS[kind])} pas`);
     setShowResult(true);
     onAnswer();
   };
   return <section className="initiation-lesson initiation-lesson--journey" aria-label="Rite du chemin">
-    <p className="initiation-lead">Déclare tes démarches pour avancer.</p>
+    <p className="initiation-lead">Déclare tes démarches pour avancer</p>
     <div className="initiation-road" role="img" aria-label={`Héros à ${steps} pas. Coffre à ${STEPS_PER_LEVEL} pas.`}>
       <span className="initiation-road__label">CAMP D’ESSAI</span>
       <div className="initiation-road__track" />
@@ -42,15 +42,15 @@ export function JourneyLesson({ encounters, onAnswer }: { encounters: number; on
     </div>
     <div className="initiation-encounter" aria-live="polite" aria-atomic="true">
       <span className="initiation-encounter__number">{finished ? "Épreuve accomplie" : `Démarche ${showResult ? encounters : encounters + 1} / ${INITIATION_ENCOUNTERS.length}`}</span>
-      <h2>{finished ? "Un coffre débloqué !" : encounter.title}</h2>
-      <p>{finished ? `${STEPS_PER_LEVEL} pas : passe au dernier rite.` : encounter.prompt}</p>
+      <h2>{finished ? "Coffre débloqué" : encounter.title}</h2>
+      <p>{finished ? `Tu as atteint ${STEPS_PER_LEVEL} pas` : encounter.prompt}</p>
     </div>
     {!finished && !showResult ? <div className="initiation-choices">{INITIATION_ACTIONS.map((action, index) => <button ref={index === 0 ? firstChoice : undefined} type="button" key={action.kind} onClick={() => choose(action.kind)}>
       <ActionArtwork kind={action.kind} />
       <span>{action.label}</span>
     </button>)}</div> : null}
-    <p className={`initiation-feedback${wrong ? " initiation-feedback--retry" : ""}`} role="status">{feedback || "Choisis la bonne action."}</p>
+    <p className={`initiation-feedback${wrong ? " initiation-feedback--retry" : ""}`} role="status">{feedback || ""}</p>
     {showResult && !finished ? <button ref={nextControl} className="initiation-primary" type="button" onClick={() => { setShowResult(false); setFeedback(""); }}>Démarche suivante →</button> : null}
-    <p className="initiation-hint">Tes vrais pas restent inchangés.</p>
+    <p className="initiation-hint">Cet entraînement ne modifie pas ton score</p>
   </section>;
 }

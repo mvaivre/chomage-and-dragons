@@ -8,7 +8,6 @@ import {
 import { DragonLesson } from "./initiation/DragonLesson";
 import { JourneyLesson } from "./initiation/JourneyLesson";
 import { TreasureLesson } from "./initiation/TreasureLesson";
-import "./initiation/initiation.css";
 
 export const WELCOME_KEY = INITIATION_KEY;
 export function hasSeenWelcome(scope?: string) {

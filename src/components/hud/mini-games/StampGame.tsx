@@ -218,12 +218,12 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
   const won = outcome === "won";
   const remaining = DESK.dossiers - stamped;
   const instructions = phase === "result"
-    ? won ? "Dossier conforme. +1 pas bonus." : punchlineFor(`stamp:${seedId}`)
+    ? won ? "Dossier validé, 1 pas bonus" : punchlineFor(`stamp:${seedId}`)
     : status === "ready"
-      ? `Tamponne les ${DESK.dossiers} dossiers dans la zone dorée.`
-      : remaining > 0 ? `Encore ${remaining} dossier${remaining > 1 ? "s" : ""}.` : "Dernier dossier…";
+      ? `Tamponne les ${DESK.dossiers} dossiers dans la zone dorée`
+      : remaining > 0 ? `Encore ${remaining} dossier${remaining > 1 ? "s" : ""}` : "Dernier dossier…";
 
-  return <MiniGameShell kind="stamp" eyebrow={`${practice ? "Entraînement · " : ""}Preuves de recherches · +${base} pas acquis`} title="Le Tampon de l’ORP"
+  return <MiniGameShell kind="stamp" eyebrow={practice ? "Entraînement" : "Défi"} title="Le Tampon de l’ORP"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{stamped}</b> / {DESK.dossiers} dossiers</span>

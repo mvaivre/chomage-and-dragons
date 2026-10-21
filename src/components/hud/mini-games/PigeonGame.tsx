@@ -204,12 +204,12 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
   const won = outcome === "won";
   const remaining = COURSE.towers - passed;
   const instructions = phase === "result"
-    ? won ? "Livré. Compté double." : punchlineFor(`pigeon:${seedId}`)
+    ? won ? "Livraison réussie, pas doublés" : punchlineFor(`pigeon:${seedId}`)
     : status === "ready"
-      ? `Franchis les ${COURSE.towers} tours et livre le courrier.`
-      : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}.` : "Vise la fente dorée !";
+      ? `Franchis les ${COURSE.towers} tours pour livrer le courrier`
+      : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}` : "Vise la fente dorée";
 
-  return <MiniGameShell kind="pigeon" eyebrow={`${practice ? "Entraînement · " : ""}Courrier presque prioritaire · +${base} pas acquis`} title="Le pigeon à reculons"
+  return <MiniGameShell kind="pigeon" eyebrow={practice ? "Entraînement" : "Défi"} title="Le pigeon à reculons"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{passed}</b> / {COURSE.towers} tours</span>

@@ -3,8 +3,3 @@
 .hidden-object-target[hidden] { display:none; }
 .hidden-object-target:hover { background:#ffe7a515; }
 .hidden-object-target:focus-visible { outline:2px dashed #f6d277; outline-offset:2px; background:#ffe7a522; }
-.hidden-object-target[data-highlighted=true]::before { content:""; position:absolute; inset:-7px; border:2px solid #ffe198; border-radius:50%; box-shadow:0 0 0 5px #34271550,0 0 24px #ffdb6d95; animation:hidden-object-glow 2s ease-in-out infinite; pointer-events:none; }
-.hidden-object-target__hint { position:absolute; left:50%; bottom:calc(100% + 17px); transform:translateX(-50%); padding:5px 10px; border:1px solid #d8b366; border-radius:4px; background:#302a20ee; color:#ffe9af; font-size:15px; line-height:1.1; white-space:nowrap; pointer-events:none; }
-.hidden-object-target__hint span { display:block; position:absolute; left:0; top:100%; width:100%; color:#ffe198; font-size:22px; text-shadow:0 1px 2px #302a20; }
-@keyframes hidden-object-glow { 50% { box-shadow:0 0 0 9px #34271525,0 0 32px #ffdb6dcc; } }
-@media(prefers-reduced-motion:reduce) { .hidden-object-target[data-highlighted=true]::before { animation:none; } }

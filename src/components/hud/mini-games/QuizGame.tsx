@@ -97,12 +97,12 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
   const won = outcome === "won";
   const finished = status === "won" || status === "lost";
   const instructions = finished
-    ? won ? `Bien menti. ${base + bonus} pas au lieu de ${base}.` : punchlineFor(`quiz:${seedId}`)
+    ? won ? `${base + bonus} pas au lieu de ${base}` : punchlineFor(`quiz:${seedId}`)
     : status === "ready"
-      ? "Réponds ce que le recruteur veut entendre."
-      : "Touche une réponse ou appuie sur 1 à 4.";
+      ? "Choisis la réponse attendue par le recruteur"
+      : "Choisis une réponse avec les boutons ou les touches 1 à 4";
 
-  return <MiniGameShell kind="quiz" eyebrow={`${practice ? "Entraînement · " : ""}« Quel est votre plus grand défaut ? » · ${base} pas`} title="Le Test de personnalité"
+  return <MiniGameShell kind="quiz" eyebrow={practice ? "Entraînement" : "Défi"} title="Le Test de personnalité"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status}
     hud={<>
       <span className="mini-game__counter"><b>{Math.min(index + (finished ? 1 : 0), questions.length)}</b> / {questions.length} questions</span>

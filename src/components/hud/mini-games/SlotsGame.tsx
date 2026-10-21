@@ -146,11 +146,11 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
 
   const won = outcome === "won";
   const instructions = phase === "result"
-    ? won ? "Jackpot ! +1 butin." : punchlineFor(`slots:${seedId}`)
-    : status === "ready" ? `Arrête les ${SLOTS.reels} rouleaux sur CHF.`
-    : `Arrête le rouleau ${stopped + 1} sur CHF !`;
+    ? won ? "1 butin supplémentaire" : punchlineFor(`slots:${seedId}`)
+    : status === "ready" ? `Arrête les ${SLOTS.reels} rouleaux sur CHF`
+    : `Arrête le rouleau ${stopped + 1} sur CHF`;
 
-  return <MiniGameShell kind="slots" eyebrow={`${practice ? "Entraînement · " : ""}Salaire : selon expérience · butin acquis`} title="Salaire selon expérience"
+  return <MiniGameShell kind="slots" eyebrow={practice ? "Entraînement" : "Défi"} title="Salaire selon expérience"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{stopped}</b> / {SLOTS.reels} rouleaux</span>

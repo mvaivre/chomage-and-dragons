@@ -33,10 +33,10 @@ export function advanceDragonLesson(run: DragonLessonRun, elapsed: number): void
 }
 
 export const INITIATION_ENCOUNTERS = [
-  { kind: "candidature", title: "Le parchemin du destin", prompt: "Tu envoies ton CV chez Gobelin & Fils.", response: "Ton héros avance." },
-  { kind: "refus", title: "Le hibou du refus", prompt: "Réponse du recruteur : « C’est non. »", response: "Un refus fait avancer." },
-  { kind: "entretien", title: "Face au dragon RH", prompt: "Le dragon RH te convoque en entretien.", response: "Tu recules vers l’emploi." },
-  { kind: "rejetApresEntretien", title: "Le retour de la poisse", prompt: "Après l’entretien : « Nous avons choisi quelqu’un d’autre. »", response: "Ce refus vaut plus de pas." },
+  { kind: "candidature", title: "Candidature envoyée", prompt: "Tu viens d’envoyer ton CV" },
+  { kind: "refus", title: "Candidature refusée", prompt: "Tu reçois un refus sans avoir eu d’entretien" },
+  { kind: "entretien", title: "Entretien passé", prompt: "Tu viens de passer un entretien" },
+  { kind: "rejetApresEntretien", title: "Refus après entretien", prompt: "Ta candidature est refusée après ton entretien" },
 ] as const;
 export const INITIATION_ACTIONS = [
   { kind: "candidature", label: "Candidature" },

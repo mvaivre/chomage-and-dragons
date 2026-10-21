@@ -91,21 +91,38 @@ test('side quests work in the real renderer without changing the race',{timeout:
     assert.equal(await page.locator('.hidden-discovery').count(),0,'rules wait for the pickup');
     const target=page.getByRole('button',{name:`Ramasser : ${first.name}`});
     await target.waitFor({state:'visible'});await page.waitForTimeout(800);
-    const hint=await target.locator('.hidden-object-target__hint').boundingBox();
-    assert.ok(hint.x>=0&&hint.x+hint.width<=viewport.width,'the first hint fits the starting camera');
+    assert.equal(await target.innerText(),'','objects have no floating label');
+    const placement=await target.evaluate((node,id)=>{
+     const item=window.__pixiApp.stage.getChildByLabel(id,true);
+     const center=item.parent.toGlobal({x:0,y:-item.height/2}),box=node.getBoundingClientRect();
+     const layer=item.parent.parent.parent;
+     const camera=window.__decorScene.camera;
+     return {dx:Math.abs(center.x-box.x-box.width/2),dy:Math.abs(center.y-box.y-box.height/2),
+      layerX:layer.x,expectedLayerX:(-camera.x-camera.viewW/2)*.36+camera.viewW/2,backgroundName:item.parent.parent.label,
+      halo:item.parent.getChildByLabel('hidden-object-glow')?.visible,
+     };
+    },first.id);
+    assert.ok(placement.dx<1&&placement.dy<1,'the hit target follows the rendered background sprite');
+    assert.equal(placement.backgroundName,'hidden-objects-background');
+    assert.ok(Math.abs(placement.layerX-placement.expectedLayerX)<.01,'the object shares the background parallax');
+    assert.equal(placement.halo,true);
     if(viewport.width===390){
      await page.emulateMedia({reducedMotion:'reduce'});
      assert.equal(await target.evaluate(node=>getComputedStyle(node,'::before').animationName),'none');
     }
     await target.click();
-    const discovery=page.getByRole('dialog',{name:'Premier objet trouvé !'});await discovery.waitFor();
-    assert.match(await discovery.innerText(),/8 objets cachés, un par contrée/);
+    const discovery=page.getByRole('dialog',{name:'Objets cachés'});await discovery.waitFor();
+    assert.match(await discovery.innerText(),/Clique sur les objets cachés dans le décor pour compléter ta collection/);
     assert.equal(await page.locator('.hidden-object-target').count(),0,'world pickups pause behind the dialog');
     assert.equal(await page.locator('.action-button--refus').isDisabled(),true);
     await page.keyboard.press('2');await page.keyboard.press('r');await page.keyboard.press('ArrowRight');
     assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).events.length),0);
     const fits=await discovery.evaluate(node=>{const b=node.getBoundingClientRect();return b.x>=0&&b.y>=0&&b.right<=innerWidth&&b.bottom<=innerHeight&&node.scrollWidth<=node.clientWidth;});
     assert.equal(fits,true,'the explanation fits this viewport');
+    const skin=await discovery.evaluate(node=>{const s=getComputedStyle(node);return {border:s.borderTopWidth,padding:s.paddingTop,background:s.backgroundColor};});
+    assert.equal(skin.border,'3px','the modal stylesheet is loaded');
+    assert.equal(skin.padding,'24px');
+    assert.notEqual(skin.background,'rgb(255, 255, 255)');
     await discovery.getByRole('button',{name:'Voir ma collection'}).click();
     await page.locator('.adventure-menu__collection').waitFor();
     assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),1);
@@ -138,7 +155,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
    await page.evaluate(x=>{window.__decorScene.exploreCenter=x;window.__decorScene.pan=0;},item.x);
    const target=page.getByRole('button',{name:`Ramasser : ${item.name}`});
    await target.waitFor({state:'visible'});await page.waitForTimeout(800);await target.click();
-   await page.getByRole('dialog',{name:'Premier objet trouvé !'}).waitFor();
+   await page.getByRole('dialog',{name:'Objets cachés'}).waitFor();
    await page.keyboard.press('Escape');await ready(page);
    assert.equal(await page.locator('.hidden-discovery').count(),0);
    assert.equal(await page.locator('[data-highlighted=true]').count(),0);
@@ -156,7 +173,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
     await target.waitFor({state:'visible'});await page.waitForTimeout(800);await target.click();
     await page.waitForFunction(id=>JSON.parse(localStorage.getItem('louchomage:v2')).discoveries?.some(d=>d.itemId===id),item.id);
     await target.waitFor({state:'detached'});
-    await page.getByRole('button',{name:'J’ai compris'}).click();
+    await page.getByRole('button',{name:item.id===HIDDEN_ITEMS[0].id?'Continuer':'J’ai compris',exact:true}).click();
    }
    await page.reload();await ready(page);
    await page.getByRole('button',{name:'Quêtes',exact:true}).click();

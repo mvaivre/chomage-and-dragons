@@ -1,35 +1,51 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { Sprite } from "pixi.js";
+import type { Container, Graphics } from "pixi.js";
 import { HIDDEN_ITEMS, type HiddenItem } from "@/lib/game/hidden-objects";
 import { useDirectTexture } from "./textures";
 import { scene, sceneFrameListeners, viewingInterior, markMotion } from "./scene";
 import { useSceneTick } from "./useSceneTick";
-import "./hidden-objects.css";
+import { parallaxX } from "./projection";
 
 /** Plain pilot validated at 1280×720, 390×844 and 1920×1080 before expansion. */
 const ITEMS = HIDDEN_ITEMS;
 
-function HiddenSprite({ item, found, highlighted }: { item: HiddenItem; found: boolean; highlighted: boolean }) {
-  const texture = useDirectTexture(item.art);
-  const sprite = useRef<Sprite>(null);
-  useSceneTick(() => {
-    if (sprite.current) sprite.current.visible = !found && item.x > scene.camera.x - 100 && item.x < scene.camera.x + scene.camera.viewW + 100;
+const glows = new Map<string, (g: Graphics) => void>();
+function glowFor(size: number, highlighted: boolean) {
+  const key = `${size}:${highlighted}`;
+  let draw = glows.get(key);
+  if (!draw) glows.set(key, draw = g => {
+    g.clear();
+    for (let ring = 12; ring > 0; ring--) {
+      g.circle(0, -size / 2, size * ring / 15).fill({ color: 0xffe6a0, alpha: highlighted ? .035 : .018 });
+    }
   });
-  return texture ? <pixiSprite ref={sprite} label={item.id} texture={texture} x={item.x} y={item.y}
-    width={item.size} height={item.size} anchor={{ x: .5, y: 1 }} alpha={highlighted ? 1 : .88} tint={highlighted ? 0xffffff : 0xe8dcc2} visible={!found} /> : null;
+  return draw;
 }
 
-/** Small props sit behind the heroes, grounded on the back edge of the path. */
-export function HiddenObjects({ foundIds }: { foundIds: readonly string[] }) {
-  return <pixiContainer>{ITEMS.map((item, index) => <HiddenSprite key={item.id} item={item} found={foundIds.includes(item.id)} highlighted={index === 0 && foundIds.length === 0} />)}</pixiContainer>;
+function HiddenSprite({ item, found, highlighted, factor }: { item: HiddenItem; found: boolean; highlighted: boolean; factor: number }) {
+  const texture = useDirectTexture(item.art);
+  const root = useRef<Container>(null);
+  useSceneTick(() => {
+    const x = parallaxX(item.x, scene.camera.x, scene.camera.viewW, factor);
+    if (root.current) root.current.visible = !found && x > -100 && x < scene.camera.viewW + 100;
+  });
+  return texture ? <pixiContainer ref={root} label={`hidden-prop:${item.id}`} x={item.x * factor} y={item.y} visible={!found}>
+    <pixiGraphics label="hidden-object-glow" draw={glowFor(item.size, highlighted)} />
+    <pixiSprite label={item.id} texture={texture} width={item.size} height={item.size} anchor={{ x: .5, y: 1 }} alpha={.94} tint={0xf1e7cd} />
+  </pixiContainer> : null;
 }
 
-function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean) {
+/** Objects share the background's light, parallax and occlusion. */
+export function HiddenObjects({ foundIds, factor }: { foundIds: readonly string[]; factor: number }) {
+  return <pixiContainer label="hidden-objects-background">{ITEMS.map((item, index) => <HiddenSprite key={item.id} item={item} found={foundIds.includes(item.id)} highlighted={index === 0 && foundIds.length === 0} factor={factor} />)}</pixiContainer>;
+}
+
+function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean, factor: number) {
   const { camera } = scene;
-  const x = (item.x - camera.x) * camera.scale;
-  const y = camera.screenOffsetY + (item.y - item.size / 2 - camera.y) * camera.scale;
+  const x = parallaxX(item.x, camera.x, camera.viewW, factor) * camera.scale;
+  const y = camera.screenOffsetY + (item.y - item.size / 2 - camera.y * factor) * camera.scale;
   const width = Math.max(44, item.size * camera.scale);
   const visible = !paused && !viewingInterior() && x > 0 && x < camera.viewW * camera.scale && y > scene.topInset + 12 && y < camera.viewH * camera.scale - scene.bottomInset;
   if (node.hidden === visible) node.hidden = !visible;
@@ -40,11 +56,11 @@ function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean) {
   if (node.style.width !== size) { node.style.width = size; node.style.height = size; }
 }
 
-function FindTarget({ item, paused, highlighted, onFind }: { item: HiddenItem; paused: boolean; highlighted: boolean; onFind: (itemId: string) => void }) {
+function FindTarget({ item, paused, highlighted, factor, onFind }: { item: HiddenItem; paused: boolean; highlighted: boolean; factor: number; onFind: (itemId: string) => void }) {
   const button = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ x: number; y: number; pan: number; pointer: number } | null>(null);
   const moved = useRef(false);
-  const follow = useCallback(() => { if (button.current) position(button.current, item, paused); }, [item, paused]);
+  const follow = useCallback(() => { if (button.current) position(button.current, item, paused, factor); }, [item, paused, factor]);
   useEffect(() => {
     follow(); sceneFrameListeners.add(follow);
     return () => {
@@ -73,15 +89,13 @@ function FindTarget({ item, paused, highlighted, onFind }: { item: HiddenItem; p
       event.stopPropagation();
       if (!paused && !viewingInterior() && (!moved.current || event.detail === 0)) onFind(item.id);
       moved.current = false;
-    }}>
-    {highlighted ? <span className="hidden-object-target__hint" aria-hidden="true">Ramasse-moi <span>↓</span></span> : null}
-  </button>;
+    }} />;
 }
 
-export function HiddenObjectOverlay({ playerId, foundIds, paused, onFind }: {
-  playerId: string | null; foundIds: readonly string[]; paused: boolean; onFind: (itemId: string) => void;
+export function HiddenObjectOverlay({ playerId, foundIds, paused, factor, onFind }: {
+  playerId: string | null; foundIds: readonly string[]; paused: boolean; factor: number; onFind: (itemId: string) => void;
 }) {
   return playerId && !paused ? <div className="hidden-object-overlay">
-    {ITEMS.filter(item => !foundIds.includes(item.id)).map(item => <FindTarget key={item.id} item={item} paused={paused} highlighted={item.id === ITEMS[0].id && foundIds.length === 0} onFind={onFind} />)}
+    {ITEMS.filter(item => !foundIds.includes(item.id)).map(item => <FindTarget key={item.id} item={item} paused={paused} highlighted={item.id === ITEMS[0].id && foundIds.length === 0} factor={factor} onFind={onFind} />)}
   </div> : null;
 }

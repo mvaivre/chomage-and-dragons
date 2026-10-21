@@ -116,12 +116,12 @@ export function GhostingGame({ seedId, onResolve, onDone, practice, record, best
   const won = outcome === "won";
   const hot = status === "message";
   const instructions = finished
-    ? won ? "Répondu à temps. +2 pas bonus." : punchlineFor(`ghosting:${seedId}`)
+    ? won ? "Réponse à temps, 2 pas bonus" : punchlineFor(`ghosting:${seedId}`)
     : status === "ready"
-      ? `Attends le message doré, puis réponds en ${GHOSTING.windowMs / 1000} s.`
-      : hot ? "RÉPONDS !" : "Attends le message doré.";
+      ? `Réponds dans les ${GHOSTING.windowMs / 1000} secondes après le message doré`
+      : hot ? "Réponds maintenant" : "Attends le message doré";
 
-  return <MiniGameShell kind="ghosting" eyebrow={`${practice ? "Entraînement · " : ""}Sans nouvelles depuis 14 jours · +${base} pas acquis`} title="Ne relance pas"
+  return <MiniGameShell kind="ghosting" eyebrow={practice ? "Entraînement" : "Défi"} title="Ne relance pas"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status === "ready" || finished ? status : "wait"}
     hud={<>
       <span className="mini-game__counter"><b>Jour {day}</b> sans réponse</span>

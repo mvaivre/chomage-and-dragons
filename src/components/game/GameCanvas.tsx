@@ -368,6 +368,7 @@ function WorldScene({
           width={1120}
           alpha={1}
         />
+        <HiddenObjects foundIds={hiddenFoundIds} factor={BACKGROUND_FACTOR} />
       </Layer>
 
       <Atmosphere depth="air" />
@@ -402,7 +403,7 @@ function WorldScene({
 
       <Layer factor={1} shade={0.3}>
         {/* Residents roam behind the stops: personal signs (crown, daily champion) stay readable. */}
-        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /><HiddenObjects foundIds={hiddenFoundIds} /></Outdoors>
+        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -602,7 +603,7 @@ function GameCanvas({
       </button> : null}
       <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
       <EnvironmentOverlay meId={meId} paused={paused} />
-      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused} onFind={onFindHidden} />
+      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}

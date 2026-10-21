@@ -31,7 +31,7 @@ import { QuestHud } from "@/components/hud/QuestHud";
 import { MonthlyMeetup } from "@/components/hud/MonthlyMeetup";
 import { AdventureMenu } from "@/components/hud/AdventureMenu";
 import { HiddenObjectDiscovery } from "@/components/hud/HiddenObjectDiscovery";
-import { hiddenItemForId, type HiddenItem } from "@/lib/game/hidden-objects";
+import { HIDDEN_ITEMS, hiddenItemForId, type HiddenItem } from "@/lib/game/hidden-objects";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
@@ -317,7 +317,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (result.rejected) return;
     sfx.chime();
     if (hiddenFoundIds.length === 0) setFirstFind({ playerId: identity, item });
-    else setNotice({ title: item.name, body: item.found });
+    else setNotice({ title: item.name, body: `${hiddenFoundIds.length + 1} objets retrouvés sur ${HIDDEN_ITEMS.length}` });
   }, [findHidden, identity, hiddenFoundIds]);
   // One condition renders the welcome, pauses the world and locks the actions.
   const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);

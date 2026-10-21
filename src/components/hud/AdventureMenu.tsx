@@ -5,7 +5,6 @@ import type { MiniGameKind } from "@/lib/data/types";
 import { MINI_GAMES } from "@/lib/game/mini-games";
 import { HIDDEN_ITEMS, hiddenBiomeLabel } from "@/lib/game/hidden-objects";
 import { BIOMES, WORLD_LENGTH } from "@/lib/game/world";
-import "./adventure-menu.css";
 
 const BADGES: Record<string, string> = { dragon: "🐉", pigeon: "🕊", keywords: "📜", stamp: "🔨", quiz: "🔮", ghosting: "👻", slots: "💰", pigeonRace: "🏁", paperCut: "⚔", snake: "🐍", maze: "🕯", stack: "🧱", pong: "🏓" };
 
@@ -27,22 +26,22 @@ export function AdventureMenu({ foundIds, initialTab = "games", onClose, onPlay,
   }, []);
   return <dialog ref={dialog} className="adventure-menu" aria-labelledby="adventure-title"
     onKeyDown={event => event.stopPropagation()} onCancel={event => { event.preventDefault(); onClose(); }}>
-    <header><small>Les quêtes de traverse</small><h2 id="adventure-title">Tout sauf chercher un emploi.</h2>
+    <header><small>Les quêtes de traverse</small><h2 id="adventure-title">Quêtes</h2>
       <button type="button" aria-label="Fermer les quêtes" onClick={onClose}>×</button></header>
     <div className="adventure-menu__tabs" role="group" aria-label="Choisir une quête">
       <button type="button" aria-pressed={tab === "games"} onClick={() => setTab("games")}>La salle des défis</button>
       <button type="button" aria-pressed={tab === "hunt"} onClick={() => setTab("hunt")}>Objets perdus · {foundIds.length}/{HIDDEN_ITEMS.length}</button>
     </div>
     {tab === "games" ? <>
-      <p className="adventure-menu__intro">Défis libres · sans changer tes pas.</p>
-      <button className="adventure-menu__initiation" type="button" onClick={onInitiation}>🐉 Les rites d’initiation <span>Apprendre à rider un dragon →</span></button>
+      <p className="adventure-menu__intro">Entraîne-toi sans modifier ton score</p>
+      <button className="adventure-menu__initiation" type="button" onClick={onInitiation}>🐉 Les rites d’initiation <span>Apprendre à jouer</span></button>
       <div className="adventure-menu__games">
         {Object.values(MINI_GAMES).map(game => <button key={game.kind} type="button" onClick={() => onPlay(game.kind)}>
           <span aria-hidden="true">{BADGES[game.kind] ?? "⚔"}</span><div><strong>{game.title}</strong><small>{game.misery}</small></div><b aria-hidden="true">↗</b>
         </button>)}
       </div>
     </> : <>
-      <p className="adventure-menu__intro">Glisse pour explorer. Touche les huit objets cachés.</p>
+      <p className="adventure-menu__intro">Clique sur les objets cachés dans le décor pour les collectionner</p>
       <div className="adventure-menu__collection">
         {HIDDEN_ITEMS.map(item => {
           const found = foundIds.includes(item.id);
@@ -52,7 +51,7 @@ export function AdventureMenu({ foundIds, initialTab = "games", onClose, onPlay,
               /* eslint-disable-next-line @next/next/no-img-element -- pre-optimized local alpha art */
               <img src={item.art} width={64} height={64} alt="" /> : "?"}</span>
             <div><small>{hiddenBiomeLabel(item)}</small><h3>{found ? item.name : "Objet caché"}</h3>
-              {found ? <p>{item.found}</p> : <details><summary>Un indice ?</summary><p>{item.clue}</p></details>}
+              {!found ? <details><summary>Un indice ?</summary><p>{item.clue}</p></details> : null}
               {!found ? <button type="button" onClick={() => onExplore((biome.from + .018) * WORLD_LENGTH)}>Explorer →</button> : <b>Retrouvé ✓</b>}
             </div>
           </article>;

@@ -8,13 +8,13 @@ const {BIOMES,WORLD_LENGTH,biomeAt,surfaceAt}=await import('../src/lib/game/worl
 const {interiorAt}=await import('../src/lib/game/decor.ts');
 const {PUNCHLINES,punchlineFor,residentPunchline}=await import('../src/lib/game/punchlines.ts');
 
-test('the finite hidden collection has one small, grounded, accessible prop per biome',async()=>{
+test('the hidden collection has one small background prop per biome',async()=>{
  assert.equal(HIDDEN_ITEMS.length,BIOMES.length);
  assert.equal(new Set(HIDDEN_ITEMS.map(item=>item.id)).size,HIDDEN_ITEMS.length);
  for(const item of HIDDEN_ITEMS){
   assert.equal(biomeAt(item.x).id,item.biome);
-  assert.ok(item.size>=44&&item.size<=54);
-  assert.equal(item.y,surfaceAt(item.x)-2);
+  assert.ok(item.size>=36&&item.size<=48);
+  assert.ok(item.y>=350&&item.y<=surfaceAt(item.x)-100,'the prop stays above the walkable plane');
   for(const offset of [-150,0,150])assert.equal(interiorAt(item.x+offset),undefined);
   assert.equal(hiddenItemForId(item.id),item);
   await access(new URL(`../public${item.art}`,import.meta.url));

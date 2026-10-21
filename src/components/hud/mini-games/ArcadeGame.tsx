@@ -15,12 +15,12 @@ import { arcadeHud, drawArcade } from "./arcade-scene";
 import "./arcade.css";
 
 const COPY: Record<ArcadeKind, { instructions: string; ready: string; won: string; controls: string }> = {
-  pigeonRace: { instructions: "Évite les colis, active le turbo et termine en tête.", ready: "↑ ↓ : couloirs · Espace : turbo", won: "Pigeon champion.", controls: "↑ ↓ : couloirs · Espace : turbo" },
-  paperCut: { instructions: "Découpe 14 dossiers. Les sceaux rouges coûtent 2 vies.", ready: "Glisse pour couper · Flèches + Espace au clavier", won: "Quatorze dossiers en confettis.", controls: "Glisse pour couper · Flèches + Espace au clavier" },
-  snake: { instructions: "Avale 10 lettres. Évite les murs et ta queue.", ready: "Flèches ou ZQSD / WASD : tourner", won: "Courrier avalé.", controls: "Flèches ou ZQSD / WASD : tourner" },
-  maze: { instructions: "Ramasse tout. Évite les fantômes ; les potions les font fuir.", ready: "Flèches ou ZQSD / WASD : bouger", won: "Labyrinthe vidé.", controls: "Flèches ou ZQSD / WASD : bouger" },
-  stack: { instructions: "Complète 4 lignes de dossiers.", ready: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute", won: "Quatre lignes classées.", controls: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute" },
-  pong: { instructions: "Renvoie le dossier. Premier à 5 points, ou en tête au chrono.", ready: "Glisse ou maintiens ← → : raquette", won: "Dossier renvoyé.", controls: "Glisse ou maintiens ← → : raquette" },
+  pigeonRace: { instructions: "Termine la course en tête en évitant les colis", ready: "↑ ↓ : couloirs · Espace : turbo", won: "Pigeon champion.", controls: "↑ ↓ : couloirs · Espace : turbo" },
+  paperCut: { instructions: "Découpe 14 dossiers en évitant les sceaux rouges", ready: "Glisse pour couper · Flèches + Espace au clavier", won: "Quatorze dossiers en confettis.", controls: "Glisse pour couper · Flèches + Espace au clavier" },
+  snake: { instructions: "Ramasse 10 lettres sans toucher les murs ni ta queue", ready: "Flèches ou ZQSD / WASD : tourner", won: "Courrier avalé.", controls: "Flèches ou ZQSD / WASD : tourner" },
+  maze: { instructions: "Ramasse les lettres en évitant les fantômes ou utilise les potions pour les repousser", ready: "Flèches ou ZQSD / WASD : bouger", won: "Labyrinthe vidé.", controls: "Flèches ou ZQSD / WASD : bouger" },
+  stack: { instructions: "Complète 4 lignes de dossiers", ready: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute", won: "Quatre lignes classées.", controls: "← → : déplacer · ↑ : tourner · ↓ : descendre · Espace : chute" },
+  pong: { instructions: "Renvoie le dossier pour atteindre 5 points ou mener à la fin du temps", ready: "Glisse ou maintiens ← → : raquette", won: "Dossier renvoyé.", controls: "Glisse ou maintiens ← → : raquette" },
 };
 const DIRECTIONS: Record<string, Direction> = { ArrowUp: "up", ArrowRight: "right", ArrowDown: "down", ArrowLeft: "left", w: "up", z: "up", d: "right", s: "down", a: "left", q: "left" };
 
@@ -112,7 +112,7 @@ export function ArcadeGame({ kind, seedId, onResolve, onDone, practice, record, 
   const labels: Record<Direction, string> = { up: kind === "stack" ? "↻" : "↑", right: "→", down: "↓", left: "←" };
   const names: Record<Direction, string> = { up: kind === "stack" ? "Tourner la pièce" : "Monter", right: "Aller à droite", down: kind === "stack" ? "Faire descendre la pièce" : "Descendre", left: "Aller à gauche" };
   const finished = phase === "done", playing = phase === "playing", won = sim.status === "won";
-  return <MiniGameShell kind={kind} eyebrow={`${practice ? "Entraînement · " : ""}${MINI_GAMES[kind].misery}`} title={MINI_GAMES[kind].title}
+  return <MiniGameShell kind={kind} eyebrow={practice ? "Entraînement" : "Défi"} title={MINI_GAMES[kind].title}
     instructions={finished ? won ? copy.won : punchlineFor(`${kind}:${seedId}`) : copy.instructions}
     onLeave={leave} focusKey={phase} onKeyDown={event => {
       if (!playing) return;
