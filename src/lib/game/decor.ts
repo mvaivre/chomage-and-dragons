@@ -51,11 +51,22 @@ export const DECOR_TEXTS = {
 } as const;
 
 export type DecorKind = keyof typeof DECOR_TEXTS | "welcome" | "friend" | "grave" | "crown" | "daily" | "hired" | "setpiece";
-export type InteriorId = "orp" | "factory";
+export type InteriorId = "orp" | "factory" | "tavern";
 export const INTERIORS: ReadonlyArray<{ id: InteriorId; biome: string; name: string; from: number; to: number }> = [
   { id: "orp", biome: "plaine", name: "Centre ORP", from: 1600, to: 3263.2 },
   { id: "factory", biome: "foret", name: "Usine à CV", from: 4300, to: 5963.2 },
+  { id: "tavern", biome: "taverne", name: "LA TAVERNE", from: WORLD_LENGTH - 1840, to: WORLD_LENGTH + 100 },
 ];
+const roomLaps = new Map<number, Array<(typeof INTERIORS)[number]>>();
+function roomsForLap(lap: number) {
+  let rooms = roomLaps.get(lap);
+  if (!rooms) {
+    if (roomLaps.size > 16) roomLaps.delete(roomLaps.keys().next().value!);
+    rooms = INTERIORS.map(room => ({ ...room, from: room.from + lap * WORLD_LENGTH, to: room.to + lap * WORLD_LENGTH }));
+    roomLaps.set(lap, rooms);
+  }
+  return rooms;
+}
 export const DECOR_SPACING = 600;
 /** Includes the landmark's silhouette (at most 178 wide) and half a sign. */
 export const TRANSITION_CLEARANCE = 250;
@@ -64,17 +75,20 @@ export const INTERIOR_CLEARANCE = 150;
 /** Read in tickers: a plain loop, no closure per call. */
 export function interiorAt(x: number) {
   if (x < 0) return undefined;
-  const local = x % WORLD_LENGTH;
-  for (let i = 0; i < INTERIORS.length; i++) if (local >= INTERIORS[i].from && local <= INTERIORS[i].to) return INTERIORS[i];
+  const lap = Math.floor(x / WORLD_LENGTH);
+  // The final tavern straddles the lap boundary, where hired heroes arrive.
+  for (let cycle = Math.max(0, lap - 1); cycle <= lap; cycle++) {
+    const rooms = roomsForLap(cycle);
+    for (const room of rooms) if (x >= room.from && x <= room.to) return room;
+  }
   return undefined;
 }
 
 export function interiorsInRange(left: number, right: number) {
   const result: Array<(typeof INTERIORS)[number]> = [];
-  for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
-    for (const room of INTERIORS) {
-      const from = room.from + lap * WORLD_LENGTH, to = room.to + lap * WORLD_LENGTH;
-      if (to >= left && from <= right) result.push({ ...room, from, to });
+  for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH) - 1); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
+    for (const room of roomsForLap(lap)) {
+      if (room.to >= left && room.from <= right) result.push(room);
     }
   }
   return result;
@@ -91,18 +105,19 @@ export interface DecorSite {
 }
 
 /** Safe intervals use only world coordinates: viewport and pixel density never enter. */
-export function decorIntervals(): Array<[number, number]> {
+export function decorIntervals(lap = 0): Array<[number, number]> {
   const blocked: Array<[number, number]> = [
     ...BIOMES.slice(0, -1).map(b => [b.to * WORLD_LENGTH - TRANSITION_CLEARANCE, b.to * WORLD_LENGTH + TRANSITION_CLEARANCE] as [number, number]),
     ...INTERIORS.map(r => [r.from - INTERIOR_CLEARANCE, r.to + INTERIOR_CLEARANCE] as [number, number]),
+    ...INTERIORS.filter(r => lap > 0 && r.to > WORLD_LENGTH).map(r => [0, r.to - WORLD_LENGTH + INTERIOR_CLEARANCE] as [number, number]),
   ].sort((a, b) => a[0] - b[0]);
   const intervals: Array<[number, number]> = [];
   let start = 160;
   for (const [from, to] of blocked) {
-    if (from > start) intervals.push([start, from]);
+    if (from > start) intervals.push([start, Math.min(from, WORLD_LENGTH - 440)]);
     start = Math.max(start, to);
   }
-  intervals.push([start, WORLD_LENGTH - 440]);
+  if (start < WORLD_LENGTH - 440) intervals.push([start, WORLD_LENGTH - 440]);
   return intervals;
 }
 
@@ -114,7 +129,7 @@ export function isCarvedTree(site: Pick<DecorSite, "biome" | "kind" | "setpiece"
 const laps = new Map<number, readonly DecorSite[]>();
 
 /**
- * Packed before drawing, with a small seeded slack; 43 stops per 200-step lap.
+ * Packed before drawing, with a small seeded slack; roughly 40 outdoor stops per 200-step lap.
  * Deterministic, so the few laps around the camera are kept; callers never mutate them.
  */
 export function decorForLap(lap: number): DecorSite[] {
@@ -132,7 +147,7 @@ function packLap(cycle: number): DecorSite[] {
   const sites: DecorSite[] = [];
   const categories = ["refusal", "direction", "refusal", "offer", "wanted", "epitaph", "coach", "influencer"] as const;
   let previous = -DECOR_SPACING;
-  for (const [from, to] of decorIntervals()) {
+  for (const [from, to] of decorIntervals(cycle)) {
     for (let x = Math.max(from + 1, previous + DECOR_SPACING) + Math.floor(random() * 9); x < to; x += DECOR_SPACING + Math.floor(random() * 9)) {
       const biome = BIOMES.find(b => x >= b.from * WORLD_LENGTH && x < b.to * WORLD_LENGTH)!;
       const kind = categories[Math.floor(random() * categories.length)];
@@ -142,15 +157,13 @@ function packLap(cycle: number): DecorSite[] {
       previous = x;
     }
   }
-  const count = new Map<string, number>();
-  const lastForest = sites.filter(s => s.biome === "foret").length - 1;
-  return sites.map((original, siteIndex) => {
-    const site = cycle === 0 && siteIndex === 0 ? { ...original, x: 0 } : original;
-    const index = count.get(site.biome) ?? 0;
-    count.set(site.biome, index + 1);
-    const target = site.biome === "plaine" ? 0 : site.biome === "foret" ? lastForest : 1;
-    return { ...site, setpiece: index === target };
-  });
+  const chosen = new Set<string>();
+  for (const biome of BIOMES) {
+    const candidates = sites.filter(s => s.biome === biome.id && !interiorAt(s.x - 330) && !interiorAt(s.x + 330));
+    const selected = biome.id === "plaine" ? candidates[0] : biome.id === "foret" ? candidates.at(-1) : candidates[1] ?? candidates[0];
+    if (selected) chosen.add(selected.id);
+  }
+  return sites.map((site, index) => ({ ...site, x: cycle === 0 && index === 0 ? 0 : site.x, setpiece: chosen.has(site.id) }));
 }
 
 type DecorPlayer = Pick<Player, "id" | "name" | "characterId" | "hiredAt">;
@@ -196,10 +209,12 @@ export function groupDecor(group: DecorGroup): GroupDecor {
 export function personaliseDecor(sites: readonly DecorSite[], group: GroupDecor): DecorSite[] {
   let friend = 0, grave = 0;
   const tavernStart = sites.findIndex(s => s.biome === "taverne");
+  const pages = Math.max(1, Math.ceil(group.hired.length / 3));
+  const hiredStart = Math.max(3, Math.min(tavernStart, sites.length - pages));
   return sites.map((site, index) => {
     if (site.id === "0:0" || site.id === "0:1") return { ...site, kind: "welcome", reaction: "none", text: site.id === "0:0" ? "Bienvenue dans la quête du CDI" : "Ici, les refus font avancer" };
-    const page = index - tavernStart;
-    if (site.biome === "taverne" && page < Math.max(1, Math.ceil(group.hired.length / 3))) {
+    const page = index - hiredStart;
+    if (page >= 0 && page < pages) {
       const names = group.hired.slice(page * 3, page * 3 + 3).map(text => text.split(" · ")[0]);
       return { ...site, kind: "hired", text: names.join(" · ") || "La prochaine tournée vous attend" };
     }

@@ -28,7 +28,7 @@ export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny", MusicT
 export type MusicPhase = "intro" | "adventure";
 
 export function trackForPlace(where: string, phase: MusicPhase = "adventure"): MusicTrack {
-  if (phase === "intro" || where === "taverne") return TRACKS.firelit;
+  if (phase === "intro" || where === "taverne" || where === "tavern") return TRACKS.firelit;
   if (where === "orp" || where === "factory") return TRACKS.funny;
   if (where === "marais" || where === "desert") return TRACKS.ambient;
   return TRACKS.medieval;

@@ -20,7 +20,7 @@ const ITEMS = [
   { biome: "cascade", name: "La boussole", clue: "Dans les rochers près de la cascade", art: "compass", x: 16780, y: 510, size: 40 },
   { biome: "montagne", name: "Le cristal bleu", clue: "Dans les rochers enneigés", art: "crystal", x: 20850, y: 490, size: 44 },
   { biome: "desert", name: "La lampe ancienne", clue: "Près des dunes", art: "lamp", x: 24530, y: 500, size: 40 },
-  { biome: "taverne", name: "La couronne égarée", clue: "Près de la lanterne de la taverne", art: "crown", x: 29070, y: 490, size: 42 },
+  { biome: "taverne", name: "La couronne égarée", clue: "Près des lanternes avant la taverne", art: "crown", x: 28020, y: 490, size: 42 },
 ] as const;
 
 export const HIDDEN_ITEMS: readonly HiddenItem[] = ITEMS.map(item => ({

@@ -130,9 +130,17 @@ function CameraRig({
       scene.pan = Math.abs(eased) < 1 ? 0 : eased;
     }
 
-    const wanted = scene.dragonMeal ? scene.dragonMeal.nest - camera.viewW * 0.55 : (freeCamera && scene.exploreCenter !== null
+    let wanted = scene.dragonMeal ? scene.dragonMeal.nest - camera.viewW * 0.55 : (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
       : scene.focus - camera.viewW * scene.anchor) + scene.pan;
+    if (!scene.dragonMeal && scene.room?.id === "tavern" && scene.exploreCenter === null && scene.pan === 0) {
+      wanted = Math.min(wanted, scene.room.to - camera.viewW + 120);
+      if (camera.viewW < 700) {
+        const arrival = Math.max(0, Math.min(1, (scene.focus - (scene.room.to - 800)) / 400));
+        const anchor = scene.anchor + (0.78 - scene.anchor) * arrival;
+        wanted = Math.min(wanted, scene.focus - camera.viewW * anchor);
+      }
+    }
     const maxX = Math.max(0, Math.max(WORLD_LENGTH, scene.targetFocus + camera.viewW) + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 

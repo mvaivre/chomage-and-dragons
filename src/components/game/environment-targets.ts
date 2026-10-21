@@ -10,6 +10,7 @@ export interface EnvironmentTarget {
   worldX: number; worldY: number; width: number; height: number; visible: boolean;
   startedAt: number; visits: number;
   label?: string;
+  lines?: readonly string[];
 }
 
 export function isDrawn(node: Container | null): boolean {
@@ -24,7 +25,7 @@ const feet = new Point();
  * Use the actual transformed feet, including parent offsets, rooms and parallax.
  * Called every frame for every resident: fields are written in place.
  */
-export function updateSpriteTarget(id: string, node: Container | null, height: number, width = height * .7, factor = 1) {
+export function updateSpriteTarget(id: string, node: Container | null, height: number, width = height * .7, factor = 1, centerOffset = 0) {
   const target = environmentTargets.get(id);
   if (!target) return;
   if (!node || !isDrawn(node)) { target.visible = false; return; }
@@ -32,7 +33,7 @@ export function updateSpriteTarget(id: string, node: Container | null, height: n
   const { camera } = scene;
   target.visible = true; target.width = width; target.height = height;
   target.worldX = camera.x + camera.viewW / 2 + (point.x / camera.scale - camera.viewW / 2) / factor;
-  target.worldY = (point.y - camera.screenOffsetY) / camera.scale + camera.y * factor - height / 2;
+  target.worldY = (point.y - camera.screenOffsetY) / camera.scale + camera.y * factor - height / 2 + centerOffset;
 }
 export const environmentTargets = new Map<string, EnvironmentTarget>();
 export function updateEnvironmentTarget(id: string, geometry: Partial<EnvironmentTarget>) {

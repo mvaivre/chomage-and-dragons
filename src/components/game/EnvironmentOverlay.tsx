@@ -179,7 +179,8 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
       setSpeech({ id, line: reply.line });
     } else {
       target.startedAt = performance.now();
-      setSpeech({ id, line: environmentLine(target.kind, target.visits++) });
+      const visit = target.visits++;
+      setSpeech({ id, line: target.lines?.length ? target.lines[visit % target.lines.length] : environmentLine(target.kind, visit) });
     }
     pulse(target); markMotion();
   };

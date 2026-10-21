@@ -156,7 +156,7 @@ function finishFade({ env, ctx, player }) {
 
 test('recorded tracks follow the menu and the landscape', () => {
   for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.firelit);
-  assert.equal(trackForPlace('taverne'), TRACKS.firelit);
+  for (const place of ['taverne', 'tavern']) assert.equal(trackForPlace(place), TRACKS.firelit);
   for (const place of ['orp', 'factory']) assert.equal(trackForPlace(place), TRACKS.funny);
   for (const place of ['marais', 'desert']) assert.equal(trackForPlace(place), TRACKS.ambient);
   for (const place of ['plaine', 'foret', 'lac', 'cascade', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
