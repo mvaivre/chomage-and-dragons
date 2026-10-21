@@ -60,6 +60,14 @@ Le cavalier de l'initiation est posé sur la selle et le dragon regarde les anne
 - Les mouvements réduits conservent une pose éveillée fixe.
 - ImageGen intégré ; sortie brute `exec-33a42964-1e5a-4dbf-82bb-07b9377e6d5d.png`. Prompt exact : [`dragon-v3.prompt.txt`](dragon-v3.prompt.txt).
 
+### Réactions aux clics
+
+Chaque dragon raconte une blague au premier clic, s’agace au deuxième et menace de manger le personnage au troisième. Le quatrième clic déclenche une ingestion suivie d’un recrachement, avec les poses de l’atlas existant. Tous les clics comptent, même rapprochés ; glisser le décor ne compte pas.
+
+L’échange reste mémorisé pendant l’exploration pour le personnage et le nid concernés, puis recommence après le repas. Le héros est déplacé uniquement à l’écran et retrouve sa position réelle après l’animation. La caméra cadre le nid et les autres actions attendent la fin du gag. Le journal, les pas et le butin restent inchangés. L’interruption du canvas libère la caméra et restaure le héros.
+
+Régression : `tests/browser/dragon-personality.test.mjs` couvre la séquence, le clavier, les clics rapprochés, le glissement, le retour après culling, le personnage éloigné et la sauvegarde, à 390, 1280 et 1920 px avec mouvements réduits. `tests/browser/dragon-resident.test.mjs` contrôle toujours le contact au sol et le réveil en forêt et en montagne.
+
 ### Prompt 1
 
 Use case: stylized-concept. Asset type: 2D game animation sprite sheet. Reference image: style and dragon identity. Create a professional sprite sheet of the SAME comical green dragon with cream belly, plum wing membranes, bold black ink outlines and warm paper-textured gouache shading. TRUE transparent background. Exact uniform grid FOUR columns TWO rows, 8 equal square cells, ideally total 2048x1024. Each cell contains exactly ONE whole dragon, same scale, centred, feet at identical 90% baseline, no clipping, generous margins, no text/numbers/grid lines/shadows behind grid. Side view facing LEFT. Row 1: (1) flying wings high, (2) flying wings low, (3) landed with enormous mouth wide open to swallow a human, (4) jaws shut after swallowing, startled eyes. Row 2: (5) swollen belly, cheeks puffed, (6) straining squat tail lifted (cartoon bathroom gag, no waste/fluids drawn), (7) relieved proud dragon, (8) asleep curled up on ground. Wings/limbs/head must stay readable and consistent. No human or props in any cell. Exaggerate expressions, appealing mischievous tavern-fantasy humour. Dragon fills about 82% of each cell without touching adjacent cells.

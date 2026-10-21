@@ -11,6 +11,11 @@ import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./en
 
 const SCALE = 0.62;
 const FOOT_ANCHOR = { x: 0.5, y: 476 / 512 };
+export function dragonResidentScale(x: number) {
+  const { camera } = scene;
+  const headroom = (surfaceAt(x) - camera.y) * camera.scale + camera.screenOffsetY - scene.topInset - 16;
+  return Math.min(SCALE, Math.max(0.42, headroom / (455 * camera.scale)));
+}
 const drawShadow = (g: Graphics) => { g.clear().ellipse(0, 1, 116, 5).fill({ color: 0x211b18, alpha: 0.18 }); };
 
 function Resident({ x }: { x: number }) {
@@ -23,14 +28,15 @@ function Resident({ x }: { x: number }) {
   useSceneTick(ticker => {
     const node = root.current, body = sprite.current, old = previous.current;
     if (!node || !body || !old || !frames) { updateSpriteTarget(targetId, null, 275); return; }
-    node.visible = x > scene.camera.x - 300 && x < scene.camera.x + scene.camera.viewW + 300;
+    node.visible = scene.dragonMeal?.nest !== x && x > scene.camera.x - 300 && x < scene.camera.x + scene.camera.viewW + 300;
     if (!node.visible) { updateSpriteTarget(targetId, null, 275); return; }
     const dt = worldDelta(ticker.elapsedMS);
     if (!scene.reducedMotion) time.current += dt;
     const reaction = reactionProgress(target.current);
     let attentive = reaction < 1;
     for (const hero of scene.heroes.values()) if (Math.abs(hero.x - x) < 260) { attentive = true; break; }
-    const frame = dragonIdleFrame(time.current, attentive, scene.reducedMotion);
+    const mood = target.current.visits % 4;
+    const frame = reaction < 1 && mood === 2 ? 3 : reaction < 1 && mood === 3 ? 2 : dragonIdleFrame(time.current, attentive, scene.reducedMotion);
     if (frame !== pose.current.frame) {
       pose.current.previous = pose.current.frame;
       pose.current.frame = frame;
@@ -41,9 +47,7 @@ function Resident({ x }: { x: number }) {
     body.texture = frames[state.frame]; body.alpha = state.blend;
     old.texture = frames[state.previous]; old.alpha = 1 - state.blend; old.visible = state.blend < 1;
     // Leave room for the awake head beneath the HUD on short desktop viewports.
-    const { camera } = scene;
-    const headroom = (surfaceAt(x) - camera.y) * camera.scale + camera.screenOffsetY - scene.topInset - 16;
-    const scale = Math.min(SCALE, Math.max(0.42, headroom / (455 * camera.scale)));
+    const scale = dragonResidentScale(x);
     // Both poses pivot at their shared foot line: breathing and pose changes never lift the feet.
     const breathing = scene.reducedMotion ? 0 : Math.sin(time.current * 1.8 + x) * 0.012;
     const nod = scene.reducedMotion ? 0 : Math.sin(reaction * Math.PI * 4) * (1 - reaction) * 0.025;

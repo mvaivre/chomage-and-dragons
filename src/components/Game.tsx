@@ -214,6 +214,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
+  const dragonMealId = useRef<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
@@ -243,6 +244,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   useEffect(() => {
     if (!awaitingTravel) return;
     const timer = window.setTimeout(() => {
+      if (dragonMealId.current) return;
       setAwaitingTravel(false);
       actionInFlight.current = false;
       leanOut();
@@ -752,6 +754,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
+    if (dragonMealId.current === id) {
+      dragonMealId.current = null;
+      setAwaitingTravel(false);
+      actionInFlight.current = false;
+    }
     if (chestAnimationId.current === id) {
       chestAnimationId.current = null;
       setAwaitingTravel(false);
@@ -789,6 +796,15 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const handleDragonChallenge = useCallback(() => {
     if (dragonChallengeOpen.current) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
   }, []);
+  const handleDragonSwallow = useCallback((nest: number) => {
+    if (!me || actionInFlight.current || !dragonChallengeOpen.current || effects.length) return false;
+    const id = crypto.randomUUID();
+    dragonMealId.current = id;
+    actionInFlight.current = true;
+    setAwaitingTravel(true);
+    setEffects(previous => [...previous, { id, kind: "dragonMeal", origin: { x: nest, y: surfaceAt(nest) }, playerId: me.id, loud: true }]);
+    return true;
+  }, [me, effects.length]);
 
   const handleDevBiome = useCallback((from: number, to: number) => {
     setDevExplore(true);
@@ -815,6 +831,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     pendingChestGame.current = null;
     setFirstFind(null);
     setEffects([]);
+    dragonMealId.current = null;
     setActionFeedback(null);
     setEffectFocusId(null);
     setObservedPlayerId(null);
@@ -883,6 +900,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         onFindHidden={handleFindHidden}
         atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={handleDragonChallenge}
+        onDragonSwallow={handleDragonSwallow}
         onSceneReady={handleSceneReady}
         paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}

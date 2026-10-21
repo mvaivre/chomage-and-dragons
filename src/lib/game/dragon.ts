@@ -1,6 +1,23 @@
 import { BIOMES, WORLD_LENGTH } from "./world";
 
 export const DRAGON_DURATION = 6400;
+export const DRAGON_MEAL_DURATION = 5400;
+export const DRAGON_REPLIES = [
+  "Le comble pour un dragon ? Avoir un coup de froid.",
+  "La blague est finie. Laisse-moi tranquille.",
+  "Encore un clic et je te mange.",
+  "Je t’avais prévenu.",
+] as const;
+
+/** A fourth visit ends the exchange; the next one starts a new joke. */
+export function dragonReply(visits: number) {
+  const step = Math.max(0, Math.floor(visits)) % 4;
+  return { step, line: DRAGON_REPLIES[step], swallow: step === 3 };
+}
+
+export function dragonMealFrame(ms: number): number {
+  return ms < 700 ? 2 : ms < 1400 ? 3 : ms < 3000 ? 4 : ms < 3500 ? 5 : 6;
+}
 export type DragonBeat = "arrive" | "bite" | "digest" | "strain" | "release" | "leave";
 
 /** The same clock drives the dragon and its victim; no independent timers. */

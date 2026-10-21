@@ -7,6 +7,7 @@ import { environmentTargets, type EnvironmentTarget } from "./environment-target
 import { environmentBubble, parallaxX } from "./projection";
 import { markMotion, scene, sceneFrameListeners } from "./scene";
 import { fx } from "./fx";
+import { dragonReply } from "@/lib/game/dragon";
 
 function pulse(target: EnvironmentTarget) {
   const x = scene.camera.x + parallaxX(target.worldX, scene.camera.x, scene.camera.viewW, target.factor);
@@ -91,7 +92,7 @@ function TargetButton({ place, onActivate, register }: { place: Place; onActivat
     ref={node => register(place.id, node)}
     onPointerDown={event => {
       event.stopPropagation();
-      if (!event.isPrimary || event.button !== 0) return;
+      if (!place.available || !event.isPrimary || event.button !== 0) return;
       event.currentTarget.setPointerCapture(event.pointerId);
       moved.current = false;
       drag.current = { x: event.clientX, y: event.clientY, pan: scene.pan, moved: false, pointer: event.pointerId };
@@ -99,7 +100,7 @@ function TargetButton({ place, onActivate, register }: { place: Place; onActivat
     onPointerMove={event => {
       const start = drag.current;
       // A second finger never takes over or ends the pan.
-      if (!start || start.pointer !== event.pointerId) return;
+      if (!place.available || !start || start.pointer !== event.pointerId) return;
       if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) start.moved = moved.current = true;
       if (start.moved) { scene.dragging = true; scene.pan = start.pan - (event.clientX - start.x) / scene.camera.scale; markMotion(); }
     }}
@@ -115,11 +116,13 @@ function TargetButton({ place, onActivate, register }: { place: Place; onActivat
  * Membership and labels go through React a few times a second; positions follow the
  * scene on each of its frames, written straight to the elements.
  */
-export function EnvironmentOverlay({ meId, paused }: { meId: string | null; paused: boolean }) {
+export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow }: { meId: string | null; paused: boolean; busy?: boolean; onDragonSwallow?: (nest: number) => boolean }) {
   const [places, setPlaces] = useState<Place[]>(NO_PLACES);
   const [speech, setSpeech] = useState<{ id: string; line: string } | null>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const bubble = useRef<HTMLDivElement | null>(null);
+  // Keep each player's exchange when its nest is culled while browsing.
+  const dragonVisits = useRef(new Map<string, number>());
 
   useEffect(() => {
     const sync = () => {
@@ -128,7 +131,7 @@ export function EnvironmentOverlay({ meId, paused }: { meId: string | null; paus
         const targets = [...environmentTargets.values()].sort((a, b) => a.factor - b.factor || Number(b.kind === "tree") - Number(a.kind === "tree") || b.width * b.height - a.width * a.height);
         for (const target of targets) {
           if (!project(target, box)) continue;
-          next.push({ id: target.id, label: target.label ?? ENVIRONMENT_LABELS[target.kind], available: canExploreTarget(target.visible, paused) });
+          next.push({ id: target.id, label: target.label ?? ENVIRONMENT_LABELS[target.kind], available: !busy && canExploreTarget(target.visible, paused) });
         }
       }
       setPlaces(before => before.length === next.length && before.every((item, i) => item.id === next[i].id && item.label === next[i].label && item.available === next[i].available) ? before : next.length ? next : NO_PLACES);
@@ -136,7 +139,7 @@ export function EnvironmentOverlay({ meId, paused }: { meId: string | null; paus
     sync();
     const timer = window.setInterval(sync, 150);
     return () => window.clearInterval(timer);
-  }, [meId, paused]);
+  }, [meId, paused, busy]);
 
   useEffect(() => {
     if (!places.length && !speech) return;
@@ -163,9 +166,21 @@ export function EnvironmentOverlay({ meId, paused }: { meId: string | null; paus
 
   const activate = (id: string) => {
     const target = environmentTargets.get(id);
-    if (!target || !canExploreTarget(target.visible, paused) || performance.now() - target.startedAt < 900) return;
-    target.startedAt = performance.now();
-    setSpeech({ id, line: environmentLine(target.kind, target.visits++) });
+    if (!target || busy || !canExploreTarget(target.visible, paused)) return;
+    if (target.kind !== "dragon" && performance.now() - target.startedAt < 900) return;
+    if (target.kind === "dragon") {
+      if (!meId) return;
+      const key = `${meId}:${id}`, visits = dragonVisits.current.get(key) ?? 0;
+      const reply = dragonReply(visits);
+      if (reply.swallow && !onDragonSwallow?.(target.homeX)) return;
+      dragonVisits.current.set(key, visits + 1);
+      target.visits = visits + 1;
+      target.startedAt = performance.now();
+      setSpeech({ id, line: reply.line });
+    } else {
+      target.startedAt = performance.now();
+      setSpeech({ id, line: environmentLine(target.kind, target.visits++) });
+    }
     pulse(target); markMotion();
   };
   const anchored = speech && places.some(item => item.id === speech.id);

@@ -433,7 +433,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
       node.rotation = effect?.rotation ?? 0;
       node.x = at.current + (effect?.x ?? 0);
       node.y = surfaceAt(at.current) + 4 + lane.dy + (effect?.y ?? 0);
-      node.visible = (isFocused || inRoom(at.current, scene.viewedRoom)) && at.current > scene.camera.x - 200 && at.current < scene.camera.x + scene.camera.viewW + 200;
+      node.visible = (isFocused || inRoom(node.x, scene.viewedRoom)) && node.x > scene.camera.x - 200 && node.x < scene.camera.x + scene.camera.viewW + 200;
       if (!node.visible) {
         // No greeting badge where nobody is drawn.
         showEnvironmentTarget(interactionId, false);

@@ -7,7 +7,7 @@ registerHooks({ resolve(s, c, next) {
   return next(s, c);
 } });
 const { createDragonRun, advanceDragonRun, steerDragonRun, dragonScore } = await import('../src/lib/game/dragon-flight.ts');
-const { canChallengeDragon, dragonIdleFrame, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION } = await import('../src/lib/game/dragon.ts');
+const { canChallengeDragon, dragonIdleFrame, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION, dragonReply, dragonMealFrame, DRAGON_MEAL_DURATION } = await import('../src/lib/game/dragon.ts');
 const { roomAt } = await import('../src/lib/game/doors.ts');
 const { WORLD_LENGTH } = await import('../src/lib/game/world.ts');
 
@@ -32,6 +32,21 @@ test('the swallow has an arrival, closed digestion, rear release and complete de
   assert.equal(dragonBeat(4500), 'release');
   assert.equal(dragonBeat(DRAGON_DURATION), 'leave');
   for (let t = 0; t <= DRAGON_DURATION; t += 33) assert.ok(dragonFrame(t) >= 0 && dragonFrame(t) < 8);
+});
+
+test('a resident jokes, grows irritated, warns, then eats on every fourth accepted visit', () => {
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const replies = Array.from({ length: 4 }, (_, step) => dragonReply(cycle * 4 + step));
+    assert.match(replies[0].line, /coup de froid/);
+    assert.match(replies[1].line, /tranquille/);
+    assert.match(replies[2].line, /je te mange/);
+    assert.deepEqual(replies.map(reply => reply.swallow), [false, false, false, true]);
+  }
+  assert.equal(dragonMealFrame(0), 2);
+  assert.equal(dragonMealFrame(900), 3);
+  assert.equal(dragonMealFrame(2000), 4);
+  assert.equal(dragonMealFrame(3200), 5);
+  assert.equal(dragonMealFrame(DRAGON_MEAL_DURATION), 6);
 });
 
 test('a resident starts awake, rests briefly and wakes for visitors or reduced motion', () => {

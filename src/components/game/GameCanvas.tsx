@@ -128,13 +128,13 @@ function CameraRig({
       scene.pan = Math.abs(eased) < 1 ? 0 : eased;
     }
 
-    const wanted = (freeCamera && scene.exploreCenter !== null
+    const wanted = scene.dragonMeal ? scene.dragonMeal.nest - camera.viewW * 0.55 : (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
       : scene.focus - camera.viewW * scene.anchor) + scene.pan;
     const maxX = Math.max(0, Math.max(WORLD_LENGTH, scene.targetFocus + camera.viewW) + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
-    const wantedY = (surfaceAt(scene.focus) - REST_SURFACE) * 0.45;
+    const wantedY = (surfaceAt(scene.dragonMeal?.nest ?? scene.focus) - REST_SURFACE) * 0.45;
 
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
@@ -467,6 +467,7 @@ export interface GameCanvasProps {
   atmosphere?: boolean;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
+  onDragonSwallow?: (nest: number) => boolean;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
@@ -490,6 +491,7 @@ function GameCanvas({
   atmosphere = true,
   onReturnToMe,
   onDragonChallenge,
+  onDragonSwallow,
   onSceneReady,
   paused,
   players,
@@ -506,6 +508,7 @@ function GameCanvas({
   devCameraTarget = null,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
+  const dragonBusy = effects.some(effect => effect.kind === "dragonMeal");
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
@@ -551,7 +554,7 @@ function GameCanvas({
   const drag = useRef<{ x: number; pan: number; id: number } | null>(null);
 
   const onPointerDown = useCallback((event: React.PointerEvent) => {
-    if (!event.isPrimary || event.button !== 0) return;
+    if (scene.dragonMeal || !event.isPrimary || event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, pan: scene.pan, id: event.pointerId };
     scene.dragging = true;
@@ -559,7 +562,7 @@ function GameCanvas({
 
   const onPointerMove = useCallback((event: React.PointerEvent) => {
     const start = drag.current;
-    if (!start || start.id !== event.pointerId) return;
+    if (scene.dragonMeal || !start || start.id !== event.pointerId) return;
     scene.pan = start.pan - (event.clientX - start.x) / scene.camera.scale;
   }, []);
 
@@ -575,6 +578,7 @@ function GameCanvas({
       // Pinch and Ctrl+wheel still zoom the page.
       if (event.ctrlKey) return;
       event.preventDefault();
+      if (scene.dragonMeal) return;
       const delta =
         Math.abs(event.deltaX) > Math.abs(event.deltaY)
           ? event.deltaX
@@ -595,15 +599,15 @@ function GameCanvas({
       onPointerCancel={onPointerUp}
       onLostPointerCapture={onPointerUp}
     >
-      {meId && !paused ? <button type="button" className="world-return"
+      {meId && !paused && !dragonBusy ? <button type="button" className="world-return"
         onPointerDown={event => event.stopPropagation()}
         onClick={() => { scene.pan = 0; scene.exploreCenter = null; onReturnToMe?.(); markMotion(); }}
         title="Glisse le paysage ou utilise la molette pour explorer">
         ↶ Retrouver mon personnage
       </button> : null}
-      <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
-      <EnvironmentOverlay meId={meId} paused={paused} />
-      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
+      <DragonEncounter meId={meId} paused={paused || dragonBusy} onChallenge={onDragonChallenge} />
+      <EnvironmentOverlay key={meId} meId={meId} paused={paused} busy={dragonBusy} onDragonSwallow={onDragonSwallow} />
+      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused || dragonBusy} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}
