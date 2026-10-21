@@ -17,6 +17,7 @@ test('the hidden collection has one small background prop per biome',async()=>{
   assert.ok(item.y>=350&&item.y<=surfaceAt(item.x)-100,'the prop stays above the walkable plane');
   for(const offset of [-150,0,150])assert.equal(interiorAt(item.x+offset),undefined);
   assert.equal(hiddenItemForId(item.id),item);
+  assert.ok(item.art.startsWith('/art/world-v3/collectibles/'),'collectibles use dedicated object illustrations');
   await access(new URL(`../public${item.art}`,import.meta.url));
  }
  assert.equal(hiddenItemForId('hidden:1:plaine'),null);

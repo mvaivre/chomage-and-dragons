@@ -87,7 +87,7 @@ function AmbientLifeLayer({ factor }: { factor: number }) {
     const span = (biome.to - biome.from) * WORLD_LENGTH;
     return [
       biome.id === "cascade" ? <WaterGlints key={`cascade-water-${offset}`} worldX={start + span * 0.5} factor={factor} /> : null,
-      <Resident key={`${offset}-${index}-crow`} kind={1} variant={index % 2} worldX={start + span * 0.5} factor={factor} />,
+      biome.id === "foret" ? <Resident key={`${offset}-${index}-crow`} kind={1} variant={index % 2} worldX={start + span * 0.5} factor={factor} /> : null,
     ];
   })}</pixiContainer>;
 }
@@ -103,11 +103,11 @@ function GroundDwellersLayer() {
     const biome = BIOMES[index];
     const at = (ratio: number) => offset + (biome.from + (biome.to - biome.from) * ratio) * WORLD_LENGTH;
     const leafy = ["plaine", "foret", "cascade", "lac", "taverne"].includes(biome.id);
-    const walker = index === 0 || index === 7 ? 0 : index < 5 ? 3 : null;
+    const walker = biome.id === "plaine" ? 0 : biome.id === "marais" ? 3 : null;
     return <pixiContainer key={`${offset}-${index}`}>
       {leafy ? [0.4, 0.84].map(ratio => <AnimatedTuft key={ratio} factor={1} worldX={at(ratio)} />) : null}
       {walker !== null ? <Resident kind={walker} variant={index % 2} worldX={at([0.35, 0, 0, 0.62][walker])} factor={1} /> : null}
-      <Resident kind={2} variant={index % 2} worldX={at(0.72)} factor={1} />
+      {biome.id === "taverne" ? <Resident kind={2} variant={index % 2} worldX={at(0.72)} factor={1} /> : null}
     </pixiContainer>;
   })}</pixiContainer>;
 }

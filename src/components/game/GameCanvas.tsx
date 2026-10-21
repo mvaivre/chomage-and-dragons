@@ -402,8 +402,8 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        {/* Residents roam behind the stops: personal signs (crown, daily champion) stay readable. */}
-        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /></Outdoors>
+        {/* Small inhabitants stand in front of props, below the player's plane. */}
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 

@@ -13,19 +13,19 @@ export interface HiddenItem {
 
 /** A finite collection, shared by every friend; no bonus in the race. */
 const ITEMS = [
-  { biome: "plaine", name: "Le courrier jamais parti", clue: "Près des moulins au départ", art: "action-candidature", x: 100, y: 475, size: 44 },
-  { biome: "foret", name: "Le crapaud du réseau", clue: "Dans les arbres après l’usine", art: "power-frog", x: 6410, y: 465, size: 40 },
-  { biome: "marais", name: "Le formulaire perdu", clue: "Dans la végétation du marais", art: "power-paper", x: 9280, y: 500, size: 40 },
-  { biome: "lac", name: "Le verre de trop", clue: "Sur la rive près du pont", art: "power-shot", x: 13310, y: 480, size: 40 },
-  { biome: "cascade", name: "Le refus waterproof", clue: "Dans les rochers près de la cascade", art: "action-refus", x: 16780, y: 510, size: 40 },
-  { biome: "montagne", name: "L’œuf du DRH", clue: "Dans les rochers enneigés", art: "power-dragon", x: 20850, y: 490, size: 44 },
-  { biome: "desert", name: "La flamme de la motivation", clue: "Près des dunes", art: "power-fire", x: 24530, y: 500, size: 40 },
-  { biome: "taverne", name: "La couronne égarée", clue: "Près de la lanterne de la taverne", art: "ui-crown", x: 29070, y: 490, size: 42 },
+  { biome: "plaine", name: "Le courrier jamais parti", clue: "Près des moulins au départ", art: "letter", x: 100, y: 475, size: 44 },
+  { biome: "foret", name: "La clé oubliée", clue: "Dans les arbres après l’usine", art: "key", x: 6410, y: 465, size: 40 },
+  { biome: "marais", name: "Le parchemin perdu", clue: "Dans la végétation du marais", art: "scroll", x: 9280, y: 500, size: 40 },
+  { biome: "lac", name: "La chope égarée", clue: "Sur la rive près du pont", art: "tankard", x: 13310, y: 480, size: 40 },
+  { biome: "cascade", name: "La boussole", clue: "Dans les rochers près de la cascade", art: "compass", x: 16780, y: 510, size: 40 },
+  { biome: "montagne", name: "Le cristal bleu", clue: "Dans les rochers enneigés", art: "crystal", x: 20850, y: 490, size: 44 },
+  { biome: "desert", name: "La lampe ancienne", clue: "Près des dunes", art: "lamp", x: 24530, y: 500, size: 40 },
+  { biome: "taverne", name: "La couronne égarée", clue: "Près de la lanterne de la taverne", art: "crown", x: 29070, y: 490, size: 42 },
 ] as const;
 
 export const HIDDEN_ITEMS: readonly HiddenItem[] = ITEMS.map(item => ({
   ...item, id: `hidden:0:${item.biome}`,
-  art: `/art/world-v3/ui/${item.art}.webp`,
+  art: `/art/world-v3/collectibles/${item.art}.webp`,
 }));
 
 export function hiddenItemForId(id: string): HiddenItem | null {

@@ -87,7 +87,7 @@ function TargetButton({ place, onActivate, register }: { place: Place; onActivat
   const drag = useRef<{ x: number; y: number; pan: number; moved: boolean; pointer: number } | null>(null);
   const moved = useRef(false);
   return <button type="button" className="environment-target" aria-label={place.label} aria-disabled={!place.available}
-    title={place.label} data-available={place.available}
+    title={place.label} data-available={place.available} data-environment-id={place.id}
     ref={node => register(place.id, node)}
     onPointerDown={event => {
       event.stopPropagation();
