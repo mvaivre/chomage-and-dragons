@@ -30,7 +30,8 @@ import { Welcome, hasSeenWelcome, rememberWelcome } from "@/components/hud/Welco
 import { QuestHud } from "@/components/hud/QuestHud";
 import { MonthlyMeetup } from "@/components/hud/MonthlyMeetup";
 import { AdventureMenu } from "@/components/hud/AdventureMenu";
-import { hiddenItemForId } from "@/lib/game/hidden-objects";
+import { HiddenObjectDiscovery } from "@/components/hud/HiddenObjectDiscovery";
+import { hiddenItemForId, type HiddenItem } from "@/lib/game/hidden-objects";
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
@@ -209,6 +210,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
   const [adventureOpen, setAdventureOpen] = useState(false);
+  const [adventureTab, setAdventureTab] = useState<"games" | "hunt">("games");
+  const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -305,15 +308,17 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
   const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
+  const firstFindVisible = Boolean(identity && firstFind?.playerId === identity);
   const handleFindHidden = useCallback((itemId: string) => {
-    if (!identity) return;
+    if (!identity || hiddenFoundIds.includes(itemId)) return;
     const item = hiddenItemForId(itemId);
     if (!item) return;
     const result = findHidden(identity, itemId);
     if (result.rejected) return;
     sfx.chime();
-    setNotice({ title: item.name, body: item.found });
-  }, [findHidden, identity]);
+    if (hiddenFoundIds.length === 0) setFirstFind({ playerId: identity, item });
+    else setNotice({ title: item.name, body: item.found });
+  }, [findHidden, identity, hiddenFoundIds]);
   // One condition renders the welcome, pauses the world and locks the actions.
   const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
   useEffect(() => {
@@ -322,7 +327,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
@@ -393,7 +398,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const onKeyDown = (event: KeyboardEvent) => {
       // The native mini-game dialog owns Escape, Space, Enter and focus, the daily one
       // included; the invitation owns Escape. Preventing Escape here would keep a dialog open.
-      if (miniGameVisible || inviteVisible || dailyOpen || adventureOpen || meetupOpen || welcomeVisible || event.defaultPrevented) return;
+      if (miniGameVisible || inviteVisible || dailyOpen || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -419,7 +424,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen, adventureOpen, meetupOpen, welcomeVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
 
   useEffect(
     () => () => {
@@ -808,6 +813,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setRewardMoments([]);
     setMiniGameOffer(null);
     pendingChestGame.current = null;
+    setFirstFind(null);
     setEffects([]);
     setActionFeedback(null);
     setEffectFocusId(null);
@@ -878,7 +884,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={handleDragonChallenge}
         onSceneReady={handleSceneReady}
-        paused={welcomeVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -977,7 +983,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                   onCast={handleCast}
                 />
                 <SoundToggle />
-                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => setAdventureOpen(true)}>Quêtes</button>
+                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => { setAdventureTab("games"); setAdventureOpen(true); }}>Quêtes</button>
               </div>
               <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} />
             </div>
@@ -1001,7 +1007,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               locked={
                 // Every dialog over the world, the daily game and its sheet included: their
                 // digits and letters must never declare an action in the shared journal.
-                welcomeVisible || registerOpen || adventureOpen || meetupOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
+                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
@@ -1028,9 +1034,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
         onClose={() => setRecap(null)} /> : null}
 
       {welcomeVisible ? <Welcome key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
-      {adventureOpen ? <AdventureMenu foundIds={hiddenFoundIds} onClose={() => setAdventureOpen(false)}
+      {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
+        onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
+      {adventureOpen ? <AdventureMenu foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
         onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
-        onPlay={kind => { setAdventureOpen(false); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
+        onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
         onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} /> : null}
 
       {registerOpen ? (

@@ -9,15 +9,16 @@ import "./adventure-menu.css";
 
 const BADGES: Record<string, string> = { dragon: "🐉", pigeon: "🕊", keywords: "📜", stamp: "🔨", quiz: "🔮", ghosting: "👻", slots: "💰", pigeonRace: "🏁", paperCut: "⚔", snake: "🐍", maze: "🕯", stack: "🧱", pong: "🏓" };
 
-export function AdventureMenu({ foundIds, onClose, onPlay, onExplore, onInitiation }: {
+export function AdventureMenu({ foundIds, initialTab = "games", onClose, onPlay, onExplore, onInitiation }: {
   foundIds: readonly string[];
+  initialTab?: "games" | "hunt";
   onClose: () => void;
   onPlay: (kind: MiniGameKind) => void;
   onExplore: (x: number) => void;
   onInitiation: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [tab, setTab] = useState<"games" | "hunt">("games");
+  const [tab, setTab] = useState<"games" | "hunt">(initialTab);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const node = dialog.current;

@@ -21,7 +21,7 @@ test('the finite hidden collection has one small, grounded, accessible prop per 
  }
  assert.equal(hiddenItemForId('hidden:1:plaine'),null);
  assert.deepEqual(hiddenItemsInRange(-200,WORLD_LENGTH+200),HIDDEN_ITEMS);
- assert.deepEqual(hiddenItemsInRange(700,1000),[HIDDEN_ITEMS[0]]);
+ assert.deepEqual(hiddenItemsInRange(0,200),[HIDDEN_ITEMS[0]]);
 });
 
 test('the roast bank is stable between devices and residents cycle without repeats',()=>{

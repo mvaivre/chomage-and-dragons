@@ -14,7 +14,7 @@ export interface HiddenItem {
 
 /** A finite collection, shared by every friend; no bonus in the race. */
 const ITEMS = [
-  { biome: "plaine", name: "Le courrier jamais parti", clue: "Un courrier prend racine dans la plaine. Cherche près du chemin, avant l’ORP.", found: "Livraison estimée : un jour, peut-être.", art: "action-candidature", x: 810, size: 54 },
+  { biome: "plaine", name: "Le courrier jamais parti", clue: "Un courrier prend racine au départ, près du chemin.", found: "Livraison estimée : un jour, peut-être.", art: "action-candidature", x: 100, size: 54 },
   { biome: "foret", name: "Le crapaud du réseau", clue: "Dans le bois, un minuscule expert LinkedIn attend après l’usine.", found: "Il vient de t’ajouter à son réseau. Coâch certifié.", art: "power-frog", x: 6410, size: 48 },
   { biome: "marais", name: "Le formulaire perdu", clue: "La paperasse aime l’humidité. Fouille les berges du marais.", found: "Il manque encore l’annexe du formulaire perdu.", art: "power-paper", x: 9280, size: 48 },
   { biome: "lac", name: "Le verre de trop", clue: "Quelqu’un a oublié sa tournée au bord du pont.", found: "Le contenu ? Des promesses non contractuelles.", art: "power-shot", x: 13310, size: 46 },

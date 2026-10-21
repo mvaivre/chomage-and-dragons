@@ -11,19 +11,19 @@ import "./hidden-objects.css";
 /** Plain pilot validated at 1280×720, 390×844 and 1920×1080 before expansion. */
 const ITEMS = HIDDEN_ITEMS;
 
-function HiddenSprite({ item, found }: { item: HiddenItem; found: boolean }) {
+function HiddenSprite({ item, found, highlighted }: { item: HiddenItem; found: boolean; highlighted: boolean }) {
   const texture = useDirectTexture(item.art);
   const sprite = useRef<Sprite>(null);
   useSceneTick(() => {
     if (sprite.current) sprite.current.visible = !found && item.x > scene.camera.x - 100 && item.x < scene.camera.x + scene.camera.viewW + 100;
   });
   return texture ? <pixiSprite ref={sprite} label={item.id} texture={texture} x={item.x} y={item.y}
-    width={item.size} height={item.size} anchor={{ x: .5, y: 1 }} alpha={.88} tint={0xe8dcc2} visible={!found} /> : null;
+    width={item.size} height={item.size} anchor={{ x: .5, y: 1 }} alpha={highlighted ? 1 : .88} tint={highlighted ? 0xffffff : 0xe8dcc2} visible={!found} /> : null;
 }
 
 /** Small props sit behind the heroes, grounded on the back edge of the path. */
 export function HiddenObjects({ foundIds }: { foundIds: readonly string[] }) {
-  return <pixiContainer>{ITEMS.map(item => <HiddenSprite key={item.id} item={item} found={foundIds.includes(item.id)} />)}</pixiContainer>;
+  return <pixiContainer>{ITEMS.map((item, index) => <HiddenSprite key={item.id} item={item} found={foundIds.includes(item.id)} highlighted={index === 0 && foundIds.length === 0} />)}</pixiContainer>;
 }
 
 function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean) {
@@ -40,7 +40,7 @@ function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean) {
   if (node.style.width !== size) { node.style.width = size; node.style.height = size; }
 }
 
-function FindTarget({ item, paused, onFind }: { item: HiddenItem; paused: boolean; onFind: (itemId: string) => void }) {
+function FindTarget({ item, paused, highlighted, onFind }: { item: HiddenItem; paused: boolean; highlighted: boolean; onFind: (itemId: string) => void }) {
   const button = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ x: number; y: number; pan: number; pointer: number } | null>(null);
   const moved = useRef(false);
@@ -52,7 +52,7 @@ function FindTarget({ item, paused, onFind }: { item: HiddenItem; paused: boolea
       if (drag.current) { drag.current = null; scene.dragging = false; }
     };
   }, [follow]);
-  return <button ref={button} className="hidden-object-target" type="button" data-hidden-item={item.id} aria-label={`Ramasser : ${item.name}`}
+  return <button ref={button} className="hidden-object-target" type="button" data-hidden-item={item.id} data-highlighted={highlighted} aria-label={`Ramasser : ${item.name}`}
     onPointerDown={event => {
       event.stopPropagation();
       if (!event.isPrimary || event.button !== 0) return;
@@ -73,13 +73,15 @@ function FindTarget({ item, paused, onFind }: { item: HiddenItem; paused: boolea
       event.stopPropagation();
       if (!paused && !viewingInterior() && (!moved.current || event.detail === 0)) onFind(item.id);
       moved.current = false;
-    }} />;
+    }}>
+    {highlighted ? <span className="hidden-object-target__hint" aria-hidden="true">Ramasse-moi <span>↓</span></span> : null}
+  </button>;
 }
 
 export function HiddenObjectOverlay({ playerId, foundIds, paused, onFind }: {
   playerId: string | null; foundIds: readonly string[]; paused: boolean; onFind: (itemId: string) => void;
 }) {
   return playerId && !paused ? <div className="hidden-object-overlay">
-    {ITEMS.filter(item => !foundIds.includes(item.id)).map(item => <FindTarget key={item.id} item={item} paused={paused} onFind={onFind} />)}
+    {ITEMS.filter(item => !foundIds.includes(item.id)).map(item => <FindTarget key={item.id} item={item} paused={paused} highlighted={item.id === ITEMS[0].id && foundIds.length === 0} onFind={onFind} />)}
   </div> : null;
 }

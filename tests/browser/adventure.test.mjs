@@ -11,15 +11,15 @@ const ready=page=>page.waitForFunction(()=>window.__decorScene&&window.__pixiApp
 test('side quests work in the real renderer without changing the race',{timeout:150000},async t=>{
  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,args:['--use-angle=metal','--enable-gpu','--ignore-gpu-blocklist']});
  t.after(()=>browser.close());
- async function fixture(viewport={width:1280,height:720},initiation=false){
+ async function fixture(viewport={width:1280,height:720},initiation=false,fresh=false){
   const context=await browser.newContext({viewport,deviceScaleFactor:2}),page=await context.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
-  await page.addInitScript(initiation=>{
+  await page.addInitScript(({initiation,fresh})=>{
    if(localStorage.getItem('louchomage:v2'))return;
    const at=new Date().toISOString();
    if(!initiation)localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');localStorage.setItem('louchomage:moi:v1','test');
-   localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:[{id:'a',playerId:'test',kind:'candidature',at},{id:'b',playerId:'test',kind:'candidature',at}],casts:[]}));
-  },initiation);
+   localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:fresh?[]:[{id:'a',playerId:'test',kind:'candidature',at},{id:'b',playerId:'test',kind:'candidature',at}],casts:[]}));
+  },{initiation,fresh});
   await page.goto(`${url}/local?debug&hour=12`);
   if(initiation)await page.locator('.initiation-card').waitFor();else await ready(page);
   return{context,page,errors};
@@ -78,6 +78,72 @@ test('side quests work in the real renderer without changing the race',{timeout:
     assert.equal(state.events.length,2,kind);assert.equal(state.miniGames?.length??0,0,kind);
     assert.equal(state.daily?.length??0,0,kind);
    }
+   assert.deepEqual(errors,[]);
+  }finally{await context.close();}
+ });
+ await t.test('the first find teaches the hunt once, links to the collection, and keeps actions locked',async()=>{
+  for(const viewport of [{width:1280,height:720},{width:390,height:844},{width:1920,height:1080}]){
+   const {context,page,errors}=await fixture(viewport,false,true);
+   try{
+    const first=HIDDEN_ITEMS[0],second=HIDDEN_ITEMS[1];
+    assert.equal(await page.locator('[data-highlighted=true]').count(),1);
+    assert.equal(await page.locator('[data-highlighted=true]').getAttribute('data-hidden-item'),first.id);
+    assert.equal(await page.locator('.hidden-discovery').count(),0,'rules wait for the pickup');
+    const target=page.getByRole('button',{name:`Ramasser : ${first.name}`});
+    await target.waitFor({state:'visible'});await page.waitForTimeout(800);
+    const hint=await target.locator('.hidden-object-target__hint').boundingBox();
+    assert.ok(hint.x>=0&&hint.x+hint.width<=viewport.width,'the first hint fits the starting camera');
+    if(viewport.width===390){
+     await page.emulateMedia({reducedMotion:'reduce'});
+     assert.equal(await target.evaluate(node=>getComputedStyle(node,'::before').animationName),'none');
+    }
+    await target.click();
+    const discovery=page.getByRole('dialog',{name:'Premier objet trouvé !'});await discovery.waitFor();
+    assert.match(await discovery.innerText(),/8 objets cachés, un par contrée/);
+    assert.equal(await page.locator('.hidden-object-target').count(),0,'world pickups pause behind the dialog');
+    assert.equal(await page.locator('.action-button--refus').isDisabled(),true);
+    await page.keyboard.press('2');await page.keyboard.press('r');await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).events.length),0);
+    const fits=await discovery.evaluate(node=>{const b=node.getBoundingClientRect();return b.x>=0&&b.y>=0&&b.right<=innerWidth&&b.bottom<=innerHeight&&node.scrollWidth<=node.clientWidth;});
+    assert.equal(fits,true,'the explanation fits this viewport');
+    await discovery.getByRole('button',{name:'Voir ma collection'}).click();
+    await page.locator('.adventure-menu__collection').waitFor();
+    assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),1);
+    assert.equal(await page.getByRole('button',{name:'Objets perdus · 1/8'}).getAttribute('aria-pressed'),'true');
+    if(viewport.width===390){
+     await page.getByRole('button',{name:'La salle des défis'}).click();
+     await page.locator('.adventure-menu__games button').filter({hasText:MINI_GAMES.pong.title}).click();
+     await page.locator('.mini-game--pong').waitFor();await page.keyboard.press('Escape');
+     await page.locator('.adventure-menu').waitFor();
+     assert.equal(await page.getByRole('button',{name:'La salle des défis'}).getAttribute('aria-pressed'),'true','an arcade still returns to the games tab');
+    }
+    await page.keyboard.press('Escape');await ready(page);
+    await page.reload();await ready(page);
+    assert.equal(await page.locator('[data-highlighted=true]').count(),0,'the hint stays dismissed after reload');
+    assert.equal(await page.locator('.hidden-discovery').count(),0);
+    await page.evaluate(x=>{window.__decorScene.exploreCenter=x;window.__decorScene.pan=0;},second.x);
+    const next=page.getByRole('button',{name:`Ramasser : ${second.name}`});
+    await next.waitFor({state:'visible'});await page.waitForTimeout(800);await next.click();
+    await page.locator('.toast-notice').waitFor();
+    assert.equal(await page.locator('.hidden-discovery').count(),0,'later finds use the short notice');
+    await page.getByRole('button',{name:'J’ai compris'}).click();
+    assert.deepEqual(errors,[]);
+   }finally{await context.close();}
+  }
+ });
+ await t.test('a first discovery outside the plain also teaches the hunt and Escape only closes that explanation',async()=>{
+  const {context,page,errors}=await fixture();
+  try{
+   const item=HIDDEN_ITEMS[3];
+   await page.evaluate(x=>{window.__decorScene.exploreCenter=x;window.__decorScene.pan=0;},item.x);
+   const target=page.getByRole('button',{name:`Ramasser : ${item.name}`});
+   await target.waitFor({state:'visible'});await page.waitForTimeout(800);await target.click();
+   await page.getByRole('dialog',{name:'Premier objet trouvé !'}).waitFor();
+   await page.keyboard.press('Escape');await ready(page);
+   assert.equal(await page.locator('.hidden-discovery').count(),0);
+   assert.equal(await page.locator('[data-highlighted=true]').count(),0);
+   assert.equal(await page.locator(`[data-hidden-item="${HIDDEN_ITEMS[0].id}"]`).count(),1,'the uncollected letter stays in the world outside this camera');
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).discoveries.length),1);
    assert.deepEqual(errors,[]);
   }finally{await context.close();}
  });
