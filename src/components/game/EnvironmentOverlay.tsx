@@ -180,7 +180,9 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
     } else {
       target.startedAt = performance.now();
       const visit = target.visits++;
-      setSpeech({ id, line: target.lines?.length ? target.lines[visit % target.lines.length] : environmentLine(target.kind, visit) });
+      // Players greet with their animation; scenery travellers can still speak.
+      const line = id.startsWith("hero:") ? null : target.lines?.length ? target.lines[visit % target.lines.length] : environmentLine(target.kind, visit);
+      setSpeech(line ? { id, line } : null);
     }
     pulse(target); markMotion();
   };
