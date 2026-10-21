@@ -5,6 +5,7 @@ import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Dragons, DragonEncounter } from "./Dragons";
+import { StatueOfTears } from "./StatueOfTears";
 import { Forest } from "./Forest";
 import { EnvironmentLife } from "./EnvironmentLife";
 import { EnvironmentOverlay } from "./EnvironmentOverlay";
@@ -415,7 +416,7 @@ function WorldScene({
 
       <Layer factor={1} shade={0.3}>
         {/* Small inhabitants stand in front of props, below the player's plane. */}
-        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
+        <Outdoors><StatueOfTears /><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 

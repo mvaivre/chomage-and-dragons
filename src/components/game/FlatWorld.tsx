@@ -54,6 +54,8 @@ const WORLD_ART: Record<string, BiomeArt> = Object.fromEntries(
     },
   ]),
 );
+WORLD_ART.lac.back = `${ART_ROOT}/lac-back-v2.webp`;
+WORLD_ART.lac.mid = `${ART_ROOT}/lac-mid-v2.webp`;
 WORLD_ART.cascade.back = `${ART_ROOT}/cascade-back-v2.webp`;
 WORLD_ART.plaine.back = `${ART_ROOT}/plaine-back-animated.webp`;
 WORLD_ART.taverne.mid = `${ART_ROOT}/taverne-mid-animated.webp`;
