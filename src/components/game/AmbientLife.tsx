@@ -11,6 +11,7 @@ import { useLayerBiomes } from "./FlatWorld";
 import { gnomeFrame } from "./ambient-animation";
 import { AnimatedTuft } from "./LandmarkLife";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const RESIDENT_FRAMES = [[0, 0, 1, 0, 2, 3], [0, 1, 2, 3], [0, 0, 1, 2, 0, 3], [0, 1, 2, 3]];
 
@@ -24,9 +25,11 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   const source = useDirectTexture(kind === 2 ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp");
   const frames = source ? atlasFrames(source, 4, kind === 2 ? 2 : 4) : null;
   const sprite = useRef<Sprite>(null);
+  const shadow = useRef<Graphics>(null);
   const time = useRef(worldX % 17);
   const targetId = `ambient:${factor}:${kind}:${worldX}`;
   const target = useEnvironmentTarget(targetId, (["hen", "crow", "gnome", "toad"] as const)[kind], worldX, factor);
+  useViewportResident(targetId, (["hen", "crow", "gnome", "toad"] as const)[kind], sprite, target, shadow);
   useTick(ticker => {
     const node = sprite.current;
     if (!node || !frames) { updateSpriteTarget(targetId, null, 60); return; }
@@ -49,7 +52,7 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   if (!frames) return null;
   const scale = [0.18, 0.24, 0.26, 0.15][kind];
   return <pixiContainer>
-    {kind === 2 ? <pixiGraphics x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={drawGnomeShadow} /> : null}
+    {kind === 2 ? <pixiGraphics ref={shadow} x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={drawGnomeShadow} /> : null}
     <pixiSprite ref={sprite} texture={frames[kind === 2 ? variant * 4 : kind * 4]} anchor={{ x: 0.5, y: 312 / 320 }} scale={scale} />
   </pixiContainer>;
 }

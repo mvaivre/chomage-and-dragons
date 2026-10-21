@@ -56,6 +56,8 @@ test('forest trolls remain visible, grounded and interactive after their tree cl
       assert.ok(Math.abs(pose.foot - pose.ground) < 1);
       assert.match(pose.source, /environment-troll(?:-walk)?\.webp$/);
       if (folder) await page.screenshot({ path: `${folder}/troll-${name}.png` });
+      // The same troll is greeted again after each resize; respect its cooldown.
+      if (name !== 'desktop') await page.waitForTimeout(950);
       const button = page.locator(`[data-environment-id="${site.id}"]`);
       await button.focus(); await page.keyboard.press('Enter');
       await page.locator('.environment-speech').waitFor();

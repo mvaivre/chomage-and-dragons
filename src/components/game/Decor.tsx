@@ -13,6 +13,7 @@ import { ForestTree } from "./Forest";
 import { DecorNpc } from "./DecorNpc";
 import { DecorSetpiece, type DecorLand } from "./DecorSetpiece";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const CHANGED_TEXT = "Finalement, le poste exige un dragon";
 
@@ -33,6 +34,7 @@ function WaitingHero({ id, x, worldX, statue = false }: { id: string; x: number;
   const time = useRef(x % 17);
   const targetId = `waiting:${id}:${worldX}`;
   const target = useEnvironmentTarget(targetId, "traveller", worldX);
+  useViewportResident(targetId, `${statue ? "statue" : "avatar"}:${id}`, sprite, target);
   useSceneTick(ticker => {
     if (!sprite.current || !frames) { updateSpriteTarget(targetId, null, 118); return; }
     if (!scene.reducedMotion && !statue) time.current += ticker.elapsedMS / 1000;

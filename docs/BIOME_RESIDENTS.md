@@ -52,6 +52,18 @@ Quatre poses par habitant permettent un repos, un clignement, un geste et une
 réaction. La respiration garde les pieds fixes et les mouvements réduits
 suppriment les animations d’attente.
 
+## Un seul exemplaire visible
+
+Les habitants du chemin, de l’arrière-plan et des arbres partagent une sélection
+par apparence : un seul exemplaire de chaque personnage est dessiné dans la zone
+visible. Les ombres et les zones de clic des doublons sont masquées avec eux.
+Les personnages des joueurs gardent leur affichage habituel.
+
+La sélection conserve l’individu déjà présent tant que sa silhouette reste à
+l’écran, pour éviter les échanges pendant un déplacement de caméra. Une réaction
+en cours garde sa priorité. Le calcul utilise les positions projetées réelles,
+y compris la parallaxe, les mouvements des animaux et le redimensionnement.
+
 ## Vérification
 
 Les tests contrôlent les habitats, les quatre poses distinctes, la transparence,

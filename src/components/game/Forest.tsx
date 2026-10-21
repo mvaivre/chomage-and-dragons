@@ -11,6 +11,7 @@ import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
 import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 function TreeResidents({ height, target }: { height: number; target: RefObject<EnvironmentTarget> }) {
   const source = useDirectTexture("/art/world-v3/animations/woodland-life.webp");
@@ -21,6 +22,9 @@ function TreeResidents({ height, target }: { height: number; target: RefObject<E
   const squirrelTarget = useEnvironmentTarget(squirrelId, "squirrel", target.current.homeX);
   const spiritTarget = useEnvironmentTarget(spiritId, "spirit", target.current.homeX);
   const companionTarget = useEnvironmentTarget(companionId, "spirit", target.current.homeX);
+  useViewportResident(squirrelId, "squirrel", squirrel, squirrelTarget);
+  useViewportResident(spiritId, "spirit", spirit, spiritTarget);
+  useViewportResident(companionId, "spirit", companion, companionTarget);
   useSceneTick(ticker => {
     if (!frames || !target.current.visible) {
       updateSpriteTarget(squirrelId, null, 38); updateSpriteTarget(spiritId, null, 48); updateSpriteTarget(companionId, null, 36); return;

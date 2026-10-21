@@ -8,6 +8,8 @@ import { Dragons, DragonEncounter } from "./Dragons";
 import { Forest } from "./Forest";
 import { EnvironmentLife } from "./EnvironmentLife";
 import { EnvironmentOverlay } from "./EnvironmentOverlay";
+import { ViewportResidents } from "./ViewportResidents";
+import { viewportResidents } from "./resident-visibility";
 import { HiddenObjects, HiddenObjectOverlay } from "./HiddenObjects";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
@@ -210,6 +212,7 @@ function configureRenderer(app: PixiApplication) {
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
     (window as unknown as { __decorScene?: typeof scene }).__decorScene = scene;
+    (window as unknown as { __viewportResidents?: typeof viewportResidents }).__viewportResidents = viewportResidents;
   }
   // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
   scene.lowPower = app.renderer.type === RendererType.CANVAS;
@@ -340,6 +343,7 @@ function WorldScene({
   return (
     <>
     <RenderLifecycle paused={paused} />
+    <ViewportResidents />
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <MusicPosition meId={meId} followingMe={!focusPlayerId || focusPlayerId === meId} />

@@ -10,6 +10,7 @@ import { useSceneTick } from "./useSceneTick";
 import { parallaxX } from "./projection";
 import { scene, markMotion } from "./scene";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const paintShadow = (g: Graphics) => { g.clear().ellipse(0, 0, 28, 3).fill({ color: 0x211b18, alpha: .2 }); };
 
@@ -19,6 +20,7 @@ export function BiomeResident({ site, profile }: { site: EnvironmentSite; profil
   const sprite = useRef<Sprite>(null), shadow = useRef<Graphics>(null);
   const time = useRef(site.x % 10);
   const target = useEnvironmentTarget(site.id, site.kind, site.x, site.factor);
+  useViewportResident(site.id, site.kind, sprite, target, shadow);
   const depthScale = site.factor < 1 ? .7 : 1;
   const height = profile.height * depthScale, width = profile.width * depthScale;
   const scale = height / profile.referenceHeight;

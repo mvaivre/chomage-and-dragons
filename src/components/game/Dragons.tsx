@@ -7,7 +7,8 @@ import { surfaceAt } from "@/lib/game/world";
 import { scene, viewingInterior, worldDelta } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
-import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { environmentTargets, reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const SCALE = 0.62;
 const FOOT_ANCHOR = { x: 0.5, y: 476 / 512 };
@@ -25,6 +26,7 @@ function Resident({ x }: { x: number }) {
   const time = useRef(0), pose = useRef({ frame: 6, previous: 6, blend: 1 });
   const targetId = `nest:${x}`;
   const target = useEnvironmentTarget(targetId, "dragon", x);
+  useViewportResident(targetId, "dragon", root, target);
   useSceneTick(ticker => {
     const node = root.current, body = sprite.current, old = previous.current;
     if (!node || !body || !old || !frames) { updateSpriteTarget(targetId, null, 275); return; }
@@ -76,7 +78,7 @@ export function DragonEncounter({ meId, paused, onChallenge }: { meId: string | 
   const [place, setPlace] = useState<{ x: number; y: number; nest: number; available: boolean } | null>(null);
   useEffect(() => {
     const sync = () => {
-      const nest = dragonNests(scene.camera.x + 60, scene.camera.x + scene.camera.viewW - 60)[0];
+      const nest = dragonNests(scene.camera.x + 60, scene.camera.x + scene.camera.viewW - 60).find(x => environmentTargets.get(`nest:${x}`)?.visible);
       if (nest === undefined || !meId || viewingInterior()) { setPlace(null); return; }
       const next = { x: Math.round((nest - scene.camera.x) * scene.camera.scale),
         y: Math.round(scene.camera.screenOffsetY + (surfaceAt(nest) - scene.camera.y) * scene.camera.scale), nest,

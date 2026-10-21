@@ -12,6 +12,7 @@ import { atlasFrames, useDirectTexture } from "./textures";
 import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
 import { biomeResident } from "@/lib/game/biome-residents";
 import { BiomeResident } from "./BiomeResident";
+import { useViewportResident } from "./resident-visibility";
 
 // Stable drawings: a Graphics repaints whenever its draw function changes, and every
 // repaint rebuilds the scene's render list.
@@ -36,6 +37,7 @@ const LegacyResident = memo(function LegacyResident({ site }: { site: Environmen
   const rippling = useRef(false);
   const time = useRef(x % 11), wander = useRef(x % 11), heading = useRef(1);
   const target = useEnvironmentTarget(site.id, kind, x, factor);
+  useViewportResident(site.id, kind, sprite, target, shadow, ripple);
   const height = kind === "troll" ? 172 : kind === "ghost" ? 120 : kind === "skeleton" ? 115 : kind === "gnome" ? 98 : kind === "crow" ? 78 : kind === "spirit" ? 52 : 72;
   const refHeight = kind === "troll" ? 440 : kind === "spirit" ? 400 : afterlife ? 275 : kind === "gnome" ? 257 : kind === "crow" ? 190 : kind === "hen" ? 198 : 140;
   const row = kind === "spirit" ? 4 : kind === "skeleton" ? 4 : kind === "crow" ? 4 : kind === "toad" ? 12 : 0;
