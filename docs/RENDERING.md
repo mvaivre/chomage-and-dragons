@@ -282,7 +282,15 @@ Les mises en scène sont décrites dans `reactions.ts` : entrée, impact, sortie
 volantes, traînées, bulles, accessoires ancrés dans le monde (tapis, cratère, fanfare,
 cordes) et effets dans le temps. `?debug&variant=<id>` force une variante.
 
-Le son est synthétisé en WebAudio : aucun fichier. Ouvrir la sortie audio coûte environ
+Les bruitages sont synthétisés en WebAudio. La musique lit quatre MP3 fournis dans
+`public/audio/music/`, avec un niveau équilibré par morceau, une reprise à la même
+position et des fondus de 2,5 secondes entre les lieux et aux boucles. Firelit Tavern
+accompagne l'accueil et la taverne, Medieval le voyage, City / Tavern Ambient les
+marais et le désert, Funny Medieval l'ORP et l'usine. Les crédits et mesures sont dans
+`public/audio/music/README.md`. Seul le morceau en cours est chargé, avec un second
+lecteur pendant les fondus. Les enregistrements gardent leur vitesse et leur mixage.
+La musique se met en pause en onglet caché, en mode effets seuls ou en silence ; son
+volume baisse pendant les mini-jeux et défis quotidiens. Ouvrir la sortie audio coûte environ
 190 ms ; c'est fait au premier geste sur la page, jamais pendant un moment.
 
 ### Mesures, build de production, vrai GPU (Apple M1 Max)

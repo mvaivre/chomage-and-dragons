@@ -1,322 +1,320 @@
 "use client";
 
-import { currentDaylight } from "./daylight";
-import { audioOutput, onMuteChange } from "./sound";
-
-/**
- * Background music, composed live with WebAudio: no file to download,
- * a new phrase every two bars, and a mood for each land. A soft pad holds the
- * chords, a plucked voice improvises on the scale with short repeated motifs, a
- * low note marks the bars. At night the tempo slows and the notes thin out.
- */
+import { audioOutput, isMuted, onMuteChange, primeAudio } from "./sound";
 
 const MUSIC_KEY = "louchomage:musique:v1";
+const LEVEL = 1.2;
+const FADE = 2.5;
 
-export interface Mood {
-  /** MIDI note of the key's root. */
-  root: number;
-  /** Scale degrees the melody may use, in semitones from the root. */
-  scale: number[];
-  /** Chords, two bars each, in semitones from the root. */
-  chords: number[][];
-  bpm: number;
-  /** Chance of a note on each eighth. */
-  density: number;
-  voice: "lute" | "flute" | "bell" | "harp";
-  /** Six eighths to the bar for a jig, eight otherwise. */
-  jig?: boolean;
-  /** Acoustic dance arrangement: open fifths, strummed strings and whistle. */
-  folk?: boolean;
-  drum?: boolean;
-  /** A recognisable two-bar theme, expressed as scale degrees. */
-  motif?: Array<number | null>;
+export interface MusicTrack {
+  id: string;
+  src: string;
+  title: string;
+  artist: string;
+  /** Match the supplied recordings to approximately -20 LUFS without re-encoding. */
+  gain: number;
+  /** Skip only silence; the original files and their musical fades are preserved. */
+  loopStart: number;
+  loopEnd: number;
 }
 
-const DORIAN = [0, 2, 3, 5, 7, 9, 10, 12];
-const MINOR_PENTA = [0, 3, 5, 7, 10, 12, 15, 17];
-
-export const MOODS: Record<string, Mood> = {
-  intro: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [0, 7, 12], [5, 12, 17]], bpm: 84, density: 0.5, voice: "lute", jig: true, folk: true,
-    motif: [0, null, 2, 3, 2, 1, 0, null, 4, 3, 1, 0] },
-  // Keep eight degrees: a phrase begun outdoors must survive the change of room.
-  orp: { root: 60, scale: [0, 4, 7, 9, 12, 16, 19, 21], chords: [[0, 4, 7, 11], [2, 5, 9, 12], [0, 4, 7, 11], [-1, 2, 5, 9]], bpm: 66, density: 0.22, voice: "bell" },
-  factory: { root: 50, scale: [0, 0, 7, 12, 12, 19, 24, 24], chords: [[0, 7, 12], [0, 7, 12], [-2, 5, 10], [0, 7, 12]], bpm: 96, density: 0.6, voice: "lute", drum: true },
-  plaine: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [-2, 5, 10], [5, 12, 17], [0, 7, 12]], bpm: 116, density: 0.85, voice: "flute", jig: true, folk: true, drum: true,
-    motif: [0, 2, 3, 4, 3, 2, 1, 3, 4, 6, 4, 2] },
-  foret: { root: 64, scale: [0, 2, 3, 7, 9, 10, 12, 14], chords: [[0, 3, 7], [5, 9, 12], [0, 3, 7], [-2, 2, 5]], bpm: 74, density: 0.36, voice: "flute" },
-  marais: { root: 57, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [5, 8, 12], [0, 3, 7]], bpm: 64, density: 0.28, voice: "harp" },
-  lac: { root: 65, scale: [0, 2, 4, 6, 7, 11, 12, 14], chords: [[0, 4, 7], [2, 6, 9], [0, 4, 7], [7, 11, 14]], bpm: 70, density: 0.32, voice: "bell" },
-  cascade: { root: 60, scale: MINOR_PENTA, chords: [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]], bpm: 70, density: 0.36, voice: "harp" },
-  montagne: { root: 67, scale: [0, 2, 4, 5, 7, 9, 10, 12], chords: [[0, 4, 7], [-2, 2, 5], [5, 9, 12], [0, 4, 7]], bpm: 78, density: 0.34, voice: "flute" },
-  desert: { root: 62, scale: [0, 1, 4, 5, 7, 8, 10, 12], chords: [[0, 7, 12], [0, 7, 12], [1, 5, 8], [0, 7, 12]], bpm: 88, density: 0.38, voice: "lute", drum: true },
-  taverne: { root: 62, scale: DORIAN, chords: [[0, 7, 12], [5, 12, 17], [-2, 5, 10], [0, 7, 12]], bpm: 126, density: 0.9, voice: "flute", jig: true, folk: true, drum: true,
-    motif: [4, 3, 2, 0, 2, 3, 4, 6, 7, 6, 4, 2] },
+export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny", MusicTrack> = {
+  firelit: { id: "firelit", src: "/audio/music/firelit-tavern.mp3", title: "Fantasy Worlds — Firelit Tavern", artist: "vadim_makes_sound", gain: 0.481, loopStart: 0.54, loopEnd: 134.88 },
+  medieval: { id: "medieval", src: "/audio/music/medieval.mp3", title: "Medieval", artist: "SigmaMusicArt", gain: 0.689, loopStart: 0.45, loopEnd: 110.97 },
+  ambient: { id: "ambient", src: "/audio/music/city-tavern-ambient.mp3", title: "Medieval City / Tavern Ambient", artist: "DEUSLOWER", gain: 1.39, loopStart: 6.95, loopEnd: 161.97 },
+  funny: { id: "funny", src: "/audio/music/funny-medieval.mp3", title: "Funny Medieval Instrumental", artist: "VifotoFreeSounds", gain: 0.433, loopStart: 0.14, loopEnd: 112.248 },
 };
 
-const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
+export type MusicPhase = "intro" | "adventure";
 
-type Rand = () => number;
+export function trackForPlace(where: string, phase: MusicPhase = "adventure"): MusicTrack {
+  if (phase === "intro" || where === "taverne") return TRACKS.firelit;
+  if (where === "orp" || where === "factory") return TRACKS.funny;
+  if (where === "marais" || where === "desert") return TRACKS.ambient;
+  return TRACKS.medieval;
+}
 
-/** One running piece: a clock, the current chord and the phrase being repeated. */
-export class Composer {
-  private next = 0;
-  private step = 0;
-  private chord = -1;
-  private motif: Array<number | null> = [];
-  private mood: Mood;
-  private night = 0;
-  private pending: { mood: Mood; night: number } | null = null;
-  private ctx: BaseAudioContext;
-  private dest: AudioNode;
-  private random: Rand;
+interface Deck {
+  audio: HTMLAudioElement;
+  source: MediaElementAudioSourceNode;
+  gain: GainNode;
+  token: number;
+  unlocked: boolean;
+  priming: boolean;
+}
 
-  constructor(ctx: BaseAudioContext, dest: AudioNode, mood: Mood, random: Rand = Math.random) {
+interface Voice {
+  track: MusicTrack;
+  deck: Deck;
+  token: number;
+  offset: number;
+  audio: HTMLAudioElement;
+  gain: GainNode;
+  starting: boolean;
+  blocked: boolean;
+  releaseAt: number | null;
+  onMetadata: () => void;
+  onError: () => void;
+}
+
+/**
+ * Stream only the current recording. Each incoming track starts silently before
+ * the previous one fades; a slow download or blocked play never cuts it off.
+ * Recorded instruments go straight to the mix, without the old synthetic echo.
+ */
+export class MusicPlayer {
+  private ctx: AudioContext;
+  private level: GainNode;
+  private decks: Deck[] = [];
+  private voices = new Set<Voice>();
+  private positions = new Map<string, number>();
+  private track: MusicTrack | null = null;
+  private current: Voice | null = null;
+  private incoming: Voice | null = null;
+  private paused = false;
+  private disposed = false;
+
+  constructor(ctx: AudioContext, out: AudioNode) {
     this.ctx = ctx;
-    this.dest = dest;
-    this.random = random;
-    this.mood = mood;
+    this.level = ctx.createGain();
+    this.level.gain.value = LEVEL;
+    this.level.connect(out);
   }
 
-  setMood(mood: Mood, night: number) {
-    // Changes wait for the next bar, so a new land never cuts a phrase.
-    this.pending = { mood, night };
+  select(track: MusicTrack) {
+    if (this.disposed) return;
+    this.track = track;
+    if (this.incoming && this.incoming.track.id !== track.id) this.release(this.incoming);
+    if (this.current?.track.id === track.id || this.incoming || this.paused) return;
+    this.begin(track);
   }
 
-  private get perBar() { return this.mood.jig ? 6 : 8; }
-
-  private get eighth() {
-    const bpm = this.mood.bpm * (1 - this.night * 0.18);
-    return this.mood.jig ? 60 / bpm / 3 : 60 / bpm / 2;
-  }
-
-  /** Schedule every note that starts before `until`, in the context's time. */
-  schedule(until: number) {
-    if (this.next < this.ctx.currentTime) this.next = this.ctx.currentTime + 0.08;
-    while (this.next < until) {
-      this.play(this.next);
-      this.next += this.eighth;
-      this.step += 1;
-    }
-  }
-
-  private play(t: number) {
-    let position = this.step % this.perBar;
-    let bar = Math.floor(this.step / this.perBar);
-    if (position === 0) {
-      if (this.pending) {
-        const changed = this.mood !== this.pending.mood;
-        this.mood = this.pending.mood;
-        this.night = this.pending.night;
-        this.pending = null;
-        if (changed) {
-          // A new theme starts on its own tonic and first phrase, including 6/8 rooms.
-          this.step = 0;
-          this.chord = -1;
-          this.motif = [];
-          position = 0;
-          bar = 0;
-        }
-      }
-      if (bar % 2 === 0) this.changeChord(t);
-      this.bass(t);
-    }
-    if (!this.mood.jig && position === 4) this.bass(t, 0.6);
-    if (this.mood.drum) this.drum(t, position);
-
-    const phrase = this.step % (this.perBar * 2);
-    if (phrase === 0) this.compose();
-    const note = this.motif[phrase];
-    if (note !== null && note !== undefined) this.melody(t, note, position === 0);
-  }
-
-  private changeChord(t: number) {
-    this.chord = (this.chord + 1) % this.mood.chords.length;
-    const length = this.eighth * this.perBar * 2;
-    if (this.mood.folk) {
-      // A lute strum, then an open drone: no sustained electronic chord pad.
-      this.mood.chords[this.chord].forEach((interval, i) => {
-        const at = t + i * 0.032;
-        const gain = this.envelope(at, 0.026, 0.006, 1.2);
-        gain.connect(this.dest);
-        this.voice("triangle", hz(this.mood.root - 12 + interval), at, 1.2, gain);
-        this.voice("sine", hz(this.mood.root - 12 + interval) * 2, at, 0.35, gain, 3);
-      });
-      const drone = this.envelope(t, 0.016, 0.18, length);
-      drone.connect(this.dest);
-      this.voice("triangle", hz(this.mood.root - 24), t, length, drone);
-    } else for (const interval of this.mood.chords[this.chord]) this.pad(t, hz(this.mood.root - 12 + interval), length);
-  }
-
-  /** A two-bar phrase, repeated with small changes half of the time: music, not noise. */
-  private compose() {
-    const length = this.perBar * 2;
-    if (this.mood.motif) {
-      this.motif = [...this.mood.motif];
-      return;
-    }
-    const density = this.mood.density * (1 - this.night * 0.45);
-    if (this.motif.length === length && this.random() < 0.5) {
-      this.motif = this.motif.map((note) => (this.random() < 0.2 ? this.pick(note) : note));
-      return;
-    }
-    let previous = 2;
-    this.motif = Array.from({ length }, (_, i) => {
-      const strong = i % (this.mood.jig ? 3 : 4) === 0;
-      if (this.random() > (strong ? density * 1.5 : density)) return null;
-      // A melodic walk: mostly neighbouring degrees, sometimes a leap.
-      const leap = this.random() < 0.2 ? Math.floor(this.random() * 5) - 2 : Math.floor(this.random() * 3) - 1;
-      previous = Math.max(0, Math.min(this.mood.scale.length - 1, previous + leap));
-      return previous;
-    });
-    // The phrase comes home: its last strong beat is the root.
-    this.motif[length - (this.mood.jig ? 3 : 4)] = 0;
-  }
-
-  private pick(note: number | null): number | null {
-    if (note === null) return this.random() < 0.3 ? Math.floor(this.random() * this.mood.scale.length) : null;
-    return Math.max(0, Math.min(this.mood.scale.length - 1, note + (this.random() < 0.5 ? -1 : 1)));
-  }
-
-  private envelope(t: number, peak: number, attack: number, length: number) {
+  private createDeck(track: MusicTrack): Deck {
+    const audio = new Audio(track.src);
+    audio.preload = "auto";
+    audio.loop = true; // Fallback if the browser throttles the loop polling timer.
+    const source = this.ctx.createMediaElementSource(audio);
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(peak, t + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
-    return gain;
+    gain.gain.value = 0;
+    source.connect(gain).connect(this.level);
+    const deck = { audio, source, gain, token: 0, unlocked: false, priming: false };
+    this.decks.push(deck);
+    return deck;
   }
 
-  private voice(type: OscillatorType, freq: number, t: number, length: number, into: AudioNode, detune = 0) {
-    const osc = this.ctx.createOscillator();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    osc.detune.setValueAtTime(detune, t);
-    osc.connect(into);
-    osc.start(t);
-    osc.stop(t + length + 0.05);
-    return osc;
+  private idleDeck(track: MusicTrack): Deck {
+    let deck = this.decks.find((candidate) => ![...this.voices].some((voice) => voice.deck === candidate));
+    if (!deck && this.decks.length === 2) {
+      // A third destination during a fade reuses the retiring deck.
+      const retiring = [...this.voices].find((voice) => voice !== this.current);
+      if (retiring) { this.release(retiring); deck = retiring.deck; }
+    }
+    return deck ?? this.createDeck(track);
   }
 
-  private pad(t: number, freq: number, length: number) {
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 650 - this.night * 200;
-    const gain = this.envelope(t, 0.022, Math.min(1.4, length * 0.3), length + 1.2);
-    filter.connect(gain).connect(this.dest);
-    this.voice("triangle", freq, t, length + 1.2, filter, -6);
-    this.voice("triangle", freq, t, length + 1.2, filter, 6);
+  private begin(track: MusicTrack, loop = false) {
+    const deck = this.idleDeck(track);
+    const { audio, gain } = deck;
+    deck.token += 1;
+    deck.priming = false;
+    gain.gain.cancelScheduledValues(this.ctx.currentTime);
+    gain.gain.value = 0;
+    audio.src = track.src;
+    audio.load();
+    const saved = loop ? track.loopStart : this.positions.get(track.id) ?? track.loopStart;
+    const offset = saved < track.loopEnd - FADE ? saved : track.loopStart;
+    const onMetadata = () => {
+      try {
+        audio.currentTime = voice.offset;
+      } catch { /* Safari may wait for metadata before allowing a seek. */ }
+    };
+    const voice: Voice = {
+      track, deck, token: deck.token, offset, audio, gain, starting: false, blocked: false, releaseAt: null,
+      onMetadata,
+      onError: () => { voice.blocked = true; },
+    };
+    audio.addEventListener("loadedmetadata", onMetadata);
+    audio.addEventListener("error", voice.onError);
+    onMetadata();
+    this.voices.add(voice);
+    this.incoming = voice;
+    this.play(voice);
   }
 
-  private bass(t: number, weight = 1, interval = 0) {
-    const root = this.mood.chords[Math.max(0, this.chord)][0];
-    const gain = this.envelope(t, 0.07 * weight, 0.02, this.eighth * 3.5);
-    gain.connect(this.dest);
-    this.voice("sine", hz(this.mood.root - 24 + root + interval), t, this.eighth * 3.5, gain);
-  }
-
-  private melody(t: number, degree: number, accent: boolean) {
-    const freq = hz(this.mood.root + this.mood.scale[degree]);
-    const peak = (accent ? 0.075 : 0.055) * (1 - this.night * 0.3);
-    const { voice } = this.mood;
-    if (voice === "flute") {
-      const length = this.eighth * 1.8;
-      const gain = this.envelope(t, peak * 1.1, 0.07, length);
-      gain.connect(this.dest);
-      const osc = this.voice("sine", freq, t, length, gain);
-      if (this.mood.folk && accent) {
-        // A short grace note gives the whistle its Irish lift.
-        const grace = this.envelope(t, peak * 0.3, 0.008, 0.055);
-        grace.connect(this.dest);
-        this.voice("sine", freq * Math.pow(2, 2 / 12), t, 0.055, grace);
+  private play(voice: Voice, retryBlocked = false) {
+    if (this.paused || this.disposed || voice.starting || (voice.blocked && !retryBlocked)) return;
+    if (voice !== this.incoming && !voice.audio.paused && !voice.audio.error) return;
+    voice.starting = true;
+    voice.blocked = false;
+    if (retryBlocked && voice.audio.error) {
+      voice.offset = Math.max(voice.track.loopStart, voice.audio.currentTime);
+      voice.audio.load(); // Recover a transient download/decode failure before retrying.
+    }
+    // play() must be called synchronously during a gesture for Safari/iOS.
+    let started: Promise<void>;
+    try { started = voice.audio.play(); }
+    catch { voice.starting = false; voice.blocked = true; return; }
+    void started.then(() => {
+      voice.deck.unlocked = true;
+      voice.starting = false;
+      // An earlier play promise must never pause a deck that has been reassigned.
+      if (voice.token !== voice.deck.token) return;
+      if (this.paused || this.disposed) { voice.audio.pause(); return; }
+      if (voice !== this.incoming) return;
+      const previous = this.current;
+      this.current = voice;
+      this.incoming = null;
+      this.fade(voice, voice.track.gain, previous ? FADE : 1.2);
+      if (previous) {
+        this.fade(previous, 0, FADE);
+        previous.releaseAt = this.ctx.currentTime + FADE + 0.1;
       }
-      const lfo = this.ctx.createOscillator();
-      const depth = this.ctx.createGain();
-      lfo.frequency.value = 5;
-      depth.gain.value = freq * 0.006;
-      lfo.connect(depth).connect(osc.frequency);
-      lfo.start(t);
-      lfo.stop(t + length + 0.05);
-      return;
-    }
-    if (voice === "bell" || (this.night > 0.6 && !this.mood.folk)) {
-      const length = 2.2;
-      const gain = this.envelope(t, peak * 0.7, 0.004, length);
-      gain.connect(this.dest);
-      this.voice("sine", freq, t, length, gain);
-      const partial = this.envelope(t, peak * 0.18, 0.004, length * 0.4);
-      partial.connect(this.dest);
-      this.voice("sine", freq * 2.76, t, length * 0.4, partial);
-      return;
-    }
-    // Lute and harp: a plucked string, bright at the attack and quickly muted.
-    const length = voice === "harp" ? 1.6 : 0.9;
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(voice === "harp" ? 2600 : 3200, t);
-    filter.frequency.exponentialRampToValueAtTime(500, t + length * 0.6);
-    const gain = this.envelope(t, peak, 0.004, length);
-    filter.connect(gain).connect(this.dest);
-    this.voice("triangle", freq, t, length, filter);
-    this.voice("sawtooth", freq, t, length * 0.3, filter, 4);
+    }).catch(() => {
+      if (voice.token !== voice.deck.token) return;
+      voice.starting = false;
+      voice.blocked = true;
+      // Wait for a real gesture; polling a rejected play() would flood the browser.
+    });
   }
 
-  private drum(t: number, position: number) {
-    const strong = this.mood.jig ? position % 3 === 0 : position % 4 === 0;
-    if (!strong && this.random() > 0.3) return;
-    const gain = this.envelope(t, strong ? 0.09 : 0.03, 0.003, strong ? 0.22 : 0.08);
-    gain.connect(this.dest);
-    const osc = this.voice("sine", strong ? 110 : 220, t, 0.25, gain);
-    osc.frequency.exponentialRampToValueAtTime(strong ? 55 : 160, t + 0.2);
+  private fade(voice: Voice, value: number, seconds: number) {
+    const now = this.ctx.currentTime;
+    const current = voice.gain.gain.value;
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(current, now);
+    voice.gain.gain.linearRampToValueAtTime(value, now + seconds);
+  }
+
+  resume(retryBlocked = false) {
+    if (this.disposed) return;
+    this.paused = false;
+    if (this.track) this.select(this.track);
+    if (this.current) this.play(this.current, retryBlocked);
+    if (this.incoming) this.play(this.incoming, retryBlocked);
+    if (retryBlocked && this.track) this.unlockSpare(this.track);
+  }
+
+  private unlockSpare(track: MusicTrack) {
+    if ([...this.voices].length === 2) return;
+    const deck = this.idleDeck(track);
+    if (deck.unlocked || deck.priming) return;
+    deck.priming = true;
+    const token = ++deck.token;
+    deck.audio.src = track.src;
+    deck.audio.load();
+    const finish = () => {
+      if (token !== deck.token) return;
+      deck.priming = false;
+      deck.audio.pause();
+      deck.audio.removeAttribute("src");
+      deck.audio.load();
+    };
+    // Safari grants autoplay per element. Prime both persistent decks inside the
+    // gesture, with the idle one at zero gain, then reuse them for all recordings.
+    try {
+      void deck.audio.play().then(() => {
+        deck.unlocked = true;
+        finish();
+      }).catch(finish);
+    } catch { finish(); }
+  }
+
+  pause() {
+    if (this.disposed || this.paused) return;
+    this.paused = true;
+    for (const voice of this.voices) {
+      if (voice !== this.current) this.release(voice);
+    }
+    if (this.current) {
+      this.current.audio.pause();
+      this.current.gain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.current.gain.gain.value = this.current.track.gain;
+    }
+    for (const deck of this.decks) {
+      if (!deck.priming) continue;
+      deck.token += 1;
+      deck.priming = false;
+      deck.audio.pause();
+      deck.audio.removeAttribute("src");
+      deck.audio.load();
+    }
+  }
+
+  setDucked(ducked: boolean) {
+    if (this.disposed) return;
+    this.level.gain.cancelScheduledValues(this.ctx.currentTime);
+    this.level.gain.setTargetAtTime(LEVEL * (ducked ? 0.3 : 1), this.ctx.currentTime, 0.25);
+  }
+
+  /** Poll media time for a soft loop and collect voices after their fade. */
+  update() {
+    if (this.disposed || this.paused) return;
+    for (const voice of this.voices) {
+      if (voice.releaseAt !== null && this.ctx.currentTime >= voice.releaseAt) this.release(voice);
+    }
+    const voice = this.current;
+    if (!voice || this.incoming || voice.audio.paused) return;
+    const end = Math.min(voice.track.loopEnd, voice.audio.duration || voice.track.loopEnd);
+    if (voice.audio.currentTime >= end - FADE) this.begin(voice.track, true);
+  }
+
+  private release(voice: Voice) {
+    this.positions.set(voice.track.id, voice.audio.currentTime);
+    this.voices.delete(voice);
+    if (this.incoming === voice) this.incoming = null;
+    voice.deck.token += 1;
+    voice.audio.pause();
+    voice.audio.removeEventListener("loadedmetadata", voice.onMetadata);
+    voice.audio.removeEventListener("error", voice.onError);
+    voice.gain.gain.cancelScheduledValues(this.ctx.currentTime);
+    voice.gain.gain.value = 0;
+    voice.audio.removeAttribute("src");
+    voice.audio.load(); // Abort pending requests and release the streaming buffer.
+  }
+
+  snapshot() {
+    return {
+      track: this.current?.track.id ?? null,
+      pending: this.incoming?.track.id ?? null,
+      voices: [...this.voices].map(({ track, audio, blocked }) => ({
+        id: track.id, src: track.src, time: audio.currentTime, paused: audio.paused, blocked,
+      })),
+    };
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const voice of this.voices) this.release(voice);
+    this.current = null;
+    for (const deck of this.decks) {
+      deck.token += 1;
+      deck.audio.pause();
+      deck.audio.removeAttribute("src");
+      deck.audio.load();
+      deck.source.disconnect();
+      deck.gain.disconnect();
+    }
+    this.decks = [];
+    this.level.disconnect();
   }
 }
-
-/** The echo that gives the room: a short delay, darkened, fed back a little. */
-export function musicBus(ctx: BaseAudioContext, out: AudioNode): { input: GainNode; level: GainNode } {
-  const level = ctx.createGain();
-  const input = ctx.createGain();
-  const delay = ctx.createDelay(1);
-  const feedback = ctx.createGain();
-  const tone = ctx.createBiquadFilter();
-  const wet = ctx.createGain();
-  delay.delayTime.value = 0.34;
-  feedback.gain.value = 0.3;
-  tone.type = "lowpass";
-  tone.frequency.value = 1800;
-  wet.gain.value = 0.28;
-  input.connect(level);
-  input.connect(delay);
-  delay.connect(tone).connect(feedback).connect(delay);
-  tone.connect(wet).connect(level);
-  level.connect(out);
-  return { input, level };
-}
-
-/* ------------------------------------------------------------------ player */
 
 let enabled = readEnabled();
 const listeners = new Set<(on: boolean) => void>();
-let composer: Composer | null = null;
-let bus: { input: GainNode; level: GainNode } | null = null;
+let player: MusicPlayer | null = null;
 let timer: number | null = null;
 let land = "plaine";
-export type MusicPhase = "intro" | "adventure";
 let phase: MusicPhase = "intro";
-let night = { value: 0, at: 0 };
-let duck = 1;
-/** The music's gain into the master: about 10 dB under the effects' peaks. */
-const LEVEL = 3;
+let ducked = false;
 
 function readEnabled(): boolean {
   if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(MUSIC_KEY) !== "0";
-  } catch {
-    return true;
-  }
+  try { return window.localStorage.getItem(MUSIC_KEY) !== "0"; }
+  catch { return true; }
 }
 
-export function isMusicOn(): boolean {
-  return enabled;
-}
+export function isMusicOn(): boolean { return enabled; }
 
 export function onMusicChange(listener: (on: boolean) => void): () => void {
   listeners.add(listener);
@@ -325,116 +323,68 @@ export function onMusicChange(listener: (on: boolean) => void): () => void {
 
 export function setMusicOn(value: boolean): void {
   enabled = value;
-  try {
-    window.localStorage.setItem(MUSIC_KEY, value ? "1" : "0");
-  } catch {
-    // The choice lasts for this visit only.
-  }
-  applyLevel(0.6);
+  try { window.localStorage.setItem(MUSIC_KEY, value ? "1" : "0"); }
+  catch { /* Keep the preference for this visit when storage is unavailable. */ }
   listeners.forEach((listener) => listener(value));
-  if (value) run();
-}
-
-function applyLevel(fade: number) {
-  if (!bus) return;
-  const { context } = bus.level;
-  const target = enabled ? LEVEL * duck : 0.0001;
-  bus.level.gain.cancelScheduledValues(context.currentTime);
-  bus.level.gain.setTargetAtTime(Math.max(0.0001, target), context.currentTime, fade / 3);
-}
-
-function tick() {
-  if (!enabled || document.hidden) return;
-  const output = audioOutput();
-  if (!output) return;
-  const { ctx, out } = output;
-  if (!bus) {
-    bus = musicBus(ctx, out);
-    bus.level.gain.value = 0.0001;
-    applyLevel(phase === "intro" ? 3 : 0.8);
-  }
-  // The hour moves slowly: read it twice a minute.
-  if (performance.now() - night.at > 30_000) night = { value: currentDaylight().night, at: performance.now() };
-  const mood = phase === "intro" ? MOODS.intro : MOODS[land] ?? MOODS.plaine;
-  if (!composer) composer = new Composer(ctx, bus.input, mood);
-  composer.setMood(mood, night.value);
-  composer.schedule(ctx.currentTime + 0.9);
-}
-
-function run() {
-  if (timer !== null || typeof window === "undefined") return;
-  timer = window.setInterval(tick, 250);
   tick();
 }
 
-/**
- * Start the music once the page may make sound; it waits for the first gesture.
- * The title screen has its own theme; the land and hour steer the adventure.
- */
-export function startMusic(): () => void {
-  // Diagnostics only: `?debug` can render a few seconds of any land offline.
-  if (new URLSearchParams(window.location.search).has("debug")) {
-    (window as unknown as { __musicPreview?: typeof renderPreview }).__musicPreview = renderPreview;
+function tick(retryBlocked = false) {
+  if (timer === null) return;
+  if (!enabled || isMuted() || document.hidden) { player?.pause(); return; }
+  const output = audioOutput();
+  if (!output) return;
+  if (!player) {
+    player = new MusicPlayer(output.ctx, output.out);
+    player.setDucked(ducked);
   }
-  run();
-  const offMute = onMuteChange((muted) => { if (!muted) run(); });
-  const onVisible = () => { if (!document.hidden) tick(); };
-  document.addEventListener("visibilitychange", onVisible);
+  player.select(trackForPlace(land, phase));
+  player.resume(retryBlocked);
+  player.update();
+}
+
+/** Start after a gesture; title, hero location and existing sound preferences drive playback. */
+export function startMusic(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const gesture = () => { primeAudio(); tick(true); };
+  const visibility = () => tick();
+  const gestures = ["pointerdown", "keydown", "touchend"] as const;
+  gestures.forEach((name) => window.addEventListener(name, gesture, { capture: true, passive: true }));
+  document.addEventListener("visibilitychange", visibility);
+  const offMute = onMuteChange(() => tick());
+  timer = window.setInterval(tick, 250);
+  primeAudio();
+  tick();
+  if (new URLSearchParams(window.location.search).has("debug")) {
+    (window as unknown as { __musicState?: () => unknown }).__musicState = () => ({
+      ...(player?.snapshot() ?? { track: null, pending: null, voices: [] }), enabled, ducked,
+    });
+  }
   return () => {
+    gestures.forEach((name) => window.removeEventListener(name, gesture, true));
+    document.removeEventListener("visibilitychange", visibility);
     offMute();
-    document.removeEventListener("visibilitychange", onVisible);
     if (timer !== null) window.clearInterval(timer);
     timer = null;
-    releasePiece();
+    player?.dispose();
+    player = null;
     phase = "intro";
     land = "plaine";
-    duck = 1;
+    ducked = false;
+    delete (window as unknown as { __musicState?: () => unknown }).__musicState;
   };
 }
 
-/** A few seconds of a land's music, rendered offline at the game's own levels. */
-export async function renderPreview(where: string, seconds: number, dark = 0): Promise<AudioBuffer> {
-  const rate = 44100;
-  const ctx = new OfflineAudioContext(2, rate * seconds, rate);
-  const master = ctx.createGain();
-  master.gain.value = 0.32;
-  master.connect(ctx.destination);
-  const preview = musicBus(ctx, master);
-  preview.level.gain.value = LEVEL;
-  const mood = MOODS[where] ?? MOODS.plaine;
-  const composer = new Composer(ctx, preview.input, mood);
-  composer.setMood(mood, dark);
-  composer.schedule(seconds);
-  return ctx.startRendering();
-}
+export function setMusicPlace(where: string): void { land = where; }
 
-export function setMusicPlace(where: string): void {
-  land = where;
-}
-
-function releasePiece() {
-  if (bus) {
-    const { level } = bus;
-    level.gain.cancelScheduledValues(level.context.currentTime);
-    level.gain.setTargetAtTime(0.0001, level.context.currentTime, 0.12);
-    window.setTimeout(() => level.disconnect(), 1200);
-  }
-  bus = null;
-  composer = null;
-}
-
-/** Enter on the first beat of the new theme, with a short fade from the menu. */
 export function setMusicPhase(next: MusicPhase): void {
   if (phase === next) return;
   phase = next;
-  releasePiece();
   tick();
 }
 
-export function setMusicDucked(ducked: boolean): void {
-  const nextDuck = ducked ? 0.3 : 1;
-  if (nextDuck !== duck) {
-    duck = nextDuck;
-    applyLevel(0.8);
-  }
+export function setMusicDucked(value: boolean): void {
+  if (ducked === value) return;
+  ducked = value;
+  player?.setDucked(value);
 }
