@@ -3,7 +3,7 @@
 ## Comportement livré
 
 - Caméra libre à la molette et par glissement, avec retour au personnage. Explorer ne modifie ni les pas ni le biome musical du héros.
-- Dragons dans la forêt et la montagne. Le défi ne se déverrouille qu’à moins de 210 unités du nid, une fois la marche terminée. La caméra n’intervient pas dans cette règle.
+- Cinq dragons : vert en forêt, noir aux yeux rouges au marais, bleu dans la neige, rouge au volcan et doré glamour avant la taverne. Ils crachent du feu. [Variantes, images et prompts](DRAGON_COLOURS.md). Le défi ne se déverrouille qu’à moins de 210 unités du nid, une fois la marche terminée. La caméra n’intervient pas dans cette règle.
 - « La part du dragon » : trois couloirs, cinq pièces à collecter, trois points d’armure, seize secondes. Entraînement au nid ; une candidature sur trois propose aussi ce défi et sa récompense habituelle.
 - Sort du dragon de 6,4 secondes : arrivée, ingestion, digestion, effort, expulsion et départ. La position réelle du héros reste stable ; les transformations visuelles sont nettoyées à la fin et au démontage. Animation réduite respectée.
 - Gages, feu, paperasse et déplacements : particules et impacts renforcés. Fenêtre de confirmation du sort supprimée.
@@ -39,6 +39,34 @@ Outil intégré `image_gen`, sortie transparente. Aucune API ni CLI de générat
 - Sorties brutes conservées dans `/Users/mika/.codex/generated_images/01a0f857-9351-71e1-9fca-d726ac59efaa/`.
 
 ## Prompts exacts
+
+### Refonte du 21 octobre 2026
+
+Dragon redessiné avec l'outil ImageGen intégré : cornes allongées, regard plus expressif,
+grandes ailes et selle. Le même atlas sert à l'initiation, aux défis et aux scènes du monde.
+Le cavalier de l'initiation est posé sur la selle et le dragon regarde les anneaux.
+
+- Premier atlas redessiné : `public/art/world-v3/animations/dragon-v2.webp` (2048×1024, huit poses, pieds à 476).
+- Métadonnées : `dragon-v2.json`. L'ancien atlas reste disponible pour comparaison.
+- Prompt exact : [`dragon-v2.prompt.txt`](dragon-v2.prompt.txt).
+- Sortie brute : `exec-c14a2e67-8b7a-45ae-a2dd-570a6dda2c7a.png`, dans le dossier ImageGen de ce chat.
+- Import déterministe : `compile_ambient_assets.mjs`, mode atlas avec îlots, cellules de 512×512 et baseline 476.
+
+### Ajustement du contact et de la vie au repos
+
+- Atlas vert conservé : `public/art/world-v3/animations/dragon-v3.webp`, mêmes huit cellules et même baseline, contours fins et pose éveillée avec les yeux ouverts. Les quatre autres couleurs utilisent leurs atlas dédiés.
+- Le résident est ancré directement à `surfaceAt(x)`, avec une petite ombre de contact. Les changements de pose et la respiration gardent les pieds fixes.
+- Cycle de 48 secondes : éveil majoritaire, bref bâillement, sieste de sept secondes. Un personnage proche ou une interaction le garde éveillé ; les poses se fondent en 0,4 seconde.
+- Les mouvements réduits conservent une pose éveillée fixe.
+- ImageGen intégré ; sortie brute `exec-33a42964-1e5a-4dbf-82bb-07b9377e6d5d.png`. Prompt exact : [`dragon-v3.prompt.txt`](dragon-v3.prompt.txt).
+
+### Réactions aux clics
+
+Chaque dragon raconte une blague au premier clic, s’agace au deuxième et menace de manger le personnage au troisième. Le quatrième clic déclenche une ingestion suivie d’un recrachement, avec les poses de l’atlas existant. Tous les clics comptent, même rapprochés ; glisser le décor ne compte pas.
+
+L’échange reste mémorisé pendant l’exploration pour le personnage et le nid concernés, puis recommence après le repas. Le héros est déplacé uniquement à l’écran et retrouve sa position réelle après l’animation. La caméra cadre le nid et les autres actions attendent la fin du gag. Le journal, les pas et le butin restent inchangés. L’interruption du canvas libère la caméra et restaure le héros.
+
+Régression : `tests/browser/dragon-personality.test.mjs` couvre la séquence, le clavier, les clics rapprochés, le glissement, le retour après culling, le personnage éloigné et la sauvegarde, à 390, 1280 et 1920 px avec mouvements réduits. `tests/browser/dragon-resident.test.mjs` contrôle toujours le contact au sol et le réveil en forêt et en montagne.
 
 ### Prompt 1
 

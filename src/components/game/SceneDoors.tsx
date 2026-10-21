@@ -2,10 +2,11 @@
 
 import { useRef } from "react";
 import { useApplication } from "@pixi/react";
-import { Texture, type Application, type Container, type Sprite } from "pixi.js";
+import { Texture, type Application, type Container, type TextureSource, type Sprite } from "pixi.js";
 import { inRoom, roomAt, type RoomLocation } from "@/lib/game/doors";
 import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
+import { roomTextures } from "./roomTextures";
 
 /** Exterior layers are switched as a whole: there is no illustration seam to hide. */
 export function Outdoors({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,7 @@ export function Outdoors({ children }: { children: React.ReactNode }) {
 }
 
 const OUTDOORS_LABEL = "outdoors";
-type Uploader = { upload(resource: Container[]): Promise<void> };
+type Uploader = { upload(resource: TextureSource[]): Promise<void> };
 
 /**
  * A hidden place has never been drawn, or its art left the GPU after a long stay
@@ -26,8 +27,10 @@ function warmDestination(app: Application, destination: RoomLocation | null) {
   const prepare = (app.renderer as unknown as { prepare?: Uploader }).prepare;
   if (!prepare) return;
   const label = destination ? `interior:${destination.id}:${destination.from}` : OUTDOORS_LABEL;
-  const targets = app.stage.getChildrenByLabel(label, true);
-  if (targets.length) void prepare.upload(targets).catch(() => {});
+  // Pixi's asynchronous queue does not skip destroyed Graphics contexts. A room
+  // can unmount during travel or undo, so queue only shared, deduplicated textures.
+  const textures = roomTextures(app.stage.getChildrenByLabel(label, true));
+  if (textures.length) void prepare.upload(textures).catch(() => {});
 }
 
 /** Above the world, below the DOM HUD. The journal never changes during a fade. */

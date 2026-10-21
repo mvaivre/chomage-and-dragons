@@ -111,8 +111,11 @@ entretien −3, rejet après entretien +6. Les bonus comptent aussi. La couronne
 récompense la progression nette du mois (Europe/Zurich), sans reporter les pas antérieurs.
 Les sauvegardes existantes sont recalculées depuis leur journal, sans migration destructive.
 
-Deux panneaux accueillent le personnage au départ. Une fenêtre courte présente les règles
-au premier lancement ; « Aide » la rouvre. Les lettres suivent les surfaces inclinées.
+Deux panneaux accueillent le personnage au départ. Trois rites jouables présentent le jeu
+au premier lancement : piloter un dragon, déclarer des démarches dans un camp d’essai,
+puis ouvrir un coffre et viser la couronne du mois. « Quêtes » permet de les rejouer.
+La progression de l’initiation se reprend sur cet appareil, par personnage et par groupe,
+sans toucher aux vraies actions. Les lettres suivent les surfaces inclinées.
 L’ORP et l’usine sont des scènes séparées : porte extérieure, fondu, salle entière,
 puis sortie vers le paysage avec le bâtiment à gauche. Les pas restants continuent
 automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.md).
@@ -121,7 +124,7 @@ automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.
 
 Jouable en groupe d'ami·es, en ligne. Fonctionne :
 
-- huit contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
+- neuf contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
   reliées par sept lieux de transition
 - quinze personnages illustrés, partagés entre le jeu et l'écran de sélection
 - un cadrage adapté au bureau, au portrait et au paysage sur mobile
@@ -129,11 +132,16 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
   (éclair, flash, secousse, confettis, onde de choc, ralenti), les pas défilent
   pendant la marche, une bannière annonce
-  chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton à trois états
+  chaque nouvelle contrée ; les effets sonores sont synthétisés, avec un bouton à trois états
   (musique et effets, effets seuls, silence)
-- une **musique d'ambiance discrète**, composée en direct : une humeur par contrée
-  (luth de la plaine, flûte du bois, harpe du marais, cloches du pont, gigue de la
-  taverne…), plus lente et plus rare la nuit, en retrait pendant les mini-jeux
+- quatre **musiques enregistrées** avec fondus : « Medieval » au volcan,
+  « Firelit Tavern » en forêt et « City/Tavern Ambient » dans les mondes d’eau.
+  La musique suit le personnage et baisse pendant les mini-jeux
+- un **volcan avant la taverne**, avec caldeira, coulées animées, braises et
+  lumières de lave sur le sol. [Décors et rendu](docs/VOLCANO.md)
+- **cinq dragons** : vert, rouge, bleu, noir aux yeux rouges et doré glamour.
+  Ils crachent du feu animé et gardent leur couleur pendant l’ingestion.
+  [Variantes et images](docs/DRAGON_COLOURS.md)
 - **vingt-sept mises en scène** tirées selon leur rareté (six sur dix classiques, trois
   rares, une légendaire), identiques pour tout le groupe, dont trois classiques par
   action : le piqué du pigeon, la douche froide, la porte claquée, le café tiède,
@@ -177,6 +185,22 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   retour un récapitulatif de ce qui s'est passé pendant ton absence
 - le **défi du jour** toujours visible dans le HUD : un tap pour jouer, puis le
   classement du jour
+- le **verre du mois** : compte à rebours jusqu’à la clôture à minuit à Zurich,
+  date/heure et lieu modifiables par chaque membre, sauvegardés avec le groupe.
+  Le rendez-vous peut se tenir jusqu’au 14 du mois suivant sans déplacer la couronne
+- une **salle des défis** dans « Quêtes », pour jouer librement aux treize mini-jeux,
+  dont six nouveaux : Grand Prix des pigeons à l’envers, découpe de dossiers,
+  serpent administratif, labyrinthe des recruteurs, pile de dossiers et renvoi à
+  l’expéditeur. Clavier, glisser et boutons tactiles ; les entraînements restent
+  sans effet sur la course. Les nouveautés alternent avec les anciens jeux sur
+  les actions et entrent dans les défis quotidiens à partir du 9 octobre 2026,
+  pour conserver le parcours déjà joué le jour de leur ajout
+- **neuf objets cachés**, un par contrée, à toucher dans le décor. Exploration
+  libre, indices et collection dans « Quêtes » ; les trouvailles se conservent
+  par personnage, y compris après un changement d’appareil dans un groupe.
+  Elles ne changent ni les pas ni le butin
+- **vingt-quatre nouvelles punchlines**, alternées avec les dialogues des habitants
+  et tirées de façon stable à la fin des nouveaux défis
 - une **série hebdomadaire** 🔥
 - le **classement** s'ouvre sur la carte peinte de la compagnie, avec la position de
   chacun·e, puis le mois, la saison et le palmarès
@@ -226,13 +250,20 @@ Pour les tests dans un vrai navigateur :
 ```sh
 pnpm exec playwright install chromium
 pnpm build
-pnpm test:browser
+pnpm start --port 3100
 ```
 
-Les tests démarrent leur serveur sur le port 3100 et utilisent des contextes isolés,
-sans toucher à la sauvegarde de votre navigateur. `GAME_TEST_URL` permet de choisir
-un serveur déjà lancé. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un
-Chromium installé plutôt que celui fourni par Playwright.
+Puis, dans un autre terminal :
+
+```sh
+GAME_TEST_URL=http://localhost:3100 pnpm test:browser
+```
+
+Les fichiers de tests s’exécutent l’un après l’autre pour éviter que plusieurs
+navigateurs saturent le GPU. Ils utilisent des contextes isolés, sans toucher à la
+sauvegarde de votre navigateur. `GAME_TEST_URL` désigne le serveur à tester.
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un Chromium installé
+plutôt que celui fourni par Playwright.
 
 ### Décor « vie et WTF »
 

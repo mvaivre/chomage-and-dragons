@@ -39,7 +39,7 @@ export interface GameEvent {
   pigeonFlightId?: string;
 }
 
-export type MiniGameKind = "pigeon" | "keywords" | "stamp" | "quiz" | "ghosting" | "slots" | "dragon";
+export type MiniGameKind = "pigeon" | "keywords" | "stamp" | "quiz" | "ghosting" | "slots" | "dragon" | "pigeonRace" | "paperCut" | "snake" | "maze" | "stack" | "pong";
 export type MiniGameResult = "won" | "lost" | "skipped";
 /**
  * One attempt per action ordinal (or per chest): undo, re-entry and reloads find
@@ -113,6 +113,22 @@ export interface Cheer {
   at: string;
 }
 
+/** A shared date for the drink celebrating one monthly crown. */
+export interface MonthlyMeetup {
+  monthKey: string;
+  /** Canonical UTC ISO instant; displayed in Europe/Zurich. */
+  at: string;
+  place: string;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface Discovery {
+  playerId: string;
+  itemId: string;
+  at: string;
+}
+
 export interface GameState {
   players: Player[];
   events: GameEvent[];
@@ -120,6 +136,8 @@ export interface GameState {
   cheers?: Cheer[];
   daily?: DailyRun[];
   miniGames?: MiniGameAttempt[];
+  monthlyMeetups?: MonthlyMeetup[];
+  discoveries?: Discovery[];
   /** Legacy, converted into miniGames when a save is loaded. */
   pigeonFlights?: PigeonFlight[];
 }

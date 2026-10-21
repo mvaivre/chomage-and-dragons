@@ -11,6 +11,7 @@ import { useLayerBiomes } from "./FlatWorld";
 import { gnomeFrame } from "./ambient-animation";
 import { AnimatedTuft } from "./LandmarkLife";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const RESIDENT_FRAMES = [[0, 0, 1, 0, 2, 3], [0, 1, 2, 3], [0, 0, 1, 2, 0, 3], [0, 1, 2, 3]];
 
@@ -24,9 +25,11 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   const source = useDirectTexture(kind === 2 ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp");
   const frames = source ? atlasFrames(source, 4, kind === 2 ? 2 : 4) : null;
   const sprite = useRef<Sprite>(null);
+  const shadow = useRef<Graphics>(null);
   const time = useRef(worldX % 17);
   const targetId = `ambient:${factor}:${kind}:${worldX}`;
   const target = useEnvironmentTarget(targetId, (["hen", "crow", "gnome", "toad"] as const)[kind], worldX, factor);
+  useViewportResident(targetId, (["hen", "crow", "gnome", "toad"] as const)[kind], sprite, target, shadow);
   useTick(ticker => {
     const node = sprite.current;
     if (!node || !frames) { updateSpriteTarget(targetId, null, 60); return; }
@@ -49,7 +52,7 @@ function Resident({ kind, worldX, factor, variant = 0 }: { kind: number; worldX:
   if (!frames) return null;
   const scale = [0.18, 0.24, 0.26, 0.15][kind];
   return <pixiContainer>
-    {kind === 2 ? <pixiGraphics x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={drawGnomeShadow} /> : null}
+    {kind === 2 ? <pixiGraphics ref={shadow} x={worldX * factor} y={WALKABLE_GROUND_Y + 11} draw={drawGnomeShadow} /> : null}
     <pixiSprite ref={sprite} texture={frames[kind === 2 ? variant * 4 : kind * 4]} anchor={{ x: 0.5, y: 312 / 320 }} scale={scale} />
   </pixiContainer>;
 }
@@ -87,7 +90,7 @@ function AmbientLifeLayer({ factor }: { factor: number }) {
     const span = (biome.to - biome.from) * WORLD_LENGTH;
     return [
       biome.id === "cascade" ? <WaterGlints key={`cascade-water-${offset}`} worldX={start + span * 0.5} factor={factor} /> : null,
-      <Resident key={`${offset}-${index}-crow`} kind={1} variant={index % 2} worldX={start + span * 0.5} factor={factor} />,
+      biome.id === "foret" ? <Resident key={`${offset}-${index}-crow`} kind={1} variant={index % 2} worldX={start + span * 0.5} factor={factor} /> : null,
     ];
   })}</pixiContainer>;
 }
@@ -103,11 +106,11 @@ function GroundDwellersLayer() {
     const biome = BIOMES[index];
     const at = (ratio: number) => offset + (biome.from + (biome.to - biome.from) * ratio) * WORLD_LENGTH;
     const leafy = ["plaine", "foret", "cascade", "lac", "taverne"].includes(biome.id);
-    const walker = index === 0 || index === 7 ? 0 : index < 5 ? 3 : null;
+    const walker = biome.id === "plaine" ? 0 : biome.id === "marais" ? 3 : null;
     return <pixiContainer key={`${offset}-${index}`}>
       {leafy ? [0.4, 0.84].map(ratio => <AnimatedTuft key={ratio} factor={1} worldX={at(ratio)} />) : null}
       {walker !== null ? <Resident kind={walker} variant={index % 2} worldX={at([0.35, 0, 0, 0.62][walker])} factor={1} /> : null}
-      <Resident kind={2} variant={index % 2} worldX={at(0.72)} factor={1} />
+      {biome.id === "taverne" ? <Resident kind={2} variant={index % 2} worldX={at(0.72)} factor={1} /> : null}
     </pixiContainer>;
   })}</pixiContainer>;
 }

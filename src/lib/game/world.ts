@@ -58,7 +58,7 @@ export interface Biome {
 
 /**
  * L'itinéraire. Les noms reprennent les étapes du pitch d'origine, augmentées du
- * lac et du désert : le décor s'assombrit jusqu'à la taverne, atteinte au crépuscule.
+ * lac, du désert et du volcan : le décor s'assombrit jusqu'à la taverne, atteinte au crépuscule.
  */
 export const BIOMES: Biome[] = [
   {
@@ -174,7 +174,7 @@ export const BIOMES: Biome[] = [
     name: "Désert du Désespoir",
     short: "Désert",
     from: 0.73,
-    to: 0.87,
+    to: 0.80,
     base: WALKABLE_GROUND_Y,
     amp: 0,
     palette: {
@@ -185,6 +185,24 @@ export const BIOMES: Biome[] = [
       ground: 0xc2955a,
       groundDark: 0x8a6438,
       accent: 0xffdc92,
+    },
+  },
+  {
+    id: "volcan",
+    name: "Volcan de la Dernière Épreuve",
+    short: "Volcan",
+    from: 0.80,
+    to: 0.87,
+    base: WALKABLE_GROUND_Y,
+    amp: 0,
+    palette: {
+      sky: [0x211b30, 0x8e382f],
+      far: 0x40313e,
+      mid: 0x493342,
+      near: 0x302734,
+      ground: 0x49323a,
+      groundDark: 0x29202b,
+      accent: 0xffb849,
     },
   },
   {

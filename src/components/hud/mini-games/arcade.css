@@ -1,0 +1,77 @@
+.mini-game .arcade-arena {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 9 / 7;
+  max-height: 44dvh;
+  overflow: hidden;
+  border: 1px solid #e7c36a55;
+  border-radius: 12px;
+  background: #0d1824;
+  touch-action: none;
+  user-select: none;
+}
+.arcade-arena canvas { display: block; pointer-events: none; }
+.arcade-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: #07121cca;
+  color: #ffe3a0;
+  text-align: center;
+  pointer-events: none;
+}
+.arcade-overlay b { font-size: clamp(16px, 3.5vw, 24px); letter-spacing: .07em; text-shadow: 0 2px 8px #000; }
+.arcade-overlay small { color: #d8e4df; font-size: 13px; }
+.arcade-overlay[data-won="true"] { background: #09221fc9; }
+.arcade-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+}
+.arcade-controls button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #a8c4bb70;
+  border-radius: 8px;
+  background: #203a42;
+  color: #e8f5e8;
+  font: 700 21px monospace;
+  cursor: pointer;
+  touch-action: none;
+}
+.arcade-controls button:active:not(:disabled) { transform: translateY(1px); background: #3a5c59; }
+.arcade-controls button:focus-visible { outline: 3px solid #f3cf81; outline-offset: 3px; }
+.arcade-controls button:disabled, .arcade-controls button[aria-disabled="true"] { opacity: .4; cursor: default; }
+.arcade-controls .arcade-action { min-width: 90px; border-color: #e7c36a88; background: #5a4828; color: #ffe5a9; font-size: 13px; }
+.arcade-clock { margin-left: auto; white-space: nowrap; }
+@media (max-width: 420px) {
+  .arcade-controls { gap: 6px; }
+  .arcade-controls button { padding-inline: 9px; min-width: 42px; }
+  .arcade-controls .arcade-action { min-width: 78px; }
+  .mini-game:has(.arcade-arena) .mini-game__hud { gap: 8px; font-size: 11px; }
+}
+@media (max-height: 640px) {
+  .mini-game .arcade-arena { max-height: 34dvh; }
+  .arcade-controls { padding-top: 6px; }
+  .arcade-controls button { height: 40px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .arcade-controls { grid-column: 2; grid-row: 5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arcade-controls button:active:not(:disabled) { transform: none; }
+}

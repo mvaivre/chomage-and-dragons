@@ -65,6 +65,8 @@ export interface Scene {
   /** Live feet position of every hero, so effects can follow the one they celebrate. */
   heroes: Map<string, { x: number; y: number }>;
   heroEffects: Map<string, { owner: symbol; x: number; y: number; scale: number; alpha: number; rotation: number }>;
+  /** A resident's cosmetic meal holds the camera without moving the saved hero. */
+  dragonMeal: { nest: number; playerId: string; scale: number } | null;
   /** Camera zoom around the ground line; the moment of an action leans in. */
   zoom: number;
   zoomTarget: number;
@@ -185,6 +187,7 @@ export const scene: Scene = {
   lowPower: false,
   heroes: new Map(),
   heroEffects: new Map(),
+  dragonMeal: null,
   zoom: 1,
   zoomTarget: 1,
   anchor: 0.36,
@@ -222,6 +225,7 @@ export function resetScene(): void {
   scene.lastMotion = 0;
   scene.heroes.clear();
   scene.heroEffects.clear();
+  scene.dragonMeal = null;
   scene.zoom = 1;
   scene.zoomTarget = 1;
   scene.anchor = FOLLOW_ANCHOR;

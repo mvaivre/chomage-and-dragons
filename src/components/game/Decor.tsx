@@ -13,6 +13,7 @@ import { ForestTree } from "./Forest";
 import { DecorNpc } from "./DecorNpc";
 import { DecorSetpiece, type DecorLand } from "./DecorSetpiece";
 import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { useViewportResident } from "./resident-visibility";
 
 const CHANGED_TEXT = "Finalement, le poste exige un dragon";
 
@@ -33,6 +34,7 @@ function WaitingHero({ id, x, worldX, statue = false }: { id: string; x: number;
   const time = useRef(x % 17);
   const targetId = `waiting:${id}:${worldX}`;
   const target = useEnvironmentTarget(targetId, "traveller", worldX);
+  useViewportResident(targetId, `${statue ? "statue" : "avatar"}:${id}`, sprite, target);
   useSceneTick(ticker => {
     if (!sprite.current || !frames) { updateSpriteTarget(targetId, null, 118); return; }
     if (!scene.reducedMotion && !statue) time.current += ticker.elapsedMS / 1000;
@@ -80,7 +82,7 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     {!carved ? <pixiGraphics draw={shadow} /> : null}
     {carved ? <ForestTree worldX={site.x} text={site.text} height={560} /> : null}
     {illustrated ? <DecorSetpiece land={site.biome as DecorLand} worldX={site.x} x={sceneOnly ? 0 : -160} caption={site.biome === "taverne" && site.kind === "hired" ? `Engagé·es · ${site.text}` : undefined} /> : null}
-    {site.kind === "coach" || site.kind === "influencer" ? <DecorNpc sheet="hype" row={site.kind === "coach" ? 0 : 1} x={-175} worldX={site.x - 175} /> : null}
+    {site.kind === "coach" && site.biome === "plaine" || site.kind === "influencer" && site.biome === "taverne" ? <DecorNpc sheet="hype" row={site.kind === "coach" ? 0 : 1} x={-175} worldX={site.x - 175} /> : null}
     {illustrated && site.biome === "foret" ? <DecorNpc sheet="recruiters" x={-240} worldX={site.x - 240} height={112} /> : null}
     {illustrated && site.biome === "marais" ? <DecorNpc sheet="afterlife" x={-240} worldX={site.x - 240} height={154} ghost /> : null}
     {illustrated && site.biome === "lac" ? <DecorNpc sheet="recruiters" row={1} x={-220} worldX={site.x - 220} height={152} /> : null}

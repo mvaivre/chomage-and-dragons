@@ -6,6 +6,7 @@ import { Texture, type Container, type Graphics, type Sprite } from "pixi.js";
 import { mixColor, paletteAt } from "@/lib/game/world";
 import { currentDaylight } from "@/lib/client/daylight";
 import { scene } from "./scene";
+import { volcanicLightAt } from "@/lib/game/volcano";
 
 const drawSun = (g: Graphics) => { g.clear().circle(0, 0, 32).fill(0xffffff); };
 const drawCloud = (g: Graphics) => {
@@ -62,9 +63,11 @@ function SkyLayer() {
   useTick((ticker) => {
     const { camera } = scene;
     const skyTop = -camera.screenOffsetY / camera.scale;
+    const ash = volcanicLightAt(camera.x + camera.viewW / 2);
     // Stars twinkle at night, even when nothing else moves.
     if (stars.current) {
-      stars.current.visible = scene.night > 0.05;
+      stars.current.visible = scene.night > 0.05 && ash < .9;
+      stars.current.alpha = 1 - ash;
       if (stars.current.visible) {
         twinkle.current += scene.reducedMotion ? 0 : ticker.elapsedMS / 1000;
         stars.current.children.forEach((star, i) => {
@@ -92,7 +95,9 @@ function SkyLayer() {
       sun.current.position.set(camera.viewW * (0.74 - scene.night * 0.5), skyTop + camera.viewH * (0.28 + low - scene.night * 0.12));
       sun.current.tint = mixColor(mixColor(mixColor(palette.accent, 0xffffff, 0.48), 0xffa35c, scene.warm * 0.7), 0xf4f1e3, scene.night);
       sun.current.scale.set(1 - scene.night * 0.3);
+      sun.current.alpha = 1 - ash;
     }
+    if(clouds.current) clouds.current.alpha = .24 * (1 - ash * .9);
     clouds.current?.children.forEach((cloud, index) => {
       const span = camera.viewW + 300;
       const raw = index * 347 - camera.x * 0.025;

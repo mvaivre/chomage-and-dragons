@@ -5,6 +5,7 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { DESK, beltSpeed, createDeskSim, deskAutopilot, dossierScreenX, nextDossier, slamStamp, stampedCount, stepDesk, type DeskEvent, type DeskSim, type DeskStatus } from "@/lib/game/stamp-desk";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { stampScore } from "@/lib/game/scores";
@@ -13,7 +14,6 @@ import { loadImage, useArenaCanvas, type ArenaView } from "./useArenaCanvas";
 const GNOME_SHEET = "/art/world-v3/animations/gnomes.webp";
 const GNOME_CELL = { width: 256, height: 320 };
 const INK = "#28241a";
-const GRUMBLES = ["Et le formulaire 3b ?", "Non conforme. Suivant.", "Ça, c’est une suspension.", "Je note. Je note tout."];
 
 interface DeskFx {
   gnomeMood: "bored" | "skeptical" | "cheers" | "laughs";
@@ -208,7 +208,7 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
     if (!resolved.current) settle("skipped");
     onDone();
   };
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key)) return;
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     event.preventDefault();
@@ -218,12 +218,12 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
   const won = outcome === "won";
   const remaining = DESK.dossiers - stamped;
   const instructions = phase === "result"
-    ? won ? "Dossier conforme. Le gnome grogne, mais il tamponne : ton refus vaut un pas de plus." : "Suspension de cinq jours. Ton refus compte quand même, le gnome moins."
+    ? won ? "Dossier validé, 1 pas bonus" : punchlineFor(`stamp:${seedId}`)
     : status === "ready"
-      ? `Le gnome de l’ORP veut ses preuves de recherches. Tape quand un dossier passe sous le tampon. ${DESK.missesAllowed} ratés et c’est la suspension.`
-      : remaining > 0 ? `Tape pile dans la zone dorée ! Encore ${remaining} dossier${remaining > 1 ? "s" : ""}.` : "Dernier dossier…";
+      ? `Tamponne les ${DESK.dossiers} dossiers dans la zone dorée`
+      : remaining > 0 ? `Encore ${remaining} dossier${remaining > 1 ? "s" : ""}` : "Dernier dossier…";
 
-  return <MiniGameShell kind="stamp" eyebrow={`${practice ? "Entraînement · " : ""}Preuves de recherches · +${base} pas acquis`} title="Le Tampon de l’ORP"
+  return <MiniGameShell kind="stamp" eyebrow={practice ? "Entraînement" : "Défi"} title="Le Tampon de l’ORP"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{stamped}</b> / {DESK.dossiers} dossiers</span>
@@ -232,9 +232,9 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
         {Array.from({ length: DESK.missesAllowed }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < misses} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de refus + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Une seule tentative · ${DESK.dossiers} dossiers · ${DESK.missesAllowed} ratés tolérés` :
-        status === "running" ? (misses > 0 ? `Le gnome : « ${GRUMBLES[(misses - 1) % GRUMBLES.length]} »` : "Touche l’image, Espace ou Entrée") : won ? "Le gnome relit tout…" : "Le gnome sort le formulaire de suspension…"}</span>}
+    status={phase === "result" ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? `Touche ou Espace · ${DESK.missesAllowed} ratés = perdu` :
+        status === "running" ? "Touche ou Espace : tamponner" : won ? "Conforme…" : "Suspension…"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le tapis" : status === "running" ? "Tamponner !" : won ? "Conforme…" : "Aïe…",
       disabled: phase === "play" && status !== "ready" && status !== "running",

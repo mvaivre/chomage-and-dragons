@@ -8,6 +8,7 @@ import { scene, viewedX } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { DecorLabel } from "./DecorSetpiece";
+import { TavernRoom, TavernExterior } from "./TavernRoom";
 import { DecorNpc } from "./DecorNpc";
 import orpWall from "../../../public/art/world-v3/decor/interior-orp-wall.json";
 import factoryWall from "../../../public/art/world-v3/decor/interior-factory-wall.json";
@@ -18,10 +19,12 @@ import exteriorFactory from "../../../public/art/world-v3/decor/exterior-factory
 import exteriorOrp from "../../../public/art/world-v3/decor/exterior-orp.json";
 
 
-const TILE = 831.6, WALL_HEIGHT = 415.8;
-const url = (id:InteriorId, part:string) => `/art/world-v3/decor/interior-${id}-${part}.webp`;
+type WorkplaceId = Exclude<InteriorId, "tavern">;
 
-function Prop({id, frame, x, height, y=10, motion}:{id:InteriorId;frame:number;x:number;height:number;y?:number;motion?:"press"|"gear"}) {
+const TILE = 831.6, WALL_HEIGHT = 415.8;
+const url = (id:WorkplaceId, part:string) => `/art/world-v3/decor/interior-${id}-${part}.webp`;
+
+function Prop({id, frame, x, height, y=10, motion}:{id:WorkplaceId;frame:number;x:number;height:number;y?:number;motion?:"press"|"gear"}) {
   const meta=id==="orp"?orpProps:factoryProps, texture=useDirectTexture(url(id,"props"));
   const frames=texture?atlasFrames(texture,4,2):null, ref=useRef<Sprite>(null), clock=useRef(x%9);
   const pivot=motion==="gear"?factoryProps.frames[6].pivot:motion==="press"?factoryProps.frames[2].pivot:null;
@@ -57,7 +60,7 @@ const FLOOR_FILL={orp:(g:Graphics)=>{g.clear().rect(-4000,WALKABLE_GROUND_Y,1000
 
 const WALL_OFFSETS = Array.from({length: 10}, (_, i) => (i - 4) * TILE);
 
-function Wall({id}:{id:InteriorId}) {
+function Wall({id}:{id:WorkplaceId}) {
   const texture=useDirectTexture(url(id,"wall")), ceiling=useDirectTexture(url(id,"ceiling"));
   const root=useRef<Container>(null), glass=useRef<Graphics>(null);
   const meta=id==="orp"?orpWall:factoryWall;
@@ -79,7 +82,7 @@ function Wall({id}:{id:InteriorId}) {
   </pixiContainer>;
 }
 
-function Building({id,x,mirror}:{id:InteriorId;x:number;mirror:boolean}) {
+function Building({id,x,mirror}:{id:WorkplaceId;x:number;mirror:boolean}) {
   const texture=useDirectTexture(`/art/world-v3/decor/exterior-${id}.webp`);
   const meta=id==="orp"?exteriorOrp:exteriorFactory;
   // Door centre is the trigger; the rest of the building extends away from it.
@@ -102,7 +105,7 @@ function Door({x,label}:{x:number;label:string}) {
   </pixiContainer>;
 }
 
-function Room({id,from,to}:{id:InteriorId;from:number;to:number}) {
+function Room({id,from,to}:{id:WorkplaceId;from:number;to:number}) {
   const floor=useDirectTexture(url(id,"floor"));
   const length=to-from;
   const root=useRef<Container>(null);
@@ -140,12 +143,12 @@ function useNearbyRooms(margin:number) {
 
 function InteriorsLayer() {
   const rooms=useNearbyRooms(600);
-  return <pixiContainer>{rooms.map(room=><Room key={room.from} {...room}/>)}</pixiContainer>;
+  return <pixiContainer>{rooms.map(room=>room.id === "tavern" ? <TavernRoom key={room.from} from={room.from} to={room.to}/> : <Room key={room.from} {...room} id={room.id}/>)}</pixiContainer>;
 }
 export const Interiors=memo(InteriorsLayer);
 
 function ExteriorBuildingsLayer() {
   const rooms=useNearbyRooms(900);
-  return <>{rooms.map(room=><pixiContainer key={room.from}><Building id={room.id} x={room.from} mirror={false}/><Building id={room.id} x={room.to} mirror/></pixiContainer>)}</>;
+  return <>{rooms.map(room=><pixiContainer key={room.from}>{room.id === "tavern" ? <><TavernExterior x={room.from} mirror={false}/><TavernExterior x={room.to} mirror/></> : <><Building id={room.id} x={room.from} mirror={false}/><Building id={room.id} x={room.to} mirror/></>}</pixiContainer>)}</>;
 }
 export const ExteriorBuildings=memo(ExteriorBuildingsLayer);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { ACTION_ART } from "@/lib/game/art";
 import { withImage as loadImage } from "@/lib/client/preload";
 import {
@@ -193,7 +194,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
     if (!reduced.current) spawnParticles(fx.current, "trail", view.current.pigeonX - 18, sim.y + 8, 2);
   }, [sim]);
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key)) return;
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     event.preventDefault();
@@ -203,12 +204,12 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
   const won = outcome === "won";
   const remaining = COURSE.towers - passed;
   const instructions = phase === "result"
-    ? won ? "Livré à l’envers. Compté double." : "Le CV s’est égaré. Ta candidature compte quand même."
+    ? won ? "Livraison réussie, pas doublés" : punchlineFor(`pigeon:${seedId}`)
     : status === "ready"
-      ? `Tape pour battre des ailes. Franchis les ${COURSE.towers} tours sans perdre tes ${COURSE.feathers} plumes : la boîte aux lettres double cette candidature, +${base + bonus} pas !`
-      : remaining > 0 ? `Tape, tape, tape ! Encore ${remaining} tour${remaining > 1 ? "s" : ""} avant la boîte aux lettres.` : "Dernière ligne droite : vise la fente dorée !";
+      ? `Franchis les ${COURSE.towers} tours pour livrer le courrier`
+      : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}` : "Vise la fente dorée";
 
-  return <MiniGameShell kind="pigeon" eyebrow={`${practice ? "Entraînement · " : ""}Courrier presque prioritaire · +${base} pas acquis`} title="Le pigeon à reculons"
+  return <MiniGameShell kind="pigeon" eyebrow={practice ? "Entraînement" : "Défi"} title="Le pigeon à reculons"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{passed}</b> / {COURSE.towers} tours</span>
@@ -217,9 +218,9 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
         {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers} />)}
       </span>
     </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de candidature + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={score} unit="m" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Une seule tentative · ${COURSE.towers} tours · ${COURSE.feathers} plumes` :
-        status === "flying" ? `${feathers} plume${feathers > 1 ? "s" : ""} · Touche l’image, Espace ou Entrée` : won ? "Livraison en cours…" : "Atterrissage forcé…"}</span>}
+    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><ScoreLine score={score} unit="m" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
+        status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Décoller !" : status === "flying" ? "Battre des ailes" : won ? "Livraison…" : "Aïe…",
       disabled: phase === "play" && status !== "ready" && status !== "flying",

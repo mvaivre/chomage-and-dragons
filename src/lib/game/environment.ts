@@ -1,8 +1,10 @@
 import { BIOMES, WORLD_LENGTH } from "./world";
 import { roomAt } from "./doors";
 import { decorForLap, isCarvedTree } from "./decor";
+import { residentPunchline } from "./punchlines";
+import type { BiomeResidentKind } from "./biome-residents";
 
-export type EnvironmentKind = "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit" | "squirrel" | "recruiter" | "coach" | "clerk" | "worker" | "traveller" | "dragon";
+export type EnvironmentKind = BiomeResidentKind | "troll" | "tree" | "hen" | "toad" | "gnome" | "ghost" | "skeleton" | "crow" | "spirit" | "squirrel" | "recruiter" | "coach" | "clerk" | "worker" | "traveller" | "dragon";
 export interface EnvironmentSite { id: string; kind: EnvironmentKind; x: number; factor: number; biome: string; }
 
 /** Scenery conversations follow what is visible, independently of the hero's journey. */
@@ -14,31 +16,21 @@ export const ENVIRONMENT_LABELS: Record<EnvironmentKind, string> = {
   troll: "Parler au troll", tree: "Réveiller l’arbre", hen: "Taquiner la poule", toad: "Taquiner le crapaud", gnome: "Trinquer avec le gnome", ghost: "Appeler le fantôme", skeleton: "Interrompre le squelette", crow: "Déranger le corbeau", spirit: "Réveiller l’esprit",
   squirrel: "Saluer l’écureuil", recruiter: "Parler au recruteur", coach: "Interrompre le coach", clerk: "Parler au guichetier", worker: "Parler à l’ouvrier", traveller: "Saluer le voyageur",
   dragon: "Parler au dragon",
+  yeti: "Parler au yéti",
+  fox: "Saluer le renard",
+  hedgehog: "Saluer le hérisson", mushroom: "Parler au champignon", otter: "Saluer la loutre", heron: "Saluer le héron", goat: "Saluer le bouquetin", scarab: "Observer le scarabée", innkeeper: "Parler à l’aubergiste",
 };
-const LINES: Record<EnvironmentKind, string[]> = {
-  troll: ["Même mon pont veut pas de toi.", "Ton CV ? Du PQ.", "Non. Et dégage.", "T’as essayé d’être riche ?"],
-  tree: ["On dormait. Bordel.", "Pas de noisette ? Pas d’entretien.", "Va secouer ton patron."],
-  hen: ["Encore un pigeon.", "Cocorico. T’es toujours pauvre.", "J’ai pondu. Et toi ?"],
-  toad: ["Même l’eau te rejette.", "T’as embrassé pire.", "Le prince ? Licencié."],
-  gnome: ["À ton prochain refus.", "Bois. Ça ne résout rien.", "La tournée ? C’est toi."],
-  ghost: ["Mort. Pas disponible.", "Même mort, ils me relancent.", "Hanter les RH ? Déjà fait."],
-  skeleton: ["Ils m’ont payé en exposition.", "Le poste ? Encore vacant.", "Je suis là depuis le stage."],
-  crow: ["Ton CV fera un bon nid.", "Pièce jointe volée.", "Croâ. Dégage."],
-  spirit: ["T’es vivant ? Quelle erreur.", "Le calme. Tu connais ?", "Même ici, pas de poste."],
-  squirrel: ["Ta carrière ? Une coquille vide.", "Pas de noisette. Pas de service.", "Va grimper ailleurs."],
-  recruiter: ["On a trouvé moins cher.", "Même le dragon refuse ton CV.", "Tu coûtes déjà trop cher."],
-  coach: ["Achète ma formation. Puis crève.", "Ton échec paie mon loyer.", "Le talent ? Je vends autre chose."],
-  clerk: ["Mauvaise file. Mauvaise vie.", "Il manque le formulaire du formulaire.", "Reviens quand je serai mort."],
-  worker: ["La pause ? Une légende.", "Ils appellent ça une opportunité.", "Mon salaire ? De la fiction."],
-  traveller: ["Encore toi. Quelle chance.", "Une quête ? Trouver un salaire.", "On avance. Ça empire."],
-  dragon: ["Ton CV me donne des gaz.", "Même les RH sont plus digestes.", "Le salaire ? Dans mon cul."],
-};
-export function environmentLine(kind: EnvironmentKind, visit: number): string { return LINES[kind][Math.max(0, Math.floor(visit)) % LINES[kind].length]; }
+export function environmentLine(kind: EnvironmentKind, visit: number): string {
+  return residentPunchline(kind, visit);
+}
 
 // The forest pilot passed desktop, mobile and wide-camera visual checks.
 export const ENVIRONMENT_BIOMES = new Set(BIOMES.map(biome => biome.id));
-const RESIDENTS: Record<string, EnvironmentKind[]> = {
-  plaine: ["hen", "troll", "gnome"], foret: ["troll"], marais: ["toad", "ghost"], lac: ["toad", "gnome"], cascade: ["spirit", "toad"], montagne: ["troll", "ghost"], desert: ["skeleton", "troll"], taverne: ["gnome", "hen"],
+export const RESIDENTS: Record<string, readonly EnvironmentKind[]> = {
+  plaine: ["hedgehog", "hen"], foret: ["fox", "troll"], marais: ["mushroom", "toad", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat", "yeti"], desert: ["scarab", "skeleton"], volcan: [], taverne: ["innkeeper", "gnome"],
+};
+export const BACKGROUND_RESIDENTS: Record<string, readonly EnvironmentKind[]> = {
+  plaine: ["hedgehog"], foret: ["crow"], marais: ["mushroom", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat"], desert: ["scarab"], volcan: [], taverne: ["innkeeper"],
 };
 /** Physical homes stay clear of doors across every parallax plane. */
 export function environmentSites(left: number, right: number, factor: number): EnvironmentSite[] {
@@ -46,15 +38,21 @@ export function environmentSites(left: number, right: number, factor: number): E
   for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
     for (const biome of BIOMES) {
       if (!ENVIRONMENT_BIOMES.has(biome.id)) continue;
+      const types = (factor === 1 ? RESIDENTS : BACKGROUND_RESIDENTS)[biome.id];
+      if (!types?.length) continue;
       const start = lap * WORLD_LENGTH + biome.from * WORLD_LENGTH;
       const woods = biome.id === "foret" && factor === 1;
       const carvedTrees = woods ? decorForLap(lap).filter(isCarvedTree) : [];
       for (let x = start + (factor === 1 ? woods ? 315 : 340 : 610), n = 0; x < lap * WORLD_LENGTH + biome.to * WORLD_LENGTH - 260; x += factor === 1 ? woods ? 780 : 760 : 1080, n++) {
-        if (x < left || x > right || [-210, 0, 210].some(offset => roomAt(x + offset))) continue;
-        if (carvedTrees.some(tree => Math.abs(tree.x - x) < 170)) continue;
-        const types = RESIDENTS[biome.id];
-        const kind = factor === 1 ? types[n % types.length] : n % 2 ? "crow" : "spirit";
-        result.push({ id: `resident:${factor}:${x}`, x, factor, kind, biome: biome.id });
+        const kind = types[n % types.length];
+        // A carved tree can occupy the troll's home: use the neighbouring gap
+        // instead of silently removing every troll from the forest.
+        const candidates = woods && kind === "troll" ? [x, x - 390, x + 390] : [x];
+        const home = candidates.find(candidate => candidate >= start + 260 && candidate < lap * WORLD_LENGTH + biome.to * WORLD_LENGTH - 260
+          && ![-210, 0, 210].some(offset => roomAt(candidate + offset))
+          && !carvedTrees.some(tree => Math.abs(tree.x - candidate) < 170));
+        if (home === undefined || home < left || home > right) continue;
+        result.push({ id: `resident:${factor}:${home}`, x: home, factor, kind, biome: biome.id });
       }
     }
   }

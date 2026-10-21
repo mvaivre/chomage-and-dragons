@@ -45,6 +45,7 @@ async function call<T>(input: string, init: RequestInit = {}): Promise<T> {
 export class RemoteStore {
   readonly slug: string;
   private readonly tokenKey: string;
+  private mutationTail: Promise<void> = Promise.resolve();
 
   constructor(slug: string) {
     this.slug = slug;
@@ -87,14 +88,23 @@ export class RemoteStore {
     return body.unchanged ? null : body;
   }
 
-  async dispatch<A extends GameAction>(action: A, context: ActionContext, extras: { pin?: string } = {}): Promise<RemoteApplied<A>> {
-    const applied = await call<RemoteApplied<A>>(this.url("/actions"), {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({ action, context: { id: context.id(), now: context.now() }, ...extras }),
+  dispatch<A extends GameAction>(action: A, context: ActionContext, extras: { pin?: string } = {}): Promise<RemoteApplied<A>> {
+    // Freeze event ids and timestamps at the click, even if a prior request is slow.
+    const body = JSON.stringify({ action, context: { id: context.id(), now: context.now() }, ...extras });
+    const pending = this.mutationTail.then(async () => {
+      // Registration supplies the device token. An immediate first action must
+      // wait for it, and later mutation replies must preserve the same order.
+      const applied = await call<RemoteApplied<A>>(this.url("/actions"), {
+        method: "POST",
+        headers: this.headers(),
+        body,
+      });
+      if (applied.deviceToken) this.setToken(applied.deviceToken);
+      return applied;
     });
-    if (applied.deviceToken) this.setToken(applied.deviceToken);
-    return applied;
+    // Each caller still receives its own rejection; the queue can keep going.
+    this.mutationTail = pending.then(() => undefined, () => undefined);
+    return pending;
   }
 
   async claim(playerId: string, pin: string): Promise<void> {

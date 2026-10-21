@@ -7,13 +7,14 @@ import { ACTION_ART } from "@/lib/game/art";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { DragonEffect } from "./DragonEffect";
+import { DragonMeal } from "./DragonMeal";
 import { JourneyChest } from "./JourneyChest";
 import { fx } from "./fx";
 import { CHOREOGRAPHIES, type ImpactContext, type ReactionKind } from "./reactions";
 import { markMotion, scene, worldDelta } from "./scene";
 import { BODY, displayFont, INK, SHOUT_STYLE } from "./style";
 
-export type EffectKind = ReactionKind | "chest";
+export type EffectKind = ReactionKind | "chest" | "dragonMeal";
 export interface Effect {
   id: string;
   kind: EffectKind;
@@ -313,6 +314,7 @@ function ChestEffect({ origin, loud = true, onDone }: EffectProps) {
 
 /** Any effect of the scene: a reaction by its choreography, or the chest. */
 export function EffectView({ kind, ...props }: EffectProps & { kind: EffectKind }) {
+  if (kind === "dragonMeal") return <DragonMeal {...props} />;
   if (kind === "dragonDrop") return <DragonEffect {...props} />;
   if (kind === "chest") return <ChestEffect {...props} />;
   return <Reaction {...props} kind={kind} />;
@@ -320,6 +322,7 @@ export function EffectView({ kind, ...props }: EffectProps & { kind: EffectKind 
 
 /** How long each reaction lasts, for the moment's timeline in Game. */
 export function reactionTiming(kind: EffectKind): { impact: number; duration: number } {
+  if (kind === "dragonMeal") return { impact: 900, duration: 5400 };
   if (kind === "chest") return { impact: 520, duration: 1300 };
   const { impact, duration } = CHOREOGRAPHIES[kind];
   return { impact, duration };

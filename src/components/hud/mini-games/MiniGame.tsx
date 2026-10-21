@@ -11,6 +11,7 @@ import { PigeonGame } from "./PigeonGame";
 import { QuizGame } from "./QuizGame";
 import { SlotsGame } from "./SlotsGame";
 import { StampGame } from "./StampGame";
+import { ArcadeGame } from "./ArcadeGame";
 
 /** One optional challenge per action; the reservation logic lives in lib/game/mini-games. */
 export function MiniGame({ kind, ...live }: MiniGameProps & { kind: MiniGameKind }) {
@@ -26,5 +27,7 @@ export function MiniGame({ kind, ...live }: MiniGameProps & { kind: MiniGameKind
     case "quiz": return <QuizGame {...props} />;
     case "ghosting": return <GhostingGame {...props} />;
     case "slots": return <SlotsGame {...props} />;
+    case "pigeonRace": case "paperCut": case "snake": case "maze": case "stack": case "pong":
+      return <ArcadeGame key={`${kind}:${props.seedId}`} kind={kind} {...props} />;
   }
 }

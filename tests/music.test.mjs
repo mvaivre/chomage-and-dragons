@@ -156,10 +156,10 @@ function finishFade({ env, ctx, player }) {
 
 test('recorded tracks follow the menu and the landscape', () => {
   for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.firelit);
-  assert.equal(trackForPlace('taverne'), TRACKS.firelit);
+  for (const place of ['taverne', 'tavern', 'foret']) assert.equal(trackForPlace(place), TRACKS.firelit);
   for (const place of ['orp', 'factory']) assert.equal(trackForPlace(place), TRACKS.funny);
-  for (const place of ['marais', 'desert']) assert.equal(trackForPlace(place), TRACKS.ambient);
-  for (const place of ['plaine', 'foret', 'lac', 'cascade', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
+  for (const place of ['marais', 'desert', 'lac', 'cascade']) assert.equal(trackForPlace(place), TRACKS.ambient);
+  for (const place of ['plaine', 'volcan', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
   assert.equal(new Set(Object.values(TRACKS).map(track => track.src)).size, 4);
   for (const track of Object.values(TRACKS)) assert.match(track.src, /^\/.*\.mp3$/);
 });
@@ -336,7 +336,7 @@ test('the game honours phase, sound settings, page visibility and cleanup', asyn
     assert.equal(adventure.src, TRACKS.medieval.src);
     const count = Media.instances.length;
     adventure.currentTime = 24;
-    setMusicPlace('foret'); setMusicPhase('adventure'); env.tick(); await settle();
+    setMusicPlace('montagne'); setMusicPhase('adventure'); env.tick(); await settle();
     assert.equal(Media.instances.length, count);
     assert.equal(adventure.currentTime, 24);
     setMusicDucked(true); setMusicDucked(false);

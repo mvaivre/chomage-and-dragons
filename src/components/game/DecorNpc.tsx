@@ -12,6 +12,7 @@ import recruiters from "../../../public/art/world-v3/decor/npc-recruiters.json";
 import afterlife from "../../../public/art/world-v3/decor/npc-afterlife.json";
 import orp from "../../../public/art/world-v3/decor/npc-orp.json";
 import factory from "../../../public/art/world-v3/decor/npc-factory.json";
+import { useViewportResident } from "./resident-visibility";
 
 const sheets = { hype, recruiters, afterlife, orp, factory };
 
@@ -27,6 +28,7 @@ export function DecorNpc({ sheet, row = 0, x, y = 0, height = 144, worldX = x, g
   const kind = sheet === "afterlife" ? ghost ? "ghost" : "skeleton" : sheet === "recruiters" ? "recruiter" : sheet === "orp" ? "clerk" : sheet === "factory" ? "worker" : "coach";
   const targetId = `npc:${sheet}:${row}:${worldX}`;
   const target = useEnvironmentTarget(targetId, kind, worldX);
+  useViewportResident(targetId, sheet === "afterlife" ? kind : `npc:${sheet}:${row}`, ref, target);
   useSceneTick(ticker => {
     const node = ref.current;
     if (!node || !frames) { updateSpriteTarget(targetId, null, height); return; }

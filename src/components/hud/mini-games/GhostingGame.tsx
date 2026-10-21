@@ -5,6 +5,7 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { GHOSTING, generateGhosting, ghostingPhase, ghostingVerdict, waitingDay, type GhostingPhase } from "@/lib/game/ghosting";
 import { PowerArtwork } from "../Artwork";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
@@ -105,7 +106,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice, record, best
     if (!resolved.current) settle("skipped");
     onDone();
   };
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (!waiting || event.repeat || !ACTION_KEYS.has(event.key)) return;
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     event.preventDefault();
@@ -115,21 +116,20 @@ export function GhostingGame({ seedId, onResolve, onDone, practice, record, best
   const won = outcome === "won";
   const hot = status === "message";
   const instructions = finished
-    ? won ? "Répondu à temps : impossible de te ghoster. Deux pas de plus."
-      : loss === "early" ? "Trop tôt. Tu as répondu aux points de suspension, pas à un message." : "Trop tard. Le message est arrivé, ta réponse non."
+    ? won ? "Réponse à temps, 2 pas bonus" : punchlineFor(`ghosting:${seedId}`)
     : status === "ready"
-      ? `Il va faire semblant d’écrire, plusieurs fois. N’appuie sur Répondre qu’à l’arrivée du message doré : ${GHOSTING.windowMs / 1000} s pour réagir.`
-      : hot ? "C’EST LE VRAI ! Appuie sur Répondre !" : "Attends. Les points de suspension ne comptent pas.";
+      ? `Réponds dans les ${GHOSTING.windowMs / 1000} secondes après le message doré`
+      : hot ? "Réponds maintenant" : "Attends le message doré";
 
-  return <MiniGameShell kind="ghosting" eyebrow={`${practice ? "Entraînement · " : ""}Sans nouvelles depuis 14 jours · +${base} pas acquis`} title="Ne relance pas"
+  return <MiniGameShell kind="ghosting" eyebrow={practice ? "Entraînement" : "Défi"} title="Ne relance pas"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status === "ready" || finished ? status : "wait"}
     hud={<>
       <span className="mini-game__counter"><b>Jour {day}</b> sans réponse</span>
       <span className="mini-game__progress"><span style={{ width: `${Math.min(100, day * GHOSTING.msPerDay / GHOSTING.messageAt[1] * 100)}%` }} /></span>
       <span className="mini-game__score">Fenêtre : <b>{GHOSTING.windowMs / 1000} s</b></span>
     </>}
-    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong><span>{won ? `${base} pas de rejet + ${bonus} pas bonus` : "Aucun pas perdu. Le voyage continue."}</span><ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? "Une seule tentative · un seul vrai message · encadré doré" : status === "typing" ? "Il écrit… ou il fait semblant. N’appuie pas." : hot ? "MAINTENANT !" : "Silence. N’appuie pas."}</span>}
+    status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong>{!won ? <span>{loss === "early" ? "Trop tôt." : "Trop tard."}</span> : null}<ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? "Bouton Répondre ou Espace" : hot ? "MAINTENANT !" : "Patiente…"}</span>}
     primary={{
       label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Réponds dans le chat ↑",
       disabled: waiting,

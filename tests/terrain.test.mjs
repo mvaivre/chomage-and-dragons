@@ -31,7 +31,7 @@ test('uniform biome interiors stay a single sprite and match deeper soil shading
   assert.equal(terrainBaseColor(centre),GROUND_MATERIALS[b.id]);
  }
 });
-test('eight distinct native textures share a transparent margin and solid walking surface',async()=>{
+test('distinct native textures share a transparent margin and solid walking surface',async()=>{
  const require=createRequire(import.meta.url);const sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
  const hashes=new Set();
  for(const b of BIOMES){
@@ -44,5 +44,5 @@ test('eight distinct native textures share a transparent margin and solid walkin
   for(let y=0;y<24;y++) for(let x=0;x<2048;x++) assert.equal(data[(y*2048+x)*4+3],0,`${b.id}: transparent margin`);
   for(const y of [100,180,300,440]) for(let x=0;x<2048;x++) assert.ok(data[(y*2048+x)*4+3]>=240,`${b.id}: gap in walking surface at ${x},${y}`);
  }
- assert.equal(hashes.size,8);
+ assert.equal(hashes.size,BIOMES.length);
 });

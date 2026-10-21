@@ -16,7 +16,7 @@ test('whole laps are repeatable, spaced, and avoid buildings and transition silh
   for(let lap=0;lap<100;lap++) {
     const sites=decorForLap(lap);
     assert.deepEqual(sites,JSON.parse(JSON.stringify(decorForLap(lap))));
-    assert.ok(sites.length>=40&&sites.length<=60,`lap ${lap}: ${sites.length}`);
+    assert.ok(sites.length>=38&&sites.length<=60,`lap ${lap}: ${sites.length}`);
     for(const [i,s] of sites.entries()) {
       if(i) assert.ok(s.x-sites[i-1].x>=DECOR_SPACING);
       const x=s.x-lap*WORLD_LENGTH;
@@ -28,7 +28,7 @@ test('whole laps are repeatable, spaced, and avoid buildings and transition silh
   assert.notDeepEqual(decorForLap(0).map(s=>s.text),decorForLap(1).map(s=>s.text));
 });
 
-test('interiors repeat for every traveller, for eleven steps within their original land',()=>{
+test('interiors repeat for every traveller, with their absolute bounds, including the final tavern',()=>{
   for(const room of INTERIORS) for(const lap of [0,1,20]) {
     assert.equal(interiorAt(room.from+lap*WORLD_LENGTH)?.id,room.id);
     assert.equal(interiorAt(room.to+lap*WORLD_LENGTH)?.id,room.id);
@@ -66,11 +66,12 @@ test('group signs honour the journal, crowns, daily runs and all hired companion
   for(let i=0;i<15;i++) assert.ok(board.split(' · ').includes(`Ami${i}`));
 });
 
-test('one illustrated scene in each land, with room for its road-bound silhouette',()=>{
+test('eight road-bound scenes leave the volcanic mountain to its own landscape layers',()=>{
  for(let lap=0;lap<30;lap++) {
   const sites=decorForLap(lap).filter(s=>s.setpiece);
   assert.equal(sites.length,8);
   assert.equal(new Set(sites.map(s=>s.biome)).size,8);
+  assert.ok(sites.every(s=>s.biome!=='volcan'));
   for(const site of sites)for(const offset of [-330,0,330])assert.equal(interiorAt(site.x+offset),undefined);
  }
 });

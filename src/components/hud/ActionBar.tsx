@@ -94,7 +94,7 @@ export function ActionBar({
     <div className="action-dock pointer-events-auto">
       <p className="action-dock__prompt" data-feedback={Boolean(feedback)} data-empty={!feedback && !hired} role="status" aria-live="polite">
         {feedback && feedbackKind ? <ActionArtwork kind={feedbackKind} className="action-dock__feedback-art" /> : null}
-        <span>{feedback ?? (hired ? "Quête accomplie — ta place à la taverne est réservée." : "")}</span>
+        <span>{feedback ?? (hired ? "Quête accomplie. Place à la taverne !" : "")}</span>
       </p>
 
       <div className="action-dock__bar">

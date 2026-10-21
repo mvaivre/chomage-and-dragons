@@ -10,6 +10,7 @@ import { crownedChickenFrame } from "./ambient-animation";
 import { windAt } from "@/lib/game/atmosphere";
 import { atmosphereTextures } from "./atmosphere-textures";
 import parts from "../../../public/art/world-v3/animations/tavern-life.json";
+import { useViewportResident } from "./resident-visibility";
 
 export interface LandmarkProps { worldX: number; factor: number; }
 
@@ -29,6 +30,7 @@ export function TavernLife(props: LandmarkProps) {
   const source = useDirectTexture("/art/world-v3/animations/tavern-life.webp");
   const frames = source ? atlasFrames(source, 4, 2) : null;
   const chicken = useRef<Sprite>(null);
+  useViewportResident(`crowned-hen:${props.factor}:${props.worldX}`, "crowned-hen", chicken);
   const lamps = useRef<Array<Container | null>>([]);
   const halos = useRef<Array<Graphics | null>>([]);
   const flame = useRef<Sprite>(null);

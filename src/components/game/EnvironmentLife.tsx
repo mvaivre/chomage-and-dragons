@@ -10,6 +10,9 @@ import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, useEnvironmentTarget } from "./environment-targets";
+import { biomeResident } from "@/lib/game/biome-residents";
+import { BiomeResident } from "./BiomeResident";
+import { useViewportResident } from "./resident-visibility";
 
 // Stable drawings: a Graphics repaints whenever its draw function changes, and every
 // repaint rebuilds the scene's render list.
@@ -22,7 +25,7 @@ function shadowFor(width: number) {
 const RIPPLE_COLOR = { color: 0x79b0b5, alpha: 0.25 };
 const paintRipple = (g: Graphics) => { g.clear().ellipse(0, 0, 38, 7).fill(RIPPLE_COLOR); };
 
-const Resident = memo(function Resident({ site }: { site: EnvironmentSite }) {
+const LegacyResident = memo(function LegacyResident({ site }: { site: EnvironmentSite }) {
   const { kind, x, factor } = site;
   const special = kind === "troll" || kind === "spirit", afterlife = kind === "ghost" || kind === "skeleton";
   const url = kind === "troll" ? "/art/world-v3/animations/environment-troll.webp" : kind === "spirit" ? "/art/world-v3/animations/woodland-life.webp" : afterlife ? "/art/world-v3/decor/npc-afterlife.webp" : kind === "gnome" ? "/art/world-v3/animations/gnomes.webp" : "/art/world-v3/animations/ambient.webp";
@@ -34,6 +37,7 @@ const Resident = memo(function Resident({ site }: { site: EnvironmentSite }) {
   const rippling = useRef(false);
   const time = useRef(x % 11), wander = useRef(x % 11), heading = useRef(1);
   const target = useEnvironmentTarget(site.id, kind, x, factor);
+  useViewportResident(site.id, kind, sprite, target, shadow, ripple);
   const height = kind === "troll" ? 172 : kind === "ghost" ? 120 : kind === "skeleton" ? 115 : kind === "gnome" ? 98 : kind === "crow" ? 78 : kind === "spirit" ? 52 : 72;
   const refHeight = kind === "troll" ? 440 : kind === "spirit" ? 400 : afterlife ? 275 : kind === "gnome" ? 257 : kind === "crow" ? 190 : kind === "hen" ? 198 : 140;
   const row = kind === "spirit" ? 4 : kind === "skeleton" ? 4 : kind === "crow" ? 4 : kind === "toad" ? 12 : 0;
@@ -92,6 +96,11 @@ const Resident = memo(function Resident({ site }: { site: EnvironmentSite }) {
     {frames ? <pixiSprite ref={sprite} texture={frames[row]} x={x * factor} y={ground} anchor={{ x: 0.5, y: special ? 476 / 512 : 312 / 320 }} scale={height / refHeight} /> : null}
   </pixiContainer>;
 });
+
+function Resident({ site }: { site: EnvironmentSite }) {
+  const profile = biomeResident(site.kind);
+  return profile ? <BiomeResident site={site} profile={profile} /> : <LegacyResident site={site} />;
+}
 
 /** Materialize only nearby physical homes; each resident culls its own parallax projection. */
 function EnvironmentLifeLayer({ factor }: { factor: number }) {

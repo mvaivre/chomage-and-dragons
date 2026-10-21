@@ -16,6 +16,7 @@ const PROFILES: Record<string, AtmosphereProfile> = {
   cascade: { fog: .72, rays: .20, shade: 0, fogColor: 0xd7ebef },
   montagne: { fog: .38, rays: .15, shade: 0, fogColor: 0xe0e8ed },
   desert: { fog: .12, rays: .08, shade: 0, fogColor: 0xedd5ab },
+  volcan: { fog: .45, rays: .08, shade: .12, fogColor: 0x8a4748 },
   taverne: { fog: .22, rays: .14, shade: 0, fogColor: 0xe3d5be },
 };
 const CLEAR: AtmosphereProfile = { fog: 0, rays: 0, shade: 0, fogColor: 0xffffff };

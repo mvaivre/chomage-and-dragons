@@ -1,0 +1,5 @@
+.hidden-object-overlay { position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden; }
+.hidden-object-target { position:absolute; top:0; left:0; padding:0; border:0; background:transparent; border-radius:50%; pointer-events:auto; touch-action:none; cursor:pointer; }
+.hidden-object-target[hidden] { display:none; }
+.hidden-object-target:hover { background:#ffe7a515; }
+.hidden-object-target:focus-visible { outline:2px dashed #f6d277; outline-offset:2px; background:#ffe7a522; }

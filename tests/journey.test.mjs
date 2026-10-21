@@ -64,7 +64,7 @@ function enter(state, event) {
 test('a won application game doubles application travel and can unlock a chest', () => {
   const initial = {players: [], casts: [], events: [application('a'), application('b'), application('c')]};
   const reservation = enter(initial, application('delivery'));
-  assert.equal(reservation.offer, 'pigeon', 'applications rotate through pigeon, keywords and dragon');
+  assert.equal(reservation.offer, 'pigeonRace', 'applications rotate through all five courier challenges');
   assert.equal(miniGameForAction('candidature', 0), 'pigeon');
   assert.deepEqual(journeyProgress(reservation.state.events), {steps: 8, earnedChests: 0});
   const awarded = resolveMiniGame(reservation.state, 'delivery', 'won');

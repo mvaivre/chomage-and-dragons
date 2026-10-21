@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Graphics, Sprite } from "pixi.js";
 import { sfx } from "@/lib/client/sound";
-import { dragonBeat, dragonFrame, DRAGON_DURATION } from "@/lib/game/dragon";
+import { dragonBeat, dragonFrame, DRAGON_DURATION, dragonVariantAt, DRAGON_VARIANTS } from "@/lib/game/dragon";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { markMotion, scene, worldDelta } from "./scene";
 import { useSceneTick } from "./useSceneTick";
@@ -15,7 +15,7 @@ const NO_DRAWING = () => {};
 
 /** A single timeline owns the swallow, hidden victim and rear exit. */
 export function DragonEffect({ origin, playerId, loud, onDone }: EffectProps) {
-  const texture = useDirectTexture("/art/world-v3/animations/dragon.webp");
+  const texture = useDirectTexture(DRAGON_VARIANTS[dragonVariantAt(origin.x)].art);
   const frames = texture ? atlasFrames(texture, 4, 2) : null;
   const art = useRef<Sprite>(null), residue = useRef<Graphics>(null);
   const elapsed = useRef(0), finished = useRef(false), last = useRef("");

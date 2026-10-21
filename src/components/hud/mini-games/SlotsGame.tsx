@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
 import { SLOTS, createSlotsSim, jackpotCount, slotsAutopilot, stepSlots, stopReel, type SlotsSim, type SlotsStatus } from "@/lib/game/slot-machine";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { slotsScore } from "@/lib/game/scores";
@@ -136,7 +137,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
     if (!resolved.current) settle("skipped");
     onDone();
   };
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const onKeyDown = (event: KeyboardEvent) => {
     if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key)) return;
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     event.preventDefault();
@@ -145,19 +146,19 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
 
   const won = outcome === "won";
   const instructions = phase === "result"
-    ? won ? "Jackpot ! Un butin de plus dans ton sac à malices." : "« Selon expérience », donc rien. Le coffre reste à toi."
-    : status === "ready" ? `Le coffre a un double fond : une machine à sous. Arrête les ${SLOTS.reels} rouleaux sur CHF pour un butin de plus.`
-    : `Tape pour arrêter le rouleau ${stopped + 1} sur CHF !`;
+    ? won ? "1 butin supplémentaire" : punchlineFor(`slots:${seedId}`)
+    : status === "ready" ? `Arrête les ${SLOTS.reels} rouleaux sur CHF`
+    : `Arrête le rouleau ${stopped + 1} sur CHF`;
 
-  return <MiniGameShell kind="slots" eyebrow={`${practice ? "Entraînement · " : ""}Salaire : selon expérience · butin acquis`} title="Salaire selon expérience"
+  return <MiniGameShell kind="slots" eyebrow={practice ? "Entraînement" : "Défi"} title="Salaire selon expérience"
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
     hud={<>
       <span className="mini-game__counter"><b>{stopped}</b> / {SLOTS.reels} rouleaux</span>
       <span className="mini-game__progress"><span style={{ width: `${stopped / SLOTS.reels * 100}%` }} /></span>
       <span className="mini-game__score">CHF : <b>{jackpotCount(sim)}</b></span>
     </>}
-    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><span>{won ? "Un pouvoir supplémentaire à lancer" : "Le coffre ne se retire jamais."}</span><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? "Une seule tentative · trois arrêts · pas de retour" : "Touche l’image, Espace ou Entrée"}</span>}
+    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
+      <span>{status === "ready" ? "Touche ou Espace : lancer, puis arrêter" : "Touche ou Espace : arrêter"}</span>}
     primary={{
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",
       disabled: phase === "play" && status !== "ready" && status !== "spinning",

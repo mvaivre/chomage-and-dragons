@@ -5,9 +5,13 @@ import { Application, useApplication } from "@pixi/react";
 import { useSceneTick as useTick } from "./useSceneTick";
 import { RendererType, type Application as PixiApplication, type Container, type Sprite, type TextureSource } from "pixi.js";
 import { Dragons, DragonEncounter } from "./Dragons";
+import { StatueOfTears } from "./StatueOfTears";
 import { Forest } from "./Forest";
 import { EnvironmentLife } from "./EnvironmentLife";
 import { EnvironmentOverlay } from "./EnvironmentOverlay";
+import { ViewportResidents } from "./ViewportResidents";
+import { viewportResidents } from "./resident-visibility";
+import { HiddenObjects, HiddenObjectOverlay } from "./HiddenObjects";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
 import { interiorAt, type GroupDecor } from "@/lib/game/decor";
@@ -22,12 +26,15 @@ import {
   worldXFor,
   WORLD_LENGTH,
   JOURNEY_SURFACE_Y,
+  mixColor,
 } from "@/lib/game/world";
+import { volcanicLightAt } from "@/lib/game/volcano";
 import { depthLight, markMotion, resetScene, scene, sceneFrameListeners, viewingInterior } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
 import { Atmosphere, AtmosphereClock } from "./Atmosphere";
+import { VolcanoBasin, VolcanoLighting } from "./VolcanoLife";
 import {
   BiomeArtLayer,
   GroundLayer,
@@ -127,13 +134,21 @@ function CameraRig({
       scene.pan = Math.abs(eased) < 1 ? 0 : eased;
     }
 
-    const wanted = (freeCamera && scene.exploreCenter !== null
+    let wanted = scene.dragonMeal ? scene.dragonMeal.nest - camera.viewW * 0.55 : (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
       : scene.focus - camera.viewW * scene.anchor) + scene.pan;
+    if (!scene.dragonMeal && scene.room?.id === "tavern" && scene.exploreCenter === null && scene.pan === 0) {
+      wanted = Math.min(wanted, scene.room.to - camera.viewW + 120);
+      if (camera.viewW < 700) {
+        const arrival = Math.max(0, Math.min(1, (scene.focus - (scene.room.to - 800)) / 400));
+        const anchor = scene.anchor + (0.78 - scene.anchor) * arrival;
+        wanted = Math.min(wanted, scene.focus - camera.viewW * anchor);
+      }
+    }
     const maxX = Math.max(0, Math.max(WORLD_LENGTH, scene.targetFocus + camera.viewW) + 420 - camera.viewW);
     const clamped = Math.max(-240, Math.min(maxX, wanted));
 
-    const wantedY = (surfaceAt(scene.focus) - REST_SURFACE) * 0.45;
+    const wantedY = (surfaceAt(scene.dragonMeal?.nest ?? scene.focus) - REST_SURFACE) * 0.45;
 
     // Au premier dessin, on cadre le héros sans traverser tout le monde depuis
     // l'origine. Les déplacements gagnés après cela restent, eux, animés.
@@ -181,14 +196,16 @@ function Layer({
   children: React.ReactNode;
 }) {
   const ref = useRef<Container>(null);
-  const lit = useRef({ night: -1, warm: -1 });
+  const lit = useRef({ night: -1, warm: -1, volcanic: -1 });
 
   useTick(() => {
     const node = ref.current;
     if (!node) return;
-    if (lit.current.night !== scene.night || lit.current.warm !== scene.warm) {
-      lit.current = { night: scene.night, warm: scene.warm };
-      node.tint = depthLight(shade);
+    const volcanic = volcanicLightAt(scene.camera.x + scene.camera.viewW / 2);
+    if (lit.current.night !== scene.night || lit.current.warm !== scene.warm || lit.current.volcanic !== volcanic) {
+      lit.current = { night: scene.night, warm: scene.warm, volcanic };
+      // The lava illuminates its canyon at night instead of receiving the blue moon tint.
+      node.tint = mixColor(depthLight(shade), 0xffd5a9, volcanic * shade * .82);
     }
     // Le pivot au centre de la fenêtre évite que les couches lentes dérivent vers
     // le bord gauche du canvas au fil du voyage.
@@ -197,7 +214,7 @@ function Layer({
     node.y = pinned ? camera.viewH - (scene.bottomInset + camera.screenOffsetY) / camera.scale : -camera.y * factor;
   });
 
-  return <pixiContainer ref={ref}>{children}</pixiContainer>;
+  return <pixiContainer ref={ref} label={`world-depth:${factor}:${shade}`}>{children}</pixiContainer>;
 }
 
 /** Frames per second when something moves, and when the scene is only breathing. */
@@ -209,6 +226,7 @@ function configureRenderer(app: PixiApplication) {
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
     (window as unknown as { __decorScene?: typeof scene }).__decorScene = scene;
+    (window as unknown as { __viewportResidents?: typeof viewportResidents }).__viewportResidents = viewportResidents;
   }
   // Without WebGL, Pixi draws with Canvas 2D on the main thread: spare it.
   scene.lowPower = app.renderer.type === RendererType.CANVAS;
@@ -295,6 +313,7 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  hiddenFoundIds: readonly string[];
   atmosphere: boolean;
   onSceneReady: () => void;
   paused: boolean;
@@ -313,6 +332,7 @@ interface SceneProps {
 }
 
 function WorldScene({
+  hiddenFoundIds,
   atmosphere,
   onSceneReady,
   paused,
@@ -337,12 +357,14 @@ function WorldScene({
   return (
     <>
     <RenderLifecycle paused={paused} />
+    <ViewportResidents />
     <DaylightClock />
     <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
       <MusicPosition meId={meId} followingMe={!focusPlayerId || focusPlayerId === meId} />
       <AtmosphereClock enabled={atmosphere} />
       <Outdoors>
       <Sky />
+      <VolcanoLighting depth="sky" />
 
       <Layer factor={FAR_FACTOR} shade={1.0}>
         <LandscapeBase factor={FAR_FACTOR} channel="far" />
@@ -358,6 +380,7 @@ function WorldScene({
       <Atmosphere depth="far" />
       <Layer factor={BACKGROUND_FACTOR} shade={0.88}>
         <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
+        <VolcanoBasin />
         <BiomeArtLayer
           channel="back"
           factor={BACKGROUND_FACTOR}
@@ -365,11 +388,13 @@ function WorldScene({
           width={1120}
           alpha={1}
         />
+        <HiddenObjects foundIds={hiddenFoundIds} factor={BACKGROUND_FACTOR} />
       </Layer>
 
       <Atmosphere depth="air" />
       <Layer factor={MIDGROUND_FACTOR} shade={0.72}>
         <MidgroundLayer factor={MIDGROUND_FACTOR} />
+        <StatueOfTears factor={MIDGROUND_FACTOR} />
         <AmbientLife factor={MIDGROUND_FACTOR} />
         <EnvironmentLife factor={MIDGROUND_FACTOR} />
       </Layer>
@@ -384,6 +409,7 @@ function WorldScene({
         <GroundLayer />
       </Layer>
       <Atmosphere depth="ground" />
+      <VolcanoLighting depth="ground" />
 
       <Layer factor={1} shade={0.6}>
         <Forest />
@@ -398,8 +424,8 @@ function WorldScene({
       </Layer>
 
       <Layer factor={1} shade={0.3}>
-        {/* Residents roam behind the stops: personal signs (crown, daily champion) stay readable. */}
-        <Outdoors><DecorEvents /><EnvironmentLife factor={1} /><Decor group={decor} /><Dragons /></Outdoors>
+        {/* Small inhabitants stand in front of props, below the player's plane. */}
+        <Outdoors><DecorEvents /><Decor group={decor} /><Dragons /><EnvironmentLife factor={1} /></Outdoors>
         <FlatJourneyMarkers earnedChests={players.find(player => player.id === meId)?.earnedChests ?? 0} pendingChestStep={pendingChestStep} activeChestX={effects.find(effect => effect.kind === "chest")?.origin.x ?? null} />
       </Layer>
 
@@ -458,9 +484,12 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  hiddenFoundIds: readonly string[];
+  onFindHidden: (itemId: string) => void;
   atmosphere?: boolean;
   onReturnToMe?: () => void;
   onDragonChallenge?: () => void;
+  onDragonSwallow?: (nest: number) => boolean;
   onSceneReady: () => void;
   paused: boolean;
   players: PlayerView[];
@@ -479,9 +508,12 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  hiddenFoundIds,
+  onFindHidden,
   atmosphere = true,
   onReturnToMe,
   onDragonChallenge,
+  onDragonSwallow,
   onSceneReady,
   paused,
   players,
@@ -498,6 +530,7 @@ function GameCanvas({
   devCameraTarget = null,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
+  const dragonBusy = effects.some(effect => effect.kind === "dragonMeal");
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
@@ -543,7 +576,7 @@ function GameCanvas({
   const drag = useRef<{ x: number; pan: number; id: number } | null>(null);
 
   const onPointerDown = useCallback((event: React.PointerEvent) => {
-    if (!event.isPrimary || event.button !== 0) return;
+    if (scene.dragonMeal || !event.isPrimary || event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, pan: scene.pan, id: event.pointerId };
     scene.dragging = true;
@@ -551,7 +584,7 @@ function GameCanvas({
 
   const onPointerMove = useCallback((event: React.PointerEvent) => {
     const start = drag.current;
-    if (!start || start.id !== event.pointerId) return;
+    if (scene.dragonMeal || !start || start.id !== event.pointerId) return;
     scene.pan = start.pan - (event.clientX - start.x) / scene.camera.scale;
   }, []);
 
@@ -567,6 +600,7 @@ function GameCanvas({
       // Pinch and Ctrl+wheel still zoom the page.
       if (event.ctrlKey) return;
       event.preventDefault();
+      if (scene.dragonMeal) return;
       const delta =
         Math.abs(event.deltaX) > Math.abs(event.deltaY)
           ? event.deltaX
@@ -587,14 +621,15 @@ function GameCanvas({
       onPointerCancel={onPointerUp}
       onLostPointerCapture={onPointerUp}
     >
-      {meId && !paused ? <button type="button" className="world-return"
+      {meId && !paused && !dragonBusy ? <button type="button" className="world-return"
         onPointerDown={event => event.stopPropagation()}
         onClick={() => { scene.pan = 0; scene.exploreCenter = null; onReturnToMe?.(); markMotion(); }}
         title="Glisse le paysage ou utilise la molette pour explorer">
         ↶ Retrouver mon personnage
       </button> : null}
-      <DragonEncounter meId={meId} paused={paused} onChallenge={onDragonChallenge} />
-      <EnvironmentOverlay meId={meId} paused={paused} />
+      <DragonEncounter meId={meId} paused={paused || dragonBusy} onChallenge={onDragonChallenge} />
+      <EnvironmentOverlay key={meId} meId={meId} paused={paused} busy={dragonBusy} onDragonSwallow={onDragonSwallow} />
+      <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused || dragonBusy} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}
@@ -604,6 +639,7 @@ function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          hiddenFoundIds={hiddenFoundIds}
           atmosphere={atmosphere}
           onSceneReady={onSceneReady}
           paused={paused}
