@@ -27,10 +27,10 @@ export function environmentLine(kind: EnvironmentKind, visit: number): string {
 // The forest pilot passed desktop, mobile and wide-camera visual checks.
 export const ENVIRONMENT_BIOMES = new Set(BIOMES.map(biome => biome.id));
 export const RESIDENTS: Record<string, readonly EnvironmentKind[]> = {
-  plaine: ["hedgehog", "hen"], foret: ["fox", "troll"], marais: ["mushroom", "toad", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat", "yeti"], desert: ["scarab", "skeleton"], taverne: ["innkeeper", "gnome"],
+  plaine: ["hedgehog", "hen"], foret: ["fox", "troll"], marais: ["mushroom", "toad", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat", "yeti"], desert: ["scarab", "skeleton"], volcan: [], taverne: ["innkeeper", "gnome"],
 };
 export const BACKGROUND_RESIDENTS: Record<string, readonly EnvironmentKind[]> = {
-  plaine: ["hedgehog"], foret: ["crow"], marais: ["mushroom", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat"], desert: ["scarab"], taverne: ["innkeeper"],
+  plaine: ["hedgehog"], foret: ["crow"], marais: ["mushroom", "ghost"], lac: ["otter"], cascade: ["heron"], montagne: ["goat"], desert: ["scarab"], volcan: [], taverne: ["innkeeper"],
 };
 /** Physical homes stay clear of doors across every parallax plane. */
 export function environmentSites(left: number, right: number, factor: number): EnvironmentSite[] {
@@ -38,11 +38,12 @@ export function environmentSites(left: number, right: number, factor: number): E
   for (let lap = Math.max(0, Math.floor(left / WORLD_LENGTH)); lap <= Math.floor(right / WORLD_LENGTH); lap++) {
     for (const biome of BIOMES) {
       if (!ENVIRONMENT_BIOMES.has(biome.id)) continue;
+      const types = (factor === 1 ? RESIDENTS : BACKGROUND_RESIDENTS)[biome.id];
+      if (!types?.length) continue;
       const start = lap * WORLD_LENGTH + biome.from * WORLD_LENGTH;
       const woods = biome.id === "foret" && factor === 1;
       const carvedTrees = woods ? decorForLap(lap).filter(isCarvedTree) : [];
       for (let x = start + (factor === 1 ? woods ? 315 : 340 : 610), n = 0; x < lap * WORLD_LENGTH + biome.to * WORLD_LENGTH - 260; x += factor === 1 ? woods ? 780 : 760 : 1080, n++) {
-        const types = (factor === 1 ? RESIDENTS : BACKGROUND_RESIDENTS)[biome.id];
         const kind = types[n % types.length];
         // A carved tree can occupy the troll's home: use the neighbouring gap
         // instead of silently removing every troll from the forest.

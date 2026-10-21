@@ -23,6 +23,7 @@ const WEATHER: Record<string, Weather[]> = {
   cascade: [{ preset: "fireflies", every: [99, 0.9], from: "band" }],
   montagne: [{ preset: "snow", every: [0.22, 0.22], from: "above" }],
   desert: [{ preset: "sand", every: [0.3, 0.6], from: "right" }],
+  volcan: [{ preset: "embers", every: [0.16, 0.16], from: "ground" }],
   taverne: [{ preset: "embers", every: [0.8, 0.45], from: "ground" }, { preset: "fireflies", every: [99, 0.9], from: "band" }],
 };
 

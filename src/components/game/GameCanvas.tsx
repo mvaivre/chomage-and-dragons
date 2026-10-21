@@ -26,12 +26,15 @@ import {
   worldXFor,
   WORLD_LENGTH,
   JOURNEY_SURFACE_Y,
+  mixColor,
 } from "@/lib/game/world";
+import { volcanicLightAt } from "@/lib/game/volcano";
 import { depthLight, markMotion, resetScene, scene, sceneFrameListeners, viewingInterior } from "./scene";
 import { EffectView, type Effect } from "./Effects";
 import { DaylightClock, Sky } from "./Backdrop";
 import { AmbientWeather } from "./AmbientWeather";
 import { Atmosphere, AtmosphereClock } from "./Atmosphere";
+import { VolcanoBasin, VolcanoLighting } from "./VolcanoLife";
 import {
   BiomeArtLayer,
   GroundLayer,
@@ -193,14 +196,16 @@ function Layer({
   children: React.ReactNode;
 }) {
   const ref = useRef<Container>(null);
-  const lit = useRef({ night: -1, warm: -1 });
+  const lit = useRef({ night: -1, warm: -1, volcanic: -1 });
 
   useTick(() => {
     const node = ref.current;
     if (!node) return;
-    if (lit.current.night !== scene.night || lit.current.warm !== scene.warm) {
-      lit.current = { night: scene.night, warm: scene.warm };
-      node.tint = depthLight(shade);
+    const volcanic = volcanicLightAt(scene.camera.x + scene.camera.viewW / 2);
+    if (lit.current.night !== scene.night || lit.current.warm !== scene.warm || lit.current.volcanic !== volcanic) {
+      lit.current = { night: scene.night, warm: scene.warm, volcanic };
+      // The lava illuminates its canyon at night instead of receiving the blue moon tint.
+      node.tint = mixColor(depthLight(shade), 0xffd5a9, volcanic * shade * .82);
     }
     // Le pivot au centre de la fenêtre évite que les couches lentes dérivent vers
     // le bord gauche du canvas au fil du voyage.
@@ -209,7 +214,7 @@ function Layer({
     node.y = pinned ? camera.viewH - (scene.bottomInset + camera.screenOffsetY) / camera.scale : -camera.y * factor;
   });
 
-  return <pixiContainer ref={ref}>{children}</pixiContainer>;
+  return <pixiContainer ref={ref} label={`world-depth:${factor}:${shade}`}>{children}</pixiContainer>;
 }
 
 /** Frames per second when something moves, and when the scene is only breathing. */
@@ -359,6 +364,7 @@ function WorldScene({
       <AtmosphereClock enabled={atmosphere} />
       <Outdoors>
       <Sky />
+      <VolcanoLighting depth="sky" />
 
       <Layer factor={FAR_FACTOR} shade={1.0}>
         <LandscapeBase factor={FAR_FACTOR} channel="far" />
@@ -374,6 +380,7 @@ function WorldScene({
       <Atmosphere depth="far" />
       <Layer factor={BACKGROUND_FACTOR} shade={0.88}>
         <LandscapeBase factor={BACKGROUND_FACTOR} channel="mid" />
+        <VolcanoBasin />
         <BiomeArtLayer
           channel="back"
           factor={BACKGROUND_FACTOR}
@@ -401,6 +408,7 @@ function WorldScene({
         <GroundLayer />
       </Layer>
       <Atmosphere depth="ground" />
+      <VolcanoLighting depth="ground" />
 
       <Layer factor={1} shade={0.6}>
         <Forest />

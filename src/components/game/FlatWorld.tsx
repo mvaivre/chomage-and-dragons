@@ -22,6 +22,8 @@ import { CascadeLife } from "./CascadeLife";
 import { TerrainRoad } from "./Terrain";
 import { GROUND_TILE_WIDTH, terrainBaseColor } from "@/lib/game/terrain";
 import { WindmillLife, TavernLife, TavernWindows } from "./LandmarkLife";
+import { VolcanoLife } from "./VolcanoLife";
+import { volcanicLightAt } from "@/lib/game/volcano";
 
 /**
  * Le monde v3 suit un contrat volontairement court :
@@ -108,6 +110,7 @@ function LayerSprite({
   frame,
   children,
   tint = 0xffffff,
+  biomeId,
 }: {
   url: string;
   factor: number;
@@ -119,6 +122,7 @@ function LayerSprite({
   frame?: number;
   children?: ReactNode;
   tint?: number;
+  biomeId?: string;
 }) {
   const source = useDirectTexture(url);
   const texture = source && frame !== undefined ? atlasFrames(source, 4, 2)[frame] : source;
@@ -127,6 +131,8 @@ function LayerSprite({
     if (!node.current) return;
     const x = parallaxX(worldX, scene.camera.x, scene.camera.viewW, factor);
     node.current.visible = x + width / 2 > -80 && x - width / 2 < scene.camera.viewW + 80;
+    // The ash curtain hides neighbouring green villages inside the volcanic caldera.
+    node.current.alpha = biomeId && biomeId !== "volcan" ? 1 - volcanicLightAt(scene.camera.x + scene.camera.viewW / 2) : 1;
   });
 
   if (!texture) return null;
@@ -135,6 +141,7 @@ function LayerSprite({
   return (
     <pixiContainer
       ref={node}
+      label={biomeId ? `biome-art:${biomeId}` : undefined}
       x={worldX * factor}
       y={bottom}
     >
@@ -159,6 +166,8 @@ type ArtChannel = keyof BiomeArt;
  * land was half as long. The far hills are wide enough to fill it alone.
  */
 const COPIES: Record<ArtChannel, number> = { far: 1, back: 2, mid: 2 };
+// Keep each existing composition when a new biome is inserted into the itinerary.
+const MIRRORED_BIOMES = new Set(["foret", "lac", "montagne", "volcan", "taverne"]);
 
 /** Evenly spread centres of a land's copies, in world units. */
 function copyCentres(index: number, cycleOffset: number, copies: number): number[] {
@@ -186,24 +195,26 @@ function BiomeArtLayerLayer({
     <pixiContainer>
       {indices.flatMap(({ index, offset: cycleOffset }) => {
         const biome = BIOMES[index];
-        return copyCentres(index, cycleOffset, COPIES[channel]).flatMap((center, copy) => {
+        return copyCentres(index, cycleOffset, biome.id === "volcan" ? 1 : COPIES[channel]).flatMap((center, copy) => {
           // The very start of the world is extended by a mirrored copy to its left.
           const offsets = index === 0 && cycleOffset === 0 && copy === 0 ? [-width * 0.8 / factor, 0] : [0];
           return offsets.map(offset => (
             <LayerSprite
               key={`${channel}-${cycleOffset}-${biome.id}-${copy}-${offset}`}
               url={WORLD_ART[biome.id][channel]}
+              biomeId={biome.id}
               factor={factor}
               bottom={bottom}
-              width={biome.id === "cascade" && channel === "back" ? 1800 : width}
+              width={channel === "back" && (biome.id === "cascade" || biome.id === "volcan") ? 1800 : channel === "far" && biome.id === "volcan" ? 1180 : width}
               alpha={alpha}
               worldX={center + offset}
-              mirror={((index + copy) % 2 === 1) !== (offset !== 0)}
+              mirror={(MIRRORED_BIOMES.has(biome.id) !== (copy % 2 === 1)) !== (offset !== 0)}
               tint={channel === "back" && biome.id === "plaine" ? 0xdad8d0 : 0xffffff}
             >
               {channel === "back" && biome.id === "cascade" ? <CascadeLife worldX={center + offset} factor={factor} /> : null}
               {channel === "back" && biome.id === "plaine" ? <WindmillLife worldX={center + offset} factor={factor} /> : null}
               {channel === "back" && biome.id === "taverne" ? <TavernWindows worldX={center + offset} factor={factor} /> : null}
+              {biome.id === "volcan" ? <VolcanoLife kind={channel === "far" ? "eruption" : "lava"} worldX={center + offset} factor={factor} /> : null}
             </LayerSprite>
           ));
         });
@@ -224,6 +235,7 @@ function MidgroundLayerLayer({ factor }: { factor: number }) {
           <LayerSprite
             key={`mid-${cycleOffset}-${biome.id}-${copy}`}
             url={WORLD_ART[biome.id].mid}
+            biomeId={biome.id}
             factor={factor}
             bottom={GROUND_Y + 100}
             width={820}
@@ -240,16 +252,18 @@ function MidgroundLayerLayer({ factor }: { factor: number }) {
   );
 }
 
-const TRANSITION_ART = Array.from(
-  { length: BIOMES.length - 1 },
-  (_, index) => `${ART_ROOT}/transition-${index + 1}.webp`,
-);
+const TRANSITION_ART: Record<string,string> = {
+  plaine: `${ART_ROOT}/transition-1.webp`, foret: `${ART_ROOT}/transition-2.webp`,
+  marais: `${ART_ROOT}/transition-3.webp`, lac: `${ART_ROOT}/transition-4.webp`,
+  cascade: `${ART_ROOT}/transition-5.webp`, montagne: `${ART_ROOT}/transition-6.webp`,
+  volcan: `${ART_ROOT}/transition-7.webp`,
+};
 
 function TransitionLandmark({ boundaryIndex, offset }: { boundaryIndex: number; offset: number }) {
-  const texture = useDirectTexture(TRANSITION_ART[boundaryIndex]);
+  const texture = useDirectTexture(TRANSITION_ART[BIOMES[boundaryIndex].id]);
   if (!texture) return null;
 
-  const height = boundaryIndex === 5 ? 460 : 400;
+  const height = BIOMES[boundaryIndex].id === "montagne" ? 460 : 400;
   const width = (height * texture.width) / texture.height;
   const x = offset + BIOMES[boundaryIndex].to * WORLD_LENGTH;
   return (
@@ -268,7 +282,7 @@ function TransitionLandmark({ boundaryIndex, offset }: { boundaryIndex: number; 
 /** Landmark autonome derrière le joueur : il transforme la frontière en lieu. */
 function TransitionLandmarksLayer() {
   const indices = useLayerBiomes(1, 1800);
-  return <pixiContainer>{indices.filter(({ index }) => index < TRANSITION_ART.length)
+  return <pixiContainer>{indices.filter(({ index }) => Boolean(TRANSITION_ART[BIOMES[index].id]))
     .map(({ index, offset }) => <TransitionLandmark key={`${offset}-${index}`} boundaryIndex={index} offset={offset} />)}</pixiContainer>;
 }
 

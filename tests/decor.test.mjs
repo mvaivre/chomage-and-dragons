@@ -66,11 +66,12 @@ test('group signs honour the journal, crowns, daily runs and all hired companion
   for(let i=0;i<15;i++) assert.ok(board.split(' · ').includes(`Ami${i}`));
 });
 
-test('one illustrated scene in each land, with room for its road-bound silhouette',()=>{
+test('eight road-bound scenes leave the volcanic mountain to its own landscape layers',()=>{
  for(let lap=0;lap<30;lap++) {
   const sites=decorForLap(lap).filter(s=>s.setpiece);
   assert.equal(sites.length,8);
   assert.equal(new Set(sites.map(s=>s.biome)).size,8);
+  assert.ok(sites.every(s=>s.biome!=='volcan'));
   for(const site of sites)for(const offset of [-330,0,330])assert.equal(interiorAt(site.x+offset),undefined);
  }
 });

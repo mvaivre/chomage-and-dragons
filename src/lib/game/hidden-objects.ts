@@ -19,7 +19,8 @@ const ITEMS = [
   { biome: "lac", name: "La chope égarée", clue: "Sur la rive près du pont", art: "tankard", x: 13310, y: 480, size: 40 },
   { biome: "cascade", name: "La boussole", clue: "Dans les rochers près de la cascade", art: "compass", x: 16780, y: 510, size: 40 },
   { biome: "montagne", name: "Le cristal bleu", clue: "Dans les rochers enneigés", art: "crystal", x: 20850, y: 490, size: 44 },
-  { biome: "desert", name: "La lampe ancienne", clue: "Près des dunes", art: "lamp", x: 24530, y: 500, size: 40 },
+  { biome: "desert", name: "La lampe ancienne", clue: "Près des dunes", art: "lamp", x: 23380, y: 500, size: 40 },
+  { biome: "volcan", name: "Le marteau de forge", clue: "Parmi les pierres noires du volcan", art: "hammer", x: 25200, y: 573, size: 42 },
   { biome: "taverne", name: "La couronne égarée", clue: "Près des lanternes avant la taverne", art: "crown", x: 28020, y: 490, size: 42 },
 ] as const;
 

@@ -62,6 +62,7 @@ const FLORA: Record<string, Kind[]> = {
   cascade: ["fern", "reed", "grass"],
   montagne: ["dry", "grass", "dry"],
   desert: ["dry", "dry", "grass"],
+  volcan: ["dry", "dry", "dry"],
   taverne: ["grass", "fern", "grass"],
 };
 const VARIANTS = 3;

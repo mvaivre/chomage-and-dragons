@@ -124,7 +124,7 @@ automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.
 
 Jouable en groupe d'ami·es, en ligne. Fonctionne :
 
-- huit contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
+- neuf contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
   reliées par sept lieux de transition
 - quinze personnages illustrés, partagés entre le jeu et l'écran de sélection
 - un cadrage adapté au bureau, au portrait et au paysage sur mobile
@@ -132,11 +132,13 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
   (éclair, flash, secousse, confettis, onde de choc, ralenti), les pas défilent
   pendant la marche, une bannière annonce
-  chaque nouvelle contrée ; tout le son est synthétisé, avec un bouton à trois états
+  chaque nouvelle contrée ; les effets sonores sont synthétisés, avec un bouton à trois états
   (musique et effets, effets seuls, silence)
-- une **musique d'ambiance discrète**, composée en direct : une humeur par contrée
-  (luth de la plaine, flûte du bois, harpe du marais, cloches du pont, gigue de la
-  taverne…), plus lente et plus rare la nuit, en retrait pendant les mini-jeux
+- quatre **musiques enregistrées** avec fondus : « Medieval » au volcan,
+  « Firelit Tavern » en forêt et « City/Tavern Ambient » dans les mondes d’eau.
+  La musique suit le personnage et baisse pendant les mini-jeux
+- un **volcan avant la taverne**, avec caldeira, coulées animées, braises et
+  lumières de lave sur le sol. [Décors et rendu](docs/VOLCANO.md)
 - **vingt-sept mises en scène** tirées selon leur rareté (six sur dix classiques, trois
   rares, une légendaire), identiques pour tout le groupe, dont trois classiques par
   action : le piqué du pigeon, la douche froide, la porte claquée, le café tiède,
@@ -190,7 +192,7 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   sans effet sur la course. Les nouveautés alternent avec les anciens jeux sur
   les actions et entrent dans les défis quotidiens à partir du 9 octobre 2026,
   pour conserver le parcours déjà joué le jour de leur ajout
-- **huit objets cachés**, un par contrée, à toucher dans le décor. Exploration
+- **neuf objets cachés**, un par contrée, à toucher dans le décor. Exploration
   libre, indices et collection dans « Quêtes » ; les trouvailles se conservent
   par personnage, y compris après un changement d’appareil dans un groupe.
   Elles ne changent ni les pas ni le butin

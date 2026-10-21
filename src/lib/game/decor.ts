@@ -159,6 +159,8 @@ function packLap(cycle: number): DecorSite[] {
   }
   const chosen = new Set<string>();
   for (const biome of BIOMES) {
+    // The volcano itself is the illustrated landmark, rendered in its own layers.
+    if (biome.id === "volcan") continue;
     const candidates = sites.filter(s => s.biome === biome.id && !interiorAt(s.x - 330) && !interiorAt(s.x + 330));
     const selected = biome.id === "plaine" ? candidates[0] : biome.id === "foret" ? candidates.at(-1) : candidates[1] ?? candidates[0];
     if (selected) chosen.add(selected.id);

@@ -7,6 +7,7 @@ import { useDirectTexture } from "./textures";
 import { scene, sceneFrameListeners, viewingInterior, markMotion } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { parallaxX } from "./projection";
+import { volcanicLightAt } from "@/lib/game/volcano";
 
 /** Plain pilot validated at 1280×720, 390×844 and 1920×1080 before expansion. */
 const ITEMS = HIDDEN_ITEMS;
@@ -30,6 +31,7 @@ function HiddenSprite({ item, found, highlighted, factor }: { item: HiddenItem; 
   useSceneTick(() => {
     const x = parallaxX(item.x, scene.camera.x, scene.camera.viewW, factor);
     if (root.current) root.current.visible = !found && x > -100 && x < scene.camera.viewW + 100;
+    if (root.current) root.current.alpha = item.biome === "volcan" ? 1 : 1 - volcanicLightAt(scene.camera.x + scene.camera.viewW / 2);
   });
   return texture ? <pixiContainer ref={root} label={`hidden-prop:${item.id}`} x={item.x * factor} y={item.y} visible={!found}>
     <pixiGraphics label="hidden-object-glow" draw={glowFor(item.size, highlighted)} />
@@ -47,7 +49,8 @@ function position(node: HTMLButtonElement, item: HiddenItem, paused: boolean, fa
   const x = parallaxX(item.x, camera.x, camera.viewW, factor) * camera.scale;
   const y = camera.screenOffsetY + (item.y - item.size / 2 - camera.y * factor) * camera.scale;
   const width = Math.max(44, item.size * camera.scale);
-  const visible = !paused && !viewingInterior() && x > 0 && x < camera.viewW * camera.scale && y > scene.topInset + 12 && y < camera.viewH * camera.scale - scene.bottomInset;
+  const inAsh = item.biome !== "volcan" && volcanicLightAt(camera.x + camera.viewW / 2) > .85;
+  const visible = !inAsh && !paused && !viewingInterior() && x > 0 && x < camera.viewW * camera.scale && y > scene.topInset + 12 && y < camera.viewH * camera.scale - scene.bottomInset;
   if (node.hidden === visible) node.hidden = !visible;
   if (!visible) return;
   const transform = `translate(${Math.round(x)}px,${Math.round(y)}px) translate(-50%,-50%)`;

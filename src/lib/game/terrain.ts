@@ -3,7 +3,7 @@ import { biomeMix, mixColor } from "./world";
 export const GROUND_TILE_WIDTH = 1024;
 export const GROUND_TOP_MARGIN = 24;
 /** Native floor materials, with bottom shading matched by the deeper ground fill. */
-export const GROUND_MATERIALS: Record<string, number> = { plaine: 0x2d2113, foret: 0x241a0f, marais: 0x1e1b13, lac: 0x262019, cascade: 0x1a1b1d, montagne: 0x272c32, desert: 0x332418, taverne: 0x2d261e };
+export const GROUND_MATERIALS: Record<string, number> = { plaine: 0x2d2113, foret: 0x241a0f, marais: 0x1e1b13, lac: 0x262019, cascade: 0x1a1b1d, montagne: 0x272c32, desert: 0x332418, volcan: 0x29202b, taverne: 0x2d261e };
 export interface GroundSlice { offset: number; width: number; a: string; b: string; blend: number; }
 
 /** Long uniform runs stay one sprite; only biome transitions need narrow blend strips. */

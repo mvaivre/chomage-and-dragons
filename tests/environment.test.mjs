@@ -17,11 +17,12 @@ test('visible characters are interactive while exploring, only a paused scene bl
  assert.equal(canExploreTarget(true,true),false);
  assert.equal(canExploreTarget(false,true),false);
 });
-test('life spans every biome and parallax plane on successive laps without entering doors',()=>{
+test('residents keep their habitats on successive laps and leave the volcanic caldera empty',()=>{
  for(const factor of [1,0.76]){
  const sites=environmentSites(0,WORLD_LENGTH*3,factor);
  assert.equal(new Set(sites.map(s=>s.id)).size,sites.length);
- for(const biome of BIOMES) for(let lap=0;lap<3;lap++) assert.ok(sites.some(s=>s.biome===biome.id && Math.floor(s.x/WORLD_LENGTH)===lap),`${biome.id}, lap ${lap}, factor ${factor}`);
+ assert.ok(sites.every(s=>s.biome!=='volcan'));
+ for(const biome of BIOMES.filter(b=>b.id!=='volcan')) for(let lap=0;lap<3;lap++) assert.ok(sites.some(s=>s.biome===biome.id && Math.floor(s.x/WORLD_LENGTH)===lap),`${biome.id}, lap ${lap}, factor ${factor}`);
  for(const site of sites){ for(const offset of [-210,0,210]) assert.equal(roomAt(site.x+offset),null);assert.ok(ENVIRONMENT_LABELS[site.kind]); }
  const left=6500,right=14000;
  assert.deepEqual(environmentSites(left,right,factor),sites.filter(s=>s.x>=left && s.x<=right));
