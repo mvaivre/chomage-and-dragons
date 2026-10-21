@@ -7,7 +7,7 @@ registerHooks({ resolve(s, c, next) {
   return next(s, c);
 } });
 const { createDragonRun, advanceDragonRun, steerDragonRun, dragonScore } = await import('../src/lib/game/dragon-flight.ts');
-const { canChallengeDragon, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION } = await import('../src/lib/game/dragon.ts');
+const { canChallengeDragon, dragonIdleFrame, dragonNests, dragonFrame, dragonBeat, DRAGON_DURATION } = await import('../src/lib/game/dragon.ts');
 const { roomAt } = await import('../src/lib/game/doors.ts');
 const { WORLD_LENGTH } = await import('../src/lib/game/world.ts');
 
@@ -32,6 +32,20 @@ test('the swallow has an arrival, closed digestion, rear release and complete de
   assert.equal(dragonBeat(4500), 'release');
   assert.equal(dragonBeat(DRAGON_DURATION), 'leave');
   for (let t = 0; t <= DRAGON_DURATION; t += 33) assert.ok(dragonFrame(t) >= 0 && dragonFrame(t) < 8);
+});
+
+test('a resident starts awake, rests briefly and wakes for visitors or reduced motion', () => {
+  assert.equal(dragonIdleFrame(0), 6);
+  const cycle = Array.from({ length: 480 }, (_, i) => dragonIdleFrame(i / 10));
+  assert.ok(cycle.filter(frame => frame === 6).length > cycle.length * 0.8);
+  assert.ok(cycle.includes(2), 'the resident can yawn');
+  assert.ok(cycle.includes(7), 'the resident can rest occasionally');
+  for (let t = 0; t < 100; t += 0.25) {
+    assert.equal(dragonIdleFrame(t, true), 6, 'a visitor keeps the dragon awake');
+    assert.equal(dragonIdleFrame(t, false, true), 6, 'reduced motion holds a stable awake pose');
+    assert.equal(dragonIdleFrame(t + 48), dragonIdleFrame(t));
+  }
+  for (const invalid of [-4, NaN, Infinity]) assert.equal(dragonIdleFrame(invalid), 6);
 });
 
 function play(seed, dt, steer) {
@@ -72,8 +86,8 @@ test('the dragon atlas has eight complete transparent poses and a shared foot ba
   const { readFile, stat } = await import('node:fs/promises');
   const require = createRequire(import.meta.url);
   const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
-  const path = new URL('../public/art/world-v3/animations/dragon-v2.webp', import.meta.url);
-  const meta = JSON.parse(await readFile(new URL('../public/art/world-v3/animations/dragon-v2.json', import.meta.url)));
+  const path = new URL('../public/art/world-v3/animations/dragon-v3.webp', import.meta.url);
+  const meta = JSON.parse(await readFile(new URL('../public/art/world-v3/animations/dragon-v3.json', import.meta.url)));
   const { data, info } = await sharp(await readFile(path)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   assert.equal(info.width, meta.columns * meta.width);
   assert.equal(info.height, meta.rows * meta.height);

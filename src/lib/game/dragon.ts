@@ -20,6 +20,14 @@ export function dragonFrame(ms: number): number {
       : beat === "digest" ? 4 : beat === "strain" ? 5 : 6;
 }
 
+/** Mostly alert, with a brief yawn and nap; nearby visitors always wake it. */
+export function dragonIdleFrame(seconds: number, attentive = false, reducedMotion = false): 2 | 6 | 7 {
+  if (attentive || reducedMotion || !Number.isFinite(seconds)) return 6;
+  const phase = Math.max(0, seconds) % 48;
+  if (phase >= 26 && phase < 33) return 7;
+  return phase >= 24 && phase < 25 ? 2 : 6;
+}
+
 /** Nests belong to the road, not the camera. Forest nest stays outside the factory. */
 export function dragonNests(left: number, right: number): number[] {
   const positions = [BIOMES.find(b => b.id === "foret")!.from * WORLD_LENGTH + 300,

@@ -51,7 +51,7 @@
 .initiation-flight__mountains { position: absolute; inset: 40% -2% -3%; background: url('/art/world-v3/runtime/montagne-far.webp') center bottom / auto 100% repeat-x; opacity: .47; filter: saturate(.5); }
 .initiation-flight__lane { position: absolute; left: 0; right: 0; border-top: 1px dashed #e3e8cf35; }
 .initiation-flight__rider { position: absolute; left: 23%; width: clamp(128px, 24vw, 168px); aspect-ratio: 1; transform: translate(-50%, -50%); transition: top .16s ease-out; }
-.initiation-flight__dragon { position: absolute; inset: 0; background: url('/art/world-v3/animations/dragon-v2.webp') 0 0 / 400% 200% no-repeat; transform: scaleX(-1); filter: drop-shadow(0 6px 3px #19323155); }
+.initiation-flight__dragon { position: absolute; inset: 0; background: url('/art/world-v3/animations/dragon-v3.webp') 0 0 / 400% 200% no-repeat; transform: scaleX(-1); filter: drop-shadow(0 6px 3px #19323155); }
 .initiation-flight[data-flying='true'] .initiation-flight__dragon { animation: initiation-flap .5s steps(1) infinite; }
 .initiation-flight__knight { position: absolute; width: 26%; height: 37%; left: 36%; top: 28%; background: url('/art/world-v3/characters/chevalier.webp') center / contain no-repeat; transform: rotate(7deg) scaleX(-1); filter: drop-shadow(0 2px 1px #14241d66); }
 .initiation-flight__ring { position: absolute; width: 35px; height: 58px; transform: translate(-50%, -50%); border: 5px solid #f7d784; border-radius: 50%; box-shadow: 0 0 13px #f7d78460, inset 0 0 8px #f7d78470; background: #f6e6a510; }

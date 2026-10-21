@@ -46,11 +46,19 @@ Dragon redessiné avec l'outil ImageGen intégré : cornes allongées, regard pl
 grandes ailes et selle. Le même atlas sert à l'initiation, aux défis et aux scènes du monde.
 Le cavalier de l'initiation est posé sur la selle et le dragon regarde les anneaux.
 
-- Asset actif : `public/art/world-v3/animations/dragon-v2.webp` (2048×1024, huit poses, pieds à 476).
+- Premier atlas redessiné : `public/art/world-v3/animations/dragon-v2.webp` (2048×1024, huit poses, pieds à 476).
 - Métadonnées : `dragon-v2.json`. L'ancien atlas reste disponible pour comparaison.
 - Prompt exact : [`dragon-v2.prompt.txt`](dragon-v2.prompt.txt).
 - Sortie brute : `exec-c14a2e67-8b7a-45ae-a2dd-570a6dda2c7a.png`, dans le dossier ImageGen de ce chat.
 - Import déterministe : `compile_ambient_assets.mjs`, mode atlas avec îlots, cellules de 512×512 et baseline 476.
+
+### Ajustement du contact et de la vie au repos
+
+- Atlas actif : `public/art/world-v3/animations/dragon-v3.webp`, mêmes huit cellules et même baseline, contours fins et pose éveillée avec les yeux ouverts.
+- Le résident est ancré directement à `surfaceAt(x)`, avec une petite ombre de contact. Les changements de pose et la respiration gardent les pieds fixes.
+- Cycle de 48 secondes : éveil majoritaire, bref bâillement, sieste de sept secondes. Un personnage proche ou une interaction le garde éveillé ; les poses se fondent en 0,4 seconde.
+- Les mouvements réduits conservent une pose éveillée fixe.
+- ImageGen intégré ; sortie brute `exec-33a42964-1e5a-4dbf-82bb-07b9377e6d5d.png`. Prompt exact : [`dragon-v3.prompt.txt`](dragon-v3.prompt.txt).
 
 ### Prompt 1
 
