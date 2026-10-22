@@ -94,7 +94,7 @@ class PortraitStudio {
       } else { hero.rotation.y = v.yaw ?? -0.3; this.stage.add(hero); }
       this.stage.add(this.shadows);
     } else {
-      halfH = 2.7; targetY = 1.05;
+      halfH = 2.95; targetY = 1.05;
       this.glow.intensity = scene === "company" ? 4 : 2;
       const key = scene === "company" ? "ground:company" : "ground:forest";
       let scenery = this.models.get(key);
