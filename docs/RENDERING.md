@@ -28,7 +28,9 @@ Les biomes se mélangent sur 12 mètres ; la route reste continue même lorsque 
 montagne et le volcan montent en altitude. La tuile mesure 27 mètres de profondeur,
 avec des bords droits aux coordonnées Z = −15 et +12, indépendants du chemin sinueux.
 Les tronçons mesurent toujours 16 mètres de long. L’avant reste plat dans l’axe de
-la profondeur ; les montées longitudinales et les collines arrière sont conservées.
+la profondeur, sauf les mares et les rivières franchies par des ponts ; les montées
+longitudinales et les collines arrière sont conservées. Des bandes de sol grossières
+prolongent visuellement l’avant et l’arrière jusqu’à la brume, sans étendre le parcours.
 
 Le dessous est fermé par des bandes lisses qui suivent l’altitude du parcours. À
 chaque abscisse, les deux faces se terminent exactement à cette même altitude,
@@ -39,19 +41,21 @@ les coupes. Les coordonnées globales garantissent la jonction entre tronçons.
 
 Deux rangées de plantations, dont une le long du bord arrière, évitent les trous de
 décor dans les virages et les descentes. Une grille de 0,5 m ne produit que les
-faces exposées. Les fleurs, fougères, petits rochers et accessoires de premier plan
-restent bas ; les papillons s’animent sans gêner la lecture des personnages.
+faces exposées. Les fleurs, fougères et petits rochers restent bas ; quelques bosquets, champignons,
+cactus et colonnes de basalte plus hauts ponctuent le premier plan. Une fenêtre
+d’occlusion protège la lecture du personnage à travers ces volumes.
 
 Cinq tronçons au maximum suivent la caméra. Les tronçons initiaux sont prêts avant
 la première image ; ensuite, un nouveau tronçon est généré par image. La brume
-masque les extrémités longitudinales ; les limites en profondeur restent visibles. Les
+masque les extrémités longitudinales et les prolongements en profondeur. Les
 chunks quittant la zone libèrent leurs géométries et leurs buffers d'instances.
 Les matériaux et le cube de base sont partagés.
 
 L’ORP, l’usine et la taverne ont chacun une tuile intérieure dédiée. Le paysage
 extérieur et ses habitants sont entièrement masqués : seuls la salle, ses figurants
-et les joueurs présents dans cette salle sont rendus. Le mur arrière s’efface
-lorsque la caméra passe derrière. Les grands feuillages font de même à l’extérieur. Les habitants,
+et les joueurs présents dans cette salle sont rendus. Les murs et grands feuillages
+restent présents lorsque la caméra passe derrière : leur shader ouvre une fenêtre
+autour du héros plutôt que de supprimer des objets entiers. Les habitants,
 les neuf objets cachés, les cinq couleurs de dragons, les panneaux personnalisés,
 les vignettes de biome et les huit scènes de la fête gardent leurs textes et leurs
 identités. Chaque variante de réaction dispose de sa propre mise en scène.
@@ -391,3 +395,59 @@ trois lots. La simplification du sol et du mur réduit le coût total de la sall
 malgré les nouvelles animations. Le test navigateur impose moins de 20 k triangles
 sur la vue mobile intérieure contrôlée, sans shadow map ; le plafond extérieur de
 150 k sur les trajets testés reste inchangé. Captures : `.qa/factory/`.
+
+
+## Diversité, cours d’eau et occlusion — octobre 2026
+
+`layout.ts` réserve les emprises complètes avant les plantations, feuillage compris.
+Quinze nouvelles vignettes sont réparties sur les neuf biomes du premier tour :
+enclos animé, cabane isolée, mangroves à racines, champignons géants, maison sur
+pilotis, cabanes de pêcheurs, ruines, hameau avec place et fontaine, refuge alpin,
+enclos à chèvres, oasis, forge, obsidienne et vignes. Le village de départ reste
+conservé. Les maisons reposent sur des soubassements de pierre adaptés au terrain ;
+seules les maisons de marais et de pêcheurs utilisent des pilotis. Chaque vignette
+reste sous 2 000 triangles et six appels de dessin. Les trois nappes de brume des
+marais utilisent chacune un simple plan à bord adouci, sans texture ni calcul volumétrique.
+Le cadrage des hauts ensembles utilise des mesures de relief mises en cache.
+
+Le monument des larmes mesure environ huit mètres. Son socle élargi et son bassin
+partagent leur emplacement avec la clairière, ce qui évite les arbres dans la
+sculpture. Quarante-quatre segments d’eau et quatre petits remous bouclent sans
+création continue de géométries. Quatre rivières creusées traversent forêt, marais,
+lac et cascades ; des tabliers en bois suivent la pente de la route, avec les
+rambardes hors du passage. Les reflets de courant sont également réutilisés.
+Trois petits dragons volants, de moins de 400 triangles chacun, ont des ailes
+articulées et des trajectoires bornées au-dessus du parcours. Ils ne remplacent
+pas les dragons interactifs ni leurs règles.
+
+`occlusion.ts` projette jusqu’à quatre fenêtres autour du héros suivi, des autres
+joueurs proches et de la cible inspectée. Le fragment shader des décors opaques
+retire progressivement les pixels dans un cercle adouci avec une trame 4 × 4.
+Il vérifie la profondeur caméra et la hauteur au-dessus des pieds : les surfaces
+derrière le personnage et son sol restent opaques. La transition est spatiale,
+continue avec la caméra et le personnage ; elle ne repose pas sur la disparition
+brutale des objets. Le masque réutilise la passe opaque existante, sans cible de
+rendu, texture, tri transparent ou raycast par objet. Les ombres gardent leur forme.
+Les pièces, arbres, bâtiments de décor et terrain surélevé utilisent la même règle.
+L’injection se fait par les points d’extension documentés de
+[Three.js Material](https://threejs.org/docs/pages/Material.html), avec une clé de
+programme distincte pour chaque variante.
+
+Validation : 156 tests unitaires, dont des contrôles sur trois tours des emprises
+réelles, des animations bornées, des canopées, de la libération des ressources,
+des rivières, du masque devant/derrière et du cadrage des villages surélevés.
+Les captures du vrai jeu couvrent 22 positions en compositions bureau/mobile,
+avec vues larges et retournées sur les ensembles représentatifs. Le passage mobile
+initial a mesuré une pointe de 121 402 triangles et 137 appels ; les scènes marais,
+lac, montagne, désert et volcan vont d’environ 47 k à 108 k. Ces mesures sont celles
+de Chrome avec émulation tactile, viewport 390 × 844 et DPR matériel 3 limité à 1,
+pas celles d’un téléphone physique. Les tests navigateur conservent le plafond de
+150 k triangles / 200 appels, l’absence de shadow map et le respect des sauvegardes.
+
+La régression navigateur du masque compare les pixels réellement rendus sur une
+scène figée : derrière le même arbre, le barde passe de 0 à 1 084 pixels roses
+visibles quand le masque est activé. L’arbre reste chargé dans les deux cas.
+Le parcours mobile de régression après les corrections de cadrage atteint
+121 424 triangles et 130 appels au maximum ; les retours forêt/volcan et les
+scènes intérieures passent également les budgets. Les 13 mini-jeux, les rites,
+les coffres, les collisions et les portes ont été rejoués sans erreur.

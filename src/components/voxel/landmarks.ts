@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { characterModel, dragonModel, propModel } from "./objects";
 import { VoxelResources } from "./resources";
+import { tearsMonument } from "./tears-monument";
 
 /** Narrative landmarks are modelled independently of terrain chunks. */
 export function landmarkModel(resources: VoxelResources, kind: string) {
+  if (kind === "tears") return tearsMonument(resources);
   const root = new THREE.Group(),
-    { box, finish } = resources.batch(root);
+    { box, finish } = resources.batch(root, false, 0, true);
   const add = (kind: string, x: number, y: number, z: number, scale = 1) => {
     const p = propModel(resources, kind);
     p.position.set(x, y, z);
@@ -31,7 +33,7 @@ export function landmarkModel(resources: VoxelResources, kind: string) {
       box(0x564c3d, 0, 0.65, 0.8, 0.5, 1.3, 0.12);
       box(0xe9c987, 0.5, 1.9, 0.81, 0.35, 0.5, 0.08, 0, true);
       const sails = new THREE.Group(),
-        b = resources.batch(sails);
+        b = resources.batch(sails, false, 0, true);
       sails.position.set(0, 2.75, 1.05);
       for (let arm = 0; arm < 4; arm++) {
         const a = (arm * Math.PI) / 2;
@@ -117,32 +119,6 @@ export function landmarkModel(resources: VoxelResources, kind: string) {
       add("recruiter", 0, 0.3, 0.5);
       add("letter", 1, 0.8, 0);
       break;
-    case "tears": {
-      // Two streams leave the stone face and reach the same stepped basin.
-      box(0x708984, 0, 0.1, 0, 4, 0.3, 3);
-      box(0x829a94, 0, 1.1, 0, 2.3, 2, 1.7);
-      box(0x9eafa2, 0, 3, 0, 1.9, 2, 1.6);
-      for (const x of [-0.45, 0.45]) {
-        box(0x354e48, x, 3.25, 0.83, 0.32, 0.18, 0.08);
-        for (let i = 0; i < 14; i++)
-          box(
-            i % 3 ? 0x7cbcc2 : 0xa2d6d0,
-            x + Math.sin(i * 0.3) * 0.08,
-            3.2 - i * 0.21,
-            0.92 + i * 0.035,
-            0.09 + i * 0.009,
-            0.25,
-            0.09,
-            0,
-            i % 4 === 0,
-          );
-      }
-      for (let x = -6; x <= 6; x++)
-        for (let z = 0; z < 6; z++)
-          if ((x * x) / 40 + (z - 2) ** 2 / 10 < 1)
-            box(0x609b9f, x * 0.25, 0.3, 1 + z * 0.25, 0.25, 0.08, 0.25);
-      break;
-    }
     case "cascade":
       for (let x = -6; x <= 6; x++) {
         const h = 5 - Math.abs(x) * 0.25;

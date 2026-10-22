@@ -47,7 +47,6 @@ import { reactionTiming, type Effect, type HeroMotion } from "./reactions";
 import { bursts } from "./fx";
 import { landmarkModel, tavernGuest } from "./landmarks";
 import { TAVERN_GUESTS, tavernMoonwalk } from "@/lib/game/tavern";
-import { TEARS_MONUMENT_X } from "@/lib/game/tears";
 import {
   createLifeBody,
   WALKERS,
@@ -59,8 +58,11 @@ import {
   type LifeBody,
 } from "./life";
 import { nextDoor, type RoomLocation } from "@/lib/game/doors";
-import { journeyPoint, portalSite, villageSites, millSite, roomRouteZ } from "./layout";
+import { journeyPoint, portalSite, villageSites, millSite, roomRouteZ, tearsSite, landscapePlots, foregroundPlots, landscapeView } from "./layout";
 import { factoryStations, factoryWorker } from "./factory";
+import { landscapeModel } from "./landscapes";
+import { skyDragon, skyFlights } from "./sky";
+import { foregroundGrove } from "./foreground";
 import { INSPECTION_SECONDS } from "./conversations";
 import { letterBoard, cottage, interiorDetails, waysideCamp } from "./scenery";
 import { createReaction } from "./staging";
@@ -250,6 +252,8 @@ export function createVoxelWorld(
     routeHeight(focusX) + 1,
     routeZ(focusX),
   );
+  const cutoutSize = new THREE.Vector2(), cutoutPoint = new THREE.Vector3();
+  if (new URLSearchParams(window.location.search).has("debug") && new URLSearchParams(window.location.search).get("occlusion") === "0") resources.cutout.enabled.value = 0;
   const projected = new THREE.Vector3(),
     pointer = new Map<
       number,
@@ -906,9 +910,9 @@ export function createVoxelWorld(
         : (followed?.x ?? 0) / WORLD_SCALE;
     focusX +=
       (wanted - focusX) * (scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 5));
-    const focusPoint = journeyPoint(focusX * WORLD_SCALE);
+    const focusPoint = journeyPoint(focusX * WORLD_SCALE), framing = interiorAt(focusX * WORLD_SCALE) ? { lift: 0, zoom: 1 } : landscapeView(focusX);
     focus.lerp(
-      new THREE.Vector3(focusPoint.x, focusPoint.y + 0.92, focusPoint.z),
+      new THREE.Vector3(focusPoint.x, focusPoint.y + 0.92 + framing.lift * (width > 700 ? 1 : .6), focusPoint.z),
       scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 5),
     );
     scene.focus = focusX * WORLD_SCALE;
@@ -968,7 +972,7 @@ export function createVoxelWorld(
                     : 4.2),
             ),
           )
-        : userZoom * scene.zoom;
+        : userZoom * scene.zoom * (width > 700 && !scene.viewedRoom ? Math.min(framing.zoom, 1 - 0.32 * Math.max(0, 1 - Math.abs(focusX - tearsSite(Math.max(0, Math.floor(focusX * WORLD_SCALE / WORLD_LENGTH))).x) / 18)) : 1);
     inspectionZoom +=
       (desiredZoom - inspectionZoom) *
       (scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 6));
@@ -1012,6 +1016,22 @@ export function createVoxelWorld(
     );
     camera.lookAt(viewFocus);
     camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    renderer.getDrawingBufferSize(cutoutSize);
+    resources.cutout.begin(cutoutSize.x, cutoutSize.y);
+    if (inspection && inspected) {
+      const bounds = new THREE.Box3().setFromObject(inspected.root), size = bounds.getSize(cutoutPoint);
+      resources.cutout.add(camera, bounds.getCenter(new THREE.Vector3()), Math.max(size.x, size.y), bounds.min.y);
+    }
+    const protect = (actor: Actor) => {
+      const room = interiorAt(actor.x);
+      if ((scene.viewedRoom ? room?.from === scene.viewedRoom.from : !room) && Math.abs(actor.x / WORLD_SCALE - focusX) < 18) {
+        cutoutPoint.copy(actor.root.position); cutoutPoint.y += actor.height * 0.5;
+        resources.cutout.add(camera, cutoutPoint, actor.height, actor.root.position.y);
+      }
+    };
+    if (followed) protect(followed);
+    for (const actor of actors.values()) if (actor !== followed) protect(actor);
     resources.focus.set(focus.x, focus.z);
     const palette = voxelPalette(focus.x);
     if (now - lastLight > 1000 || !ready) {
@@ -1113,11 +1133,22 @@ export function createVoxelWorld(
       objects.set(`mill:${lap}`, root);
       world.add(root);
     }
-    const monumentX = (lap * WORLD_LENGTH + TEARS_MONUMENT_X) / WORLD_SCALE;
+    for (const plot of landscapePlots(lap)) if (Math.abs(plot.x - focusX) < 38 && !objects.has(plot.id)) {
+      const root = landscapeModel(resources, plot); world.add(root); objects.set(plot.id, root);
+    }
+    for (const plot of foregroundPlots(lap)) if (Math.abs(plot.x - focusX) < 30 && !objects.has(plot.id)) {
+      const root = foregroundGrove(resources, plot.x, plot.biome); world.add(root); objects.set(plot.id, root);
+    }
+    for (const flight of skyFlights(lap)) if (Math.abs(flight.x - focusX) < 32 && !objects.has(flight.id)) {
+      const root = skyDragon(resources, flight.x, flight.color); world.add(root); objects.set(flight.id, root);
+    }
+    const monument = tearsSite(lap), monumentX = monument.x;
+    if (Math.abs(monumentX - focusX) < 30 && !objects.has(`fore-lake:${lap}`)) {
+      const grove = foregroundGrove(resources, monumentX + 2.9, "lac"); world.add(grove); objects.set(`fore-lake:${lap}`, grove);
+    }
     if (Math.abs(monumentX - focusX) < 32 && !objects.has(`tears:${lap}`)) {
-      const root = landmarkModel(resources, "tears"),
-        z = routeZ(monumentX) - 6;
-      root.position.set(monumentX, terrainHeight(monumentX, z), z);
+      const root = landmarkModel(resources, "tears");
+      root.position.set(monumentX, monument.y, monument.z);
       objects.set(`tears:${lap}`, root);
       world.add(root);
     }
@@ -1554,7 +1585,7 @@ export function createVoxelWorld(
       chunk.visible = !activeRoom;
       if (!activeRoom) chunk.userData.animate?.(scene.reducedMotion ? 0 : time);
       const foliage = chunk.userData.backPlanting as THREE.Group;
-      const visible = Math.cos(viewAzimuth) > -0.2;
+      const visible = true;
       if (foliage.visible !== visible) sun.shadow.needsUpdate = true;
       foliage.visible = visible;
     }
@@ -1568,8 +1599,7 @@ export function createVoxelWorld(
         const near = [...actors.values()].some(a => Math.abs(a.x / WORLD_SCALE - portal.boundary) < 4);
         obj.userData.door.rotation.y = THREE.MathUtils.damp(obj.userData.door.rotation.y, near ? -Math.PI * 0.68 : 0, 7, dt);
       }
-      if (obj.userData.backwall)
-        obj.userData.backwall.visible = Math.cos(viewAzimuth) > 0;
+      if (obj.userData.backwall) obj.userData.backwall.visible = true;
     }
     for (const actor of actors.values()) {
       const room = interiorAt(actor.x);
@@ -1760,6 +1790,8 @@ export function createVoxelWorld(
       geometries: renderer.info.memory.geometries,
       effects: stagings.size,
       azimuth,
+      landscapes: [...objects].filter(([id]) => id.startsWith("landscape:") || id.startsWith("foreground:") || id.startsWith("sky:")).map(([id, o]) => ({ id, ...o.userData.landscape, position: o.position.toArray() })),
+      occlusion: { enabled: resources.cutout.enabled.value, windows: resources.cutout.windows.slice(0, resources.cutout.count).map(w => w.toArray()), backPlantingVisible: [...chunks.values()].every(c => c.userData.backPlanting.visible) },
       zoom: camera.zoom,
       actors: [...actors].map(([id, a]) => ({
         id,

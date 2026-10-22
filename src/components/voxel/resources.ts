@@ -1,10 +1,12 @@
 import * as THREE from "three";
 import { FOG_NEAR, FOG_FAR } from "./world";
+import { OcclusionWindow, OCCLUSION_DECLARATIONS, OCCLUSION_FRAGMENT } from "./occlusion";
 
 /** GPU resources shared across chunks, characters, portraits and interactive arenas. */
 export class VoxelResources {
   readonly focus = new THREE.Vector2();
   readonly fogColor = new THREE.Color(0x536f71);
+  readonly cutout = new OcclusionWindow();
   private fog: boolean;
   readonly terrainStripWidth: number;
   constructor(fog = false, terrainStripWidth = 0) {
@@ -43,7 +45,8 @@ export class VoxelResources {
     }
     return mat;
   };
-  addFog(mat: THREE.MeshStandardMaterial) {
+  addFog(mat: THREE.MeshStandardMaterial, occluder = false) {
+    mat.userData.voxelOccluder = occluder;
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.voxelFocus = { value: this.focus };
       shader.uniforms.voxelFog = { value: this.fogColor };
@@ -59,8 +62,18 @@ export class VoxelResources {
         "#include <fog_fragment>",
         `#include <fog_fragment>\nfloat vf=smoothstep(${FOG_NEAR.toFixed(1)},${FOG_FAR.toFixed(1)},length(vVoxelWorld.xz-voxelFocus)); gl_FragColor.rgb=mix(gl_FragColor.rgb,voxelFog,vf);`,
       );
+      if (occluder) {
+        shader.uniforms.voxelWindows = { value: this.cutout.windows };
+        shader.uniforms.voxelCutFloors = { value: this.cutout.floors };
+        shader.uniforms.voxelCutCount = this.cutout.active;
+        shader.uniforms.voxelCutEnabled = this.cutout.enabled;
+        shader.vertexShader = "varying float vVoxelViewDepth;\n" + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>", "#include <project_vertex>\nvVoxelViewDepth=-mvPosition.z;");
+        shader.fragmentShader = OCCLUSION_DECLARATIONS + shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + OCCLUSION_FRAGMENT);
+      }
     };
-    mat.customProgramCacheKey = () => "voxel-radial-fog-v1";
+    mat.customProgramCacheKey = () => `voxel-radial-fog-v2:${occluder}`;
   }
   geometry = <T extends THREE.BufferGeometry>(value: T): T => {
     this.geometries.add(value);
@@ -68,13 +81,13 @@ export class VoxelResources {
   };
   /** A color attribute keeps every shade in one draw, including biome blends. */
   private batchMaterials = new Map<string, THREE.MeshStandardMaterial>();
-  private batchMaterial(glow: boolean, foliage: boolean) {
-    const key = `${glow}:${foliage}`;
+  private batchMaterial(glow: boolean, foliage: boolean, occluder: boolean) {
+    const key = `${glow}:${foliage}:${occluder}`;
     let mat = this.batchMaterials.get(key);
     if (!mat) {
       mat = this.material(0xffffff, glow).clone();
       const fog = this.fog;
-      if (fog) this.addFog(mat);
+      if (fog) this.addFog(mat, occluder);
       const compile = mat.onBeforeCompile;
       mat.onBeforeCompile = (shader, renderer) => {
         compile.call(mat!, shader, renderer);
@@ -99,7 +112,7 @@ export class VoxelResources {
             "#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance *= vColor.xyz;\n#endif",
           );
       };
-      mat.customProgramCacheKey = () => `voxel-batch-v4:${fog}:${glow}:${foliage}`;
+      mat.customProgramCacheKey = () => `voxel-batch-v5:${fog}:${glow}:${foliage}:${occluder}`;
       this.batchMaterials.set(key, mat);
     }
     return mat;
@@ -112,7 +125,7 @@ export class VoxelResources {
     this.lights.add(light);
     return light;
   }
-  batch(root: THREE.Object3D, foliage = false, stripWidth = 0) {
+  batch(root: THREE.Object3D, foliage = false, stripWidth = 0, occluder = false) {
     const batches = new Map<string, { glow: boolean; matrices: THREE.Matrix4[]; colors: THREE.Color[] }>();
     const object = new THREE.Object3D();
     const box = (
@@ -132,7 +145,7 @@ export class VoxelResources {
     };
     const finish = () => {
       for (const { glow, matrices, colors } of batches.values()) {
-        const mesh = new THREE.InstancedMesh(this.cube, this.batchMaterial(glow, foliage), matrices.length);
+        const mesh = new THREE.InstancedMesh(this.cube, this.batchMaterial(glow, foliage, occluder), matrices.length);
         matrices.forEach((m, i) => {
           mesh.setMatrixAt(i, m);
           mesh.setColorAt(i, colors[i]);

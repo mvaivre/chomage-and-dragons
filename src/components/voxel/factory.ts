@@ -43,7 +43,7 @@ export function factoryLine(r: VoxelResources, from: number, to: number, centerZ
   root.name = "factory-production-line";
   const stations = factoryStations(from, to), wheels: THREE.Group[] = [], desks: THREE.Group[] = [], machines: THREE.Group[] = [];
   for (const s of stations) {
-    const y = routeHeight(s.x) - base, press = new THREE.Group(), b = r.batch(press);
+    const y = routeHeight(s.x) - base, press = new THREE.Group(), b = r.batch(press, false, 0, true);
     press.name = `factory-machine:${s.index}`;
     press.position.set(s.x - center, y, -3.65);
     b.box(0x526f67, 0, 0.85, 0, 2.7, 1.7, 1.6);
@@ -56,7 +56,7 @@ export function factoryLine(r: VoxelResources, from: number, to: number, centerZ
     b.box(0x74847b, 0.2, 2.28, 0.1, 0.4, 0.012, 0.045);
     b.box(0x3f564a, 0, 0.75, 0.55, 2.5, 0.15, 0.9);
     for (let k = 0; k < 6; k++) b.box(0xb7b9a5, -1 + k * 0.38, 0.86, 0.55, 0.14, 0.09, 0.8);
-    const wheel = new THREE.Group(), w = r.batch(wheel);
+    const wheel = new THREE.Group(), w = r.batch(wheel, false, 0, true);
     wheel.position.set(-0.9, 1.2, 0.86);
     for (let k = 0; k < 10; k++) {
       const a = k * Math.PI / 5;
@@ -64,7 +64,7 @@ export function factoryLine(r: VoxelResources, from: number, to: number, centerZ
     }
     w.box(0x565848, 0, 0, 0, 0.22, 0.22, 0.15); w.finish();
     press.add(wheel); wheels.push(wheel); b.finish(); root.add(press); machines.push(press);
-    const desk = new THREE.Group(), d = r.batch(desk);
+    const desk = new THREE.Group(), d = r.batch(desk, false, 0, true);
     desk.name = `factory-desk:${s.index}`;
     desk.position.set(s.workerX - center, routeHeight(s.workerX) - base, -3.1);
     d.box(0x87613e, 0.2, 0.91, 0, 1.15, 0.16, 0.85);
@@ -74,13 +74,13 @@ export function factoryLine(r: VoxelResources, from: number, to: number, centerZ
     d.box(0xa54e45, 0.57, 1.065, 0.05, 0.2, 0.015, 0.2);
     // The CV under the right hand receives a red imprint at each impact.
     d.box(0xf0e6cc, 0.37, 1.005, -0.14, 0.49, 0.018, 0.39);
-    const ink = new THREE.Group(), ib = r.batch(ink);
+    const ink = new THREE.Group(), ib = r.batch(ink, false, 0, true);
     ink.name = `factory-imprint:${s.index}`; ink.position.set(0.37, 1.018, -0.14);
     for (const dx of [-0.09, 0.09]) ib.box(0xb35a4c, dx, 0, 0, 0.025, 0.012, 0.2);
     for (const dz of [-0.09, 0.09]) ib.box(0xb35a4c, 0, 0, dz, 0.2, 0.012, 0.025);
     ib.finish(); desk.add(ink); desk.userData.ink = ink;
     d.finish(); root.add(desk); desks.push(desk);
-    const heap = new THREE.Group(), h = r.batch(heap);
+    const heap = new THREE.Group(), h = r.batch(heap, false, 0, true);
     heap.name = `factory-paper-heap:${s.index}`;
     heap.position.set(s.x - 1.05 - center, routeHeight(s.x - 1.05) - base, 3.4);
     for (const side of [-1, 1]) h.box(0x775a3e, side * 0.35, 0.06, 0, 0.12, 0.12, 1.25);

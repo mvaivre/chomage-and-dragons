@@ -1,4 +1,5 @@
 import { BIOMES, WORLD_LENGTH, mixColor } from "@/lib/game/world";
+import { TEARS_MONUMENT_X } from "@/lib/game/tears";
 
 export const WORLD_SCALE = 50;
 export const CHUNK_SIZE = 16;
@@ -10,6 +11,7 @@ export const FOG_NEAR = 23;
 export const FOG_FAR = 30;
 export const WORLD_METRES = WORLD_LENGTH / WORLD_SCALE;
 export const MILL_Z = -7.8;
+export const TEARS_Z = -8.4;
 const LENGTH = WORLD_METRES;
 const smooth = (t: number) => {
   t = Math.max(0, Math.min(1, t));
@@ -35,6 +37,24 @@ export function routeHeight(x: number) {
   const base = ALTITUDES[i] + (ALTITUDES[j] - ALTITUDES[i]) * t;
   const undulation = Math.sin(x * 0.075) * 0.6 + Math.sin(x * 0.025) * 0.9;
   return base + undulation;
+}
+export function tearsPlateau(lap: number) { return Math.round((routeHeight(lap * LENGTH + TEARS_MONUMENT_X / WORLD_SCALE) + 0.8) * 4) / 4 + 0.12; }
+export type RiverSite = { id: string; x: number; y: number; biome: string };
+const rivers = new Map<number, RiverSite[]>();
+export function riverSites(lap: number): RiverSite[] {
+  let sites = rivers.get(lap);
+  if (!sites) {
+    sites = [0.225, 0.31, 0.405, 0.55].map((ratio, i) => { const x = lap * LENGTH + ratio * LENGTH + Math.sin(lap * 13 + i) * 0.8; return { id: `river:${lap}:${i}`, x, y: routeHeight(x) - 0.65, biome: biomeWeights(x).a.id }; });
+    if (rivers.size > 16) rivers.delete(rivers.keys().next().value!);
+    rivers.set(lap, sites);
+  }
+  return sites;
+}
+export function riverAt(x: number, z: number) {
+  if (x < 0) return null;
+  for (const site of riverSites(Math.floor(x / LENGTH)))
+    if (Math.abs(x - site.x) < 4 && Math.abs(x - site.x - Math.sin(z * 0.24) * 0.65) < 2.7) return site;
+  return null;
 }
 /** Both long edges and the closed underside share this longitudinal altitude. */
 export function tileBottom(x: number) {
@@ -63,7 +83,7 @@ export function foregroundPool(x: number): ForegroundPool | null {
   const segment = Math.floor(x / 26);
   if (pools.has(segment)) return pools.get(segment)!;
   const center = segment * 26 + 9, biome = biomeWeights(center).a.id;
-  const pool = ["plaine", "foret", "marais", "lac", "taverne"].includes(biome)
+  const pool = ["plaine", "foret", "marais", "lac", "taverne"].includes(biome) && !riverSites(Math.max(0, Math.floor(center / LENGTH))).some(r => Math.abs(r.x - center) < 7)
     ? { x: center, z: Math.max(6.8, routeZ(center) + 4.4), y: routeHeight(center) - 0.1, rx: 2.6, rz: 1.45 }
     : null;
   if (pools.size >= 64) pools.delete(pools.keys().next().value!);
@@ -74,6 +94,8 @@ export function poolRadius(pool: ForegroundPool, x: number, z: number) {
   return Math.hypot((x - pool.x) / pool.rx, (z - pool.z) / pool.rz);
 }
 export function terrainHeight(x: number, z: number) {
+  const river = riverAt(x, z);
+  if (river) return Math.max(tileBottom(x) + 0.35, river.y - 0.3);
   if (villagePond(x, z))
     return routeHeight(Math.floor(Math.max(0, x) / LENGTH) * LENGTH + 4) - 0.25;
   const { a, b, t } = biomeWeights(x),
@@ -125,6 +147,12 @@ export function terrainHeight(x: number, z: number) {
     const radius = poolRadius(pool, x, z);
     if (radius < 1) return pool.y - 0.22;
     if (radius < 1.35) y += (pool.y - 0.22 - y) * smooth((1.35 - radius) / 0.35);
+  }
+  const lap = Math.max(0, Math.floor(x / LENGTH)), tearsX = lap * LENGTH + TEARS_MONUMENT_X / WORLD_SCALE;
+  if (Math.abs(x - tearsX) < 7 && Math.abs(z - TEARS_Z) < 5.5) {
+    const radius = Math.max(Math.abs(x - tearsX) / 5.2, Math.abs(z - TEARS_Z) / 4.15), plateau = tearsPlateau(lap);
+    if (radius < 1) return plateau;
+    if (radius < 1.3) y += (plateau - y) * smooth((1.3 - radius) / 0.3);
   }
   return Math.max(
     tileBottom(x) + 0.5,

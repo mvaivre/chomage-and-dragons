@@ -13,7 +13,7 @@ export function letterBoard(
   mount: "post" | "wall" = "post",
 ) {
   const root = new THREE.Group(),
-    b = r.batch(root);
+    b = r.batch(root, false, 0, true);
   root.userData.text = text;
   root.userData.sign = true;
   if (mount === "post") b.box(0x65452c, 0, 0.9, 0, 0.14, 1.8, 0.14);
@@ -51,7 +51,7 @@ export function letterBoard(
     roughness: 1,
     side: THREE.DoubleSide,
   });
-  r.addFog(mat);
+  r.addFog(mat, true);
   r.ownedMaterials.add(mat);
   for (const side of [-1, 1]) {
     const face = new THREE.Mesh(
@@ -104,8 +104,8 @@ export function cottage(
   roofColor = 0x9a633f,
 ) {
   const root = new THREE.Group(),
-    b = r.batch(root);
-  const surface = r.batch(root, true);
+    b = r.batch(root, false, 0, true);
+  const surface = r.batch(root, true, 0, true);
   const stone = [0x7a8070, 0x8c8d79, 0x676e61];
   const pick = (a: number[], i: number) => a[Math.abs(i) % a.length];
   // The solid foundation and plaster panels do not need filled volumes of cubes.
@@ -156,7 +156,7 @@ export function cottage(
   for (let y = 0; y < 3; y++)
     surface.box(stone[y], -1.35, 3.77 + y * 0.72, -0.7, 0.55, 0.72, 0.55);
   b.box(0xbaa486, -1.35, 5.65, -0.7, 0.78, 0.17, 0.78);
-  const door = new THREE.Group(), doorBatch = r.batch(door);
+  const door = new THREE.Group(), doorBatch = r.batch(door, false, 0, true);
   door.position.set(-0.48, 0.35, 1.68);
   for (let x = 0; x < 9; x++) doorBatch.box(x % 2 ? 0x92663d : 0x7d5737, 0.08 + x * 0.1, 0.9, 0, 0.095, 1.8, 0.17);
   doorBatch.box(0xdec07e, 0.75, 0.9, 0.12, 0.08, 0.12, 0.08);
@@ -205,8 +205,8 @@ export function interiorDetails(
 ) {
   const root = new THREE.Group(),
     walls = new THREE.Group(),
-    b = r.batch(root),
-    wb = r.batch(walls),
+    b = r.batch(root, false, 0, true),
+    wb = r.batch(walls, false, 0, true),
     cx = (from + to) / 2,
     z = routeZ(cx),
     base = routeHeight(cx);
@@ -217,7 +217,7 @@ export function interiorDetails(
   const factory = room === "factory",
     tavern = room === "tavern";
   const timber = 0x5e402c;
-  const floorSurface = r.batch(root, true), wallSurface = r.batch(walls, true);
+  const floorSurface = r.batch(root, true), wallSurface = r.batch(walls, true, 0, true);
   const contacts: ContactPatch[] = [];
   root.userData.contactPatches = contacts;
   for (let x = from; x < to; x += 0.5) {

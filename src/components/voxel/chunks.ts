@@ -13,6 +13,9 @@ import {
   villagePond,
   foregroundPool,
   poolRadius,
+  riverAt,
+  riverSites,
+  WORLD_METRES,
 } from "./world";
 import { VoxelResources } from "./resources";
 import { groundDetails } from "./ground-details";
@@ -21,6 +24,7 @@ import { plantTree } from "./trees";
 import { sceneryFootprints, treeFits } from "./layout";
 import { lantern } from "./scenery";
 import { pondLife } from "./pond-life";
+import { riverBridge } from "./bridges";
 
 export const TILE_DEPTH = FOREGROUND_DEPTH + BACKGROUND_DEPTH;
 /** Rectangular streamed terrain with relief above a shared, closed underside. */
@@ -52,7 +56,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     return z > -BACKGROUND_DEPTH && z < FOREGROUND_DEPTH;
   };
   const height = (x: number, z: number) =>
-    Math.abs(z - routeZ(x)) < 1.4 ? routeHeight(x) + 0.17 : terrainHeight(x, z);
+    Math.abs(z - routeZ(x)) < 1.4 && !riverAt(x, z) ? routeHeight(x) + 0.17 : terrainHeight(x, z);
   // Sample the height field once, including a one-cell halo shared with neighbors.
   // Previously every cell reevaluated four neighbors and its biome/color palette.
   const columns = s / cell, rows = TILE_DEPTH / cell + 2;
@@ -75,7 +79,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
         xx = x + cell / 2,
         zz = z + cell / 2;
       if (!inside(xx, zz)) continue;
-      const pool = foregroundPool(xx), wet = !!pool && poolRadius(pool, xx, zz) < 1;
+      const pool = foregroundPool(xx), river = riverAt(xx, zz), wet = !!river || (!!pool && poolRadius(pool, xx, zz) < 1);
       const plant = wet ? (() => {}) as typeof box : box;
       const p = palettes[ix],
         depth = zz - routeZ(xx),
@@ -95,7 +99,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
         [0, 1, 0],
         top,
       );
-      if (wet) quad([[x, pool!.y, z], [x, pool!.y, z + cell], [x + cell, pool!.y, z + cell], [x + cell, pool!.y, z]], [0, 1, 0], new THREE.Color(0x519b9b));
+      if (wet) { const level = river?.y ?? pool!.y; quad([[x, level, z], [x, level, z + cell], [x + cell, level, z + cell], [x + cell, level, z]], [0, 1, 0], new THREE.Color(0x519b9b)); }
       const sides = [
         {
           dx: -cell,
@@ -211,8 +215,11 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
           0.13,
         );
       if (zz > FOREGROUND_DEPTH - 0.8 && random() < 0.35) {
-        box(p.rock, xx, y + 0.16, zz, 0.4, 0.3, 0.3);
-        if (random() < 0.5) box(p.leaf, xx, y + 0.33, zz, 0.3, 0.06, 0.26);
+        const moss = random() < .5, stoneZ = 4.5 + (ix % 7) * .75, stoneY = height(xx, stoneZ);
+        if (!riverAt(xx, stoneZ) && !(pool && poolRadius(pool, xx, stoneZ) < 1.2)) {
+          box(p.rock, xx, stoneY + .16, stoneZ, .4, .3, .3);
+          if (moss) box(p.leaf, xx, stoneY + .33, stoneZ, .3, .06, .26);
+        }
       }
     }
   // One ruled strip per column closes the tile. Adjacent chunks share exact endpoints.
@@ -235,7 +242,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
   }
   const mat = r.material(0xffffff).clone();
   mat.vertexColors = true;
-  r.addFog(mat);
+  r.addFog(mat, true);
   const geometries = strips.map(({ positions, normals, colors }) => {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -248,17 +255,31 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     root.add(ground);
     return geo;
   });
-  // Dense back planting, varied species and scales; nothing tall at the front edge.
+  // Coarse visual ground continues beyond the walking tile and disappears in fog.
+  const apronPositions: number[] = [], apronNormals: number[] = [], apronColors: number[] = [];
+  for (let ix = 0; ix < columns; ix++) for (const side of [-1, 1]) for (let row = 0; row < 4; row++) {
+    const x = cx * s + ix * cell, z0 = side < 0 ? -BACKGROUND_DEPTH - row * 6 : FOREGROUND_DEPTH + row * 6;
+    const z1 = z0 + side * 6, a = Math.min(z0, z1), b = Math.max(z0, z1);
+    const leftY = routeHeight(x) + .12, rightY = routeHeight(x + cell) + .12, river = riverAt(x + cell / 2, (a + b) / 2);
+    const color = new THREE.Color(river ? 0x519b9b : palettes[ix].ground).multiplyScalar(0.9 + (ix % 3) * 0.04);
+    for (const v of [[x, river?.y ?? leftY, a], [x, river?.y ?? leftY, b], [x + cell, river?.y ?? rightY, b], [x, river?.y ?? leftY, a], [x + cell, river?.y ?? rightY, b], [x + cell, river?.y ?? rightY, a]]) {
+      apronPositions.push(...v); apronNormals.push(0, 1, 0); apronColors.push(color.r, color.g, color.b);
+    }
+  }
+  const apronGeometry = r.geometry(new THREE.BufferGeometry());
+  apronGeometry.setAttribute("position", new THREE.Float32BufferAttribute(apronPositions, 3)); apronGeometry.setAttribute("normal", new THREE.Float32BufferAttribute(apronNormals, 3)); apronGeometry.setAttribute("color", new THREE.Float32BufferAttribute(apronColors, 3)); apronGeometry.computeBoundingSphere();
+  const apron = new THREE.Mesh(apronGeometry, mat); apron.name = "fogged-ground-continuation"; apron.receiveShadow = true; apron.userData.ownedGeometry = apronGeometry; root.add(apron);
+  // Trees stay present behind the camera; their opaque shader protects the hero.
   const planting = new THREE.Group();
   root.add(planting);
   root.userData.backPlanting = planting;
-  const treeBatch = r.batch(planting);
-  const canopyBatch = r.batch(planting, true);
+  const treeBatch = r.batch(planting, false, 0, true);
+  const canopyBatch = r.batch(planting, true, 0, true);
   let treeTriangles = 0;
   const reserved = sceneryFootprints(cx * s - 4, (cx + 1) * s + 4);
   const trees: { x: number; z: number; size: number }[] = [];
   root.userData.trees = trees;
-  const treeCount = biome === "foret" ? 18 : 14;
+  const treeCount = ({ foret: 18, plaine: 8, lac: 7, marais: 8, cascade: 9, montagne: 10, desert: 7, volcan: 8, taverne: 9 } as Record<string, number>)[biome] ?? 8;
   for (let t = 0; t < treeCount; t++) {
     const box = treeBatch.box;
     const rowCount = Math.ceil(treeCount / 2),
@@ -311,6 +332,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     const x = cx * s + 3 + i * 8,
       z = routeZ(x) + 2.05,
       lamp = lantern(r, 2.4, 14);
+    if (riverAt(x, z)) { r.release(lamp); continue; }
     lamp.position.set(x, terrainHeight(x, z), z);
     root.add(lamp);
   }
@@ -360,6 +382,11 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
   }
   groundDetails(root, r, cx, box);
   pondLife(root, r, cx);
+  for (const river of riverSites(Math.max(0, Math.floor(cx * CHUNK_SIZE / WORLD_METRES))))
+    if (river.x >= cx * CHUNK_SIZE && river.x < (cx + 1) * CHUNK_SIZE) {
+      const bridge = riverBridge(r, river), before = root.userData.animate;
+      root.add(bridge); root.userData.animate = (time: number) => { before?.(time); bridge.userData.animate?.(time); };
+    }
   finish();
   root.userData.dispose = () => {
     for (const geo of geometries) geo.dispose();

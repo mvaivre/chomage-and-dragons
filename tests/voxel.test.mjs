@@ -36,6 +36,7 @@ const {
   FOG_FAR,
   foregroundPool,
   poolRadius,
+  riverAt,
 } = await import("../src/components/voxel/world.ts");
 const { VoxelResources } = await import("../src/components/voxel/resources.ts");
 const { makeChunk } = await import("../src/components/voxel/chunks.ts");
@@ -352,6 +353,7 @@ test("foreground stays level outside inset ponds while the back keeps real relie
     for (const depth of [1.5, 2.5, 4, FOREGROUND_DEPTH - 0.2]) {
       const pool = foregroundPool(x);
       if (pool && poolRadius(pool, x, routeZ(x) + depth) < 1.35) continue;
+      if (riverAt(x, routeZ(x) + depth)) continue;
       assert.ok(
         Math.abs(
           terrainHeight(x, routeZ(x) + depth) - (routeHeight(x) + 0.12),
@@ -759,7 +761,8 @@ test("mobile terrain strips preserve exactly the same surfaces, colors and decor
   assert.deepEqual(surfaces(mobile), surfaces(full));
   assert.deepEqual(cubes(mobile), cubes(full));
   assert.deepEqual(mobile.userData.contactPatches, full.userData.contactPatches);
-  assert.equal(mobile.children.filter(c => c.isMesh && !c.isInstancedMesh).length, 4);
+  assert.equal(mobile.children.filter(c => c.isMesh && !c.isInstancedMesh && c.name !== "fogged-ground-continuation").length, 4);
+  assert.equal(mobile.children.filter(c => c.name === "fogged-ground-continuation").length, 1);
   full.userData.dispose(); mobile.userData.dispose();
   assert.equal(fullResources.instances.size, 0); assert.equal(mobileResources.instances.size, 0);
   fullResources.dispose(); mobileResources.dispose();
