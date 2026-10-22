@@ -374,3 +374,28 @@ test('the game honours phase, sound settings, page visibility and cleanup', asyn
     env.flushTimeouts(); env.restore();
   }
 });
+
+test('a gesture retries an unresolved autoplay request; its late rejection cannot silence the new play', async t => {
+  const {player}=fixture(t);
+  let reject;
+  Media.nextPlay.push(()=>new Promise((_,no)=>{reject=no;}));
+  player.select(TRACKS.firelit);
+  Media.inGesture=true;player.resume(true);Media.inGesture=false;
+  await settle();assert.equal(player.snapshot().track,'firelit');
+  reject(new DOMException('Autoplay blocked','NotAllowedError'));await settle();
+  assert.ok(player.snapshot().voices.every(v=>!v.blocked&&!v.paused));
+});
+
+test('the first click unlocks music without userActivation and resumes an interrupted phone context', async()=>{
+  const env=environment();let stop;
+  try {
+    delete navigator.userActivation;Media.requiresGesture=true;
+    setMuted(false);setMusicOn(true);stop=startMusic();await settle();
+    assert.equal(window.__musicState().track,null);
+    const ctx=audioOutput().ctx;ctx.state='interrupted';
+    assert.equal(audioOutput().ctx.state,'interrupted','polling the output never retries a blocked resume');
+    Media.inGesture=true;env.dispatch('click');Media.inGesture=false;await settle();
+    assert.equal(ctx.state,'running');assert.equal(window.__musicState().track,'firelit');
+    assert.ok(Media.instances.every(m=>m.unlocked));
+  } finally {stop?.();env.restore();}
+});

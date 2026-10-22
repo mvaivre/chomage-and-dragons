@@ -35,7 +35,7 @@ import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
+import { setMusicDucked, setMusicPhase } from "@/lib/client/music";
 import { groupDecor, interiorAt } from "@/lib/game/decor";
 import { JourneyMap } from "@/components/hud/JourneyMap";
 import { zurichDay } from "@/lib/game/daily";
@@ -48,7 +48,7 @@ import { CHOREOGRAPHIES } from "@/components/voxel/reactions";
 import { REACTION_HOLD } from "@/components/voxel/reactions";
 import { fx } from "@/components/voxel/fx";
 import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/voxel/state";
-import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
+import { primeAudio, sfx } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
@@ -251,7 +251,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
-  useEffect(() => warmUpAudio(), []);
 
   // Once the world is up, warm what the next action will need: its reaction art,
   // the loot art, the mini-games' code and images. Actions are rare, so otherwise
@@ -276,7 +275,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
   // The selection theme gives way to the adventure, then follows the hero's land.
-  useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
   const focusTimeout = useRef<number | null>(null);
 
@@ -316,7 +314,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
-  useEffect(() => setMusicDucked(miniGameVisible || welcomeVisible), [miniGameVisible, welcomeVisible]);
+  useEffect(() => {
+    setMusicDucked(miniGameVisible || welcomeVisible);
+    return () => setMusicDucked(false);
+  }, [miniGameVisible, welcomeVisible]);
   useEffect(() => {
     scene.momentActive = momentActive || miniGameVisible;
     return () => { scene.momentActive = false; };

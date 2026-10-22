@@ -1,44 +1,10 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
 import { VoxelPortrait } from "@/components/voxel/PortraitStudio";
-import { STEPS_PER_LEVEL } from "@/lib/config";
-import { CrownArtwork, PowerArtwork } from "../Artwork";
 
-export function TreasureLesson({ characterId, chestOpen, powerCast, crownDone, onOpen, onCast, onCrown }: {
-  characterId: string; chestOpen: boolean; powerCast: boolean; crownDone: boolean;
-  onOpen: () => void; onCast: () => void; onCrown: () => void;
-}) {
-  const [wrong, setWrong] = useState(false);
-  const target = useRef<HTMLButtonElement>(null);
-  const verdict = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (chestOpen && !powerCast) target.current?.focus({ preventScroll: true });
-    if (powerCast && !crownDone) verdict.current?.focus({ preventScroll: true });
-  }, [chestOpen, powerCast, crownDone]);
-  return <section className="initiation-lesson initiation-lesson--treasure" aria-label="Rite de la compagnie">
-    <p className="initiation-lead">Tu reçois un coffre avec un pouvoir tous les {STEPS_PER_LEVEL} pas</p>
-    <div className="initiation-treasure" data-open={chestOpen} data-cast={powerCast}>
-      <VoxelPortrait scene="treasure" characterId={characterId} chestOpen={chestOpen} powerCast={powerCast} animated label={powerCast ? "Le gobelin est devenu un crapaud" : "Ton personnage, le coffre et le gobelin d’entraînement"} />
-      {!chestOpen ? <button type="button" className="initiation-chest" onClick={onOpen}>
-        <span>Ouvrir le coffre</span>
-      </button> : !powerCast ? <>
-        <div className="initiation-treasure__power"><PowerArtwork kind="crapaud" /><span>Malédiction du crapaud</span></div>
-        <span className="initiation-treasure__arrow" aria-hidden>→</span>
-        <button ref={target} type="button" className="initiation-target" onClick={onCast}><span>Viser le gobelin<br />d’entraînement</span></button>
-      </> : <div className="initiation-treasure__cast"><strong>Pouvoir utilisé</strong></div>}
-    </div>
-    {powerCast ? <div className="initiation-crown">
-      <CrownArtwork />
-      <div><h2>{crownDone ? "La couronne du mois" : "À qui revient la couronne ?"}</h2>
-        <p>{crownDone ? "Le joueur qui fait le plus de pas dans le mois gagne un verre" : "Choisis qui gagne le verre du mois"}</p>
-      </div>
-      {!crownDone ? <div className="initiation-crown__choices">
-        <button ref={verdict} type="button" onClick={() => { setWrong(false); onCrown(); }}>Au plus de pas ce mois</button>
-        <button type="button" onClick={() => setWrong(true)}>Au plus joli CV</button>
-      </div> : null}
-      {wrong && !crownDone ? <p className="initiation-feedback initiation-feedback--retry" role="status">Choisis le joueur qui a fait le plus de pas</p> : null}
-    </div> : null}
-    {crownDone ? <p className="initiation-graduation" role="status">Trouve un emploi pour rejoindre la taverne</p> : null}
+export function TreasureLesson({ characterId, chestOpen, powerCast }: { characterId: string; chestOpen: boolean; powerCast: boolean }) {
+  return <section className="quick-lesson" aria-label="Essayer un butin">
+    <p className="quick-lead">Les coffres contiennent des pouvoirs à lancer sur tes compagnons. Ouvre celui-ci, puis essaie le sort du crapaud.</p>
+    <div className="rite-scene" data-scene="treasure"><VoxelPortrait scene="treasure" characterId={characterId} chestOpen={chestOpen} powerCast={powerCast} animated label={powerCast ? "Le compagnon d’entraînement a été transformé en crapaud" : chestOpen ? "Le coffre ouvert révèle un pouvoir" : "Ton héros découvre un coffre dans une clairière"} /><span className="rite-scene__badge">{powerCast ? "Et hop, un crapaud !" : chestOpen ? "Sort du crapaud" : "Un coffre t’attend"}</span></div>
+    <p className="quick-result" role="status">{powerCast ? "Bien joué ! Tes vrais pouvoirs t’attendront dans ton carnet." : chestOpen ? "Notre volontaire est prêt. Lance le pouvoir !" : "Tous les 10 pas, un nouveau pouvoir à découvrir."}</p>
   </section>;
 }

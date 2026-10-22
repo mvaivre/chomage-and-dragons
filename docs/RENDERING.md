@@ -277,8 +277,7 @@ mouvements réduits, plafonne le DPR mobile à 1 et ne crée ni ombres temps ré
 post-traitement. Il libère ses ressources quand la dernière vue disparaît. Le choix
 peut tourner par glissement ou avec deux boutons accessibles au clavier.
 L'entraînement utilise le même personnage enregistré, le coffre à couvercle articulé
-et les modèles du dragon et du crapaud ; ses règles et sa sauvegarde restent isolées
-du journal. Les anciennes illustrations de personnages et le générateur détaillé
+et le modèle du crapaud ; ses exemples et sa sauvegarde restent isolés du journal. Les anciennes illustrations de personnages et le générateur détaillé
 abandonné ne sont plus utilisés.
 
 
@@ -303,3 +302,23 @@ les trajets testés, taverne extérieure/intérieure comprise, aucune allocation
 shadow map dès la première image et après plusieurs voyages, ainsi que le bon profil
 des 13 mini-jeux. Ce seuil décrit ces compositions, pas toute caméra ni toute taille
 de groupe possible. Les captures des trois compositions sont dans `.qa/voxel-mobile/`.
+
+
+L’initiation courte (progression version 3) comporte six actions : essayer une
+candidature, continuer, ouvrir un coffre, lancer son pouvoir, continuer et commencer
+le voyage. Il n’y a plus de vol imposé ni de questionnaire. Les mini-jeux de dragon
+restent disponibles dans les quêtes. Les scènes partagent une clairière voxel
+contenue, avec terrain, arbres, fleurs, lanternes et petite taverne. Les animations de
+marche, de couvercle et de transformation durent au plus 750 ms ; les mouvements
+réduits les passent immédiatement. Les anciens marqueurs « initiation vue » restent
+valides, les progressions inachevées de l’ancienne version repartent du nouvel essai.
+
+Le lecteur musical appartient au layout racine : les mêmes deux éléments audio
+survivent à la navigation accueil → sélection → jeu. Il prépare la piste dès l’arrivée
+et appelle directement `resume()` et `play()` depuis `click`, `touchend`, `pointerdown`
+et `keydown`, sans délai ni dépendance à `navigator.userActivation`. Les promesses
+de lecture sont numérotées : un ancien refus d’autoplay ne peut pas annuler la
+lecture autorisée par un geste plus récent. L’état Safari `interrupted` est aussi
+repris. Le son respecte les préférences, la visibilité et le volume réduit pendant
+les défis ; quitter le jeu restaure le volume de l’accueil. Un contrôle du son est
+accessible dès l’accueil et la sélection.

@@ -118,32 +118,18 @@ test('modal games take the first keyboard input without clicking a direction con
       } finally { await context.close(); }
     });
 
-    await t.test(`dragon initiation keeps arrows after ${mode} start, arena click, pause and restart`, async () => {
+    await t.test(`quick initiation keeps native focus and ${mode} controls without leaking shortcuts`, async () => {
       const { context, page, errors } = await fixture(true);
       try {
         const saved = await journal(page);
-        await start(page, mode, 'Décoller');
-        await page.keyboard.press('ArrowUp');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-lane'), '0');
-        await page.locator('.initiation-flight').click({ position: { x: 20, y: 20 } });
-        await page.keyboard.press('ArrowDown');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-lane'), '1', 'the dialog itself can own focus');
-        const pause = page.getByRole('button', { name: 'Mettre le vol en pause', exact: true });
-        await pause.focus(); await page.keyboard.press('Space');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-flying'), 'false');
-        await page.keyboard.press('ArrowDown');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-lane'), '1', 'pause prevents steering');
-        await page.keyboard.press('Enter');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-flying'), 'true');
-        await page.keyboard.press('ArrowDown');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-lane'), '2');
-        await page.getByRole('button', { name: 'Recommencer', exact: true }).click();
-        await start(page, mode, 'Décoller'); await page.keyboard.press('ArrowUp');
-        assert.equal(await page.locator('.initiation-flight').getAttribute('data-lane'), '0');
-        await page.keyboard.press('2'); assert.deepEqual(await journal(page), saved);
-        await page.locator('.initiation-flight').click({ position: { x: 20, y: 20 } });
-        await page.keyboard.press('Escape'); await page.locator('.initiation-card').waitFor({ state: 'detached' });
-        assert.deepEqual(errors, []);
+        for (const [i, name] of ["Essayer une candidature · +2 pas", "Découvrir les coffres →", "Ouvrir le coffre", "Essayer le pouvoir", "Voyager ensemble →", "Commencer le voyage"].entries()) {
+          const button = page.getByRole('button', {name, exact:true});
+          if (mode === 'mouse') await button.click();
+          else { await page.waitForFunction(()=>!document.querySelector('.initiation-primary')?.disabled); await button.focus(); await page.keyboard.press(i % 2 ? 'Space' : 'Enter'); }
+          if (i < 5) { await page.keyboard.press('2'); assert.deepEqual(await journal(page), saved); }
+        }
+        await page.locator('.initiation-card').waitFor({state:'detached'});
+        assert.deepEqual(await journal(page), saved); assert.deepEqual(errors, []);
       } finally { await context.close(); }
     });
   }

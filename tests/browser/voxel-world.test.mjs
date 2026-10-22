@@ -345,47 +345,11 @@ test(
         const { context, page, errors } = await fixture(true);
         try {
           await page.setViewportSize({ width: 390, height: 844 });
-          await page
-            .getByRole("button", { name: "Décoller", exact: true })
-            .click();
-          let lane = 1;
-          for (const [i, target] of [0, 2, 1, 0].entries()) {
-            while (lane !== target) {
-              await page.keyboard.press(
-                lane > target ? "ArrowUp" : "ArrowDown",
-              );
-              lane += lane > target ? -1 : 1;
-            }
-            await page.waitForFunction(
-              (n) =>
-                document
-                  .querySelector(".initiation-ring-count")
-                  ?.getAttribute("aria-label") === `${n} anneaux sur quatre`,
-              i + 1,
-            );
+          const started = Date.now();
+          for (const name of ["Essayer une candidature · +2 pas", "Découvrir les coffres →", "Ouvrir le coffre", "Essayer le pouvoir", "Voyager ensemble →", "Commencer le voyage"]) {
+            await page.getByRole("button", {name, exact:true}).click();
           }
-          await page.getByRole("button", { name: "Rite suivant →" }).click();
-          for (const [i, name] of [
-            "Candidature",
-            "Refus",
-            "Entretien",
-            "Rejet après entretien",
-          ].entries()) {
-            await page.getByRole("button", { name, exact: true }).click();
-            if (i < 3)
-              await page
-                .getByRole("button", { name: "Démarche suivante →" })
-                .click();
-          }
-          await page.getByRole("button", { name: "Rite suivant →" }).click();
-          await page.getByRole("button", { name: "Ouvrir le coffre" }).click();
-          await page.getByRole("button", { name: /Viser le gobelin/ }).click();
-          await page
-            .getByRole("button", { name: "Au plus de pas ce mois" })
-            .click();
-          await page
-            .getByRole("button", { name: "Commencer le voyage" })
-            .click();
+          assert.ok(Date.now() - started < 8000, "the complete introduction fits in six taps without a flight or quiz");
           await ready(page);
           assert.equal((await saved(page)).events.length, 0);
           assert.equal((await saved(page)).casts.length, 0);

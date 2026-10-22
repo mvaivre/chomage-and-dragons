@@ -78,6 +78,13 @@ export class VoxelResources {
       const compile = mat.onBeforeCompile;
       mat.onBeforeCompile = (shader, renderer) => {
         compile.call(mat!, shader, renderer);
+        // Close UI dioramas use leaf colour patches without the world's fog.
+        if (foliage && !fog) {
+          shader.vertexShader = "varying vec3 vVoxelWorld;\n" + shader.vertexShader;
+          shader.fragmentShader = "varying vec3 vVoxelWorld;\n" + shader.fragmentShader;
+          shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>",
+            `vec4 leafPosition=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nleafPosition=instanceMatrix*leafPosition;\n#endif\nvVoxelWorld=(modelMatrix*leafPosition).xyz;\n#include <project_vertex>`);
+        }
         if (foliage)
           shader.fragmentShader = shader.fragmentShader.replace(
             "#include <color_fragment>",

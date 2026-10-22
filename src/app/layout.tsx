@@ -1,3 +1,4 @@
+import { AudioSession } from "@/components/AudioSession";
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Pirata_One } from "next/font/google";
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${pirata.variable} ${garamond.variable} h-full antialiased`}
     >
       <body className="h-full overflow-hidden bg-ink-deep text-parchment">
+        <AudioSession />
         {children}
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SoundToggle } from "./SoundToggle";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { characterById } from "@/lib/game/characters";
 import { useRouter } from "next/navigation";
@@ -44,6 +45,7 @@ export function Landing() {
 
   return (
     <main className="voxel-landing flex h-full w-full flex-col items-center gap-6 overflow-y-auto bg-ink-deep px-4 py-8 text-parchment">
+      <div className="entry-sound"><SoundToggle /></div>
       <header className="text-center">
         <p className="engrave text-xs opacity-70">Saison 2026</p>
         <h1 className="font-display text-4xl tracking-wide text-gold-light sm:text-5xl">Chômage &amp; Dragons</h1>

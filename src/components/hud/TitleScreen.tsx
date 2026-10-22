@@ -5,6 +5,7 @@ import { CharacterPortrait } from "./CharacterPortrait";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterById, type Character } from "@/lib/game/characters";
 import { SEASON } from "@/lib/config";
+import { SoundToggle } from "./SoundToggle";
 import { CrownArtwork } from "./Artwork";
 
 /**
@@ -42,6 +43,7 @@ export function TitleScreen({
   return (
     <div className="character-screen curtain absolute inset-0 z-30 overflow-y-auto">
       <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center gap-6 px-5 py-8">
+        <div className="entry-sound"><SoundToggle /></div>
         <header className="rise text-center">
           <p className="engrave text-xs opacity-70">{SEASON.label}</p>
           <h1 className="engrave mt-2 text-4xl leading-[1.15] sm:text-6xl">

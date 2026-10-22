@@ -63,7 +63,7 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
     limiter.ratio.value = 8;
     master.connect(limiter).connect(context.destination);
   }
-  if (context.state === "suspended") void context.resume().catch(() => {});
+  if (context.state !== "running" && context.state !== "closed") void context.resume().catch(() => {});
   return context && master ? { ctx: context, out: master } : null;
 }
 
@@ -72,7 +72,7 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
  * context: the music never pays for that creation itself.
  */
 export function audioOutput(): { ctx: AudioContext; out: GainNode } | null {
-  return context ? audio() : null;
+  return context && master && !muted ? { ctx: context, out: master } : null;
 }
 
 function whiteNoise(ctx: AudioContext): AudioBuffer {
@@ -158,42 +158,14 @@ function hiss(opts: NoiseOptions): void {
 
 const NOTE = (semitones: number) => 523.25 * Math.pow(2, semitones / 12);
 
-/**
- * Creating an AudioContext costs a couple of hundred milliseconds on some
- * systems. Browsers allow it on the first user gesture anywhere on the page,
- * so do it then, when nothing is animating, instead of on the first action.
- */
-export function warmUpAudio(): () => void {
-  if (typeof window === "undefined") return () => {};
-  const warm = () => {
-    if (context) {
-      // A context made before any gesture waits; Safari only lets it start inside the gesture itself.
-      if (context.state === "suspended") void context.resume().catch(() => {});
-      else remove();
-      return;
-    }
-    remove();
-    // Let the gesture's own work finish first.
-    window.setTimeout(() => {
-      const a = audio();
-      if (a) whiteNoise(a.ctx);
-    }, 0);
-  };
-  const events = ["pointerdown", "keydown", "touchstart"] as const;
-  const remove = () => events.forEach((name) => window.removeEventListener(name, warm, true));
-  events.forEach((name) => window.addEventListener(name, warm, { capture: true, passive: true }));
-  return remove;
-}
-
-/**
- * Arriving from a click (the title screen, an invitation link followed in the
- * app), the page may already make sound: start the context now, so the music
- * plays on arrival instead of waiting for the first action.
- */
-export function primeAudio(): void {
-  if (typeof navigator === "undefined" || context || muted) return;
+/** Prepare on arrival when playback is allowed, and resume synchronously during
+ * every real gesture. Safari can interrupt an existing context after a phone lock. */
+export function primeAudio(prepare = false): void {
+  if (typeof navigator === "undefined" || muted) return;
   const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
-  if (!activation?.hasBeenActive) return;
+  if (!context && !prepare && !activation?.hasBeenActive) return;
+  // Creation/resume happens synchronously inside real gestures too: no timer and
+  // no dependency on navigator.userActivation being implemented by the browser.
   const a = audio();
   if (a) whiteNoise(a.ctx);
 }

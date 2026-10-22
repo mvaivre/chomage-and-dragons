@@ -25,7 +25,7 @@ test('mobile selection shares one 3D studio, rotates, and carries the chosen mod
   await page.waitForFunction(before=>document.querySelector('.hero-preview canvas').dataset.rotation!==before,before);
   await page.getByPlaceholder('Mika').fill('Zoé');
   await page.getByRole('button',{name:'Entrer dans la partie',exact:true}).click();
-  await page.waitForFunction(()=>document.querySelector('.initiation-flight canvas')?.dataset.model==='skater');
+  await page.waitForFunction(()=>document.querySelector('.rite-scene canvas')?.dataset.model==='skater');
   assert.equal(await page.locator('.initiation-card img[src*="characters"]').count(),0);
   await page.getByRole('button',{name:'Passer l’initiation'}).click();
   await page.waitForFunction(()=>document.querySelector('.journey-card__portrait canvas')?.dataset.model==='skater');

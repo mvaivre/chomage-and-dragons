@@ -33,38 +33,6 @@
 .character-screen .roster-portrait { flex: 0 0 50px; height: 64px; }
 .game-adventure .journey-card .character-portrait.journey-card__portrait { width: 100%; height: 100%; border-radius: 50%; background: #809570; overflow: hidden; }
 .game-adventure .journey-card .journey-card__portrait canvas { width: 100%; height: 100%; }
-:root .initiation-card { --rite-ink: #eee8cc; --rite-gold: #d9c488; --rite-cream: #213c33; background: #19382f; border: 1px solid #c8bc8277; border-radius: 4px; color: #eee8cc; box-shadow: 0 25px 90px #071c20b3; }
-:root .initiation-card::backdrop { background: #071e24c9; backdrop-filter: none; }
-:root .initiation-card__header { background: #142f29; border-bottom-color: #b8a87544; }
-:root .initiation-card__body { background: none; }
-:root .initiation-card__footer { background: #142f29; border-top: 1px solid #b8a87533; }
-:root .initiation-card__footer > small, :root .initiation-card__links button, :root .initiation-hint { color: #c3c9ad; }
-:root .initiation-rites { background: #29483a; border-color: #b8a87533; }
-:root .initiation-rites li { color: #b7c5ac; }
-:root .initiation-rites li > span { background: #19372f; color: #cfccaa; border-color: #b8a87566; }
-:root .initiation-rites li[data-current=true] { color: #fff0bf; }
-:root .initiation-rites li[data-current=true] > span { background: #d6c48c; color: #19372f; border-color: #d6c48c; box-shadow: none; }
-:root .initiation-primary { background: #d6c48c; color: #20372b; border: 1px solid #e6d7a5; border-radius: 3px; box-shadow: none; }
-:root .initiation-card button:focus-visible { outline-color: #f1d280; }
-:root .initiation-flight, :root .initiation-road, :root .initiation-treasure { background: radial-gradient(ellipse at 55% 10%, #73948599, transparent 75%), #375d52; border: 1px solid #b8a87555; border-radius: 3px; }
-:root .initiation-flight > .voxel-portrait, :root .initiation-road > .voxel-portrait { position: absolute; inset: 0; }
-:root .initiation-road { height: 170px; }
-:root .initiation-road__label { z-index: 1; color: #dddcbc; }
-:root .initiation-launch { position: absolute; width: auto; min-width: 150px; left: 50%; top: 55%; transform: translate(-50%, -50%); }
-:root .initiation-flight-controls button, :root .initiation-choices > button, :root .initiation-crown__choices button { background: #365343; color: #f5ebc9; border: 1px solid #b8a87566; border-radius: 3px; box-shadow: none; }
-:root .initiation-choices > button:hover, :root .initiation-crown__choices button:hover { background: #4b6a50; }
-:root .initiation-flight-controls button[aria-disabled=true] { color: #9caa98; }
-:root .initiation-encounter__number { color: #d9c488; }
-:root .initiation-feedback { background: #8eae6e22; border-color: #9eb57a; }
-:root .initiation-feedback:empty { display: none; }
-:root .initiation-treasure { position: relative; display: flex; padding: 210px 12px 14px; flex-wrap: wrap; gap: 10px; min-height: 0; }
-:root .initiation-treasure > .voxel-portrait { position: absolute; inset: 0 0 auto; height: 210px; }
-:root .initiation-chest, :root .initiation-target { min-height: 44px; border: 1px solid #dbc78a; padding: 8px 16px; width: auto; border-radius: 3px; background: #d6c48c; color: #20372b; font-size: 1rem; }
-:root .initiation-chest > span { border: 0; }
-:root .initiation-treasure__power { flex-direction: row; width: auto; gap: 8px; color: #eee8cc; max-width: 55%; }
-:root .initiation-treasure__power .bitmap-art { width: 40px; height: 40px; }
-:root .initiation-treasure__arrow { color: #d9c488; }
-:root .initiation-ring-count i[data-collected=true] { background: #e0cb84; border-color: #e0cb84; box-shadow: none; }
 @media (max-width: 600px) {
   .character-screen > div { gap: 18px; padding-left: 14px; padding-right: 14px; }
   .character-screen .hero-panel { padding: 18px 16px; }
@@ -76,9 +44,6 @@
   .hero-roster { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; padding-top: 12px; margin-top: 18px; }
   .hero-roster > button { height: 76px; }
   .hero-roster > button > span { font-size: 10px; }
-  :root .initiation-road { height: 140px; }
-  :root .initiation-treasure { padding-top: 185px; }
-  :root .initiation-treasure > .voxel-portrait { height: 185px; }
 }
 @media (prefers-reduced-motion: reduce) { .character-screen * { animation: none !important; transition: none !important; } }
 /* These selectors retire the old deliberately janky parchment colour overrides. */
@@ -109,3 +74,5 @@
 .character-screen.curtain h1 { transform: none; }
 .character-screen .engrave, .voxel-landing .engrave { color: #dac993; text-shadow: none; }
 .character-screen.curtain .slot [class*="text-parchment"], .character-screen.curtain .slot [class*="text-gold"] { color: #eee4c5 !important; }
+
+@media (max-width: 600px) { .character-screen header { padding-top: 24px; } }

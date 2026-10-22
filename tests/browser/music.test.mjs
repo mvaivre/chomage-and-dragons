@@ -72,22 +72,52 @@ test('the supplied recordings decode and play through the game sound controls', 
     await page.waitForFunction(() => window.__musicState().voices.some(voice => !voice.paused && voice.time > 0.2));
     const playing = await page.evaluate(() => window.__musicState());
     assert.equal(playing.track, 'medieval');
-    const firstTime = Math.max(...playing.voices.map(voice => voice.time));
+    const firstTime = playing.voices.find(voice => voice.id === playing.track).time;
     await page.getByRole('button', {name: /Ouvrir le carnet/}).click();
     const toggle = page.locator('.sound-toggle');
     await toggle.click();
     await page.waitForFunction(() => !window.__musicState().enabled && window.__musicState().voices.every(voice => voice.paused));
     assert.equal(await toggle.getAttribute('data-state'), 'effects');
-    const pausedTime = await page.evaluate(() => Math.max(...window.__musicState().voices.map(voice => voice.time)));
+    const pausedTime = await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'medieval').time);
     await page.waitForTimeout(350);
-    assert.equal(await page.evaluate(() => Math.max(...window.__musicState().voices.map(voice => voice.time))), pausedTime);
+    assert.equal(await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'medieval').time), pausedTime);
     await toggle.click();
     assert.equal(await toggle.getAttribute('data-state'), 'none');
     await toggle.click();
-    await page.waitForFunction(time => window.__musicState().enabled && window.__musicState().voices.some(voice => !voice.paused && voice.time > time), pausedTime);
+    await page.waitForFunction(time => window.__musicState().enabled && window.__musicState().voices.some(voice => voice.id === 'medieval' && !voice.paused && voice.time > time), pausedTime);
     assert.equal(await toggle.getAttribute('data-state'), 'all');
     assert.ok(pausedTime >= firstTime);
     assert.equal(await page.evaluate(() => localStorage.getItem('louchomage:musique:v1')), '1');
     assert.deepEqual(errors, []);
   });
+});
+
+test('the first mobile touch starts the intro; the same decks keep playing through selection and arrival without an NPC click', {timeout:60000}, async t=>{
+  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,args:['--use-angle=metal','--enable-gpu','--ignore-gpu-blocklist','--autoplay-policy=document-user-activation-required']});
+  t.after(()=>browser.close());
+  const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{
+    // Safari versions without this API still receive trusted click/touch gestures.
+    Object.defineProperty(navigator,'userActivation',{configurable:true,value:undefined});
+    window.__testMusicElements=[];
+    const Original=window.Audio;
+    window.Audio=class extends Original {constructor(...args){super(...args);window.__testMusicElements.push(this);}};
+  });
+  await page.goto(`${url}/?debug`);
+  await page.getByLabel('Nom du groupe',{exact:true}).tap();
+  await page.waitForFunction(()=>window.__musicState?.().context==='running'&&window.__musicState().track==='firelit'&&window.__musicState().voices.some(v=>!v.paused&&v.time>1&&v.gain>0));
+  const allocated=await page.evaluate(()=>window.__testMusicElements.length);
+  assert.ok(allocated<=3,'two persistent decks plus a disposed StrictMode mount');
+  await page.getByRole('link',{name:'Mode solo',exact:true}).tap();
+  await page.locator('.hero-roster').waitFor();
+  assert.equal(await page.evaluate(()=>window.__musicState().track),'firelit','the intro continues through navigation');
+  await page.getByPlaceholder('Mika').fill('Camille');
+  await page.getByRole('button',{name:'Entrer dans la partie',exact:true}).tap();
+  await page.locator('.initiation-card[open]').waitFor();
+  await page.getByRole('button',{name:'Passer l’initiation',exact:true}).tap();
+  await page.waitForFunction(()=>window.__musicState().track==='medieval'&&window.__musicState().context==='running'&&window.__musicState().voices.some(v=>v.id==='medieval'&&!v.paused&&v.time>1&&v.gain>0));
+  assert.equal(await page.evaluate(()=>window.__testMusicElements.length),allocated,'arriving in the game never replaces the unlocked audio elements');
+  assert.equal(await page.locator('.dialogue-bubble').count(),0);
+  assert.deepEqual(errors,[]);
 });
