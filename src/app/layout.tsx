@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Pirata_One } from "next/font/google";
 import "./globals.css";
+import "../components/voxel/voxel.css";
+import "../components/hud/adventure-ui.css";
 
 const pirata = Pirata_One({
   variable: "--font-pirata",

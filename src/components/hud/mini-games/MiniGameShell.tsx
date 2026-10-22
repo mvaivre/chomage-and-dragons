@@ -15,7 +15,7 @@ export interface MiniGameShellProps {
   hud?: ReactNode;
   /** Live region under the arena: the current stake, then the outcome. */
   status: ReactNode;
-  primary: { label: string; disabled?: boolean; onClick: () => void };
+  primary: { label: string; disabled?: boolean; onClick: () => void; inArena?: boolean; hidden?: boolean };
   skip?: { label: string; onClick: () => void } | null;
   /** Close button and Escape. Games count an unfinished attempt as skipped here. */
   onLeave: () => void;
@@ -28,7 +28,7 @@ export interface MiniGameShellProps {
 /**
  * The shared frame of every mini-game: a native modal dialog owning focus,
  * Escape and the keyboard, with the same header, arena slot, live status and
- * two buttons. Games only differ inside the arena and in their copy.
+ * contextual actions. The start action sits over the arena. Games only differ inside the arena and in their copy.
  */
 export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status, primary, skip, onLeave, onKeyDown, focusKey, children }: MiniGameShellProps) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -49,15 +49,16 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
   // leave activeElement on that disabled button, where element key handlers miss it.
   useLayoutEffect(() => {
     const node = dialog.current, active = document.activeElement;
-    if (!primary.disabled) primaryButton.current?.focus({ preventScroll: true });
-    else if (node && (!active || active === document.body || !node.contains(active) || active.matches(":disabled"))) node.focus({ preventScroll: true });
-  }, [primary.disabled, focusKey]);
+    if (!primary.disabled && !primary.hidden) primaryButton.current?.focus({ preventScroll: true });
+    else if (node && (!active || active === document.body || !node.contains(active) || active.matches(":disabled") || (active === primaryButton.current && primary.hidden))) node.focus({ preventScroll: true });
+  }, [primary.disabled, primary.hidden, primary.inArena, focusKey]);
 
   // Chrome may close a modal on Escape without firing cancel when it opened right after
   // another one closed; onClose keeps the game state in step with the browser either way.
   // The check on `open` ignores the close queued by a development-only remount (StrictMode),
   // which has already reopened the dialog by the time the event fires.
   // Keys stay in the dialog: a digit for a quiz answer must not declare an action behind it.
+  const primaryAction = !primary.hidden ? <button ref={primaryButton} type="button" className="mini-game__primary" disabled={primary.disabled} onClick={primary.onClick}>{primary.label}</button> : null;
   return <dialog ref={dialog} tabIndex={-1} className={`mini-game mini-game--${kind}`} aria-labelledby="mini-game-title" aria-describedby="mini-game-instructions"
     onCancel={event => { event.preventDefault(); onLeave(); }}
     onClose={event => { if (!event.currentTarget.open) onLeave(); }}>
@@ -68,10 +69,13 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
       <p id="mini-game-instructions">{instructions}</p>
     </header>
     {hud ? <div className="mini-game__hud" aria-hidden>{hud}</div> : null}
-    {children}
+    <div className="mini-game__playfield">
+      {children}
+      {primary.inArena ? <div className="mini-game__arena-launch">{primaryAction}</div> : null}
+    </div>
     <div className="mini-game__result" role="status" aria-live="polite">{status}</div>
     <footer>
-      <button ref={primaryButton} type="button" className="mini-game__primary" disabled={primary.disabled} onClick={primary.onClick}>{primary.label}</button>
+      {!primary.inArena ? primaryAction : null}
       {skip ? <button type="button" className="mini-game__skip" onClick={skip.onClick}>{skip.label}</button> : null}
     </footer>
   </dialog>;

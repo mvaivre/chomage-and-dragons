@@ -53,7 +53,7 @@ export interface Character {
   prop: PropStyle;
 }
 
-/** Ajouter une classe = ajouter une ligne ici, plus son sprite dans public/sprites. */
+/** Catalogue commun des personnages : couleurs, chapeaux et accessoires voxel. */
 export const CHARACTERS: Character[] = [
   {
     id: "barde",
@@ -181,13 +181,8 @@ export function characterById(id: string): Character {
   return CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
 }
 
-/** Shared by the Pixi scene and the DOM selection portrait. */
+/** Original illustrated portraits remain part of the interface. */
 export function characterArt(id: string): string {
   const artId = characterById(id).id;
   return `/art/world-v3/characters/${artId === "skater" ? "skateuse" : artId}.webp`;
-}
-
-/** Direction actually drawn in the static illustrations. Animation sheets face right. */
-export function staticCharacterFacing(id: string): 1 | -1 {
-  return ["chevalier", "voleur", "archimage", "necromancien", "licorne", "squelette", "teddy"].includes(id) ? -1 : 1;
 }

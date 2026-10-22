@@ -1,11 +1,11 @@
 import { BIOMES, WORLD_LENGTH, biomeAt } from "./world";
 
 export const DRAGON_VARIANTS = {
-  green: { art: "/art/world-v3/animations/dragon-v3.webp", label: "vert" },
-  red: { art: "/art/world-v3/animations/dragon-red-v1.webp", label: "rouge" },
-  blue: { art: "/art/world-v3/animations/dragon-blue-v1.webp", label: "bleu" },
-  black: { art: "/art/world-v3/animations/dragon-black-v1.webp", label: "noir aux yeux rouges" },
-  gold: { art: "/art/world-v3/animations/dragon-gold-v1.webp", label: "doré glamour" },
+  green: { color: 0x568b6e, label: "vert" },
+  red: { color: 0xb84f46, label: "rouge" },
+  blue: { color: 0x688fb4, label: "bleu" },
+  black: { color: 0x34363e, label: "noir aux yeux rouges" },
+  gold: { color: 0xc8a658, label: "doré glamour" },
 } as const;
 export type DragonVariant = keyof typeof DRAGON_VARIANTS;
 /** The nest and its swallowing animation always keep the same coat. */

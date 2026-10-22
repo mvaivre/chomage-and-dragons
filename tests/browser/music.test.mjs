@@ -38,7 +38,7 @@ test('the supplied recordings decode and play through the game sound controls', 
     }));
   });
   await page.goto(`${url}/local?debug&hour=12&variant=classic`);
-  await page.waitForFunction(() => window.__decorScene && window.__pixiApp && window.__musicState);
+  await page.waitForFunction(() => window.__voxelWorld?.ready && window.__musicState);
 
   await t.test('all four MP3s are served as audio and decode to non-silent samples', async () => {
     for (const [id, track] of Object.entries(TRACKS)) {
@@ -73,6 +73,7 @@ test('the supplied recordings decode and play through the game sound controls', 
     const playing = await page.evaluate(() => window.__musicState());
     assert.equal(playing.track, 'medieval');
     const firstTime = Math.max(...playing.voices.map(voice => voice.time));
+    await page.getByRole('button', {name: /Ouvrir le carnet/}).click();
     const toggle = page.locator('.sound-toggle');
     await toggle.click();
     await page.waitForFunction(() => !window.__musicState().enabled && window.__musicState().voices.every(voice => voice.paused));

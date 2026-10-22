@@ -2,12 +2,12 @@
 
 Jeu web humoristique entre ami·es : **plus on se fait recaler, plus on avance.**
 Chaque candidature, chaque refus fait progresser ton personnage sur une carte
-d'aventure en 2D avec parallaxe. Le 31 décembre, celui ou celle qui a le plus de pas est
+d'aventure voxel en 3D. Le 31 décembre, celui ou celle qui a le plus de pas est
 couronné·e **Légende du Chômage** et se fait inviter à manger par tout le monde.
 
 📖 Les règles complètes : [`docs/PITCH.md`](docs/PITCH.md)
 🔧 Les choix techniques et leurs raisons : [`docs/TECH.md`](docs/TECH.md)
-🎨 Le rendu actuel, les assets et les vérifications : [`docs/RENDERING.md`](docs/RENDERING.md)
+🎨 Le rendu voxel et les vérifications : [`docs/RENDERING.md`](docs/RENDERING.md)
 
 ## Démarrer
 
@@ -26,14 +26,14 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 | `pnpm build` | Build de production (ce que Vercel exécute) |
 | `pnpm exec tsc --noEmit` | Vérification des types |
 | `pnpm lint` | ESLint |
-| `pnpm test` | Tests de projection, couverture du sol et budget de pixels (Node ≥ 22.18) |
+| `pnpm test` | Règles, sauvegardes et géométrie voxel (Node ≥ 22.18) |
 
 ## Pile technique
 
 - **Next.js 16** + **React 19** — hébergé sur **Vercel**
-- **Pixi.js 8** via **@pixi/react 8** — la carte d'aventure en 2D
-- **Tailwind CSS 4** — l'interface parchemin autour du canvas
-- **Neon Postgres** — *pas encore branché*, voir ci-dessous
+- **Three.js** — monde voxel, caméra à 360°, mini-jeux en volume
+- **Tailwind CSS 4** — le HUD minimal et les menus autour du canvas
+- **Neon Postgres** — groupes partagés ; stockage mémoire de développement sans DATABASE_URL
 
 ## Structure
 
@@ -47,22 +47,20 @@ src/
   components/
     GameLoader.tsx        Chargement navigateur-seulement (canvas + stockage local)
     Game.tsx              Scène + interface + file d'animations
-    game/
-      GameCanvas.tsx      Application Pixi, caméra, profondeur, redimensionnement
-      FlatWorld.tsx       Décors v3, transitions, route et chargement par zone visible
-      Backdrop.tsx        Ciel et nuages à géométrie fixe
-      Hero.tsx            Illustrations des joueurs, déplacements et effets
-      textures.ts        Cache partagé des textures et des images d'animation
-      projection.ts      Projection des couches et budget du framebuffer
-      Effects.tsx        Moteur des réactions : entrée, impact, sortie, accessoires
-      reactions.ts       Chorégraphies des réactions et de leurs variantes
-      fx.ts, FxLayer.tsx Particules et éclairs procéduraux, en pool
-      AmbientWeather.tsx Météo de chaque contrée
-      lanes.ts           Répartition des personnages à égalité
+    voxel/
+      engine.ts           Scène Three, caméra 360°, joueurs, bâtiments et streaming
+      world.ts, chunks.ts Relief continu, palettes et génération déterministe
+      models.ts           Personnages et dragons en petits voxels
+      objects.ts          Objets cachés, pouvoirs et accessoires
+      landmarks.ts        Vignettes des biomes et fête de la taverne
+      staging.ts          Réactions, variantes et malédictions
+      arena.ts, useArena.ts Rendu 3D commun des mini-jeux
+      scenery.ts          Maisons, panneaux physiques et intérieurs dédiés
+      fauna.ts            Animaux voxel articulés
     hud/                  Interface DOM : actions, classements, sélection, récompenses,
-                          moment d'action, défi du jour, nouvelles, carte
+                          moment d'action, carnet, nouvelles, carte
       mini-games/        Un dialogue commun (MiniGameShell), un aiguilleur (MiniGame),
-                         puis un composant par jeu et le dessin canvas du pigeon
+                         puis un composant par jeu et des scènes voxel
   hooks/useGame.ts        État du jeu ; chaque mutation passe par le réducteur, sur
                           l'appareil d'abord, puis sur le serveur pour un groupe
   lib/
@@ -116,7 +114,7 @@ au premier lancement : piloter un dragon, déclarer des démarches dans un camp 
 puis ouvrir un coffre et viser la couronne du mois. « Quêtes » permet de les rejouer.
 La progression de l’initiation se reprend sur cet appareil, par personnage et par groupe,
 sans toucher aux vraies actions. Les lettres suivent les surfaces inclinées.
-L’ORP et l’usine sont des scènes séparées : porte extérieure, fondu, salle entière,
+L’ORP et l’usine sont des scènes séparées : porte extérieure, salle dédiée sans paysage extérieur,
 puis sortie vers le paysage avec le bâtiment à gauche. Les pas restants continuent
 automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.md).
 
@@ -124,9 +122,9 @@ automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.
 
 Jouable en groupe d'ami·es, en ligne. Fonctionne :
 
-- neuf contrées en parallaxe, de la Plaine de la Poisse à la Taverne du Triomphe,
+- neuf contrées voxel en relief, de la Plaine de la Poisse à la Taverne du Triomphe,
   reliées par sept lieux de transition
-- quinze personnages illustrés, partagés entre le jeu et l'écran de sélection
+- quinze personnages voxel dans le monde, avec les portraits illustrés originaux dans l’interface
 - un cadrage adapté au bureau, au portrait et au paysage sur mobile
 - **les 5 actions officielles**, chacune mise en scène comme un moment : la caméra
   se rapproche, le héros réagit sur place, la réaction le suit, l'impact frappe
@@ -171,8 +169,8 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
     trois CHF pour un butin de plus.
 
   Chaque défi arrive en carte d'invitation une fois le moment joué. Chaque partie
-  garde un score, le groupe un record par jeu, et un **défi du jour** propose le même
-  parcours à toute la compagnie, une fois par jour, avec son classement.
+  garde un score et le groupe un record par jeu. Le défi quotidien a été retiré
+  du HUD ; les anciens résultats restent compatibles avec les sauvegardes.
 - l'**annulation** de la dernière action, pour le clic de trop
 - les **coffres** 🧰 aux paliers de 10 pas
 - les **classements** : Saison (Légende du Chômage), Mois (Couronne du mois,
@@ -183,8 +181,8 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
 - la **vie du groupe** : les actions des ami·es jouées en direct sur leur héros,
   annoncées par une carte où on les salue en un emoji (👏 🍺 🔥 😂 🫂), et au
   retour un récapitulatif de ce qui s'est passé pendant ton absence
-- le **défi du jour** toujours visible dans le HUD : un tap pour jouer, puis le
-  classement du jour
+- le **carnet du personnage actif**, ouvert depuis son portrait : quêtes, collection,
+  butins, son et verre du mois ; une couronne ouvre la carte et le classement
 - le **verre du mois** : compte à rebours jusqu’à la clôture à minuit à Zurich,
   date/heure et lieu modifiables par chaque membre, sauvegardés avec le groupe.
   Le rendez-vous peut se tenir jusqu’au 14 du mois suivant sans déplacer la couronne
@@ -193,16 +191,15 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   serpent administratif, labyrinthe des recruteurs, pile de dossiers et renvoi à
   l’expéditeur. Clavier, glisser et boutons tactiles ; les entraînements restent
   sans effet sur la course. Les nouveautés alternent avec les anciens jeux sur
-  les actions et entrent dans les défis quotidiens à partir du 9 octobre 2026,
-  pour conserver le parcours déjà joué le jour de leur ajout
+  les actions, avec les graines historiques conservées pour les anciennes parties
 - **neuf objets cachés**, un par contrée, à toucher dans le décor. Exploration
   libre, indices et collection dans « Quêtes » ; les trouvailles se conservent
   par personnage, y compris après un changement d’appareil dans un groupe.
   Elles ne changent ni les pas ni le butin
-- **vingt-quatre nouvelles punchlines**, alternées avec les dialogues des habitants
-  et tirées de façon stable à la fin des nouveaux défis
+- **vingt-quatre punchlines** pour tous les habitants, affichées lettre par lettre
+  avec de petits tics et des mots en couleur ; les défis les tirent de façon stable
 - une **série hebdomadaire** 🔥
-- le **classement** s'ouvre sur la carte peinte de la compagnie, avec la position de
+- le **classement** s'ouvre sur la carte illustrée de la compagnie, avec la position de
   chacun·e, puis le mois, la saison et le palmarès
 
 Pour revoir une mise en scène ou un moment précis en développement :
@@ -238,8 +235,7 @@ au serveur.
 
 ### Vérification des parcours du jeu
 
-`pnpm test` couvre le barème, la progression et les coffres acquis, la projection et
-les sprites, le réducteur des mutations, la couche des groupes sur base mémoire
+`pnpm test` couvre le barème, la progression et les coffres acquis, la géométrie voxel, le réducteur des mutations, la couche des groupes sur base mémoire
 (mots de passe, jetons, autorisation, écritures concurrentes), ainsi que les mini-jeux : chaque parcours, tapis, pluie de mots ou machine
 à sous générés restent gagnables par un pilote automatique à toutes les cadences
 d'affichage, et la réservation d'une tentative survit à l'annulation et au rechargement. Les actions retirées du journal par Annuler retirent aussi les gains
@@ -268,15 +264,13 @@ plutôt que celui fourni par Playwright.
 ### Décor « vie et WTF »
 
 Chaque tour comporte 43 haltes absurdes : panneaux de refus, hommages aux ami·es,
-cimetière des candidatures, couronne du mois, défi du jour et tableau des engagé·es.
+cimetière des candidatures, couronne du mois, exploits et tableau des engagé·es.
 Les emplacements et les messages sont déterministes pour toute la compagnie.
-Huit scènes illustrées peuplent les contrées, de l’épouvantail-recruteur à
-l’afterwork obligatoire. Le Centre ORP et l’Usine à CV sont deux passages en coupe
+Huit scènes voxel peuplent les contrées, de l’épouvantail-recruteur à
+l’afterwork obligatoire. Le Centre ORP et l’Usine à CV sont deux intérieurs dédiés
 de onze pas, avec leurs figurants, leurs machines et leur musique.
 
-Les lettres sont cuites avec les vraies polices du jeu dans les surfaces vierges
-des illustrations ; un dessin de secours prend le relais si l’atlas manque.
-Les animations respectent la réduction des mouvements et les événements rares
-s’effacent pendant une action. Les nouvelles images WebP totalisent 5,72 Mo.
-Voir [le brief livré](docs/DECOR_WTF_BRIEF.md), [les prompts](docs/decor-prompts.json)
-et [le contrat de rendu et les vérifications](docs/RENDERING.md).
+Les panneaux portent leurs textes sur leurs faces 3D ; les noms et dialogues restent accessibles en DOM. Les accessoires et les
+personnages sont procéduraux ; les animations respectent la réduction des mouvements.
+Voir [le brief narratif](docs/DECOR_WTF_BRIEF.md) et
+[le contrat de rendu et les vérifications](docs/RENDERING.md).

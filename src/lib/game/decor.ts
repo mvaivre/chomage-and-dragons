@@ -159,7 +159,7 @@ function packLap(cycle: number): DecorSite[] {
   }
   const chosen = new Set<string>();
   for (const biome of BIOMES) {
-    // The volcano itself is the illustrated landmark, rendered in its own layers.
+    // The volcanic terrain is its own landmark.
     if (biome.id === "volcan") continue;
     const candidates = sites.filter(s => s.biome === biome.id && !interiorAt(s.x - 330) && !interiorAt(s.x + 330));
     const selected = biome.id === "plaine" ? candidates[0] : biome.id === "foret" ? candidates.at(-1) : candidates[1] ?? candidates[0];
@@ -202,7 +202,7 @@ export function groupDecor(group: DecorGroup): GroupDecor {
     friends: players.map(p => `${names.get(p.id)} est passé·e ici. Respect.`),
     graves,
     crown: winner ? { text: `Couronne du mois · ${names.get(winner.id)}`, characterId: winner.characterId } : { text: "Couronne du mois · Gloire à partager" },
-    daily: champion ? `Défi du jour · Bravo ${names.get(champion.playerId)}` : "Défi du jour · La gloire attend",
+    daily: champion ? `Ancien exploit · Bravo ${names.get(champion.playerId)}` : "La gloire attend · Profite du voyage",
     hired: players.filter(p => p.hiredAt).map(p => `${names.get(p.id)} · Engagé·e, toujours de la compagnie`),
   };
 }

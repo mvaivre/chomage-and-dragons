@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CharacterPortrait } from "@/components/game/CharacterPortrait";
+import { CharacterPortrait } from "./CharacterPortrait";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterById, type Character } from "@/lib/game/characters";
 import { SEASON } from "@/lib/config";

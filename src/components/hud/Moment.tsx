@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { scene } from "@/components/game/scene";
 import { sfx } from "@/lib/client/sound";
 
 /**
@@ -105,10 +104,8 @@ export function useTween(value: number, timing: { delay: number; duration: numbe
       return () => window.clearTimeout(timer);
     }
     const timer = window.setTimeout(() => {
-      let began = performance.now(), previous = began;
+      const began = performance.now();
       const frame = (now: number) => {
-        if (scene.doorTransition) began += now - previous;
-        previous = now;
         const t = Math.min(1, (now - began) / Math.max(1, timing.duration));
         const next = Math.round(start + (value - start) * t);
         if (next !== current.current) { show(next); stepRef.current?.(); }

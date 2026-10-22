@@ -1,4 +1,5 @@
 "use client";
+import { VoxelDisplay } from "@/components/voxel/Display";
 
 import { useEffect, useRef, useState } from "react";
 import { JOURNEY_STEPS, STEPS_PER_LEVEL } from "@/lib/config";
@@ -34,10 +35,7 @@ export function JourneyLesson({ encounters, onAnswer }: { encounters: number; on
     <p className="initiation-lead">Déclare tes démarches pour avancer</p>
     <div className="initiation-road" role="img" aria-label={`Héros à ${steps} pas. Coffre à ${STEPS_PER_LEVEL} pas.`}>
       <span className="initiation-road__label">CAMP D’ESSAI</span>
-      <div className="initiation-road__track" />
-      {Array.from({ length: STEPS_PER_LEVEL + 1 }, (_, i) => <span key={i} className="initiation-road__stone" style={{ left: `${8 + i / STEPS_PER_LEVEL * 80}%` }} />)}
-      <div className="initiation-road__hero" style={{ left: `${8 + steps / STEPS_PER_LEVEL * 80}%` }} />
-      <div className="initiation-road__chest" />
+      <VoxelDisplay width={360} height={130} draw={ctx=>{ctx.background(360,130);for(let i=0;i<11;i++)ctx.block(0xc1b18a,29+i*28.8,95,27,14,9,3);ctx.person(29+steps*28.8,89,.72,0x879ba3);ctx.paper(326,84,30,23,0xb48a4a);}}/>
       <span className="initiation-road__count">{steps} pas</span>
     </div>
     <div className="initiation-encounter" aria-live="polite" aria-atomic="true">

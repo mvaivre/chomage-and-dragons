@@ -5,6 +5,7 @@ import {
   advanceDragonLesson, createDragonLesson, DRAGON_RITE_LANES,
   steerDragonLesson, type DragonLessonRun,
 } from "@/lib/game/initiation";
+import { VoxelDisplay } from "@/components/voxel/Display";
 import { useDialogKeyboard } from "../useDialogKeyboard";
 
 const laneName = ["haut", "milieu", "bas"];
@@ -53,14 +54,7 @@ export function DragonLesson({ complete, onComplete }: { complete: boolean; onCo
   return <section ref={lesson} className="initiation-lesson initiation-lesson--dragon" aria-label="Rite du dragon">
     <p className="initiation-lead">Traverse les quatre anneaux avec les flèches ↑ et ↓</p>
     <div className="initiation-flight" data-lane={view.lane} data-flying={flightActive && !paused} role="img" aria-label={done ? "Les quatre anneaux ont été traversés." : `Dragon en ${laneName[view.lane]}, anneau en ${laneName[ringLane]}. ${view.collected} sur quatre traversés.`}>
-      <div className="initiation-flight__moon" />
-      <div className="initiation-flight__mountains" />
-      {[0, 1, 2].map(lane => <div key={lane} className="initiation-flight__lane" style={{ top: `${lane * 22 + 28}%` }} />)}
-      {!done ? <div className="initiation-flight__ring" style={{ left: `${view.ringX}%`, top: `${ringLane * 22 + 28}%` }} /> : null}
-      <div className="initiation-flight__rider" style={{ top: `${(done ? 1 : view.lane) * 22 + 28}%` }} aria-hidden>
-        <div className="initiation-flight__dragon" />
-        <div className="initiation-flight__knight" />
-      </div>
+      <VoxelDisplay draw={(ctx,viewport)=>{ctx.background();for(let lane=0;lane<3;lane++)ctx.block(0x345849,180,67+lane*53,340,38,3,-7);if(!done){const x=view.ringX*3.6,y=67+ringLane*53;ctx.block(0xd9b86b,x-10,y,4,30,6,4);ctx.block(0xd9b86b,x+10,y,4,30,6,4);ctx.block(0xd9b86b,x,y-15,20,4,6,4);ctx.block(0xd9b86b,x,y+15,20,4,6,4);}ctx.dragon(88,67+(done?1:view.lane)*53,.75,flightActive&&!paused&&!viewport.reducedMotion?viewport.now:0);ctx.person(85,50+(done?1:view.lane)*53,.45,0x97a8ad);}}/>
       <span className="initiation-flight__seal">{done ? "PERMIS DE DRAGON" : "ÉCOLE DE VOL"}</span>
       {paused && !done ? <span className="initiation-flight__pause">Vol en pause</span> : null}
     </div>

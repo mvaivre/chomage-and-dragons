@@ -5,17 +5,15 @@ import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
 import { punchlineFor } from "@/lib/game/punchlines";
-import { ACTION_ART } from "@/lib/game/art";
-import { withImage as loadImage } from "@/lib/client/preload";
+import { VoxelPainter } from "@/components/voxel/arena";
 import {
   COURSE, courseSeed, createPigeonSim, flapPigeon, pigeonSpeed, pigeonTargetY, stepPigeon, towersPassed,
   type PigeonEvent, type PigeonSim, type PigeonStatus,
 } from "@/lib/game/pigeon-flight";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { pigeonScore } from "@/lib/game/scores";
-import { createFx, drawPigeonScene, GROUND_Y, pigeonScreenX, spawnParticles, updateParticles, type SceneAssets, type SceneView } from "./pigeon-scene";
+import { createFx, drawPigeonScene, GROUND_Y, pigeonScreenX, spawnParticles, updateParticles, type SceneView } from "./pigeon-scene";
 
-const FAR_LAYER = "/art/world-v3/runtime/plaine-far.webp";
 
 
 /**
@@ -33,7 +31,6 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
   // The simulation is mutated in place by the frame loop and never replaced.
   const [sim] = useState<PigeonSim>(() => createPigeonSim(courseSeed(seedId), { speedScale: reducedMotion ? 0.75 : 1 }));
   const fx = useRef(createFx());
-  const assets = useRef<SceneAssets>({ pigeon: null, far: null });
   const resolved = useRef<MiniGameResult | null>(null);
   const [phase, setPhase] = useState<"play" | "result">("play");
   const phaseRef = useRef(phase);
@@ -51,8 +48,6 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       sim.speedScale = preference.matches ? 0.75 : 1;
     };
     preference.addEventListener("change", sync);
-    loadImage(ACTION_ART.candidature, image => { assets.current.pigeon = image; });
-    loadImage(FAR_LAYER, image => { assets.current.far = image; });
     return () => preference.removeEventListener("change", sync);
   }, [sim]);
 
@@ -81,9 +76,9 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
   useEffect(() => {
     const canvasNode = canvas.current;
     const arenaNode = arena.current;
-    const ctx = canvasNode?.getContext("2d");
     const current = sim;
-    if (!canvasNode || !arenaNode || !ctx) return;
+    if (!canvasNode || !arenaNode) return;
+    const ctx = new VoxelPainter(canvasNode);
     const scene = view.current;
     let scale = 1;
     let dpr = 1;
@@ -94,14 +89,13 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       scene.width = rect.width / scale;
       scene.pigeonX = pigeonScreenX(scene.width);
       dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvasNode.width = Math.round(rect.width * dpr);
-      canvasNode.height = Math.round(rect.height * dpr);
+      ctx.resize(rect.width,rect.height,dpr,scene.width,scene.height);
     };
     resize();
     const observer = new ResizeObserver(() => {
       resize();
       // A resize clears the canvas; repaint the final picture if drawing has stopped.
-      if (stopped) { ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0); drawPigeonScene(ctx, current, fx.current, scene, assets.current); }
+      if (stopped) { drawPigeonScene(ctx, current, fx.current, scene); }
     });
     observer.observe(arenaNode);
     let previous = performance.now();
@@ -169,8 +163,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       arenaNode.dataset.y = current.y.toFixed(1);
       arenaNode.dataset.vy = current.vy.toFixed(1);
       arenaNode.dataset.target = pigeonTargetY(current).toFixed(1);
-      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
-      drawPigeonScene(ctx, current, fx.current, scene, assets.current);
+      drawPigeonScene(ctx, current, fx.current, scene);
       // Once the landing has played out, the picture no longer changes: stop drawing.
       const finished = current.status === "delivered" || current.status === "crashed";
       if (finished && now - fx.current.finishedAt > 2400 && fx.current.particles.length === 0) { stopped = true; return; }
@@ -180,6 +173,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      ctx.dispose();
       document.removeEventListener("visibilitychange", syncVisibility);
       timeouts.forEach(id => window.clearTimeout(id));
     };
@@ -222,6 +216,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       <span>{status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
         status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Décoller !" : status === "flying" ? "Battre des ailes" : won ? "Livraison…" : "Aïe…",
       disabled: phase === "play" && status !== "ready" && status !== "flying",
       onClick: () => phase === "play" ? flap() : onDone(),
@@ -231,7 +226,6 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       aria-label="Battre des ailes" disabled={phase !== "play"}
       onPointerDown={event => { event.preventDefault(); flap(); }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour décoller !<small>Espace ou Entrée au clavier</small></span> : null}
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "LIVRÉ ! ×2" : "ADRESSE INTROUVABLE"}</span> : null}
     </button>
   </MiniGameShell>;

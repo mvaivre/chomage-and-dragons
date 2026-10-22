@@ -37,6 +37,6 @@ test('incandescent light fades smoothly at both borders and repeats on later lap
 });
 test('the forge hammer extends the saved collection while the old identifiers remain valid',()=>{
  for(const land of ['plaine','foret','marais','lac','cascade','montagne','desert','taverne'])assert.equal(HIDDEN_ITEMS.filter(i=>i.id===`hidden:0:${land}`).length,1);
- const hammer=HIDDEN_ITEMS.find(i=>i.id==='hidden:0:volcan');assert.match(hammer.art,/hammer.webp$/);
+ const hammer=HIDDEN_ITEMS.find(i=>i.id==='hidden:0:volcan');assert.equal(hammer.model,'hammer');
  assert.equal(biomeAt(hammer.x).id,'volcan');assert.equal(biomeAt(HIDDEN_ITEMS.find(i=>i.biome==='desert').x).id,'desert');
 });

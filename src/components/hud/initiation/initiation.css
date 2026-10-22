@@ -48,12 +48,9 @@
 /* The arena has its own depth order: sky, mountains, lanes, dragon, rings. */
 .initiation-flight { position: relative; height: clamp(180px, 26dvh, 250px); overflow: hidden; border: 2px solid #4e584a; border-radius: 10px; background: radial-gradient(ellipse at 80% 12%, #b1b59888, transparent 45%), linear-gradient(#304954, #74958b 80%, #a6b59b); isolation: isolate; }
 .initiation-flight__moon { position: absolute; top: 12%; right: 13%; width: 42px; height: 42px; border-radius: 50%; background: #e9dfae; box-shadow: 0 0 35px #f2e4ad50; opacity: .85; }
-.initiation-flight__mountains { position: absolute; inset: 40% -2% -3%; background: url('/art/world-v3/runtime/montagne-far.webp') center bottom / auto 100% repeat-x; opacity: .47; filter: saturate(.5); }
 .initiation-flight__lane { position: absolute; left: 0; right: 0; border-top: 1px dashed #e3e8cf35; }
 .initiation-flight__rider { position: absolute; left: 23%; width: clamp(128px, 24vw, 168px); aspect-ratio: 1; transform: translate(-50%, -50%); transition: top .16s ease-out; }
-.initiation-flight__dragon { position: absolute; inset: 0; background: url('/art/world-v3/animations/dragon-v3.webp') 0 0 / 400% 200% no-repeat; transform: scaleX(-1); filter: drop-shadow(0 6px 3px #19323155); }
 .initiation-flight[data-flying='true'] .initiation-flight__dragon { animation: initiation-flap .5s steps(1) infinite; }
-.initiation-flight__knight { position: absolute; width: 26%; height: 37%; left: 36%; top: 28%; background: url('/art/world-v3/characters/chevalier.webp') center / contain no-repeat; transform: rotate(7deg) scaleX(-1); filter: drop-shadow(0 2px 1px #14241d66); }
 .initiation-flight__ring { position: absolute; width: 35px; height: 58px; transform: translate(-50%, -50%); border: 5px solid #f7d784; border-radius: 50%; box-shadow: 0 0 13px #f7d78460, inset 0 0 8px #f7d78470; background: #f6e6a510; }
 .initiation-flight__ring::after { content: '✦'; position: absolute; top: -17px; right: -16px; color: #fff2c7; font-size: 15px; }
 .initiation-flight__seal { position: absolute; bottom: 8px; right: 10px; font-size: .55rem; font-weight: 700; letter-spacing: .1em; color: #eff1d9c9; text-shadow: 0 1px 2px #1d393f; }
@@ -68,11 +65,8 @@
 @keyframes initiation-flap { 0%, 100% { background-position: 0 0; } 50% { background-position: 33.333% 0; } }
 /* This smaller landscape is an independent training board, never a world asset. */
 .initiation-road { position: relative; height: 143px; border: 1px solid #738360; border-radius: 9px; overflow: hidden; background: linear-gradient(#99b8b2, #cbd2b3 68%, #96a36c 69%, #748851); }
-.initiation-road::before { content: ''; position: absolute; inset: 5% 0 24%; background: url('/art/world-v3/runtime/plaine-far.webp') center / cover; opacity: .4; }
 .initiation-road__track { position: absolute; bottom: 19px; left: 5%; right: 5%; height: 11px; background: #bda16e; border-radius: 50%; box-shadow: 0 4px 1px #53683b40; }
 .initiation-road__stone { position: absolute; bottom: 21px; width: 4px; height: 7px; border-radius: 50%; background: #eee0b6; transform: translateX(-50%); }
-.initiation-road__hero { position: absolute; bottom: 24px; width: 64px; height: 86px; transform: translateX(-50%); background: url('/art/world-v3/characters/chevalier.webp') center bottom / contain no-repeat; transition: left .7s ease-in-out; z-index: 1; }
-.initiation-road__chest { position: absolute; bottom: 21px; right: 1%; width: 66px; height: 70px; background: url('/art/world-v3/runtime/chest-reward.webp') center bottom / contain no-repeat; }
 .initiation-road__label { position: absolute; top: 9px; left: 12px; color: #354c3b; font-size: .59rem; font-weight: 700; letter-spacing: .1em; }
 .initiation-road__count { position: absolute; top: 9px; right: 12px; padding: 3px 8px; background: #273827b3; color: #f7e3ae; border-radius: 12px; font-size: .8rem; }
 .initiation-encounter { margin-top: 14px; min-height: 92px; }
@@ -91,7 +85,6 @@
 .initiation-treasure__power .bitmap-art { width: 115px; height: 125px; object-fit: contain; }
 .initiation-treasure__arrow { color: #89642e; font-size: 2rem; }
 .initiation-target { display: flex; flex-direction: column; align-items: center; width: 44%; padding: 8px; border: 1px dashed #8b6337; border-radius: 8px; background: #ffedbe55; color: #594020; font-size: .82rem; font-weight: 700; }
-.initiation-target__goblin { display: block; width: 100px; height: 120px; background: url('/art/world-v3/characters/demon.webp') center / contain no-repeat; filter: sepia(.35); }
 .initiation-target:hover { border-style: solid; background: #fff0c5; }
 .initiation-treasure__cast { text-align: center; }
 .initiation-treasure__cast > span { display: block; font-size: 4rem; line-height: 1.3; }
@@ -162,3 +155,5 @@
 @media (prefers-reduced-motion: reduce) {
   .initiation-card *, .initiation-card *::before, .initiation-card *::after { animation: none !important; transition: none !important; }
 }
+
+.initiation-target__goblin { display: block; width: 100px; height: 120px; background: url('/art/world-v3/characters/demon.webp') center / contain no-repeat; filter: sepia(.35); }

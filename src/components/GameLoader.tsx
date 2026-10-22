@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 /**
- * Le jeu ne tourne que dans le navigateur : Pixi a besoin d'un canvas, et l'identité
+ * Le jeu ne tourne que dans le navigateur : WebGL a besoin d'un canvas, et l'identité
  * du joueur vient du stockage local. Le charger sans rendu serveur évite un premier
  * rendu vide suivi d'un remplacement, et supprime toute question d'hydratation.
  */

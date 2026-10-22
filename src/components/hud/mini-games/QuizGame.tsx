@@ -112,6 +112,7 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
     status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? `${QUIZ.needed}/${QUIZ.questions} bonnes réponses · ${QUIZ.secondsPerQuestion} s par question` : status === "reveal" && aside ? `« ${aside} »` : "Choisis ta réponse."}</span>}
     primary={{
+      inArena: status === "ready",
       label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",
       disabled: status === "question" || status === "reveal",
       onClick: () => finished ? onDone() : setStatus("question"),

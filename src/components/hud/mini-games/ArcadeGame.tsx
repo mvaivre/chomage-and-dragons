@@ -10,7 +10,7 @@ import {
 import { MINI_GAMES } from "@/lib/game/mini-games";
 import { punchlineFor } from "@/lib/game/punchlines";
 import { MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
-import { pointerToLogical, useArenaCanvas } from "./useArenaCanvas";
+import { pointerToLogical, useArenaCanvas } from "@/components/voxel/useArena";
 import { arcadeHud, drawArcade } from "./arcade-scene";
 import "./arcade.css";
 
@@ -127,12 +127,12 @@ export function ArcadeGame({ kind, seedId, onResolve, onDone, practice, record, 
     hud={<><span><b>{hud.line}</b></span><span className="arcade-clock"><b>{hud.seconds} s</b></span></>}
     status={finished ? <><strong>{won ? "Réussi !" : "Raté."}</strong><ScoreLine score={arcadeScore(sim)} unit="pts" record={record} best={best} practice={practice} /></>
       : <span>{playing ? copy.controls : copy.ready}</span>}
-    primary={{ label: finished ? practice ? "Retour à l’arcade" : "Continuer" : playing ? "Défi en cours…" : "C’est parti !", disabled: playing, onClick: finished ? onDone : start }}
+    primary={{ inArena: phase === "ready", hidden: playing, label: finished ? practice ? "Retour à l’arcade" : "Continuer" : playing ? "Défi en cours…" : "C’est parti !", disabled: playing, onClick: finished ? onDone : start }}
     skip={!finished ? { label: "Passer", onClick: leave } : null}>
     <div ref={arena} className="mini-game__arena arcade-arena" role="group" aria-label={`Terrain de jeu : ${MINI_GAMES[kind].title}`}
       onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={() => { swipe.current = null; }} onPointerCancel={() => { swipe.current = null; }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "ready" ? <span className="arcade-overlay"><b>{kind === "pigeonRace" ? "À L’ENVERS, TOUTE !" : kind === "paperCut" ? "À VOS LAMES" : kind === "snake" ? "COURRIER INDÉSIRABLE" : kind === "maze" ? "CHASSE AUX RECRUTEURS" : kind === "stack" ? "DOSSIERS EN CHUTE LIBRE" : "RENVOI À L’EXPÉDITEUR"}</b><small>Prêt·e pour le défi ?</small></span> : null}
+      {phase === "ready" ? <span className="arcade-overlay arcade-overlay--ready"><b>{kind === "pigeonRace" ? "À L’ENVERS, TOUTE !" : kind === "paperCut" ? "À VOS LAMES" : kind === "snake" ? "COURRIER INDÉSIRABLE" : kind === "maze" ? "CHASSE AUX RECRUTEURS" : kind === "stack" ? "DOSSIERS EN CHUTE LIBRE" : "RENVOI À L’EXPÉDITEUR"}</b></span> : null}
       {finished ? <span className="arcade-overlay" data-won={won}><b>{won ? "VICTOIRE !" : "À CHARGE DE REVANCHE"}</b><small>{arcadeScore(sim)} points</small></span> : null}
     </div>
     <div className="arcade-controls" data-kind={kind} aria-label="Commandes du mini-jeu">

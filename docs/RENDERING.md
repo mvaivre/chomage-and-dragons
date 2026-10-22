@@ -1,506 +1,290 @@
-# Rendu du monde — septembre 2026
+# Rendu voxel
 
-La scène active utilise `GameCanvas.tsx`, `FlatWorld.tsx`, `Backdrop.tsx`, `Hero.tsx`
-et `textures.ts`. Le chargement Pixi reste exclusivement côté navigateur, via
-`GameLoader.tsx`. Les anciennes expériences graphiques (`world-v2`, `ParallaxWorld`, sprites procéduraux)
-ont été retirées en septembre 2026 ; elles restent dans l'historique git, commit `70f3210`.
+Le monde utilise des miniatures voxel en volume, des ombres douces, des palettes
+propres aux biomes et des sources de lumière chaudes dans le décor. Le monde et les
+13 mini-jeux utilisent Three.js. L'interface reste en DOM pour ses contrôles,
+son clavier et ses dialogues accessibles. Un HUD minimal en vert profond et ivoire
+laisse le paysage visible ; les icônes et portraits illustrés originaux sont conservés. `/atelier-3d` ouvre désormais le vrai jeu.
 
-## Profondeur et contact au sol
+## Contrat avec les règles
 
-| Ordre | Couche | Vitesse relative à la caméra |
+Les distances de sauvegarde restent inchangées : 30 240 unités par traversée,
+200 pas, les mêmes neuf biomes et les mêmes trois bâtiments. `voxel/world.ts`
+convertit ces distances en mètres de scène (50 unités par mètre). Les positions
+visuelles et le relief n'écrivent jamais dans le journal. Une ancienne sauvegarde
+s'ouvre directement ; aucune migration du format n'est nécessaire.
+
+Les simulateurs de mini-jeux, leurs graines, leurs hitboxes et leurs contrôles
+restent dans `lib/game`. `VoxelPainter` projette le plan de jeu sur les mêmes
+coordonnées logiques avec une caméra oblique. La précision des pointeurs est ainsi
+conservée, avec de vrais volumes, éclairages et ombres. Les textes des scènes utilisent des textures canvas générées localement.
+Les illustrations de l’interface viennent de la banque WebP originale.
+
+## Monde continu
+
+`world.ts` partage le relief et la palette entre tous les chunks. Les hauteurs sont
+échantillonnées aux mêmes coordonnées globales : aucun bord de tuile indépendant.
+Les biomes se mélangent sur 12 mètres ; la route reste continue même lorsque la
+montagne et le volcan montent en altitude. La tuile mesure 27 mètres de profondeur,
+avec des bords droits aux coordonnées Z = −15 et +12, indépendants du chemin sinueux.
+Les tronçons mesurent toujours 16 mètres de long. L’avant reste plat dans l’axe de
+la profondeur ; les montées longitudinales et les collines arrière sont conservées.
+
+Le dessous est fermé par des bandes lisses qui suivent l’altitude du parcours. À
+chaque abscisse, les deux faces se terminent exactement à cette même altitude,
+1,6 m sous le niveau de la route. La face arrière peut être plus haute selon le
+relief ; elle ne descend jamais sous le fond de la tuile. Les cours d’eau restent
+contenus au-dessus de ce fond. Trois couches — surface, terre et roche — habillent
+les coupes. Les coordonnées globales garantissent la jonction entre tronçons.
+
+Deux rangées de plantations, dont une le long du bord arrière, évitent les trous de
+décor dans les virages et les descentes. Une grille de 0,5 m ne produit que les
+faces exposées. Les fleurs, fougères, petits rochers et accessoires de premier plan
+restent bas ; les papillons s’animent sans gêner la lecture des personnages.
+
+Cinq tronçons au maximum suivent la caméra. Les tronçons initiaux sont prêts avant
+la première image ; ensuite, un nouveau tronçon est généré par image. La brume
+masque les extrémités longitudinales ; les limites en profondeur restent visibles. Les
+chunks quittant la zone libèrent leurs géométries et leurs buffers d'instances.
+Les matériaux et le cube de base sont partagés.
+
+L’ORP, l’usine et la taverne ont chacun une tuile intérieure dédiée. Le paysage
+extérieur et ses habitants sont entièrement masqués : seuls la salle, ses figurants
+et les joueurs présents dans cette salle sont rendus. Le mur arrière s’efface
+lorsque la caméra passe derrière. Les grands feuillages font de même à l’extérieur. Les habitants,
+les neuf objets cachés, les cinq couleurs de dragons, les panneaux personnalisés,
+les vignettes de biome et les huit scènes de la fête gardent leurs textes et leurs
+identités. Chaque variante de réaction dispose de sa propre mise en scène.
+
+## Habitants, collisions et cadrages
+
+Les PNJ et les animaux se promènent sur de petites boucles déterministes ; les
+employés restent près de leurs postes. Un clic les arrête temporairement et les
+fait regarder la caméra. Toutes leurs réponses, y compris celles des dragons et
+des invités de la taverne, tournent dans la banque de punchlines. La mécanique
+spéciale de la quatrième interaction avec le dragon est conservée.
+
+`voxel/life.ts` simule une physique cartoon locale : test de collision sur le segment
+parcouru par un héros, impulsion, gravité, rebonds amortis et remise debout. Les
+petits pas de simulation évitent de traverser un PNJ à grande vitesse. Un délai
+évite les impacts répétés et les habitants restent dans la tuile. Ces états ne
+sont jamais sauvegardés et n’interviennent pas dans les règles du jeu.
+
+Les héros ont une tête, un torse, des bras et des pieds articulés. Leur marche suit
+la distance parcourue, avec des transitions de vitesse et d’orientation ; les actions
+ajoutent des poses d’envoi, de choc et de célébration. Les animations et la physique
+s’arrêtent avec les dialogues de jeu et respectent la réduction des mouvements.
+
+Les panneaux et les habitants se sélectionnent dans les volumes 3D ou avec leurs
+boutons accessibles. Un clic déclenche un gros plan de 5,5 secondes, puis le cadrage
+précédent revient automatiquement. Les inscriptions restent sur les panneaux ;
+le cadrage les présente de face, sans fenêtre qui répète leur texte. Fermer la phrase, reprendre la marche ou manipuler
+la caméra annule le gros plan. Une collision ne provoque pas de zoom automatique.
+
+## Récupération des coffres
+
+Les coffres occupent le centre du chemin, aux mêmes paliers de dix pas que dans
+le journal. Ils utilisent un modèle voxel creux avec un couvercle articulé.
+Les coffres placés dans un bâtiment appartiennent à sa scène intérieure.
+
+Le trajet visuel s’arrête 1,25 m avant le coffre, même si l’action dépasse son
+palier. L’effet de l’action se termine d’abord ; le coffre est ensuite mis en
+évidence fermé, soulevé au-dessus du personnage et ouvert avec une lumière dorée.
+L’ouverture commence après 1,9 s, et la collecte dure 3,2 s. Le personnage reprend
+les éventuels pas restants avant l’affichage du butin. Les bonus de mini-jeux
+empruntent cette même séquence.
+
+Un coffre récupéré s’efface du chemin pour ce joueur ; annuler l’action qui l’a
+fait gagner le rétablit. Aucune animation ne crée d’événement supplémentaire ou
+ne change le nombre de pas et de butins. Le jeu attend cette séquence avant de
+présenter la carte de récompense et les invitations aux défis suivants. Le mode
+réduit conserve l’ordre des étapes sans les petits sauts et tremblements.
+
+## Le tampon du rejet post-entretien
+
+Chaque rejet après entretien ajoute le même gag physique à sa variante visuelle :
+le tampon tombe, écrase le héros à 7,5 % de sa hauteur, puis accompagne son vrai
+déplacement. La silhouette s’élargit pour rester visible autour du socle. Le tampon
+se relève après 2,75 s ; le héros se déplie avec un étirement, un saut et des
+oscillations amorties, puis retrouve exactement ses proportions à 3,9 s. Un impact
+sourd et un « boïng » suivent les réglages sonores.
+
+`voxel/stamp-crush.ts` partage une seule horloge entre le contact du tampon et
+la déformation du héros. Sa hauteur propre conserve le contact pour les quinze
+personnages. Les accessoires des six variantes restent visibles à côté du tampon.
+L’indication `stampCrush` appartient seulement aux effets du rendu : les pas,
+variantes sauvegardées et résultats des mini-jeux restent inchangés. Le gag se
+joue aussi pour les actions reçues des amis.
+
+L’arrivée attend la fin du rebond avant d’ouvrir un coffre ou de proposer le
+mini-jeu. La réduction des mouvements garde les proportions normales et masque
+cette animation. La pause fige l’horloge ; l’annulation ou la fin de l’effet
+rétablit la pose et les proportions normales.
+
+## Interface et dialogues
+
+Le portrait actif ouvre le carnet : quêtes, 13 défis, neuf objets perdus, butins,
+son et verre du mois. La carte et le classement restent accessibles par la couronne.
+Les cinq actions et leur annulation restent au bas de l’écran, avec leurs icônes
+originales et raccourcis clavier. Une pastille sur le portrait signale les butins.
+L’entrée du défi quotidien a été retirée ; les anciens résultats et leur format de
+sauvegarde sont conservés. Le test de personnalité reste un mini-jeu normal.
+
+Les treize mini-jeux placent leur bouton de démarrage au centre du terrain. Avant
+le lancement, seule l’action pour passer reste dans le pied de fenêtre. Les boutons
+de jeu et de fin gardent leur comportement ; le focus passe du démarrage au jeu
+sans exiger un second clic. Une grille superpose le bouton au terrain sans imbriquer
+de boutons, y compris sur les petits écrans en paysage.
+
+Les répliques apparaissent toutes les 32 ms avec de petites pauses à la ponctuation,
+un tic synthétique par lettre et des mots importants en doré. Le bouton « Tout
+afficher » révèle instantanément la suite. Les sons suivent le réglage muet et
+s’arrêtent à la fermeture ; les dialogues en pause ou dans un onglet masqué ne
+continuent pas à taper. La réduction des mouvements affiche immédiatement la
+phrase entière. Une copie accessible annonce une seule fois la phrase complète,
+sans faire lire chaque lettre aux lecteurs d’écran.
+
+## Contrôles et budget
+
+Glisser tourne la vue ; molette/pincement change le zoom. Majuscule + glisser ou
+les flèches explorent le chemin. Les boutons de caméra sont accessibles au clavier.
+Le bouton lumière coupe le bloom. L'heure de Zurich pilote l'éclairage ; les
+musiques existantes suivent toujours le personnage réel, même en exploration.
+
+Le monde plafonne à 30 images/s, descend à 10 derrière un dialogue et s'arrête
+lorsque l'onglet est caché. Le temps d'animation s'arrête avec les dialogues.
+La résolution est plafonnée à 1,5 DPR et 1,8 million de pixels dans le monde ;
+les arènes conservent jusqu'à 2 DPR pour la précision des petits objets.
+Les ombres sont recalculées lorsque le contenu ou les joueurs bougent ; les
+promenades seules limitent leur mise à jour à dix fois par seconde.
+
+Pixi, le moteur de paysage 2D, les atlas du monde et leurs scripts de compilation
+ont été retirés. Les portraits, les icônes, la carte illustrée et les enregistrements
+musicaux sont conservés. Une géométrie voxel n'est pas gratuite en mémoire :
+les buffers, ombres et render targets restent à surveiller sur de vrais téléphones.
+
+## Vérifier
+
+`tests/browser/voxel-chest.test.mjs` vérifie l’arrêt au palier, le couvercle fermé
+avant l’ouverture, la reprise d’un trajet plus long, les intérieurs, le mode réduit
+et la restauration du coffre après annulation.
+
+- `pnpm test` : règles et sauvegardes, continuité de la route, orientation des faces,
+  profondeur bornée, modèles distincts, articulations et libération des instances.
+- `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build`.
+- `pnpm test:browser` : parcours réels, bonus, annulation, groupes sur deux appareils,
+  clavier, musique, collection, initiation et les 13 mini-jeux.
+- Les captures de `voxel-world.test.mjs` sont écrites dans `.qa/refonte-voxel/` :
+  neuf biomes, compositions mobile/desktop/large et mini-jeux mobiles.
+- `tests/browser/voxel-life.test.mjs` vérifie les promenades, punchlines, gros plans
+  desktop/mobile, collisions et absence d’écriture des états physiques.
+- `tests/browser/voxel-stamp.test.mjs` vérifie la compression, la glissade, le
+  rebond, le délai avant le mini-jeu, l’annulation et les six variantes en mouvement réduit.
+- `.qa/voxel-rich/` conserve les comparaisons jour/nuit, mobile, caméra arrière et
+  les trois intérieurs. Le test navigateur vérifie aussi entrée dans l’ORP,
+  rechargement et annulation vers le paysage extérieur.
+
+Le serveur de développement expose un panneau d'exploration avec une position,
+les biomes, les personnages et les réactions. `window.__voxelWorld` donne les
+compteurs de diagnostic ; il ne permet pas de modifier la partie.
+
+## Budgets du rendu voxel
+
+Les arbres du terrain utilisent 6 à 8 boîtes par essence, soit **72 à 96 triangles**
+par arbre, tronc et branches compris. Les teintes par petits carrés du feuillage
+sont un motif statique dans le shader : aucune feuille n'ajoute de cube ni de bitmap.
+Les sapins enneigés, bouleaux, arbres roses, arbres d'automne et saules gardent des
+silhouettes et couleurs distinctes. La géométrie des personnages articulés reste
+indépendante de ce budget.
+
+`VoxelResources.batch` regroupe les cubes par type de surface (opaque/émissive),
+avec une couleur par instance, au lieu d'un dessin par couleur. Les couleurs sont
+conservées en espace linéaire, y compris pour l'émission. Les limites spatiales des
+lots restent locales pour permettre la suppression des objets hors champ.
+Le terrain échantillonne une fois sa hauteur et celle de ses voisins dans un halo
+commun aux chunks, et conserve la même géométrie sur tous les appareils. Sur mobile,
+les sols et les petits décors sont regroupés en bandes de 4 m plutôt qu'en un seul
+lot par chunk : le moteur ignore les bandes hors champ. La somme des surfaces,
+positions et couleurs est strictement identique ; un test compare les deux versions.
+
+Les lanternes, le feu, la lave et les coffres fournissent des sources logiques au
+`LocalLightPool`. Seules les sources proches de la caméra et de la scène visible
+alimentent 4 emplacements GPU sur ordinateur, 2 sur mobile. Leur nombre dans le
+shader reste constant : traverser un biome ou entrer dans un intérieur ne provoque
+plus une compilation pour chaque combinaison de lumières.
+
+| Profil | Bloom | Résolution | Ombres | Lumières locales |
+| --- | --- | --- | --- | --- |
+| Ordinateur | Oui, sans multisampling HDR redondant | DPR ≤ 1,5 ; 1,4 M pixels | 1024, rafraîchissement ≤ 8 Hz | 4 |
+| Mobile / appareil limité | Non | DPR ≤ 1 ; 700 k pixels | Contact uniquement, aucune shadow map | 2 |
+| Repli automatique | Non | DPR ≤ 0,85 ; 450 k pixels | Contact uniquement | 2 |
+
+Le profil mobile est choisi avant le premier dessin avec la largeur, le pointeur
+principal tactile, le nombre de cœurs et la mémoire déclarée. Le navigateur peut ne
+pas fournir cette dernière. Le mode de repli répond à une lenteur persistante ; il
+ignore le chargement récent et les pauses, et ne remonte pas en qualité au cours
+de la session pour éviter les oscillations. Les cibles HDR restent à 1 × 1 lorsque
+le bloom est désactivé. Les PNJ et accessoires des scènes cachées ne sont pas animés.
+
+`window.__voxelWorld.performance` expose le profil, les temps CPU de mise à jour et
+de soumission du rendu (ce ne sont pas des temps GPU), la résolution, les lumières,
+les shaders et le nombre d'images. `shadowMapAllocated` doit être faux sur un téléphone,
+`contactShadows` indique le nombre d'empreintes utilisées. `?profile` ajoute
+`mainGeometry`, la répartition des triangles réellement soumis à la passe principale.
+Les compteurs de triangles/appels incluent les
+passes d'ombre seulement lors de leur rafraîchissement : comparer aussi les maxima.
+
+La capture `.qa/voxel-performance/before.json` montre 650 appels et 1,28 M triangles
+dans la forêt à x = 4000 avant optimisation. Les allers-retours optimisés mesurés
+restent sous 180 appels et 410 k triangles dans cette vue, ombres incluses. Ces
+compteurs décrivent la charge et ne promettent pas un FPS identique sur tous les GPU.
+
+`tests/voxel.test.mjs` impose le budget de chaque essence, la conservation des
+couleurs par instance, la libération des lumières et l'hystérésis du profil.
+`tests/browser/voxel-performance.test.mjs` parcourt volcan/forêt plusieurs fois sur
+ordinateur et mobile ; il vérifie les maxima de charge, les shaders bornés, le
+profil mobile initial et l'absence de modification de la sauvegarde.
+
+Mesure après retrait des ombres temps réel mobiles et simplification de la taverne, sur 12 vues (neuf biomes hors intérieur, trois intérieurs),
+45 images de rendu par vue, caméra par défaut :
+
+| Profil | Moyenne des 12 vues, ombres comprises | Plus forte pointe |
 | --- | --- | --- |
-| 1 | Ciel | Position écran, nuages très lents |
-| 2 | Paysage lointain | 0,16 |
-| 3 | Arrière-plan | 0,36 |
-| 4 | Décor derrière les joueurs | 0,76 |
-| 5 | Repères de transition, derrière le sol | 1 |
-| 6 | Route, coffres, joueurs | 1 |
-| 7 | Premier plan doux : talus et touffes encrées, légèrement floues | 1,32 |
-| 8 | Premier plan proche : silhouettes sombres très floues | 1,8 |
-| 9 | Effets temporaires de gameplay | 1 |
-
-Chaque couche utilise la même projection autour du centre de la caméra. Son calcul
-sert également à déterminer les biomes à charger : un paysage lointain peut rester
-visible plusieurs contrées avant ou après le joueur.
-
-Les sprites de décor sont opaques (`alpha=1`) à l'intérieur de leurs silhouettes ;
-leur canal alpha sert au détourage. La profondeur vient de la palette et de la vitesse,
-sans rendre les montagnes translucides. Deux silhouettes continues sous les images
-évitent les trous entre îlots. Les extrémités du monde prolongent les paysages par miroir.
-Les grands repères de transition passent derrière les personnages. Le premier plan
-reste bas et peu dense, sans cacher leur corps : ses deux plans (`Foreground.tsx`) sont
-épinglés au bas de la fenêtre dégagée au-dessus du dock, quel que soit l'écran. Leurs
-touffes (herbes, fougères, roseaux, herbes sèches selon le biome) sont peintes une seule
-fois par biome sur de petits canvas, floutées par le navigateur, puis agrandies par le
-GPU ; la peinture se fait pendant les temps morts.
-
-L'éclairage suit la profondeur : chaque couche reçoit une teinte (`depthLight`) selon
-l'heure de Zurich. La nuit, les plans lointains bleuissent fortement, la route un peu,
-les héros presque pas, et une lueur chaude les suit ; seul un léger vignetage DOM
-assombrit les bords.
-
-Le niveau de marche est `WALKABLE_GROUND_Y`. Les personnages sont ancrés par les pieds,
-avec une ombre de contact, un bond pendant les déplacements et un léger écrasement à
-l'atterrissage. La fée conserve son flottement. La route utilise uniquement les tuiles
-visibles et une marge ; les répétitions alternées en miroir rendent leurs bords identiques.
-
-## Budget de rendu et durée de vie
-
-- Ciel, nuages, poussières et paysages de base : géométrie créée une fois, déplacements
-  et teintes modifiés dans le ticker. La simulation précède la caméra.
-- Textures WebP directement chargées par Pixi, sources partagées par URL et images
-  d'animation mises en cache. Aucun détourage ni lecture de pixels pendant le jeu.
-- Chargement des biomes selon leur projection, avec marge de préchargement ; libération
-  des textures huit secondes après leur dernier utilisateur. Les sprites hors écran
-  sont masqués, et le héros continue sa progression sans actualiser son dessin hors champ.
-- 60 images/s quand quelque chose bouge exprès (héros qui marche, effet, caméra), 30 quand
-  la scène ne fait que respirer, arrêt du ticker quand le document est masqué. Les composants
-  animés le signalent avec `markMotion()`. Sans WebGL, Pixi dessine en Canvas 2D sur le fil
-  principal : la scène passe alors à 30/20 images/s et à une densité de 1.
-- Le ciel est un aplat teinté sous un dégradé teinté : deux teintes par image au lieu de
-  192 bandes, recalculées seulement quand la caméra bouge.
-- Le canvas et les couches de décor sont mémoïsés : une mise à jour du HUD ne repasse pas
-  sur les quelque 350 nœuds Pixi. Les fonctions de dessin des `Graphics` sont stables.
-- Au repos, après le premier affichage, le jeu précharge les illustrations des réactions et
-  des butins (gardées toute la session), le code des mini-jeux et leurs images décodées.
-  Une action n'arrive que quelques fois par semaine : sans cela, chacune serait un premier
-  affichage qui saccade. L'atlas de son propre héros part avant le décor.
-- Framebuffer plafonné à trois millions de pixels, densité au plus 1,5 en largeur mobile
-  et 2 ailleurs. Cela borne le coût des écrans Retina et ultralarges.
-- Un seul `ResizeObserver` redimensionne le renderer. Les notifications tardives après
-  destruction de Pixi sont ignorées. Le portrait de sélection est une image DOM, sans
-  second contexte WebGL.
-
-Le panneau de développement affiche FPS, durée p95, nombre de sprites visibles et
-mémoire brute estimée des sources actuellement montées (`largeur × hauteur × 4`).
-Cette estimation exclut les framebuffers, mipmaps et assets retenus temporairement
-dans le cache : ce n'est pas une mesure complète de la mémoire GPU. Le panneau et sa
-collecte de statistiques sont absents du build de production.
-
-## Mobile
-
-La caméra utilise une composition de 520 unités de large en portrait, 960 en format
-intermédiaire et 1280 en paysage. La hauteur de la barre d'actions est mesurée afin de
-garder les pieds et le nom au-dessus de l'interface, y compris après ouverture puis
-fermeture de la compagnie. Le viewport dynamique et les marges de sécurité sont pris
-en compte. L'interface se compacte en paysage bas ; les libellés d'actions restent lisibles.
-Le glisser utilise la capture du pointeur et se termine aussi sur annulation tactile.
-
-La ligne de raccord des illustrations reste à `WALKABLE_GROUND_Y = 602`.
-La voie des joueurs et des coffres est 44 unités plus bas, à `JOURNEY_SURFACE_Y = 646`.
-`surfaceAt` fournit cette voie aux avatars, coffres, ombres et effets de pas.
-La caméra cadre cette même référence, y compris pendant un zoom, pour conserver
-la place des noms au-dessus des boutons sur les petits écrans.
-
-## Personnages et compilation des assets
-
-Les quinze fichiers `public/art/world-v3/characters/*.webp` servent aux portraits.
-Le jeu utilise leurs déclinaisons animées dans `animations/*.webp`. Ils reprennent les contours noirs irréguliers, couleurs
-assourdies, proportions caricaturales et expressions fatiguées de la maquette approuvée.
-Le fond proche de la cascade a été repris dans la seconde passe ; les paysages
-lointains existants sont conservés.
-
-Provenance locale de génération (ImageGen, session du 6 septembre 2026) :
-
-- Référence de style : `~/.codex/generated_images/01a044db-1343-7071-b056-7ebfef869356/exec-f9074e0e-7b6b-4d42-9e13-36099214e9a3.png`.
-- Planche RGBA finale : `~/.codex/generated_images/01a0786c-8dc1-7c72-b64e-f2df416784d9/exec-ff738d99-7b59-4520-ad90-b14bdcbceda9.png`.
-- Brief de génération : quinze silhouettes entières en grille 5 × 3, style médiéval
-  dessiné à la main volontairement maladroit, contours noirs, aplats mats, sans texte,
-  ombre de décor ni arrière-plan ; personnages dans l'ordre des identifiants du script.
-  Une seconde passe a produit le vrai canal alpha, le premier essai contenant un damier peint.
-
-Compiler une planche RGBA avec Python et Pillow :
-
-```sh
-python3 scripts/prepare_character_atlas.py /chemin/vers/la-planche-rgba.png
-```
-
-Le script détecte les quinze silhouettes connexes, garde une marge d'anticrénelage de
-deux pixels et exporte en WebP qualité 88. Il ne découpe pas une grille rigide : les
-accessoires peuvent dépasser leur cellule. Les PNG de génération restent hors des
-ressources chargées par le navigateur. Vérifier le résultat sur un fond uni avant usage.
-
-## Vérifications
-
-```sh
-pnpm test
-pnpm lint
-pnpm exec tsc --noEmit
-pnpm build
-```
-
-Les cinq tests de projection couvrent le centrage, les vitesses relatives, la visibilité
-des couches lointaines, la continuité des tuiles aux bords et le budget de pixels aux
-densités 1, 2 et 3. `pnpm test` nécessite Node ≥ 22.18 pour importer directement le TypeScript.
-
-La passe visuelle a commencé par la plaine aux formats 1280 × 720, 390 × 844 et
-1920 × 900, puis a couvert les sept transitions dans le vrai jeu. Le déplacement après
-candidature, sa récompense et l'annulation ont été exercés ; le score et l'historique
-initiaux ont été restaurés. Les captures locales sont dans `.codex/visual-qa/` (ignoré par Git).
-
-La version de production a ensuite été contrôlée à 320 × 568, 390 × 844, 844 × 390,
-1280 × 720 et 1920 × 900, avec changements de format et aller-retour dans la vue de la
-compagnie. Aucune erreur ou alerte console n'a été observée pendant cette vérification.
-
-Les formats mobiles sont des viewports de navigateur desktop. Ils valident la composition,
-pas les performances, la température ou la stabilité sur un téléphone physique. Pendant
-les observations de développement, le compteur était généralement à 56–59 FPS ; il n'y a
-pas de benchmark comparable avant/après permettant d'annoncer un gain chiffré.
-
-## Seconde passe : animation, raccords et interface
-
-Le pilote cascade a été validé en bureau, portrait et panorama avant l’extension aux
-quinze personnages et aux huit biomes. Les sprites partagent une échelle et une
-ligne de sol par planche : repos/clignement, quatre poses de marche, lettre, réaction,
-victoire. Le skater roule et la fée bat des ailes au repos. Les petits habitants derrière
-le chemin tamponnent, bâillent, picorent et volent ; six reflets suivent les cascades.
-Les atlas sont partagés, sans nouvelle texture à chaque pose.
-
-Les coffres statiques et animés utilisent `JourneyChest` et `chestXForStep`. Une traversée compte 200 pas (`JOURNEY_TARGET`) et 30 240 unités ; le voyage continue au-delà : les paysages se répètent, avec uniquement
-les occurrences visibles chargées. La caméra, le sol et les coffres suivent la distance
-absolue ; chaque palier de dix pas possède son propre coffre. L’embauche mène à la
-prochaine taverne. Son état vidé
-reste au même emplacement. Les anciens dessins vectoriels des effets d’action ont
-été remplacés par les illustrations communes à l’interface (`lib/game/art.ts`).
-
-`frameComposition` mesure le haut du HUD et le bas des commandes. Il réserve la place
-du personnage dans la voie la plus basse et celle de son nom. Le panneau du voyage
-utilise des colonnes réductibles et des container queries ; les tablettes ont trois
-actions par rangée. Les mots des libellés ne sont plus cassés arbitrairement.
-
-`useSceneTick` garde un abonnement stable et protège le nettoyage après destruction
-du ticker. Le problème a été reproduit pendant les remplacements de composants en
-mode développement (`Ticker.remove` lisait une liste déjà détruite). Deux tests avec
-un vrai ticker couvrent cet ordre de destruction et les priorités héros/caméra/décor.
-
-Les onze tests automatiques passent. Ils couvrent aussi toutes les planches déclarées,
-leurs métadonnées, le cadrage et les positions des coffres. La validation des 16 atlas
-(personnages + habitants) confirme un contenu opaque, des marges transparentes et
-une ligne de sol bornée dans chaque cellule. Les sept raccords ont été inspectés ;
-aucune action de la partie sauvegardée n’a été créée pendant cette seconde passe.
-Les outils DEV permettent de choisir personnage, pose et effet sans modifier le score.
-
-Les sources, chemins des assets et prompts sont dans [ANIMATION_ASSETS.md](ANIMATION_ASSETS.md).
-
-Le build de production de cette seconde passe a été contrôlé à 320 × 568, 390 × 844,
-844 × 390, 900 × 1400 et 1280 × 720, avec retour compagnie → personnage. Aucun
-débordement de panneau ou de libellé, ni erreur console n’a été observé dans cet onglet.
-Le panorama 1920 × 900 et les effets sans mutation de sauvegarde ont été contrôlés
-avec les outils DEV. Les captures de cette passe sont dans `.codex/visual-qa/revision-2/`.
-
-
-### Parcours prolongé et lisibilité
-
-Barème de voyage : candidature +2, refus +3, entretien −3, rejet post-entretien +6.
-Le journal existant est recalculé avec ce barème ; les pas servent aussi au classement.
-Les boutons affichent des textes et icônes agrandis ; sur petit écran, le libellé
-occupe une ligne complète au-dessus de l’icône et du nombre de pas. Le cadrage tient
-compte de l’espace restant entre les commandes, y compris sur écran court.
-Tests de régression : distances avant/après 80 et 160 pas, recul, embauche vers la
-prochaine taverne, coffres successifs et cadrage mobile.
-
-
-### Passe de fiabilisation — septembre 2026
-
-- Une action ordinaire déclenche directement sa réaction et son déplacement. Le
-  message de gain est annoncé dans une zone de statut ; seuls coffre et embauche
-  demandent une validation. Les commandes attendent la fin du mouvement pour éviter
-  les séquences superposées. La préparation des sprites bloque les clics prématurés.
-- Le journal calcule le maximum de pas atteint pour déterminer les coffres acquis.
-  Un entretien ne révoque aucun butin, et repasser un palier n’en crée pas un nouveau.
-  Annuler retire l’événement et recalcule ce maximum. La position de retour après
-  annulation d’une embauche est animée même si le compteur de pas ne change pas.
-- `VisibleHero` ne monte les compagnons éloignés qu’à proximité de la caméra. Le
-  cache libère leurs textures après huit secondes sans utilisateur. Le personnage
-  local et la cible de caméra restent montés.
-- Carte, classement et fenêtres de récompense arrêtent le ticker du jeu. La
-  préférence de réduction des mouvements supprime le balancement, les secousses,
-  les confettis et les déplacements de caméra interpolés ; les trajets restent
-  courts et les interactions gardent leurs confirmations de fin.
-- Les pas avancent à vitesse continue. Le skater ne rebondit plus à chaque case.
-  Les réactions illustrées restent à côté du personnage et durent 1,6 à 2,5 secondes.
-  Les trajets, coffres et effets utilisent le temps réellement écoulé entre les
-  images : un faible débit d’images n’allonge plus leur durée ni le verrouillage
-  des commandes. L’arrêt du ticker suspend cette horloge derrière les fenêtres.
-- Le cadrage portrait utilise 440 unités de largeur, sous réserve de l’espace libre
-  entre HUD et commandes. Le HUD mobile tient en deux lignes ; le feedback s’affiche
-  brièvement au-dessus des actions. Le petit format 320 × 568 garde environ 228 px
-  de scène disponible dans la partie de test à deux joueurs.
-- Les petits décors de sol partagent une ligne d’appui et une ombre. La plaine a été
-  inspectée en 1280 × 720, 390 × 844 et 1920 × 900 avant d’appliquer ce placement aux
-  autres biomes. Les paysages lointains et les bitmaps approuvés sont conservés.
-
-`pnpm test:browser` rejoue les actions immédiates, les coffres, les reculs, les
-annulations, la réduction des mouvements et la fermeture de la carte. Les captures
-et les essais Chromium en rendu logiciel valident la composition et le comportement,
-pas les FPS, la chauffe ou l’autonomie d’un téléphone physique.
-
-### Rythme d’usage
-
-Une action représente un événement réel rare : au plus une fois par jour, quelques
-fois par semaine. Chaque action doit donc être un moment visuel marquant, avec une
-réaction lisible, un déplacement et un résultat illustré. Ne pas optimiser ce
-parcours comme une boucle de clics fréquents. Conserver la réduction des mouvements
-et éviter d’ajouter des confirmations qui coupent la séquence.
-
-### Mini-jeu de candidature : le pigeon à reculons
-
-Après les deux pas de base (et l’éventuel coffre), une livraison facultative propose
-douze secondes pour envoyer le pigeon à la hauteur de la boîte. Il se déplace vers
-la droite en regardant à gauche. Toucher la scène, cliquer « Envoyer » ou utiliser
-Espace/Entrée verrouille l’altitude. La bande dorée correspond à la zone de réussite.
-Un succès double les pas de cette candidature : 2 + 2 bonus, également comptés au classement. Le trajet bonus peut ouvrir son propre coffre.
-
-Le monde est en pause derrière le dialogue natif, qui garde le focus et gère Escape.
-La préférence de réduction des mouvements remplace le timing par un réglage de
-hauteur au curseur, sans limite de temps. Le chrono normal se suspend en onglet caché.
-
-La tentative est réservée et persistée dès la saisie. Son résultat est enregistré
-avant le vol final. Les réservations `pigeonFlights` restent dans la sauvegarde après
-Annuler, indexées par joueur et rang de candidature : rétablir cette candidature
-réutilise le résultat, sans nouvelle tentative. Annuler retire tous ses pas, bonus
-compris. Une tentative non résolue interrompue par un rechargement conserve seulement la base.
-Les anciennes sauvegardes sans ces champs gardent leur progression d’origine.
-
-## Le moment d'action — septembre 2026
-
-Une action se joue en temps : la caméra se rapproche (zoom autour de la ligne du sol,
-héros recentré), le héros réagit sur place avant de marcher (`REACTION_HOLD`), puis
-la réaction entre, frappe et sort. Elle suit la position en direct du héros
-(`scene.heroes`) et se place dans la bande visible du monde, entre le HUD du haut et
-le dock d'actions : au-dessus de la tête quand la place suffit, à côté sinon. L'horloge
-du monde (`worldDelta`) connaît le gel d'impact et le ralenti ; les particules et les
-héros la suivent, l'interface non.
-
-Les effets sont procéduraux : quelques textures peintes une fois sur de petits
-canvas, des sprites en pool (au plus 520, dont 60 pour la météo), des éclairs tracés
-dans un `Graphics`. Le calque des moments (`MomentOverlay`) porte le flash, les bandes
-de cinéma, les bannières ; il est sous le
-HUD, sauf les récits, qui se lisent au-dessus.
-
-Les mises en scène sont décrites dans `reactions.ts` : entrée, impact, sortie, copies
-volantes, traînées, bulles, accessoires ancrés dans le monde (tapis, cratère, fanfare,
-cordes) et effets dans le temps. `?debug&variant=<id>` force une variante.
-
-Les bruitages sont synthétisés en WebAudio. La musique lit quatre MP3 fournis dans
-`public/audio/music/`, avec un niveau équilibré par morceau, une reprise à la même
-position et des fondus de 2,5 secondes entre les lieux et aux boucles. Firelit Tavern
-accompagne l'accueil et la taverne, Medieval le voyage, City / Tavern Ambient les
-marais et le désert, Funny Medieval l'ORP et l'usine. Les crédits et mesures sont dans
-`public/audio/music/README.md`. Seul le morceau en cours est chargé, avec un second
-lecteur pendant les fondus. Les enregistrements gardent leur vitesse et leur mixage.
-La musique se met en pause en onglet caché, en mode effets seuls ou en silence ; son
-volume baisse pendant les mini-jeux et défis quotidiens. Ouvrir la sortie audio coûte environ
-190 ms ; c'est fait au premier geste sur la page, jamais pendant un moment.
-
-### Mesures, build de production, vrai GPU (Apple M1 Max)
-
-| Situation | Avant | Après |
-| --- | --- | --- |
-| Fil principal au repos, bureau | 8,7 % | 3,5 % |
-| Fil principal au repos, téléphone simulé, CPU ×4 | 14,7 % | 3,6 % |
-| Pire image à la première action | 309 ms | aucune au-dessus de 34 ms sur le vrai parcours |
-| Pire image au décollage du pigeon | 417 ms | 10 ms |
-
-Les mesures headless demandent `--use-angle=metal --enable-gpu --ignore-gpu-blocklist` :
-sans WebGL, Pixi passe en rendu Canvas 2D et les chiffres ne veulent rien dire.
-
-## Décor absurde — panneaux du groupe
-
-`decor.ts` place 43 arrêts par tour, dans des intervalles indépendants du viewport.
-L'espacement est d'au moins 600 unités, raccord de tour compris. Les transitions
-réservent 250 unités de chaque côté ; deux passages de onze pas sont réservés à
-l'ORP (plaine) et à l'usine (bois). Les graines dépendent du tour, jamais de l'appareil.
-Le catalogue compte 86 raisons de refus et des directions, offres, avis, épitaphes,
-phrases de coach, d'influenceur et de guichet. Chaque message compte au plus huit mots.
-
-`Decor.tsx` est posé sur le plan de route, facteur 1, éclairage 0,3, après
-le sol, après les résidents (les panneaux personnels restent lisibles) et avant les
-héros. Les messages sont peints en temps mort, après `document.fonts.ready` et le
-chargement des deux faces, avec les familles résolues des variables CSS Pirata et
-Garamond. Un panneau ou une planche d’arbre n’est jamais affiché au-delà de la moitié
-de sa taille d’art : il est peint à une unité de canvas par unité (texture déclarée à
-résolution 0,5, les échelles des sprites ne changent pas), soit quatre fois moins de
-pixels qu’avant ; les petits libellés gardent deux unités. Les lettres suivent le
-quadrilatère mesuré par une seule transformation affine (les quads de `signs.json` sont
-des parallélogrammes à deux pixels près). Le cache partagé libère les textures huit
-secondes après leur dernier utilisateur, et une cuisson que plus personne n’attend
-quand vient le temps mort est abandonnée. Les chênes gravés et les scènes qui lettrent
-leur propre surface ne cuisent aucun panneau. Seuls les arrêts proches sont montés.
-Les réactions de passage modifient des transforms ou une texture précuite ; la
-réduction des mouvements les fige. La foule réutilise les atlas des héros, en plus
-petit et avec une teinte terne.
-
-`groupDecor` dérive les hommages au groupe, les huit derniers refus, la couronne du
-mois (aucun gagnant inventé en cas d'égalité), le défi du jour et les engagé·es. Les
-clés du jour et du mois sont explicitement celles de Zurich. Personnaliser ne change
-jamais les positions. Les données d'une vraie partie ne sont pas modifiées par la QA.
-Après validation du pilote de la plaine, les huit contrées utilisent ces arrêts.
-La taverne répartit les quinze noms possibles sur cinq tableaux, trois par tableau.
-
-Vérification du lot 1 : 54 tests unitaires, lint, TypeScript et build Webpack. Turbopack échoue
-localement à ouvrir son port interne (`Operation not permitted`) ; le même Next 16
-compile avec `pnpm build --webpack`. Le lint ignore aussi les worktrees imbriqués de
-`.claude` et les fichiers locaux de `.codex`, qui ne font pas partie de ce projet.
-Le script `scripts/decor-qa.mjs` capture les cinq formats demandés, à midi et à 22 h,
-avec Chrome et WebGL Metal (Apple M1 Max). `GAME_TEST_URL`, `DECOR_STEPS`,
-`DECOR_SIZES` et `DECOR_PERF=0` permettent de rejouer une tranche.
-
-### Illustrations et intérieurs
-
-Les 25 nouvelles images vivent dans `public/art/world-v3/decor/` : 5 716 692 octets
-WebP au total. Les PNG de [`docs/decor-previews/`](https://github.com/mvaivre/chomage-and-dragons/tree/aeeb109/docs/decor-previews) sont des contrôles d’import et des
-captures, jamais des téléchargements du jeu. Les prompts exacts et les commandes
-retenues sont consignés dans `docs/decor-prompts.json`.
-
-`compile_ambient_assets.mjs` accepte des dimensions, une grille, une base et des
-pivots génériques. La détection d’îlots sépare les poses quand les gouttières de la
-source sont irrégulières ; les pieds sont recalés sur l’alpha visible après
-réduction. Les rectangles de lettrage ont été mesurés sur les sorties. Les tuiles
-sont jointes par recouvrement des bords, puis encodées sans perte pour préserver
-leur égalité exacte après décodage. Un filtre médian de 3 px et une palette de
-12 couleurs réduisent leur grain et leur poids. Les autres sprites sont encodés en WebP
-qualité 85 (`smartSubsample`, alpha sans perte) après un alpha net : ≥ 246 devient
-opaque, ≤ 6 vide, les bords anticrénelés restent intacts. Avant, les corps des sprites
-nettoyés restaient transparents à 1 % et leur alpha pesait près d’un tiers des fichiers.
-Les 49 WebP avec pertes ajoutés ou retouchés par la passe décor sont passés de 14,3 à
-8,6 Mo (−40 %, PSNR ≥ 35 dB sur les pixels visibles), vérifiés en jeu dans les huit
-contrées et les deux salles ; les six tuiles sans perte n’ont pas changé. Les tests contrôlent cellules, gouttières, bases, opacité, colonnes
-de raccord et budget total.
-
-Les panneaux illustrés sont composés avec leur texte une seule fois, en temps
-mort. Les messages restent dans les rectangles clairs de l’atlas ; leur échelle
-s’adapte à la bande disponible sous le HUD sur les petits écrans. Les figurants
-utilisent un atlas partagé, avec 19 secondes de repos par cycle de 22 secondes et
-une réaction de passage. La manivelle pivote autour de son axe mesuré ; le mirage
-s’efface à l’approche (plein au-delà de 195 unités, invisible à moins de 45).
-Son panneau voisin est décalé pour dégager la porte « CDI ». Le péage et l’afterwork utilisent directement leurs propres
-surfaces de texte, sans panneau supplémentaire par-dessus.
-
-Les intérieurs occupent les intervalles de voyage suivants : ORP `[1600, 3263.2]`,
-usine `[4300, 5963.2]`, répétés à chaque tour. Ces bornes sont désormais des portes.
-`doors.ts` découpe un trajet en segments aux seuils, dans les deux sens. `SceneDoors`
-pause la marche, effectue un fondu de 240 ms, commute `scene.room` sous le noir, puis
-revient en 240 ms après une tenue de 80 ms. Le HUD reste hors du voile ; le mouvement
-reprend vers la destination déjà enregistrée. En mouvement réduit : 120 ms par fondu.
-
-`Outdoors` masque d’un bloc paysages, façades, végétation et météo dans une salle.
-Les murs et le sol intérieurs couvrent toute la fenêtre, y compris au-delà des portes :
-aucun raccord de tuiles extérieur/intérieur n’est dessiné. Les héros et coffres des
-autres lieux sont cachés. La musique suit la salle effectivement affichée ; une
-bannière annonce l’arrivée après le trajet. Le rechargement déduit directement le lieu
-de la position sauvegardée. Les façades fermées et la porte isolée remplacent les
-anciennes coupes ; sources et prompts dans [scene-door-prompts.json](scene-door-prompts.json).
-
-Les CV, pigeons et nuages ont une fenêtre de neuf secondes dans chaque cycle de
-90 secondes. Leur graine dépend d’une cellule de monde de 1 200 unités et du cycle,
-jamais du viewport. L’enseigne nocturne apparaît brièvement sur la banderole de la
-taverne. `scene.momentActive` et `scene.reducedMotion` les inhibent. Les ticks changent
-uniquement les textures, positions et opacités ; React ne suit que les changements
-de tranche visible.
-
-### Recette finale et performances
-
-`pnpm lint`, `pnpm exec tsc --noEmit`, les **59 tests unitaires** et les **16 tests
-navigateur** passent. Après les dernières retouches de profondeur et du mirage,
-les six tests navigateur ciblés du décor ont été rejoués avec succès. Ils couvrent
-les deux salles, une presse réellement animée, les poses figées, les deux musiques,
-la bannière d’entrée, la disparition du mirage, l’enseigne nocturne et l’arrêt des
-événements rares pendant une vraie action. Les tests d’assets confirment le budget
-et les raccords exacts après décodage.
-
-La commande `pnpm build` (Turbopack) a été retentée en fin de travail : elle échoue
-encore localement lors du traitement de `globals.css`, à la création d’un processus
-qui doit ouvrir un port (`Operation not permitted`, erreur OS 1). Le build de
-production **`pnpm build --webpack` passe** ; c’est celui utilisé pour la recette.
-Le script de build du projet reste inchangé.
-
-Les huit contrées et les deux intérieurs ont été contrôlés aux cinq formats du
-brief, de jour et de nuit, avec le renderer WebGL Metal. Les entrées, centres et
-sorties des salles ont des captures dédiées. Les scènes rares sont figées à une
-heure de test pour contrôler leur lettrage et leurs plans. Voir la
-[sélection avant/après et les commandes](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/README.md).
-
-Mesures sur Chrome/ANGLE Metal, Apple M1 Max. « CPU » désigne le temps de tâche du
-renderer (`Performance.TaskDuration / Timestamp`), sur cinq secondes au repos.
-Les frames sont les intervalles de `requestAnimationFrame` pendant 4,3 secondes
-autour d’un refus. Le mobile 390 × 844 utilise un ralentissement CPU ×4 ; le desktop
-1280 × 720 reste à ×1. Les mesures finales ne tournent avec aucun autre test ni build.
-
-| État et position | Format | CPU repos | Frame maximale | P95 |
-| --- | --- | ---: | ---: | ---: |
-| Avant, pas 2 | Desktop | 2,60 % | 333,3 ms | 16,8 ms |
-| Après, pas 2 | Desktop | 4,00 % | 33,4 ms | 16,7 ms |
-| Avant, pas 2 | Mobile ×4 | 10,69 % | 233,3 ms | 16,7 ms |
-| Après, pas 2 | Mobile ×4 | 10,76 % | 66,6 ms | 16,8 ms |
-| Après, usine pas 34 | Desktop | 3,00 % | 50,0 ms | 16,7 ms |
-| Après, usine pas 34 | Mobile ×4 | 11,28 % | 66,7 ms | 16,8 ms |
-
-Données brutes : [avant](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/baseline/results.json),
-[après](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-perf/results.json),
-[usine](https://github.com/mvaivre/chomage-and-dragons/blob/aeeb109/docs/decor-previews/final-factory-perf/results.json).
-Le P95 reste autour d’une frame à 60 Hz ; le coût CPU au repos augmente d’environ
-1,4 point sur desktop et de 0,08 point sur le mobile simulé au même endroit.
-Les maxima sont des observations ponctuelles, sensibles au démarrage, au cache et
-à l’activité système. La référence initiale a été mesurée pendant d’autres travaux :
-sa forte valeur maximale ne constitue donc pas la preuve d’un gain causé par cette
-PR. Aucun test sur téléphone physique n’a été effectué ; ces chiffres ne garantissent
-pas le même résultat sur tous les appareils.
-
-## Captures de revue
-
-Les captures, planches-contact et mesures brutes de ces passes ne sont plus versionnées
-(44 Mo, 70 % du poids que la PR ajoutait au dépôt). Les liens de cette documentation pointent
-vers le commit `aeeb109`, où elles restent consultables. `scripts/decor-qa.mjs` et la
-planche-contact de `scripts/compile_ambient_assets.mjs` écrivent désormais dans `.qa/`,
-ignoré par git : on joint les images utiles à la PR plutôt qu’au dépôt.
-
-## Règles de coût par image (revue du 4 octobre)
-
-- **Un `Graphics.clear()` reconstruit toute la liste de rendu** de son groupe (Pixi 8 :
-  un contexte modifié et « batchable » force `structureDidChange`). On n’efface donc
-  qu’autour d’un dessin réel : éclairs, résidu du dragon après 4,3 s, rides d’un crapaud
-  qui réagit. Ce qui se redessine à chaque image vit dans son propre groupe de rendu
-  (`isRenderGroup`) : particules et éclairs (`FxLayer`), eau de la cascade, qui ne se
-  redessine pas hors champ, derrière une salle, en mouvement réduit ou en rendu logiciel.
-  Changer `visible` a le même effet : les particules recyclées restent dans leur groupe.
-- **Fonctions `draw` stables** : une nouvelle fonction à chaque rendu React repeint le
-  Graphics (sous-sol par tuile, murs, sols, convoyeur, bulles, ombres des résidents).
-- **Pas d’allocation par image et par objet** : cibles d’interaction écrites en place
-  (`showEnvironmentTarget`, `moveEnvironmentTarget`, un `Point` réutilisé), salle
-  comparée sans construire d’objet (`inRoom`), houle des chênes précalculée par sommet.
-- **Le DOM qui suit la scène tourne sur son ticker** (`sceneFrameListeners`) : à 30 ou
-  60 images par seconde, rien en pause, jamais aux 120 Hz de l’écran ; les boutons
-  d’interaction bougent par `transform` et n’écrivent un style que s’il change. React ne
-  voit que l’arrivée ou le départ d’une cible.
-- **Le canvas mémoïsé reçoit des props stables** (`useCallback`), sinon chaque mise à
-  jour du HUD réconcilie tout l’arbre Pixi.
-- **Chargement** : l’atlas du héros du joueur part seul (`loadFirst`), les autres
-  textures attendent qu’il arrive (trois secondes au plus), puis six téléchargements au
-  plus à la fois, dans l’ordre de montage, donc du plus proche au plus lointain.
-
-Mesures A/B alternées sur la même machine (Chrome/ANGLE Metal, M1 Max ; mobile 390×844
-DPR 3 avec CPU ×4), avant → après la revue : au repos, tick Pixi −9 à −24 %, rendu
-−19 à −31 %, CPU du fil principal −7 à −19 % ; pendant le fondu d’une porte sur mobile,
-pire image 25,6 → 17,6 ms et aucune image au-delà de 20 ms ; textures GPU −3 Mo.
-
-## Budget des nouveaux effets (21 octobre)
-
-La lave, les projections du cratère et les étincelles des dragons reconstruisent
-leur géométrie à 30 Hz. Le fondu des flammes, les mouvements de caméra et les
-éclairages restent à la cadence de rendu. Les dimensions et teintes des lumières
-sont fixées au montage ; seuls leur déplacement et leur intensité changent ensuite.
-Le point de projection du souffle et les positions des nids sont réutilisés.
-
-Sur la même scène volcanique, 120 images simulées à 60 Hz reconstruisaient chacun
-des trois effets 120 fois avant cette passe, contre 60 après. Le test navigateur
-`effect-budget.test.mjs` vérifie aussi le budget à 120 Hz, la continuité des fondus
-et des lumières, le gel en mouvement réduit et en rendu logiciel, puis la reprise.
-Cette mesure porte sur les reconstructions de géométrie, pas sur un gain de FPS.
-Le volcan a été inspecté dans le jeu à 1280×800, 390×844 et 2400×900.
-
-Le préchargement des portes prend un instantané des sources de textures partagées,
-dédupliqué par atlas. Il ne place plus de dessins `Graphics` ou de textes vivants
-dans la file asynchrone Pixi : une annulation peut démonter leur salle avant le
-traitement, ce qui provoquait une erreur de contexte détruit. Un test couvre le
-démontage et le parcours navigateur vérifie l’embauche suivie de son annulation.
+| Mobile 390 × 844, écran DPR 3 limité à 1 | 89 635 triangles/image | 135 536 (plaine) |
+| Ordinateur 1440 × 960, DPR 1 | 148 715 triangles/image | 361 886 (plaine) |
+
+Source : `.qa/voxel-mobile/scene-budgets.json`. Comparaison précédente conservée dans
+`.qa/voxel-mobile/before.json`. Il s'agit d'une moyenne
+uniforme de vues représentatives, pas d'une moyenne pondérée par le temps que les
+joueurs passent dans chaque biome. Les mesures mobiles utilisent le profil et le
+viewport d'un téléphone dans Chrome sur ordinateur ; elles ne mesurent pas les FPS
+d'un GPU de téléphone. Les effets ponctuels et les groupes plus nombreux peuvent
+augmenter les pointes. Le repli automatique réduit encore la résolution si le rendu
+demeure lent.
+
+Les corps pleins des 15 personnages utilisent désormais des volumes étagés et des
+panneaux colorés, avec la même articulation : 2 868 à 6 864 triangles par personnage,
+contre 8 796 à 12 792 auparavant. Leurs accessoires, visages et gestes restent présents.
+
+
+Sur les mêmes vues mobiles de la taverne : la pointe extérieure passe de 474 476
+à 133 978 triangles ; l'intérieur de 143 140 à 44 102. La façade et ses deux lanternes
+restent sous 3 000 triangles. Les sols et murs de la taverne sont des bandes qui suivent
+les altitudes originales ; les teintes des carreaux et tuiles sont calculées dans le
+shader. Le bar, les bouteilles, les tables, les personnages et leurs animations restent
+modélisés. Les autres intérieurs conservent leur construction précédente.
+
+`ContactShadows` remplace les ombres projetées sur mobile : une seule passe instanciée
+sans lumière, sans bitmap, sans cible de rendu, deux triangles par empreinte et
+256 empreintes au maximum. Les arbres, maisons et meubles enregistrent leurs
+empreintes à la génération. Les personnages réutilisent le même lot pour suivre leurs
+pieds ; l'opacité diminue quand ils sont en l'air. Les empreintes respectent la brume
+et la scène intérieure/extérieure. Ce sont des ombres de contact approximées, pas
+une simulation de l'éclairage du soleil. Les ombres du profil ordinateur sont conservées.
+Les mini-jeux désactivent aussi les ombres temps réel et plafonnent leur DPR sur mobile.
+
+Les tests navigateur imposent désormais une pointe mobile sous 150 k triangles sur
+les trajets testés, taverne extérieure/intérieure comprise, aucune allocation de
+shadow map dès la première image et après plusieurs voyages, ainsi que le bon profil
+des 13 mini-jeux. Ce seuil décrit ces compositions, pas toute caméra ni toute taille
+de groupe possible. Les captures des trois compositions sont dans `.qa/voxel-mobile/`.

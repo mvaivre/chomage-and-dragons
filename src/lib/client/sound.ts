@@ -202,6 +202,11 @@ let lastTick = 0;
 
 /** The game's sound palette. Each call is fire-and-forget and silent when muted. */
 export const sfx = {
+  /** A soft, short syllable for each spoken letter. Shares the global mute setting. */
+  dialogue(letter: string) {
+    const freq = 480 + (letter.codePointAt(0)! % 7) * 45;
+    tone({ freq, to: freq * 0.72, dur: 0.027, type: "triangle", gain: 0.075, attack: 0.002 });
+  },
   /** A tap on an action button. */
   press() { tone({ freq: 660, to: 880, dur: 0.07, type: "triangle", gain: 0.18 }); },
   whoosh() { hiss({ dur: 0.32, filter: "bandpass", freq: 500, to: 2400, q: 1.2, gain: 0.35, attack: 0.08 }); },

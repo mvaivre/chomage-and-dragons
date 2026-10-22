@@ -21,7 +21,7 @@ export function HiddenObjectDiscovery({ item, onClose, onCollection }: {
     <h2 id="hidden-discovery-title">Objets cachés</h2>
     <figure>
       {/* eslint-disable-next-line @next/next/no-img-element -- pre-optimized local alpha art */}
-      <img src={item.art} width={88} height={88} alt="" />
+      <img src={`/art/world-v3/collectibles/${item.model}.webp`} width={88} height={88} alt="" />
       <figcaption>{item.name}</figcaption>
     </figure>
     <div id="hidden-discovery-rules">

@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { chestXForStep } from "@/components/game/projection";
-import type { Effect, EffectKind } from "@/components/game/Effects";
-import GameCanvas from "@/components/game/GameCanvas";
-import { heroOrigin, laneFor } from "@/components/game/lanes";
-import type { HeroMotion } from "@/components/game/animation";
+import { chestXForStep } from "@/components/voxel/travel";
+import type { Effect, EffectKind } from "@/components/voxel/reactions";
+import GameCanvas from "@/components/voxel/VoxelCanvas";
+import { heroOrigin } from "@/components/voxel/travel";
+import type { HeroMotion } from "@/components/voxel/reactions";
 import { CHARACTERS } from "@/lib/game/characters";
 import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
-import { loadFirst, retainTextures } from "@/components/game/textures";
-import { CHARACTER_ANIMATIONS } from "@/components/game/animation";
-import { decodedImage, whenIdle } from "@/lib/client/preload";
-import { ACTION_ART, MINI_GAME_IMAGES, POWER_ART } from "@/lib/game/art";
+import { whenIdle } from "@/lib/client/preload";
 
 /** Mini-games load on their own, fetched ahead of need once the world is up. */
 const loadMiniGames = () => import("@/components/hud/mini-games/MiniGame");
@@ -40,19 +37,17 @@ import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
 import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
 import { groupDecor, interiorAt } from "@/lib/game/decor";
-import { DaylightVeil } from "@/components/hud/DaylightVeil";
-import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { JourneyMap } from "@/components/hud/JourneyMap";
-import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
+import { zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
 import type { CheerEmoji, Cheer, GameEvent } from "@/lib/data/types";
 import type { HudTiming } from "@/components/hud/QuestHud";
-import { reactionTiming } from "@/components/game/Effects";
-import { CHOREOGRAPHIES } from "@/components/game/reactions";
-import { REACTION_HOLD } from "@/components/game/Hero";
-import { fx } from "@/components/game/fx";
-import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/game/scene";
+import { reactionTiming } from "@/components/voxel/reactions";
+import { CHOREOGRAPHIES } from "@/components/voxel/reactions";
+import { REACTION_HOLD } from "@/components/voxel/reactions";
+import { fx } from "@/components/voxel/fx";
+import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/voxel/state";
 import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
@@ -77,7 +72,6 @@ import { hiredPosition, racePosition } from "@/lib/game/progress";
 import {
   BIOMES,
   biomeAt,
-  surfaceAt,
   worldXFor,
   WORLD_LENGTH,
 } from "@/lib/game/world";
@@ -177,8 +171,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     cheer,
     miniGames,
     daily,
-    recordDaily,
-    startDaily,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -199,7 +191,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     findHidden,
   } = useGame(mode);
 
-  // One Zurich day for the whole render: today's challenge and the decor's daily sign.
+  // Historical daily records still contribute to the group’s personalised scenery.
   const today = zurichDay();
   const decor = useMemo(() => groupDecor({ players, events, daily, day: today, month: monthKeyNow }), [players, events, daily, today, monthKeyNow]);
 
@@ -210,7 +202,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
   const [adventureOpen, setAdventureOpen] = useState(false);
-  const [adventureTab, setAdventureTab] = useState<"games" | "hunt">("games");
+  const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt">("games");
   const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
@@ -238,13 +230,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
     momentTimers.current.push(timer);
   }, []);
   useEffect(() => () => { momentTimers.current.forEach((timer) => window.clearTimeout(timer)); }, []);
+  const pendingChestEffect = useRef<Effect | null>(null);
+  const chestAnimationId = useRef<string | null>(null);
+  const chestDuringTravel = useRef(false);
   const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
   // A safety net: whatever happens to the walk, the action bar never stays locked.
   useEffect(() => {
     if (!awaitingTravel) return;
     const timer = window.setTimeout(() => {
-      if (dragonMealId.current) return;
+      if (dragonMealId.current || chestAnimationId.current || pendingChestEffect.current) return;
       setAwaitingTravel(false);
       actionInFlight.current = false;
       leanOut();
@@ -265,8 +260,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (!sceneReady) return;
     return whenIdle(() => {
       primeAudio();
-      retainTextures([...Object.values(ACTION_ART), ...Object.values(POWER_ART)]);
-      for (const url of MINI_GAME_IMAGES) void decodedImage(url).catch(() => {});
       void loadMiniGames();
     });
   }, [sceneReady]);
@@ -280,18 +273,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [devAtmosphere, setDevAtmosphere] = useState(true);
   const shownCasts = useRef(new Set<string>());
   // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
-  const [dailySheetOpen, setDailySheetOpen] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
-  // Today's challenge: the same game and course for everyone in the group.
-  const todayGame = useMemo(() => dailyChallenge(today), [today]);
-  const [dailyOpen, setDailyOpen] = useState(false);
-  const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
   // The selection theme gives way to the adventure, then follows the hero's land.
   useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
-  const pendingChestEffect = useRef<Effect | null>(null);
-  const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
 
   // The server's word on who this device plays wins: a character claimed elsewhere drops out here.
@@ -302,9 +288,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     : null);
   const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
   const me = meIndex === -1 ? null : players[meIndex];
-  // Your own hero gates the action bar: request its atlas before the scenery.
-  const myAtlas = me ? CHARACTER_ANIMATIONS[me.characterId]?.url : undefined;
-  useEffect(() => { if (myAtlas) loadFirst([myAtlas]); }, [myAtlas]);
 
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
@@ -329,15 +312,15 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
+    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
   // First an invitation card, then the game itself once the player accepts.
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
-  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen || welcomeVisible), [miniGameVisible, dailyOpen, welcomeVisible]);
+  useEffect(() => setMusicDucked(miniGameVisible || welcomeVisible), [miniGameVisible, welcomeVisible]);
   useEffect(() => {
-    scene.momentActive = momentActive || miniGameVisible || dailyOpen;
+    scene.momentActive = momentActive || miniGameVisible;
     return () => { scene.momentActive = false; };
-  }, [momentActive, miniGameVisible, dailyOpen]);
+  }, [momentActive, miniGameVisible]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
@@ -356,6 +339,19 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const timeout = window.setTimeout(() => setActionFeedback(null), 4000);
     return () => window.clearTimeout(timeout);
   }, [actionFeedback]);
+
+  const handleChestReached = useCallback((playerId: string) => {
+    const effect = pendingChestEffect.current;
+    if (playerId !== identity || !effect) return false;
+    pendingChestEffect.current = null;
+    chestDuringTravel.current = true;
+    chestAnimationId.current = effect.id;
+    leanIn(1.5);
+    sfx.coin();
+    setActionFeedback({ id: effect.id, text: "Coffre trouvé ! Récupération du butin…" });
+    setEffects(previous => [...previous, { ...effect, playerId, loud: true }]);
+    return true;
+  }, [identity]);
 
   const handleTravelDone = useCallback(
     (playerId: string) => {
@@ -387,7 +383,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (chestEffect) {
         pendingChestEffect.current = null;
         chestAnimationId.current = chestEffect.id;
-        setEffects((previous) => [...previous, chestEffect]);
+        setEffects((previous) => [...previous, { ...chestEffect, playerId, loud: true }]);
         return;
       }
       setAwaitingTravel(false);
@@ -398,9 +394,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      // The native mini-game dialog owns Escape, Space, Enter and focus, the daily one
-      // included; the invitation owns Escape. Preventing Escape here would keep a dialog open.
-      if (miniGameVisible || inviteVisible || dailyOpen || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
+      // The native mini-game dialog owns Escape, Space, Enter and focus.
+      // The invitation owns Escape too. Preventing it here would keep a dialog open.
+      if (miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -426,7 +422,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
 
   useEffect(
     () => () => {
@@ -446,7 +442,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     );
     if (pending.length === 0) return;
 
-    const origin = heroOrigin(me, meIndex);
+    const origin = heroOrigin(me);
     const fresh = pending.filter((cast) => !shownCasts.current.has(cast.id));
     if (fresh.length === 0) return;
 
@@ -523,7 +519,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           if (player) {
             const variant = variantFor(liveEvent.id, liveEvent.kind);
             const kind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[liveEvent.kind]) as EffectKind;
-            const effect = { id: `news-${liveEvent.id}`, kind, origin: heroOrigin(player, index), playerId: player.id, loud: false };
+            const effect = { id: `news-${liveEvent.id}`, kind, origin: heroOrigin(player), playerId: player.id, loud: false, stampCrush: liveEvent.kind === "rejetApresEntretien" };
             queueMicrotask(() => {
               setEffects((previous) => [...previous, effect]);
               // A glance at the friend who acted, unless you are busy with your own moment.
@@ -585,13 +581,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
       }
       if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
       pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
-      const origin = heroOrigin(me, meIndex);
+      const origin = heroOrigin(me);
 
       // The staging is drawn from the event id: every friend sees the same variant.
       const variant = forcedVariant(kind) ?? variantFor(event.id, kind);
       const reactionKind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[kind]) as EffectKind;
       const queued: Effect[] = [
-        { id: event.id, kind: reactionKind, origin, playerId: me.id, loud: true },
+        { id: event.id, kind: reactionKind, origin, playerId: me.id, loud: true, stampCrush: kind === "rejetApresEntretien" },
       ];
       pendingChestEffect.current = null;
 
@@ -620,7 +616,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         pendingChestEffect.current = {
           id: `${event.id}-chest`,
           kind: "chest",
-          origin: { x: markerX, y: surfaceAt(markerX) + 8 },
+          origin: { x: markerX, y: 0 },
         };
         const unlocked = powerForSlot(afterChest - 1);
         moments.push({
@@ -635,12 +631,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
       // The moment: lean in, impact, then the walk.
       sfx.press();
       const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
-      const { impact, duration } = reactionTiming(reactionKind);
+      const { impact, duration } = reactionTiming(reactionKind, kind === "rejetApresEntretien");
       if (variant.rarity !== "common") schedule(impact + 250, () => moment.cue({ type: "badge", rarity: variant.rarity as "rare" | "legendary", name: variant.name }));
       if (reactionKind === "storm" || reactionKind === "refusalAvalanche") moment.cue({ type: "shade", color: "#0b1526", opacity: 0.42, ms: duration });
       const hold = REACTION_HOLD[kind] * 1000;
       const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
-      leanIn(legendary ? 1.14 : 1.08, 0.42);
+      leanIn(kind === "rejetApresEntretien" ? 1.35 : legendary ? 1.14 : 1.08, 0.42);
       setMomentActive(true);
       setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
       if (legendary) moment.cue({ type: "letterbox", ms: duration });
@@ -648,9 +644,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
         moment.cue({ type: "flash", ...FLASH[kind] });
       });
       pendingTale.current = forcedTale() ?? taleFor(event);
-      const laneDx = laneFor(meIndex).dx;
-      const beforeRoom = interiorAt(worldXFor(me.position) + laneDx);
-      const afterRoom = interiorAt(worldXFor(afterPosition) + laneDx);
+      const beforeRoom = interiorAt(worldXFor(me.position));
+      const afterRoom = interiorAt(worldXFor(afterPosition));
       pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
         ? { kicker: "Vous entrez", title: afterRoom.name }
         : beforeZone.id !== afterZone.id
@@ -663,7 +658,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, schedule],
+    [addEvent, me, rewardMoments.length, miniGameOffer, schedule],
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
@@ -687,7 +682,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (chestGame) {
       const afterChest = me.earnedChests + 1;
       const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
-      pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
+      pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: 0 } };
       setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
       pendingChestGame.current = chestGame.offer ? { attemptId: chestGame.attemptId, eventId: miniGameOffer.eventId } : null;
     }
@@ -731,7 +726,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         {
           id: `${cast.id}-preview`,
           kind: POWER_EFFECT_FOR[power.kind],
-          origin: heroOrigin(target, targetIndex),
+          origin: heroOrigin(target),
           playerId: target.id,
           loud: true,
         },
@@ -761,8 +756,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
     }
     if (chestAnimationId.current === id) {
       chestAnimationId.current = null;
-      setAwaitingTravel(false);
-      actionInFlight.current = false;
+      if (!chestDuringTravel.current) {
+        setAwaitingTravel(false);
+        actionInFlight.current = false;
+      }
+      chestDuringTravel.current = false;
     }
   }, []);
 
@@ -802,7 +800,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     dragonMealId.current = id;
     actionInFlight.current = true;
     setAwaitingTravel(true);
-    setEffects(previous => [...previous, { id, kind: "dragonMeal", origin: { x: nest, y: surfaceAt(nest) }, playerId: me.id, loud: true }]);
+    setEffects(previous => [...previous, { id, kind: "dragonMeal", origin: { x: nest, y: 0 }, playerId: me.id, loud: true }]);
     return true;
   }, [me, effects.length]);
 
@@ -825,6 +823,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     actionInFlight.current = false;
     pendingChestEffect.current = null;
     chestAnimationId.current = null;
+    chestDuringTravel.current = false;
     setAwaitingTravel(false);
     setRewardMoments([]);
     setMiniGameOffer(null);
@@ -894,7 +893,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
+    <main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
         hiddenFoundIds={hiddenFoundIds}
         onFindHidden={handleFindHidden}
@@ -902,11 +901,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
         onDragonChallenge={handleDragonChallenge}
         onDragonSwallow={handleDragonSwallow}
         onSceneReady={handleSceneReady}
-        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
         players={players}
+        journeyRevision={events.filter(event=>event.playerId===identity).map(event=>event.id).join(":")}
         decor={decor}
         meId={identity}
         focusPlayerId={effectFocusId ?? observedPlayerId}
@@ -914,13 +914,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
+        onChestReached={handleChestReached}
         freeCamera={true}
         devCameraTarget={devCameraTarget}
       />
 
       <div className="vignette absolute inset-0 z-[3]" />
-      <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
-      <DaylightVeil />
       <MomentOverlay />
 
       {DEV_BUILD ? (
@@ -941,6 +940,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
               </select>
               <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
+              <label>Position <input aria-label="Position de test" type="number" min="0" step="50" value={devCameraTarget?.worldX ?? 0} onChange={event=>{const x=Number(event.target.value);if(Number.isFinite(x)&&x>=0)handleDevBiome(x/WORLD_LENGTH,x/WORLD_LENGTH);}} /></label>
               <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>Lumière et brume</button>
               <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
                 {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
@@ -958,7 +958,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
                 const x = devEffect === "chest" ? at + 110 : at;
-                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
+                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: 0 } }]);
               }}>Tester l’effet</button>
               {BIOMES.map((biome) => (
                 <button
@@ -989,21 +989,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
-              <div className="hud-controls">
-                <DailyButton kind={todayGame.kind} runs={todayRuns} meId={identity}
-                  onPlay={() => { if (!me || awaitingTravel || miniGameOffer || rewardMoments.length) return; startDaily(me.id, today, todayGame.kind); setDailyOpen(true); }}
-                  onOpen={() => setDailySheetOpen(true)} />
-                <PowerDeck
-                  me={me}
-                  players={players}
-                  attentionToken={powerAttention}
-                  onCast={handleCast}
-                />
-                <SoundToggle />
-                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => { setAdventureTab("games"); setAdventureOpen(true); }}>Quêtes</button>
-              </div>
-              <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} />
+              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
+                menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0}
+                onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }} />
             </div>
             <CompactLeaderboard
               players={players}
@@ -1023,9 +1011,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
               canUndo={canUndo}
               hired={Boolean(me.hiredAt)}
               locked={
-                // Every dialog over the world, the daily game and its sheet included: their
-                // digits and letters must never declare an action in the shared journal.
-                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
+                // Dialog shortcuts must never declare actions in the shared journal.
+                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
@@ -1040,24 +1027,26 @@ export function Game({ slug = null }: { slug?: string | null }) {
         </div>
       ) : null}
 
-      {news.length && !dailySheetOpen ? <div className="news-stack" aria-live="polite">
+      {news.length ? <div className="news-stack" aria-live="polite">
         {news.map((item) => <NewsToast key={item.id} item={item} players={players} onCheer={handleCheer} />)}
       </div> : null}
-      {dailySheetOpen ? <DailySheet kind={todayGame.kind} runs={todayRuns} players={players} meId={identity} onClose={() => setDailySheetOpen(false)} /> : null}
-      {dailyOpen && me ? <MiniGame key={todayGame.seedId} kind={todayGame.kind} seedId={todayGame.seedId}
-        record={(() => { const top = todayRuns.find((run) => !run.pending); return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
-        onResolve={(result, score) => { recordDaily(me.id, today, todayGame.kind, result === "skipped" ? 0 : score ?? 0); }}
-        onDone={() => { setDailyOpen(false); setDailySheetOpen(true); }} /> : null}
-      {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
+      {recap && me ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
       {welcomeVisible ? <Welcome key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
       {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
         onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
-      {adventureOpen ? <AdventureMenu foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
+      {adventureOpen && me ? <AdventureMenu name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
         onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
         onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
-        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} /> : null}
+        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} >
+          <p className="adventure-menu__intro">Niveau {me.level} · {me.journeySteps} pas · {seasonRank ? `Rang ${seasonRank}` : "Le voyage commence"}</p>
+          <p>Les petits détours font les grandes aventures.</p>
+          <button className="adventure-menu__profile-link" type="button" onClick={() => { setAdventureOpen(false); setRegisterOpen(true); }}>Compagnons & carte <span>Classement, personnages et journal →</span></button>
+          <PowerDeck me={me} players={players} attentionToken={powerAttention} onCast={(power, target) => { setAdventureOpen(false); handleCast(power, target); }} />
+          <div className="adventure-menu__sound"><span>Ambiance sonore</span><SoundToggle /></div>
+          <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} />
+        </AdventureMenu> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay

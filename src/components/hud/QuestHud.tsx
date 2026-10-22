@@ -2,7 +2,7 @@
 
 import type { PlayerView } from "@/hooks/useGame";
 import { STEPS_PER_LEVEL } from "@/lib/config";
-import { characterArt, characterById } from "@/lib/game/characters";
+import { characterById, characterArt } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
 import { interiorAt } from "@/lib/game/decor";
 import { biomeAt, worldXFor } from "@/lib/game/world";
@@ -23,7 +23,9 @@ export interface HudTiming {
 
 interface QuestHudProps {
   me: PlayerView | null;
-  laneOffset?: number;
+  onOpenMenu: () => void;
+  menuOpen?: boolean;
+  menuDisabled?: boolean;
   /** Rang dans la saison, 1 pour le/la meneur·euse. */
   seasonRank: number | null;
   timing?: HudTiming | null;
@@ -31,37 +33,109 @@ interface QuestHudProps {
   streak?: number;
 }
 
-export function QuestHud({ me, seasonRank, timing = null, streak = 0, laneOffset = -80 }: QuestHudProps) {
+export function QuestHud({
+  me,
+  seasonRank,
+  timing = null,
+  streak = 0,
+  onOpenMenu,
+  menuOpen,
+  menuDisabled,
+}: QuestHudProps) {
   if (!me) return null;
-  return <QuestCard me={me} seasonRank={seasonRank} timing={timing} streak={streak} laneOffset={laneOffset} />;
+  return (
+    <QuestCard
+      me={me}
+      seasonRank={seasonRank}
+      timing={timing}
+      streak={streak}
+      onOpenMenu={onOpenMenu}
+      menuOpen={menuOpen}
+      menuDisabled={menuDisabled}
+    />
+  );
 }
 
-function QuestCard({ me, seasonRank, timing, streak, laneOffset }: { laneOffset: number; me: PlayerView; seasonRank: number | null; timing: HudTiming | null; streak: number }) {
+function QuestCard({
+  me,
+  seasonRank,
+  timing,
+  streak,
+  onOpenMenu,
+  menuOpen,
+  menuDisabled,
+}: Omit<QuestHudProps, "me" | "timing" | "streak"> & {
+  me: PlayerView;
+  timing: HudTiming | null;
+  streak: number;
+}) {
   // One counter follows the journey.
   const steps = useTween(me.journeySteps, timing?.steps ?? null, sfx.tick);
   const character = characterById(me.characterId);
-  const zone = interiorAt(worldXFor(me.position) + laneOffset) ?? biomeAt(worldXFor(me.position));
+  const zone =
+    interiorAt(worldXFor(me.position)) ?? biomeAt(worldXFor(me.position));
   const remaining = untilNextChest(me.journeySteps, me.earnedChests);
   const filled = Math.max(0, STEPS_PER_LEVEL - remaining);
 
   return (
-    <section className="journey-card pointer-events-auto" aria-label="Ton voyage">
+    <section
+      className="journey-card pointer-events-auto"
+      aria-label="Ton voyage"
+    >
       <div className="journey-card__identity">
-        {/* eslint-disable-next-line @next/next/no-img-element -- small local alpha WebP, already optimized */}
-        <img className="journey-card__portrait" src={characterArt(me.characterId)} alt="" width={208} height={293} />
+        <button
+          type="button"
+          className="journey-card__menu"
+          onClick={onOpenMenu}
+          disabled={menuDisabled}
+          aria-label={`Ouvrir le carnet de ${me.name}`}
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}
+          title="Carnet · quêtes, butins et réglages"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- optimized original portrait */}
+          <img
+            src={characterArt(me.characterId)}
+            alt=""
+            width={208}
+            height={293}
+            className="journey-card__portrait"
+          />
+          <span aria-hidden="true">☰</span>
+          {me.availablePowers.length ? (
+            <b
+              className="journey-card__loot"
+              title={`${me.availablePowers.length} butins dans le carnet`}
+            >
+              {me.availablePowers.length}
+            </b>
+          ) : null}
+        </button>
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="truncate font-display text-2xl text-parchment" title={character.name}>{me.name}</h2>
-          <span className="journey-card__level">
-            Niv. {me.level}
-          </span>
-          {streak >= 2 ? <span className="journey-card__streak" title={`${streak} semaines d’affilée avec au moins une action`}>🔥 {streak}</span> : null}
+          <h2
+            className="truncate font-display text-2xl text-parchment"
+            title={character.name}
+          >
+            {me.name}
+          </h2>
+          <span className="journey-card__level">Niv. {me.level}</span>
+          {streak >= 2 ? (
+            <span
+              className="journey-card__streak"
+              title={`${streak} semaines d’affilée avec au moins une action`}
+            >
+              🔥 {streak}
+            </span>
+          ) : null}
         </div>
       </div>
 
       <div className="journey-card__main">
         <div className="journey-card__summary">
           <div className="min-w-0">
-            <p className="journey-card__place font-display text-xl text-gold-light">{zone.name}</p>
+            <p className="journey-card__place font-display text-xl text-gold-light">
+              {zone.name}
+            </p>
           </div>
           <dl className="journey-card__stats">
             <div>
@@ -88,11 +162,24 @@ function QuestCard({ me, seasonRank, timing, streak, laneOffset }: { laneOffset:
             <ChestArtwork className="journey-card__chest-art" />
             Prochain butin dans {remaining} pas
           </span>
-          <div className="journey-card__meter">
-            <div style={{
-              width: `${(filled / STEPS_PER_LEVEL) * 100}%`,
-              transition: timing ? `width ${timing.steps.duration}ms linear ${timing.steps.delay}ms` : undefined,
-            }} />
+          <div
+            className="journey-card__meter"
+            role="progressbar"
+            aria-label="Vers le prochain butin"
+            aria-valuemin={0}
+            aria-valuemax={STEPS_PER_LEVEL}
+            aria-valuenow={filled}
+            aria-valuetext={`Prochain butin dans ${remaining} pas`}
+            title={`Prochain butin dans ${remaining} pas`}
+          >
+            <div
+              style={{
+                width: `${(filled / STEPS_PER_LEVEL) * 100}%`,
+                transition: timing
+                  ? `width ${timing.steps.duration}ms linear ${timing.steps.delay}ms`
+                  : undefined,
+              }}
+            />
           </div>
         </div>
       </div>

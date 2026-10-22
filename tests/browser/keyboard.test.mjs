@@ -40,7 +40,10 @@ test('modal games take the first keyboard input without clicking a direction con
     return { context, page, errors };
   }
   async function openGame(page, kind) {
-    if (!await page.locator('.adventure-menu[open]').count()) await page.getByRole('button', { name: 'Quêtes', exact: true }).click();
+    if (!await page.locator('.adventure-menu[open]').count()) {
+      await page.getByRole('button', { name: /Ouvrir le carnet/ }).click();
+      await page.getByRole('button', { name: 'Quêtes', exact: true }).click();
+    }
     await page.locator('.adventure-menu__games button').filter({ hasText: MINI_GAMES[kind].title }).click();
     await page.locator(`.mini-game--${kind}[open]`).waitFor();
   }

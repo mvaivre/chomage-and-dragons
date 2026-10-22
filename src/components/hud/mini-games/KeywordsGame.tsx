@@ -1,5 +1,6 @@
 "use client";
 
+import type { VoxelPainter } from "@/components/voxel/arena";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
@@ -9,90 +10,17 @@ import { punchlineFor } from "@/lib/game/punchlines";
 import { RAIN, createRainSim, rainAutopilot, startRain, steerBasket, stepRain, wordScreenX, wordWidth, type RainEvent, type RainSim, type RainStatus } from "@/lib/game/keyword-rain";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { keywordsScore } from "@/lib/game/scores";
-import { pointerToLogical, useArenaCanvas, type ArenaView } from "./useArenaCanvas";
+import { pointerToLogical, useArenaCanvas, type ArenaView } from "@/components/voxel/useArena";
 
-const INK = "#28241a";
-
-function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) {
-  const { width, height, bleedX, bleedY, now } = view;
-  const sky = ctx.createLinearGradient(0, 0, 0, height);
-  sky.addColorStop(0, "#9fb5be");
-  sky.addColorStop(1, "#e6dfc8");
-  ctx.fillStyle = sky;
-  ctx.fillRect(-bleedX - 10, -bleedY - 10, width + bleedX * 2 + 20, height + bleedY * 2 + 20);
-  // Floor: the recruiter's carpet and its edge, beyond the play box too.
-  ctx.fillStyle = "#7a5a3a";
-  ctx.fillRect(-bleedX - 10, RAIN.basketY + 16, width + bleedX * 2 + 20, height);
-  ctx.fillStyle = INK;
-  ctx.fillRect(-bleedX - 10, RAIN.basketY + 14, width + bleedX * 2 + 20, 3);
-  if (bleedX > 2) {
-    ctx.strokeStyle = "rgb(40 36 26 / 0.35)"; ctx.lineWidth = 2;
-    ctx.strokeRect(0, -bleedY - 10, width, height + bleedY * 2 + 20);
+function drawRain(ctx: VoxelPainter, sim: RainSim, view: ArenaView) {
+  ctx.background();
+  ctx.block(0x746246,view.width/2,RAIN.basketY+29,view.width+30,35,12,-2);
+  ctx.person(view.width-29,65,.65,0x71877a);ctx.text("ATS-3000",view.width-37,79,8);
+  for(const word of sim.words){if(word.state==="missed")continue;const x=wordScreenX(word),w=wordWidth(word.text);
+    const color=word.state==="caught"?(word.kind==="bad"?0xb37470:0x9db985):0xd8c797;
+    ctx.block(0x75694e,x+1,word.y+2,w,21,5,1);ctx.block(color,x,word.y,w,19,4,4);ctx.text(word.text,x,word.y,11,"#243b34","center",10);
   }
-
-  // The applicant-tracking robot, scanning from the top right.
-  const rx = width - 46, ry = 12;
-  ctx.fillStyle = "#8d949b";
-  ctx.fillRect(rx, ry, 36, 26);
-  ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.strokeRect(rx, ry, 36, 26);
-  ctx.fillRect(rx + 16, ry - 8, 3, 8);
-  ctx.beginPath(); ctx.arc(rx + 17.5, ry - 10, 3, 0, Math.PI * 2); ctx.fillStyle = "#ce4d48"; ctx.fill(); ctx.stroke();
-  const blink = Math.floor(now / 500) % 4 === 0;
-  ctx.fillStyle = blink ? "#ce4d48" : "#f5d163";
-  ctx.fillRect(rx + 7, ry + 8, 8, blink ? 2 : 6);
-  ctx.fillRect(rx + 21, ry + 8, 8, blink ? 2 : 6);
-  ctx.fillStyle = INK;
-  ctx.fillRect(rx + 9, ry + 19, 18, 3);
-  ctx.font = "bold 8px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("ATS-3000", rx + 18, ry + 36);
-
-  // Falling tags. Every kind looks the same: reading is the skill.
-  ctx.font = "bold 11px system-ui, sans-serif";
-  ctx.textBaseline = "middle";
-  for (const word of sim.words) {
-    if (word.state === "missed") continue;
-    const w = wordWidth(word.text);
-    const x = wordScreenX(word);
-    let alpha = 1;
-    if (word.state === "caught") {
-      const u = Math.min(1, (sim.t - Math.max(sim.lastCatchAt, sim.lastBadAt)) / 500);
-      alpha = 1 - u;
-    }
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, word.y);
-    ctx.rotate(Math.sin(word.y / 40) * 0.08);
-    ctx.fillStyle = word.state === "caught" ? (word.kind === "bad" ? "#ce4d48" : word.kind === "required" ? "#718744" : "#aaa") : "#f5e8bd";
-    ctx.strokeStyle = INK; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(-w / 2, -10, w, 20, 5); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = word.state === "caught" ? "#fff" : INK;
-    ctx.fillText(word.text, 0, 1);
-    ctx.restore();
-  }
-  ctx.textBaseline = "alphabetic";
-
-  // The CV folder, held open under the rain.
-  const bx = sim.basketX;
-  const shake = sim.t - sim.lastBadAt < 300 && !view.reducedMotion ? Math.sin(sim.t / 12) * 3 : 0;
-  ctx.save();
-  ctx.translate(bx + shake, RAIN.basketY);
-  ctx.fillStyle = "#d9b568";
-  ctx.beginPath(); ctx.roundRect(-RAIN.basketWidth / 2, -12, RAIN.basketWidth, 30, 3); ctx.fill();
-  ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.stroke();
-  ctx.fillStyle = "#e8cb84";
-  ctx.fillRect(-RAIN.basketWidth / 2 + 4, -16, 22, 8);
-  ctx.strokeRect(-RAIN.basketWidth / 2 + 4, -16, 22, 8);
-  ctx.fillStyle = INK; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("CV", 0, 8);
-  if (sim.t - sim.lastCatchAt < 350) {
-    ctx.strokeStyle = "#718744"; ctx.lineWidth = 3;
-    ctx.strokeRect(-RAIN.basketWidth / 2 - 4, -16, RAIN.basketWidth + 8, 38);
-  }
-  ctx.restore();
-  if (sim.t - sim.lastBadAt < 200 && !view.reducedMotion) {
-    ctx.fillStyle = "rgb(206 77 72 / 0.3)";
-    ctx.fillRect(-bleedX - 10, -bleedY - 10, width + bleedX * 2 + 20, height + bleedY * 2 + 20);
-  }
+  ctx.block(0xb99754,sim.basketX,RAIN.basketY+4,RAIN.basketWidth,29,12,5);ctx.block(0xd5bb77,sim.basketX-RAIN.basketWidth/2+15,RAIN.basketY-11,25,8,5,7);ctx.text("CV",sim.basketX,RAIN.basketY+4,12,"#243b34","center",15);
 }
 
 /** The keyword rain: drag the CV under the words the ad asked for. */
@@ -134,7 +62,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
     }
   }, [sim]);
 
-  const frame = useCallback((ctx: CanvasRenderingContext2D, view: ArenaView, dt: number, node: HTMLButtonElement) => {
+  const frame = useCallback((ctx: VoxelPainter, view: ArenaView, dt: number, node: HTMLButtonElement) => {
     for (const event of stepRain(sim, dt)) react(event);
     // The browser tests steer through the real pointer path using these.
     node.dataset.status = sim.status;
@@ -195,6 +123,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
       <span>{status === "ready" ? `Glisse ou ← → · ${RAIN.badAllowed} erreur permise` :
         status === "running" ? (bad > 0 ? "Plus d’erreur permise." : "Glisse ou ← →") : won ? "Validé…" : "Rejeté…"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le robot" : status === "running" ? "Ça tombe !" : won ? "Validé…" : "Broyé…",
       disabled: phase === "play" && status !== "ready",
       onClick: () => phase === "play" ? start() : onDone(),
@@ -204,7 +133,6 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
       aria-label="Déplacer le CV" disabled={phase !== "play"}
       onPointerDown={event => { event.preventDefault(); start(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour lancer le robot<small>puis glisse le CV sous les mots</small></span> : null}
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "CV VALIDÉ ×2" : "REJETÉ PAR LE ROBOT"}</span> : null}
     </button>
   </MiniGameShell>;

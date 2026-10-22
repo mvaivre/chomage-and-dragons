@@ -1,0 +1,242 @@
+.voxel-world {
+  position: absolute;
+  inset: 0;
+  background: #263d3d;
+  z-index: 1;
+  overflow: hidden;
+}
+.voxel-world__canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+}
+.voxel-world__canvas:active {
+  cursor: grabbing;
+}
+.voxel-world__canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.voxel-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.voxel-name,
+.voxel-target {
+  position: absolute;
+  transform: translate(-50%, -100%);
+}
+.voxel-name {
+  font:
+    600 12px var(--font-body),
+    Georgia,
+    serif;
+  color: #e7e8d6;
+  text-shadow:
+    0 1px 4px #10231d,
+    1px 1px 1px #10231d;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: #30251bb3;
+}
+.voxel-name.is-me {
+  color: #f6d58a;
+  border-bottom: 2px solid #dfbc70;
+}
+.voxel-target {
+  pointer-events: auto;
+  border: 1px solid #d5c29388;
+  background: #183630b3;
+  color: #efdeb3;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.voxel-target--hidden {
+  background: transparent;
+  border: 0;
+  width: 36px;
+  height: 36px;
+  box-shadow: inset 0 0 16px #e4c46b22;
+}
+.voxel-target--hidden:hover,
+.voxel-target--hidden:focus-visible {
+  border: 2px solid #e7c572;
+  background: #e4c46b33;
+}
+.voxel-camera {
+  position: absolute;
+  right: 12px;
+  top: calc(50% + 50px);
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 255px;
+  gap: 2px;
+  padding: 4px;
+  background: #142d2dd9;
+  border: 1px solid #80957966;
+  border-radius: 5px;
+  color: #d6dfc4;
+  backdrop-filter: blur(12px);
+  font: 11px system-ui;
+}
+.voxel-camera button {
+  height: 31px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.voxel-camera button:hover,
+.voxel-camera button[aria-pressed="true"] {
+  background: #6d8a5a44;
+}
+.voxel-camera span {
+  padding: 8px 2px;
+  font-size: 9px;
+  opacity: 0.7;
+}
+.voxel-speech {
+  position: absolute;
+  left: 50%;
+  bottom: 230px;
+  transform: translateX(-50%);
+  z-index: 18;
+  max-width: 390px;
+  width: 85%;
+  padding: 20px 25px;
+  background: #142a2af2;
+  border: 1px solid #a58d57;
+  color: #eae1c5;
+  border-radius: 5px;
+  box-shadow: 0 10px 30px #07181788;
+}
+.voxel-speech > button:first-child {
+  position: absolute;
+  right: 8px;
+  top: 2px;
+  font-size: 23px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.voxel-speech button:not(:first-child) {
+  margin-top: 10px;
+  border: 1px solid #a78f5e;
+  padding: 5px 12px;
+  background: #3f5946;
+}
+.voxel-error {
+  position: absolute;
+  inset: 20%;
+  display: grid;
+  place-items: center;
+  background: #182e2c;
+  color: #f1d2a3;
+  padding: 30px;
+  text-align: center;
+  z-index: 2;
+}
+@media (max-width: 640px) {
+  .voxel-camera {
+    top: auto;
+    bottom: 230px;
+    right: 7px;
+    max-width: 196px;
+    font-size: 10px;
+  }
+  .voxel-camera button {
+    height: 29px;
+    padding: 3px 6px;
+  }
+  .voxel-camera span {
+    padding: 7px 1px;
+  }
+  .voxel-name {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+  .voxel-speech {
+    bottom: 285px;
+  }
+  .voxel-target {
+    min-width: 30px;
+    min-height: 30px;
+  }
+}
+.voxel-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100px;
+  overflow: hidden;
+}
+.voxel-display canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.journey-map__painting::after {
+  display: none;
+}
+.initiation-flight .voxel-display,
+.dragon-arena .voxel-display {
+  position: absolute;
+  inset: 0;
+}
+.initiation-road .voxel-display {
+  position: absolute;
+  inset: 0;
+}
+
+/* Only the scene canvas participates in the 3D redesign. */
+.world-glaze,
+.daylight-veil {
+  display: none;
+}
+.mini-game__arena canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.voxel-art {
+  object-fit: contain;
+}
+.voxel-camera {
+  background: #2e251eef;
+  border-color: #947446;
+  color: #eddbaf;
+  font-family: var(--font-body);
+}
+.voxel-speech {
+  background: #30251bf5;
+  color: #f3dfb4;
+}
+
+.voxel-target:not(.voxel-target--hidden) {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.voxel-target:not(.voxel-target--hidden):hover,
+.voxel-target:not(.voxel-target--hidden):focus-visible {
+  opacity: 1;
+}
+
+.voxel-target--hidden {
+  z-index: 2;
+}
+.voxel-target--sign:hover,
+.voxel-target--sign:focus-visible {
+  background: #d3b36b22;
+  border: 1px solid #e2c377;
+}

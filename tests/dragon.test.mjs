@@ -96,34 +96,10 @@ test('dragon input is bounded and outcomes cannot be awarded twice', () => {
   assert.deepEqual(run, before);
 });
 
-test('all five dragon coats keep eight complete transparent poses on the shared foot baseline', async () => {
-  const { createRequire } = await import('node:module');
-  const { readFile, stat } = await import('node:fs/promises');
-  const require = createRequire(import.meta.url);
-  const sharp = require(require.resolve('sharp', { paths: [require.resolve('next/package.json')] }));
-  for(const {art} of Object.values(DRAGON_VARIANTS)){
-  const path = new URL(`../public${art}`, import.meta.url);
-  const meta = JSON.parse(await readFile(new URL(`../public${art.replace(/\.webp$/,'.json')}`, import.meta.url)));
-  const { data, info } = await sharp(await readFile(path)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  assert.equal(info.width, meta.columns * meta.width);
-  assert.equal(info.height, meta.rows * meta.height);
-  assert.ok((await stat(path)).size < 500_000);
-  for (let cell = 0; cell < 8; cell++) {
-    let last = 0, solid = 0;
-    for (let y = 0; y < meta.height; y++) for (let x = 0; x < meta.width; x++) {
-      const alpha = data[((Math.floor(cell / 4) * meta.height + y) * info.width + (cell % 4) * meta.width + x) * 4 + 3];
-      if (alpha > 24) { last = Math.max(last, y); solid++; assert.ok(x > 3 && x < meta.width - 4 && y > 3 && y < meta.height - 4, `clipped pose ${cell}`); }
-    }
-    assert.ok(solid > 15_000);
-    assert.ok(Math.abs(last - (meta.baseline - 1)) < 4, `floating pose ${cell}: ${last}`);
-  }
-  }
-});
-
 test('each journey meets all five colours and a swallowing resident keeps its coat on later laps',()=>{
  const nests=dragonNests(0,WORLD_LENGTH-1);
  assert.equal(new Set(nests.map(dragonVariantAt)).size,5);
- assert.equal(new Set(Object.values(DRAGON_VARIANTS).map(v=>v.art)).size,5);
+ assert.equal(new Set(Object.values(DRAGON_VARIANTS).map(v=>v.color)).size,5);
  for(const x of nests)for(let lap=0;lap<4;lap++)assert.equal(dragonVariantAt(x+lap*WORLD_LENGTH),dragonVariantAt(x));
 });
 
@@ -139,19 +115,4 @@ test('fire grows and fades between breaths, warns on click three and stays still
  assert.equal(dragonFirePower(0,1,4),0);
  assert.equal(dragonFirePower(0,.2,3,true),.7);assert.equal(dragonFirePower(0,2.8,3,true),.7);
  assert.equal(dragonFirePower(0,3.2,3,true),0);
-});
-
-test('the four painted flame frames share one mouth origin and leave transparent margins',async()=>{
- const {createRequire}=await import('node:module'),{readFile}=await import('node:fs/promises');
- const require=createRequire(import.meta.url),sharp=require(require.resolve('sharp',{paths:[require.resolve('next/package.json')]}));
- const {data,info}=await sharp(await readFile(new URL('../public/art/world-v3/animations/dragon-fire-v1.webp',import.meta.url))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
- assert.equal(info.width,2048);assert.equal(info.height,256);
- for(let frame=0;frame<4;frame++){
-  let solid=0,mouth=0;
-  for(let y=0;y<256;y++)for(let x=0;x<512;x++)if(data[(y*2048+frame*512+x)*4+3]>24){
-   solid++;assert.ok(x>=6&&x<508&&y>=5&&y<251,`fire ${frame} clipped`);
-   if(x<30&&Math.abs(y-128)<12)mouth++;
-  }
-  assert.ok(solid>18000);assert.ok(mouth>20,`fire ${frame} detached from mouth`);
- }
 });

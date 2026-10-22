@@ -1,5 +1,6 @@
 "use client";
 
+import type { VoxelPainter } from "@/components/voxel/arena";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
 import { sfx } from "@/lib/client/sound";
@@ -8,78 +9,20 @@ import { punchlineFor } from "@/lib/game/punchlines";
 import { SLOTS, createSlotsSim, jackpotCount, slotsAutopilot, stepSlots, stopReel, type SlotsSim, type SlotsStatus } from "@/lib/game/slot-machine";
 import { ACTION_KEYS, MiniGameShell, ScoreLine, type MiniGameProps } from "./MiniGameShell";
 import { slotsScore } from "@/lib/game/scores";
-import { useArenaCanvas, type ArenaView } from "./useArenaCanvas";
+import { useArenaCanvas, type ArenaView } from "@/components/voxel/useArena";
 
-const INK = "#28241a";
 const WIDTH = 320;
 const HEIGHT = 240;
 const REEL_X = [68, 160, 252];
-const REEL_W = 82;
-const REEL_TOP = 66;
-const REEL_H = 118;
 const ROW = 40;
 
-function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView) {
-  const { bleedX, bleedY, now } = view;
-  ctx.fillStyle = "#3b2a22";
-  ctx.fillRect(-bleedX - 10, -bleedY - 10, WIDTH + bleedX * 2 + 20, HEIGHT + bleedY * 2 + 20);
-  // Cabinet.
-  ctx.fillStyle = "#8a2f2a";
-  ctx.beginPath(); ctx.roundRect(10, 8, WIDTH - 20, HEIGHT - 16, 14); ctx.fill();
-  ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.stroke();
-  ctx.fillStyle = "#d4a53f";
-  ctx.beginPath(); ctx.roundRect(24, 18, WIDTH - 48, 30, 8); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = INK; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("SALAIRE SELON EXPÉRIENCE", WIDTH / 2, 38);
-  // Lights around the title, blinking while spinning.
-  for (let i = 0; i < 12; i++) {
-    const on = sim.status === "spinning" ? Math.floor(now / 120 + i) % 3 === 0 : sim.status === "won" ? Math.floor(now / 90) % 2 === 0 : false;
-    ctx.fillStyle = on ? "#fff1bd" : "#5a2320";
-    ctx.beginPath(); ctx.arc(30 + i * (WIDTH - 60) / 11, 56, 3, 0, Math.PI * 2); ctx.fill();
-  }
-  // Reels.
-  sim.reels.forEach((reel, index) => {
-    const x = REEL_X[index] - REEL_W / 2;
-    ctx.fillStyle = "#f5e8bd";
-    ctx.fillRect(x, REEL_TOP, REEL_W, REEL_H);
-    ctx.save();
-    ctx.beginPath(); ctx.rect(x, REEL_TOP, REEL_W, REEL_H); ctx.clip();
-    const centre = REEL_TOP + REEL_H / 2;
-    const n = reel.symbols.length;
-    const first = Math.floor(reel.offset) - 2;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    for (let k = first; k <= first + 5; k++) {
-      const y = centre + (k - reel.offset) * ROW;
-      if (y < REEL_TOP - ROW || y > REEL_TOP + REEL_H + ROW) continue;
-      const symbol = reel.symbols[((k % n) + n) % n];
-      const jackpot = symbol === "CHF";
-      ctx.fillStyle = jackpot ? "#d4a53f" : "#4a4238";
-      ctx.font = jackpot ? "bold 20px system-ui, sans-serif" : "bold 11px system-ui, sans-serif";
-      if (jackpot) { ctx.beginPath(); ctx.arc(REEL_X[index], y, 15, 0, Math.PI * 2); ctx.fillStyle = "#f5d163"; ctx.fill(); ctx.strokeStyle = "#8a6a1e"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#6b4d10"; ctx.font = "bold 12px system-ui, sans-serif"; }
-      ctx.fillText(symbol, REEL_X[index], y + 1);
-      ctx.strokeStyle = "rgb(40 36 26 / 0.15)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x + 4, y + ROW / 2); ctx.lineTo(x + REEL_W - 4, y + ROW / 2); ctx.stroke();
-    }
-    ctx.restore();
-    ctx.textBaseline = "alphabetic";
-    // Window frame, brighter once the reel is stopped.
-    ctx.strokeStyle = reel.stopped ? "#f5d163" : INK; ctx.lineWidth = reel.stopped ? 4 : 3;
-    ctx.strokeRect(x, REEL_TOP, REEL_W, REEL_H);
-    if (sim.status === "spinning" && index === sim.current) {
-      ctx.fillStyle = "#f5d163"; ctx.font = "bold 10px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("▲ STOP", REEL_X[index], REEL_TOP + REEL_H + 12);
-    }
+function drawSlots(ctx: VoxelPainter, sim: SlotsSim, view: ArenaView) {
+  ctx.background();ctx.block(0x87644b,160,120,300,222,20,-3);ctx.block(0xb29860,160,32,270,29,8,4);ctx.text("SALAIRE SELON EXPÉRIENCE",160,32,12,"#233932","center",12);
+  for(let i=0;i<12;i++)ctx.block(sim.status==="spinning"&&Math.floor(view.now/150+i)%3===0?0xf0d28c:0x807052,30+i*260/11,57,5,5,4,6,0,true);
+  sim.reels.forEach((reel,index)=>{const x=REEL_X[index];ctx.block(reel.stopped?0xd6bb7a:0x5c6c57,x,125,84,120,9,2);ctx.block(0xdad0ac,x,125,74,110,4,7);const n=reel.symbols.length;
+    for(let k=Math.floor(reel.offset)-2;k<=Math.floor(reel.offset)+2;k++){const y=125+(k-reel.offset)*ROW;if(y<82||y>166)continue;const symbol=reel.symbols[((k%n)+n)%n];if(symbol==="CHF")ctx.coin(x,y,12);ctx.text(symbol,x,y,symbol==="CHF"?11:9,"#32463a","center",17);}
   });
-  // Payline.
-  ctx.strokeStyle = "rgb(206 77 72 / 0.85)"; ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath(); ctx.moveTo(18, REEL_TOP + REEL_H / 2); ctx.lineTo(WIDTH - 18, REEL_TOP + REEL_H / 2); ctx.stroke();
-  ctx.setLineDash([]);
-  // Payout tray and its promise.
-  ctx.fillStyle = "#5a2320";
-  ctx.beginPath(); ctx.roundRect(60, 196, WIDTH - 120, 22, 6); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.stroke();
-  ctx.fillStyle = "#f5e8bd"; ctx.font = "9px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(sim.status === "won" ? "JACKPOT · BUTIN SUPPLÉMENTAIRE" : sim.status === "lost" ? `${jackpotCount(sim)} CHF sur 3 · « à discuter »` : "3 × CHF = un butin de plus", WIDTH / 2, 210);
+  ctx.line(20,125,300,125,0xb6755f,1.2,18);ctx.text(sim.status==="won"?"JACKPOT · BUTIN SUPPLÉMENTAIRE":"3 × CHF = un butin de plus",160,211,10);
 }
 
 /** The chest's double bottom: stop the three reels on CHF. */
@@ -105,7 +48,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
     onResolve(result, points);
   }, [onResolve, sim]);
 
-  const frame = useCallback((ctx: CanvasRenderingContext2D, view: ArenaView, dt: number, node: HTMLButtonElement) => {
+  const frame = useCallback((ctx: VoxelPainter, view: ArenaView, dt: number, node: HTMLButtonElement) => {
     stepSlots(sim, dt);
     // The browser tests stop the reels through the real input path using these.
     const reel = sim.reels[Math.min(sim.current, sim.reels.length - 1)];
@@ -160,6 +103,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
     status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? "Touche ou Espace : lancer, puis arrêter" : "Touche ou Espace : arrêter"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",
       disabled: phase === "play" && status !== "ready" && status !== "spinning",
       onClick: () => phase === "play" ? tap() : onDone(),
@@ -169,7 +113,6 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
       aria-label="Arrêter le rouleau" disabled={phase !== "play"}
       onPointerDown={event => { event.preventDefault(); tap(); }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour lancer<small>puis tape pour arrêter chaque rouleau</small></span> : null}
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "JACKPOT !" : "SELON EXPÉRIENCE"}</span> : null}
     </button>
   </MiniGameShell>;

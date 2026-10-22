@@ -1,6 +1,6 @@
 import { JOURNEY_TARGET } from "@/lib/config";
 
-/** Continuous distance, in traversals of the illustrated itinerary. */
+/** Continuous distance, in traversals of the itinerary. */
 export function racePosition(steps: number): number {
   return Math.max(0, steps) / JOURNEY_TARGET;
 }

@@ -11,8 +11,7 @@
 | Base de données | **Neon Postgres** via le Marketplace Vercel | ✅ tranché |
 | Framework | **Next.js** + **React** pour l'UI | ✅ tranché |
 | Fuseau horaire de référence | **Europe/Zurich** | ✅ tranché |
-| Rendu de la carte | **Pixi.js 8** via **@pixi/react 8** (2D) | ✅ tranché |
-| ~~Three.js / 3D~~ | Abandonné après prototype — voir plus bas | ❌ écarté |
+| Rendu de la carte | **Three.js**, monde voxel procédural | ✅ tranché |
 | Forme des données | **Journal d'événements** (append-only), pas de compteurs | ✅ recommandé |
 | Authentification | Mot de passe par groupe, sans comptes ; jeton par appareil et PIN par personnage | ✅ tranché (09/2026) |
 | Temps réel | Non en v1 : sondage toutes les 8 s | ✅ tranché (09/2026) |
@@ -20,67 +19,12 @@
 | État d'un groupe | Une valeur JSON versionnée par groupe, écriture conditionnelle sur la version avec relance, journal d'actions append-only | ✅ tranché (09/2026) |
 | Accès base | Client HTTP Neon, SQL brut, schéma créé au premier appel ; base mémoire sans `DATABASE_URL` | ✅ tranché (09/2026) |
 
-## Rendu de la carte : Pixi.js 8 (2D)
+## Rendu du monde : Three.js et voxels
 
-> Cette section conserve les décisions du premier prototype. Depuis septembre 2026,
-> les personnages et les décors utilisent des illustrations WebP et une caméra latérale
-> avec parallaxe. Les règles de rendu actuelles sont dans [RENDERING.md](RENDERING.md).
-
-La Grande Course est une **carte d'aventure en parchemin, dessinée en 2D** avec
-Pixi.js. `@pixi/react` v8 permet de décrire la scène en composants React plutôt qu'en
-instructions impératives.
-
-> **Pourquoi pas la 3D ?** Un prototype Three.js / react-three-fiber a été construit
-> puis abandonné. Il fonctionnait, mais l'esthétique « carte au trésor sur parchemin »
-> est mieux servie par du dessin 2D que par un paysage en volume, et la 2D coûte
-> beaucoup moins cher en poids et en travail. La leçon est conservée ici pour ne pas
-> refaire le débat.
-
-### Versions
-
-`pixi.js` 8.x et `@pixi/react` 8.x. Ce dernier **exige React 19** et fonctionne par
-catalogue : on enregistre les classes Pixi avec `extend({ Container, Graphics, Text })`,
-puis on les utilise en JSX préfixé (`<pixiContainer>`, `<pixiGraphics>`, `<pixiText>`).
-L'ancienne API `<Stage>` de la v7 n'existe plus.
-
-### Règles d'architecture
-
-**1. Les personnages sont des emojis rendus en texte Pixi.**
-Aucun asset graphique, aucune dépendance à un graphiste. Ajouter un personnage est une
-ligne dans `src/lib/game/characters.ts`.
-
-**2. Seule la carte est en Pixi.** Boutons d'action, Scoreboard, classements et gestion
-des joueur·euses sont du React/DOM classique **à côté** du canvas. Construire une
-interface dans un canvas est un enfer d'ergonomie et d'accessibilité pour zéro bénéfice.
-
-**3. Tout le décor se dessine avec `Graphics`, pas avec des images.** Sapins, marais,
-montagnes, pont et taverne sont des polygones. Le changement de saison ne touche donc
-que la palette du feuillage.
-
-**4. Le chemin est une courbe Catmull-Rom 2D** avec table de longueurs cumulées, dans
-`src/lib/game/trail.ts`. Positionner quelqu'un à X % du parcours se réduit à
-`pointAt(t)`. Sans la table des longueurs, un personnage avancerait par à-coups, plus
-vite dans les virages que dans les lignes droites.
-
-**5. Les animations mutent les objets Pixi dans le ticker, jamais via l'état React.**
-`useTick` plus des refs : aucune image ne déclenche de re-render. C'est la règle qui
-garde le jeu fluide.
-
-**6. Le décor est déterministe.** Positions des sapins tirées avec une graine fixe
-(`src/lib/rng.ts`). Avec `Math.random()`, les arbres sauteraient à chaque rendu.
-
-### Pièges rencontrés
-
-- **Pixi a besoin du DOM et du canvas** : le composant doit être chargé uniquement dans
-  le navigateur (import dynamique, `ssr: false`), sinon le build Vercel casse.
-  Un seul endroit s'en charge : `src/components/GameBoardLoader.tsx`.
-- **`<pixiGraphics>` exige la prop `draw`**, même quand on redessine à la main dans le
-  ticker via une ref. On lui passe alors un dessin vide.
-- **Les noms d'étapes doivent être posés à distance verticale fixe**, pas le long de la
-  normale au chemin : la normale change de côté selon l'orientation, ce qui envoyait
-  les libellés derrière les montagnes.
-- **Les marques de pluriel en JSX** (`action{s}`) produisent des espaces parasites
-  quand elles tombent après un retour à la ligne. Construire la chaîne en JavaScript.
+Le monde, les personnages et les mini-jeux sont reconstruits en géométrie procédurale.
+La caméra orthographique tourne librement, le terrain se charge en chunks, et le
+relief est indépendant des distances conservées dans les sauvegardes.
+Voir [RENDERING.md](RENDERING.md) pour l'architecture et les vérifications.
 
 ## Fuseau horaire : Europe/Zurich
 

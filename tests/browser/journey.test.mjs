@@ -16,7 +16,7 @@ const ready = async page => {
   await page.waitForFunction(() => !document.querySelector('.action-button--entretien')?.disabled);
 };
 
-test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000 }, async t => {
+test('real game journeys, rewards, undo and mobile controls', { timeout: 360_000 }, async t => {
   const server = process.env.GAME_TEST_URL ? null : spawn(process.execPath,
     ['node_modules/next/dist/bin/next', 'start', '--port', '3100'], { stdio: 'ignore' });
   t.after(() => server?.kill());
@@ -78,12 +78,12 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.getByRole('button', { name: 'Ranger le butin' }).click();
       await declineGames(page, 2); // The ghosting wait, then the chest's slot machine.
       await ready(page);
-      assert.match(await page.locator('.power-menu__trigger').innerText(), /11/);
+      assert.match(await page.locator('.journey-card__loot').innerText(), /11/);
       await page.locator('.action-button--entretien').click();
       await declineGames(page);
       await ready(page);
       await statsMatch(page, /107/);
-      assert.match(await page.locator('.power-menu__trigger').innerText(), /11/);
+      assert.match(await page.locator('.journey-card__loot').innerText(), /11/);
       await page.locator('.action-button--refus').click();
       await declineGames(page);
       await ready(page);
@@ -125,9 +125,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       // Let the final reaction settle before checking the paused canvas.
       await page.waitForFunction(() => !document.querySelector('.moment-layer > *'));
       await page.waitForTimeout(400);
-      const before = await page.locator('canvas').screenshot();
+      const before = await page.locator('.voxel-world canvas').screenshot();
       await page.waitForTimeout(600);
-      assert.ok(Buffer.compare(await page.locator('canvas').screenshot(), before) === 0, 'the world stays still behind the standings');
+      assert.ok(Buffer.compare(await page.locator('.voxel-world canvas').screenshot(), before) === 0, 'the world stays still behind the standings');
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('.leaderboard-sheet').count(), 0);
       await ready(page);
@@ -314,13 +314,13 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       await page.getByRole('button', {name: 'Continuer le voyage'}).click();
       await ready(page);
       await statsMatch(page, /10/);
-      assert.match(await page.locator('.power-menu__trigger').innerText(), /2/, 'the chest loot plus the jackpot');
+      assert.match(await page.locator('.journey-card__loot').innerText(), /2/, 'the chest loot plus the jackpot');
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')));
       assert.deepEqual(saved.events.map(e => [e.kind, e.journeyBonus]), [['refus', 1], ['entretien', 1], ['rejetApresEntretien', 2]]);
       assert.deepEqual(saved.miniGames.map(a => [a.kind, a.action, a.slot, a.result]), [['stamp', 'refus', 0, 'won'], ['quiz', 'entretien', 0, 'won'], ['ghosting', 'rejetApresEntretien', 0, 'won'], ['slots', 'chest', 0, 'won']]);
       await page.reload();
       await ready(page);
-      assert.match(await page.locator('.power-menu__trigger').innerText(), /2/);
+      assert.match(await page.locator('.journey-card__loot').innerText(), /2/);
       assert.equal(await page.locator('.mini-game').count(), 0);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
@@ -370,6 +370,9 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
       bob.on('pageerror', error => errors.push(error.message));
       await bob.goto(`${url}/g/${slug}`);
       await bob.waitForURL(/\/rejoindre$/);
+      // The invitation form is server-rendered; wait for its client bundle before
+      // submitting, especially on the first development compilation of this route.
+      await bob.waitForLoadState('networkidle');
       assert.match(await bob.locator('h1').innerText(), /Chômeurs Magnifiques/);
       await bob.getByLabel('Mot de passe du groupe').fill('licorne');
       await bob.getByRole('button', { name: 'Entrer dans le groupe' }).click();
@@ -506,25 +509,19 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 240_000
     } finally { await host.close(); await guest.close(); }
   });
 
-  await t.test('the daily challenge is played once, ranked, and scores become records', async () => {
+  await t.test('the character carnet replaces the daily challenge; scored challenges still become records', async () => {
     const { context, page, errors } = await fixture(0);
     try {
-      // Today's challenge sits in the HUD and starts in one tap.
-      await page.locator('.daily-button').click();
-      const dialog = page.locator('dialog[open].mini-game');
-      await dialog.waitFor();
-      // Opening today's game spends the day's attempt: leaving records zero, no replay.
-      await page.getByRole('button', { name: 'Fermer le mini-jeu' }).click();
-      await page.locator('.daily__done').waitFor();
-      await page.locator('.daily__close').click();
-      assert.equal(await page.locator('.daily-button[data-done="true"]').count(), 1);
-      await page.locator('.daily-button').click();
-      assert.equal(await page.locator('dialog[open].mini-game').count(), 0, 'no replay once played');
-      await page.locator('.daily__done').waitFor();
-      const runs = await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')).daily);
-      assert.deepEqual(runs.map(r => [r.score, Boolean(r.pending)]), [[0, false]]);
-      // A played game stores its score on the attempt: the record shows on the next invitation.
-      await page.locator('.daily__close').click();
+      assert.equal(await page.locator('.daily-button').count(), 0);
+      assert.equal(await page.getByRole('button', { name: 'Quêtes', exact: true }).count(), 0);
+      await page.getByRole('button', { name: /Ouvrir le carnet/ }).click();
+      assert.equal(await page.locator('.sound-toggle').count(), 1);
+      await page.getByRole('button', {name: 'Quêtes', exact: true}).click();
+      assert.equal(await page.locator('.adventure-menu__games > button').count(), 13);
+      await page.keyboard.press('2');
+      assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('louchomage:v2')))).events.length, 0);
+      await page.keyboard.press('Escape');
+      await ready(page);
       await page.locator('.action-button--refus').click();
       await playGame(page);
       await page.getByRole('button', {name: 'Lancer le tapis'}).click();

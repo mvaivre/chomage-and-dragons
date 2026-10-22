@@ -105,12 +105,13 @@ export function ActionBar({
             onClick={() => onAction(kind)}
             disabled={hired || locked}
             title={`${label} — ${hint}`}
+            aria-label={`${label} · ${JOURNEY_STEPS[kind] === 0 ? "Arrivée" : `${JOURNEY_STEPS[kind]} pas`}`}
             className={`action-button action-button--${kind}`}
           >
             <span className="keycap">{index + 1}</span>
             <ActionArtwork kind={kind} className="action-button__icon" />
             <span className="action-button__label">
-              {label}
+              <span className="action-button__full-label">{label}</span><span className="action-button__short-label">{["Candidater", "Refus", "Entretien", "Rejet", "Embauche"][index]}</span>
             </span>
             <span className="action-button__reward">
               {JOURNEY_STEPS[kind] === 0

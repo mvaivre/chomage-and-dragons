@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
-import {access} from 'node:fs/promises';
 registerHooks({resolve(s,c,n){return n(s.startsWith('@/')?new URL(`../src/${s.slice(2)}.ts`,import.meta.url).href:s,c);}});
 const {HIDDEN_ITEMS,hiddenItemForId,hiddenItemsInRange}=await import('../src/lib/game/hidden-objects.ts');
-const {BIOMES,WORLD_LENGTH,biomeAt,surfaceAt}=await import('../src/lib/game/world.ts');
+const {BIOMES,WORLD_LENGTH,biomeAt}=await import('../src/lib/game/world.ts');
 const {interiorAt}=await import('../src/lib/game/decor.ts');
 const {PUNCHLINES,punchlineFor,residentPunchline}=await import('../src/lib/game/punchlines.ts');
 
@@ -13,12 +12,9 @@ test('the hidden collection has one small background prop per biome',async()=>{
  assert.equal(new Set(HIDDEN_ITEMS.map(item=>item.id)).size,HIDDEN_ITEMS.length);
  for(const item of HIDDEN_ITEMS){
   assert.equal(biomeAt(item.x).id,item.biome);
-  assert.ok(item.size>=36&&item.size<=48);
-  assert.ok(item.y>=350&&item.y<=surfaceAt(item.x)-24,'the background prop stays above the walkable plane');
   for(const offset of [-150,0,150])assert.equal(interiorAt(item.x+offset),undefined);
   assert.equal(hiddenItemForId(item.id),item);
-  assert.ok(item.art.startsWith('/art/world-v3/collectibles/'),'collectibles use dedicated object illustrations');
-  await access(new URL(`../public${item.art}`,import.meta.url));
+  assert.ok(['letter','key','scroll','tankard','compass','crystal','lamp','hammer','crown'].includes(item.model));
  }
  assert.equal(hiddenItemForId('hidden:1:plaine'),null);
  assert.deepEqual(hiddenItemsInRange(-200,WORLD_LENGTH+200),HIDDEN_ITEMS);
