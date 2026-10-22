@@ -9,6 +9,7 @@ import {
   routeHeight,
   routeZ,
   terrainHeight,
+  continuationHeight,
   voxelPalette,
   villagePond,
   foregroundPool,
@@ -256,16 +257,48 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     root.add(ground);
     return geo;
   });
-  // Coarse visual ground continues beyond the walking tile and disappears in fog.
+  // Sloping shoulders meet the last playable column exactly. Adjacent columns
+  // are closed too, including the high volcanic ridge viewed from behind.
   const apronPositions: number[] = [], apronNormals: number[] = [], apronColors: number[] = [];
-  for (let ix = 0; ix < columns; ix++) for (const side of [-1, 1]) for (let row = 0; row < 4; row++) {
-    const x = cx * s + ix * cell, z0 = side < 0 ? -BACKGROUND_DEPTH - row * 6 : FOREGROUND_DEPTH + row * 6;
-    const z1 = z0 + side * 6, a = Math.min(z0, z1), b = Math.max(z0, z1);
-    const leftY = routeHeight(x) + .12, rightY = routeHeight(x + cell) + .12, river = riverAt(x + cell / 2, (a + b) / 2);
-    const color = new THREE.Color(river ? 0x519b9b : palettes[ix].ground).multiplyScalar(0.9 + (ix % 3) * 0.04);
-    for (const v of [[x, river?.y ?? leftY, a], [x, river?.y ?? leftY, b], [x + cell, river?.y ?? rightY, b], [x, river?.y ?? leftY, a], [x + cell, river?.y ?? rightY, b], [x + cell, river?.y ?? rightY, a]]) {
-      apronPositions.push(...v); apronNormals.push(0, 1, 0); apronColors.push(color.r, color.g, color.b);
+  const apronA = new THREE.Vector3(), apronB = new THREE.Vector3(), apronC = new THREE.Vector3();
+  const apronTriangle = (vertices: number[][], color: THREE.Color) => {
+    const a = apronA.fromArray(vertices[0]), b = apronB.fromArray(vertices[1]), c = apronC.fromArray(vertices[2]);
+    const normal = b.sub(a).cross(c.sub(a));
+    if (normal.lengthSq() < 1e-16) return;
+    normal.normalize();
+    for (const v of vertices) { apronPositions.push(...v); apronNormals.push(normal.x, normal.y, normal.z); apronColors.push(color.r, color.g, color.b); }
+  };
+  const apronQuad = (v: number[][], color: THREE.Color) => { apronTriangle([v[0], v[1], v[2]], color); apronTriangle([v[0], v[2], v[3]], color); };
+  // Sample each shoulder node once, including the shared half-cell halo.
+  const shoulders = [-1, 1].map(side => {
+    const values = new Float64Array((columns + 2) * 13);
+    for (let ix = -1; ix <= columns; ix++) for (let row = 0; row <= 12; row++) {
+      const x = cx * s + (ix + .5) * cell, z = side < 0 ? -BACKGROUND_DEPTH - row * 2 : FOREGROUND_DEPTH + row * 2;
+      values[(ix + 1) * 13 + row] = riverAt(x, z)?.y ?? continuationHeight(x, z);
     }
+    return values;
+  });
+  const shoulder = (xx: number, zz: number) => {
+    const col = Math.round((xx - cx * s) / cell - .5) + 1, row = Math.round((Math.abs(zz) - (zz < 0 ? BACKGROUND_DEPTH : FOREGROUND_DEPTH)) / 2);
+    return shoulders[zz < 0 ? 0 : 1][col * 13 + row];
+  };
+  const node = (center: number, edge: number, z: number) => {
+    const boundary = z < 0 ? -BACKGROUND_DEPTH : FOREGROUND_DEPTH, d = Math.min(1, Math.abs(z - boundary) / 4), blend = d * d * (3 - 2 * d);
+    return shoulder(center, z) * (1 - blend / 2) + shoulder(center + Math.sign(edge - center) * cell, z) * blend / 2;
+  };
+  for (let ix = 0; ix < columns; ix++) for (const side of [-1, 1]) for (let row = 0; row < 12; row++) {
+    const x = cx * s + ix * cell, xx = x + cell / 2, z0 = side < 0 ? -BACKGROUND_DEPTH - row * 2 : FOREGROUND_DEPTH + row * 2;
+    const z1 = z0 + side * 2, a = Math.min(z0, z1), b = Math.max(z0, z1), y0 = node(xx, x, a), y1 = node(xx, x, b);
+    const river = riverAt(xx, (a + b) / 2), color = new THREE.Color(river ? 0x519b9b : palettes[ix].ground).multiplyScalar(.94);
+    apronQuad([[x, y0, a], [x, y1, b], [x + cell, node(xx, x + cell, b), b], [x + cell, node(xx, x + cell, a), a]], color);
+    // Close the short transition from voxel columns to the continuous slope.
+    // If two profiles cross, split at their intersection instead of a twisted quad.
+    const left0 = node(xx - cell, x, a), left1 = node(xx - cell, x, b), d0 = y0 - left0, d1 = y1 - left1;
+    if (d0 * d1 < 0) {
+      const u = d0 / (d0 - d1), mid = [x, y0 + (y1 - y0) * u, a + (b - a) * u];
+      apronTriangle([[x, y0, a], [x, left0, a], mid], color);
+      apronTriangle([mid, [x, left1, b], [x, y1, b]], color);
+    } else apronQuad([[x, y0, a], [x, left0, a], [x, left1, b], [x, y1, b]], color);
   }
   const apronGeometry = r.geometry(new THREE.BufferGeometry());
   apronGeometry.setAttribute("position", new THREE.Float32BufferAttribute(apronPositions, 3)); apronGeometry.setAttribute("normal", new THREE.Float32BufferAttribute(apronNormals, 3)); apronGeometry.setAttribute("color", new THREE.Float32BufferAttribute(apronColors, 3)); apronGeometry.computeBoundingSphere();
@@ -325,6 +358,19 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     contacts.push({ x, y: y + 0.035, z, rx: 1.05 * size, rz: 0.8 * size, opacity: 0.65 });
     treeTriangles += plantTree(treeBatch.box, canopyBatch.box, biome, t,
       x, y, z, size, p.leaf);
+  }
+  // Sparse life just beyond the playable band, grounded on the shared shoulder
+  // vertices. These remain scenery; the saved path and collisions do not extend.
+  for (const offset of [3, 11]) {
+    const x = cx * s + offset, z = -BACKGROUND_DEPTH - 4, y = (shoulder(x - .25, z) + shoulder(x + .25, z)) / 2;
+    const species = biomeWeights(x).a.id, size = .7;
+    if (treeFits(x, z, size, reserved) && !riverAt(x, z)) {
+      if (species === "volcan") treeBatch.box(0x61586a, x, y + .7, z, .8, 1.4, .8);
+      else if (species === "desert") { treeBatch.box(0x67865a, x, y + .9, z, .25, 1.8, .25); treeBatch.box(0x779767, x + .3, y + 1, z, .7, .2, .2); }
+      else { treeTriangles += plantTree(treeBatch.box, canopyBatch.box, species, offset, x, y, z, size, voxelPalette(x).leaf); trees.push({ x, z, size }); }
+    }
+    const frontZ = FOREGROUND_DEPTH + 4, frontY = (shoulder(x - .25, frontZ) + shoulder(x + .25, frontZ)) / 2;
+    if (!riverAt(x, frontZ)) { treeBatch.box(palette.rock, x, frontY + .17, frontZ, .65, .34, .55); canopyBatch.box(palette.leaf, x + .3, frontY + .35, frontZ + .15, .7, .45, .6); }
   }
   treeBatch.finish();
   canopyBatch.finish();

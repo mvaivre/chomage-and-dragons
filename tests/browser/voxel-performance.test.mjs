@@ -29,6 +29,8 @@ test("voxel transitions keep bounded draw, shader and mobile budgets without cha
         const initial = await page.evaluate(() => window.__voxelWorld.performance);
         if (mobile) {
           assert.equal(initial.bloom, false);
+          assert.equal(initial.miniature, false);
+          assert.deepEqual(initial.blurSize, [1, 1], "mobile does not retain full-size blur buffers");
           assert.ok(initial.pixelRatio <= 1);
           assert.equal(initial.lightSlots, 2);
           assert.equal(initial.shadowSize, 0);
@@ -55,6 +57,7 @@ test("voxel transitions keep bounded draw, shader and mobile budgets without cha
           if (mobile) {
             assert.ok(Math.max(...stats.map(s => s.triangles)) < 150000, "mobile peak stays under 150k, including tavern and contacts");
             assert.ok(stats.every(s => s.perf.shadowSize === 0 && !s.perf.shadowMapAllocated));
+            assert.ok(stats.every(s => !s.perf.miniature && s.perf.blurSize.every(n => n === 1)));
             assert.ok(stats.every(s => s.perf.contactShadows > 0));
             const costs = await page.evaluate(() => window.__voxelWorld.mainGeometry);
             for (const [id, triangles] of costs) {

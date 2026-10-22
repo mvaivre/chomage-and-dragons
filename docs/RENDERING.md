@@ -457,3 +457,42 @@ centimètre. L’ancien seuil omettait ces faces et laissait de fines fissures v
 en caméra arrière. Un test vérifie les arêtes partagées de la géométrie réelle ;
 la fermeture ajoute environ 2 400 triangles à la pointe du parcours mobile testé,
 qui reste sous 124 k.
+
+
+## Miniature, profondeur de champ et relief prolongé
+
+`miniature.ts` utilise la [texture de profondeur de Three.js](https://threejs.org/docs/pages/DepthTexture.html)
+du rendu principal, sans redessiner les objets. La zone nette suit le héros ou la
+cible inspectée. Le flou commence à 2,8 mètres de différence de profondeur caméra
+et atteint son maximum à 11 mètres, à l’avant comme à l’arrière. Deux filtres à
+mi-résolution alimentent une composition avec l’image nette ; le centre net reste
+à la résolution originale. Le filtrage limite la diffusion des détails nets dans le
+fond flou. Le HUD et les dialogues DOM restent nets.
+
+Cet effet est réservé au profil élevé et suit le bouton des effets visuels.
+Les profils mobile/équilibré et faible gardent le rendu direct : les buffers de
+composition et de flou sont ramenés à 1 × 1. La baisse automatique de qualité
+libère également leurs grandes textures. Les trois dessins plein écran ajoutent trois triangles par image, sans nouvelle
+lumière, flou volumétrique ou modification des modèles du monde.
+
+La brume utilisait sa couleur linéaire après la conversion de l’image vers sRGB :
+le rendu direct produisait donc un halo sombre, différent du ciel. Sa couleur passe
+maintenant par la conversion correspondant à la cible de rendu. Un test GPU
+compare les pixels du ciel et ceux d’une géométrie complètement embrumée, en
+rendu direct et HDR, sur trois palettes de jour et de nuit : les valeurs sont
+identiques. Le brouillard de distance reste une légère transition colorée pour
+masquer la limite du chargement ; il ne produit plus un voile noir.
+
+Le prolongement visuel se raccorde à la hauteur exacte de la dernière colonne
+voxel, puis redescend avec une courbe douce sur 16 mètres. Les marches des colonnes
+se fondent dans une surface continue sur les quatre premiers mètres. Les profils
+qui se croisent sont triangulés à leur intersection pour éviter les trous. Quelques
+arbres, rochers et plantes prolongent le décor, sans étendre le parcours jouable.
+Le relief central, les clairières et les distances des sauvegardes sont conservés.
+
+Validation : 159 tests unitaires et régression navigateur sur les neuf biomes,
+les intérieurs, les interactions et les 13 mini-jeux. La comparaison du vrai jeu
+avec/sans profondeur de champ réduit l’énergie des détails lointains d’environ
+31 %, tout en conservant 1 084 / 1 085 pixels roses du héros. Le parcours mobile
+émulé atteint 131 698 triangles et 135 appels en pointe, sous les plafonds
+150 k / 200. Ces mesures ne sont pas un benchmark de téléphone physique.

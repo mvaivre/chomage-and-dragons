@@ -60,7 +60,7 @@ export class VoxelResources {
         shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <fog_fragment>",
-        `#include <fog_fragment>\nfloat vf=smoothstep(${FOG_NEAR.toFixed(1)},${FOG_FAR.toFixed(1)},length(vVoxelWorld.xz-voxelFocus)); gl_FragColor.rgb=mix(gl_FragColor.rgb,voxelFog,vf);`,
+        `#include <fog_fragment>\nfloat vf=smoothstep(${FOG_NEAR.toFixed(1)},${FOG_FAR.toFixed(1)},length(vVoxelWorld.xz-voxelFocus)); if(vf>0.0) gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(voxelFog,1.0)).rgb,vf);`,
       );
       if (occluder) {
         shader.uniforms.voxelWindows = { value: this.cutout.windows };
@@ -73,7 +73,7 @@ export class VoxelResources {
         shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + OCCLUSION_FRAGMENT);
       }
     };
-    mat.customProgramCacheKey = () => `voxel-radial-fog-v2:${occluder}`;
+    mat.customProgramCacheKey = () => `voxel-radial-fog-v3:${occluder}`;
   }
   geometry = <T extends THREE.BufferGeometry>(value: T): T => {
     this.geometries.add(value);
@@ -112,7 +112,7 @@ export class VoxelResources {
             "#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance *= vColor.xyz;\n#endif",
           );
       };
-      mat.customProgramCacheKey = () => `voxel-batch-v5:${fog}:${glow}:${foliage}:${occluder}`;
+      mat.customProgramCacheKey = () => `voxel-batch-v6:${fog}:${glow}:${foliage}:${occluder}`;
       this.batchMaterials.set(key, mat);
     }
     return mat;

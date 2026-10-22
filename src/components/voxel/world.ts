@@ -159,6 +159,13 @@ export function terrainHeight(x: number, z: number) {
     base + 0.12 + Math.floor((y - base) * 4) / 4,
   );
 }
+/** The visual shoulder starts at the exact edge-column height, then eases to the
+ * landscape base. It never changes the saved road or the playable terrain. */
+export function continuationHeight(x: number, z: number) {
+  const edge = z < 0 ? -BACKGROUND_DEPTH : FOREGROUND_DEPTH, side = z < 0 ? -1 : 1;
+  const boundary = terrainHeight(x, edge - side * .25), base = routeHeight(x) + .12;
+  return boundary + (base - boundary) * smooth(Math.abs(z - edge) / 16);
+}
 const COLORS: Record<
   string,
   { ground: number; rock: number; path: number; leaf: number; sky: number }

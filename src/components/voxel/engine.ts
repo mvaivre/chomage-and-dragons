@@ -7,6 +7,7 @@ import { hasStampCrush, stampCrushPose, STAMP_RELEASE } from "./stamp-crush";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { MiniaturePass } from "./miniature";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { HIDDEN_ITEMS } from "@/lib/game/hidden-objects";
@@ -193,12 +194,15 @@ export function createVoxelWorld(
   const rim = new THREE.DirectionalLight(0x9bc7d4, 1);
   rim.position.set(15, 12, -20);
   world.add(rim);
+  const sceneDepth = new THREE.DepthTexture(1, 1, THREE.UnsignedInt248Type);
+  sceneDepth.format = THREE.DepthStencilFormat;
   const composer = new EffectComposer(
     renderer,
     new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
       samples: 0,
       stencilBuffer: true,
+      depthTexture: sceneDepth,
     }),
   );
   const bloom = new UnrealBloomPass(
@@ -207,7 +211,10 @@ export function createVoxelWorld(
     0.45,
     1.3,
   );
+  const miniature = new MiniaturePass();
+  const miniatureRequested = !(new URLSearchParams(location.search).has("debug") && new URLSearchParams(location.search).get("miniature") === "0");
   composer.addPass(new RenderPass(world, camera));
+  composer.addPass(miniature);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const localLights = new LocalLightPool(world, deviceLevel ? 2 : 4);
@@ -489,6 +496,7 @@ export function createVoxelWorld(
     // No full-size HDR render targets on mobile when postprocessing is disabled.
     composer.setPixelRatio(quality.bloom ? dpr : 1);
     composer.setSize(quality.bloom ? width : 1, quality.bloom ? height : 1);
+    miniature.enabled = quality.bloom && miniatureRequested;
   }
   const resize = new ResizeObserver((entries) => {
     width = Math.max(1, entries[0].contentRect.width);
@@ -1729,6 +1737,7 @@ export function createVoxelWorld(
     updateMilliseconds = performance.now() - tickStarted;
     renderer.info.reset();
     const renderStarted = performance.now();
+    miniature.setFocus(resources.cutout.count ? resources.cutout.windows[0].z : 38, camera.near, camera.far);
     if (effectsEnabled && quality.bloom) composer.render(dt);
     else renderer.render(world, camera);
     renderMilliseconds = performance.now() - renderStarted;
@@ -1746,6 +1755,9 @@ export function createVoxelWorld(
         frameMs: frameInterval,
         quality: quality.name,
         bloom: effectsEnabled && quality.bloom,
+        miniature: effectsEnabled && quality.bloom && miniature.enabled,
+        focusDepth: resources.cutout.count ? resources.cutout.windows[0].z : 38,
+        blurSize: miniature.blurSize.toArray(),
         pixelRatio: renderer.getPixelRatio(),
         shadowSize: quality.shadowSize,
         shadowMapAllocated: !!sun.shadow.map,
