@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { ContactPatch } from "./contact-shadows";
 import { VoxelResources } from "./resources";
 import { routeHeight, routeZ } from "./world";
+import { factoryLine, factoryStations, FACTORY_AISLE } from "./factory";
 
 /** Text belongs to the board, on both faces, and follows perspective/occlusion. */
 export function letterBoard(
@@ -221,7 +222,7 @@ export function interiorDetails(
   root.userData.contactPatches = contacts;
   for (let x = from; x < to; x += 0.5) {
     const h = routeHeight(x) - base;
-    if (tavern) floorSurface.box(0xa27b4f, x - cx, h + 0.045, -0.2, 0.49, 0.25, 10.245);
+    if (tavern || factory) floorSurface.box(factory ? 0x817e69 : 0xa27b4f, x - cx, h + 0.045, -0.2, 0.49, 0.25, 10.245);
     else for (let d = -5.2; d <= 4.8; d += 0.25) {
       const c = factory
         ? 0x817e69
@@ -230,7 +231,7 @@ export function interiorDetails(
           : 0x92673e;
       b.box(c, x - cx, h + 0.045, d, 0.49, 0.25, 0.245);
     }
-    if (tavern) wallSurface.box(0xb7a586, x - cx, h + 2.075, -5.3, 0.505, 4, 0.3);
+    if (tavern || factory) wallSurface.box(factory ? 0x78867b : 0xb7a586, x - cx, h + 2.075, -5.3, 0.505, 4, 0.3);
     else for (let y = 0.2; y < 4.2; y += 0.25)
       wb.box(
         factory
@@ -253,11 +254,12 @@ export function interiorDetails(
   // Shallow open front and a rear wall that cuts away when the camera moves behind it.
   for (let x = from; x < to; x += 0.5)
     b.box(timber, x - cx, routeHeight(x) - base - 0.25, 5, 0.5, 0.3, 0.2);
-  for (let x = from + 3, n = 0; x < to - 1; x += 6, n++) {
+  const furnishings = factory ? factoryStations(from, to).map(s => s.x) : Array.from({ length: Math.ceil((to - from - 4) / 6) }, (_, i) => from + 3 + i * 6);
+  for (const [n, x] of furnishings.entries()) {
     const xx = x - cx,
       y = routeHeight(x) - base;
     const lamp = lantern(r, 2.7, factory ? 10 : 15);
-    lamp.position.set(xx + 2, y, -3.9);
+    lamp.position.set(factory ? xx - 2.05 : xx + 2, factory ? routeHeight(x - 2.05) - base : y, factory ? -4.2 : -3.9);
     root.add(lamp);
     if (!tavern) {
       wb.box(0x463c32, xx, y + 2.35, -5.02, 1.8, 1.75, 0.12);
@@ -276,46 +278,7 @@ export function interiorDetails(
         wb.box(timber, xx + dx, y + 2.35, -4.88, 0.06, 1.6, 0.05);
       wb.box(timber, xx, y + 2.35, -4.88, 1.65, 0.06, 0.05);
     }
-    if (factory) {
-      // Printing presses, moving rollers, belts and finished CVs.
-      b.box(0x526f67, xx, y + 0.85, -2.5, 2.7, 1.7, 1.6);
-      b.box(0x30443e, xx, y + 1.75, -2.5, 2.5, 0.17, 1.5);
-      b.box(0xb79e60, xx, y + 2.15, -2.5, 2.4, 0.18, 1.5);
-      for (const dx of [-1, 1])
-        b.box(0x839b8e, xx + dx, y + 1.9, -2.5, 0.14, 0.6, 1.45);
-      for (let k = 0; k < 8; k++)
-        b.box(
-          k % 2 ? 0xe5d5ad : 0xc3b38e,
-          xx + 0.3,
-          y + 1.85 + k * 0.055,
-          -2.3,
-          0.75,
-          0.05,
-          0.65,
-        );
-      b.box(0x3f564a, xx, y + 0.75, -2, 2.5, 0.15, 0.9);
-      for (let k = 0; k < 6; k++)
-        b.box(0xb7b9a5, xx - 1 + k * 0.38, y + 0.86, -2, 0.14, 0.09, 0.8);
-      const wheel = new THREE.Group(),
-        w = r.batch(wheel);
-      wheel.position.set(xx - 0.9, y + 1.2, -1.65);
-      for (let k = 0; k < 12; k++) {
-        const a = (k / 12) * Math.PI * 2;
-        w.box(
-          0xc9a25f,
-          Math.cos(a) * 0.33,
-          Math.sin(a) * 0.33,
-          0,
-          0.13,
-          0.13,
-          0.1,
-        );
-      }
-      w.box(0x565848, 0, 0, 0, 0.22, 0.22, 0.15);
-      w.finish();
-      root.add(wheel);
-      (root.userData.wheels ??= []).push(wheel);
-    } else if (!tavern) {
+    if (!factory && !tavern) {
       // Public service counters, paperwork, quills, numbered notices and waiting chairs.
       b.box(0x785336, xx, y + 0.55, -2.6, 3.2, 1.1, 1.4);
       b.box(0xba9159, xx, y + 1.15, -2.6, 3.5, 0.18, 1.6);
@@ -349,7 +312,7 @@ export function interiorDetails(
         for (const side of [-1, 1])
           b.box(timber, sx + side * 0.23, y + 0.23, 3, 0.07, 0.46, 0.5);
       }
-    } else {
+    } else if (tavern) {
       contacts.push(
         { x, y: routeHeight(x) + 0.195, z: z - 3.1, rx: 2.4, rz: 0.9, opacity: 0.8 },
         { x, y: routeHeight(x) + 0.195, z: z + 2.8, rx: 1.25, rz: 0.85, opacity: 0.8 },
@@ -395,6 +358,14 @@ export function interiorDetails(
       b.box(0x725634, xx, y + 1.02, 2.8, 0.4, 0.08, 0.4);
     }
   }
+  if (factory) {
+    const line = factoryLine(r, from, to, z);
+    root.add(line); root.userData.productionLine = line;
+    contacts.push(...line.userData.contactPatches);
+    // Quiet brass lane edges make the continuous, unobstructed route visible.
+    for (let x = from + 0.5; x < to; x += 1.25) for (const side of [-1, 1])
+      b.box(0xb6a473, x - cx, routeHeight(x) - base + 0.181, side * FACTORY_AISLE, 0.48, 0.018, 0.055);
+  }
   const sign = letterBoard(
     r,
     tavern
@@ -433,10 +404,7 @@ export function interiorDetails(
     for (const side of [-1, 1]) b.box(timber, edge - cx, y + 1.6, side * 1.9, 0.23, 3.2, 0.23);
     b.box(timber, edge - cx, y + 3.2, 0, 0.24, 0.25, 4.05);
   }
-  root.userData.animate = (time: number) => {
-    for (const wheel of root.userData.wheels ?? [])
-      wheel.rotation.z = time * 0.8;
-  };
+  root.userData.animate = (time: number) => { root.userData.productionLine?.userData.animate(time); };
   root.userData.camp = true;
   b.finish();
   wb.finish();

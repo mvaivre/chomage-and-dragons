@@ -286,7 +286,8 @@ Sur les mêmes vues mobiles de la taverne : la pointe extérieure passe de 474 4
 restent sous 3 000 triangles. Les sols et murs de la taverne sont des bandes qui suivent
 les altitudes originales ; les teintes des carreaux et tuiles sont calculées dans le
 shader. Le bar, les bouteilles, les tables, les personnages et leurs animations restent
-modélisés. Les autres intérieurs conservent leur construction précédente.
+modélisés. L’ORP conserve sa construction précédente. L’usine utilise aussi des
+bandes de sol et de mur, avec la même altitude et des variations de teinte dans le shader.
 
 `ContactShadows` remplace les ombres projetées sur mobile : une seule passe instanciée
 sans lumière, sans bitmap, sans cible de rendu, deux triangles par empreinte et
@@ -370,3 +371,23 @@ plus gros plans et cadrages larges du village, moulin, monument et troll. Les ca
 et mesures sont dans `.qa/coherence/`. Les tests navigateur conservent le plafond
 mobile de 150 k triangles sur leurs compositions ; ces mesures Chrome avec viewport
 mobile ne constituent pas des mesures de fréquence sur un téléphone physique.
+
+L’usine réserve une allée de 4,4 m, avec un dégagement à chaque porte. Les cinq
+presses et leurs bureaux sont placés au fond ; les tas de CV restent bas au premier
+plan. Les positions des machines et des employés viennent du même plan
+`voxel/factory.ts`. Un test confronte les volumes réels des meubles aux 15 héros,
+avec leurs accessoires, trois files, huit orientations et plusieurs poses de marche,
+sur toute la traversée. Les tests navigateur suivent aussi les volumes animés lors
+de l’entrée réelle, du coffre, du passage devant la première presse et du retour.
+
+Les engrenages tournent, quinze CV imprimés sont éjectés, passent au-dessus des
+têtes et retombent sur leurs piles. Ils réutilisent un seul lot de 60 cubes minces,
+soit 720 triangles, sans création de particules ni ombres projetées supplémentaires.
+Cinq ouvriers en tablier et coiffe de papier lèvent puis abaissent leur tampon ;
+l’empreinte rouge apparaît sur le CV au moment de l’impact. Leurs cycles sont
+décalés, les conversations suspendent le geste et les animations respectent la
+pause et les mouvements réduits. Chaque ouvrier coûte moins de 400 triangles et
+trois lots. La simplification du sol et du mur réduit le coût total de la salle,
+malgré les nouvelles animations. Le test navigateur impose moins de 20 k triangles
+sur la vue mobile intérieure contrôlée, sans shadow map ; le plafond extérieur de
+150 k sur les trajets testés reste inchangé. Captures : `.qa/factory/`.

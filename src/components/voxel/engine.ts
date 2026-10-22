@@ -60,6 +60,7 @@ import {
 } from "./life";
 import { nextDoor, type RoomLocation } from "@/lib/game/doors";
 import { journeyPoint, portalSite, villageSites, millSite, roomRouteZ } from "./layout";
+import { factoryStations, factoryWorker } from "./factory";
 import { INSPECTION_SECONDS } from "./conversations";
 import { letterBoard, cottage, interiorDetails, waysideCamp } from "./scenery";
 import { createReaction } from "./staging";
@@ -445,6 +446,13 @@ export function createVoxelWorld(
       pigeon.userData.interiorFrom = room.from;
       objects.set(`party-pigeon:${room.from}`, pigeon);
       world.add(pigeon);
+    } else if (room.id === "factory") {
+      for (const station of factoryStations(from, to)) {
+        const worker = factoryWorker(resources, station.index);
+        worker.position.set(station.workerX, routeHeight(station.workerX) + 0.18, routeZ(cx) + station.workerZ);
+        worker.userData.interiorFrom = room.from;
+        objects.set(`staff:${room.from}:${station.index}`, worker); world.add(worker);
+      }
     } else
       for (let i = 0; i < 6; i++) {
         const x = from + 2 + i * 5,
@@ -1160,7 +1168,7 @@ export function createVoxelWorld(
             const desired =
                 inspection?.id === id
                   ? body.position
-                  : patrol(body, time, stationed, scene.reducedMotion),
+                  : obj.userData.factoryWork ? body.home : patrol(body, time, stationed, scene.reducedMotion),
               u = scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 4);
             if (
               roomFrom === undefined &&
@@ -1256,6 +1264,7 @@ export function createVoxelWorld(
             dt,
           );
         const chatting = inspection?.id === id;
+        if (obj.userData.factoryWork && !airborne && !chatting) obj.rotation.y = 0;
         if (chatting && !scene.reducedMotion)
           obj.rotation.y = dampAngle(
             obj.rotation.y,
@@ -1763,6 +1772,7 @@ export function createVoxelWorld(
         tilt: a.root.rotation.z,
         pickup: a.pickup ?? null,
         position: a.root.position.toArray(),
+        bounds: profileGeometry ? (() => { const b = new THREE.Box3().setFromObject(a.root); return { min: b.min.toArray(), max: b.max.toArray() }; })() : undefined,
         passage: a.passage ? { boundary: a.passage.boundary, elapsed: time - a.passage.started, source: a.passage.source?.id ?? null, destination: a.passage.destination?.id ?? null } : null,
       })),
       reactions: [...stagings].map(([id, s]) => ({
@@ -1783,6 +1793,7 @@ export function createVoxelWorld(
           collected: !!o.userData.pickedUp,
         })),
       scenery: profileGeometry ? [...objects].filter(([id]) => /^(facade|mill|village):/.test(id)).map(([id, o]) => ({ id, position: o.position.toArray(), visible: o.visible, door: o.userData.door?.rotation.y })) : undefined,
+      factory: profileGeometry && activeRoom?.id === "factory" ? objects.get(`room:${activeRoom.from}`)?.userData.productionLine?.userData.snapshot() : undefined,
       trees: profileGeometry ? [...chunks.values()].flatMap(c => c.userData.trees ?? []) : undefined,
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
@@ -1800,6 +1811,7 @@ export function createVoxelWorld(
           kind: o.userData.kind,
           ...o.userData.life,
           visible: o.visible,
+          stamp: o.userData.stamp,
         })),
     };
     (window as unknown as { __voxelWorld: typeof debug }).__voxelWorld = debug;

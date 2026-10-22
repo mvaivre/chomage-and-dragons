@@ -5,7 +5,7 @@ const url = process.env.GAME_TEST_URL ?? "http://localhost:3000";
 test("heroes approach open facades, change rooms under a short fade, and exit along a clear aisle", { timeout: 100000 }, async t => {
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH, args: ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
   t.after(() => browser.close());
-  for (const [steps, source, destination, boundary] of [[10, null, "orp", 1600], [20, "orp", null, 3263.2]]) {
+  for (const [steps, source, destination, boundary] of [[10, null, "orp", 1600], [20, "orp", null, 3263.2], [28, null, "factory", 4300], [38, "factory", null, 5963.2]]) {
     await t.test(`${source ?? "outside"} → ${destination ?? "outside"} and undo`, async () => {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await context.newPage(), errors = [];
       page.on("pageerror", e => errors.push(e.message));
@@ -30,7 +30,10 @@ test("heroes approach open facades, change rooms under a short fade, and exit al
       assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("louchomage:v2")).events.length), before + 1);
       // Dismiss an optional challenge before reversing the same trip.
       await page.waitForTimeout(800);
-      if (await page.locator(".mini-game-invite__pass").isVisible()) await page.locator(".mini-game-invite__pass").click();
+      if (await page.getByRole("button", { name: "Ranger le butin" }).isVisible()) {
+        await page.getByRole("button", { name: "Ranger le butin" }).click();
+        for (let i = 0; i < 2; i++) { await page.locator(".mini-game-invite__pass").waitFor(); await page.locator(".mini-game-invite__pass").click(); }
+      } else if (await page.locator(".mini-game-invite__pass").isVisible()) await page.locator(".mini-game-invite__pass").click();
       await page.getByRole("button", { name: /Annuler/ }).click();
       await page.waitForFunction(source => window.__voxelWorld.room === source && !window.__voxelWorld.actors.find(a => a.id === "test").moving, source);
       const reverse = await page.evaluate(() => window.__voxelWorld.actors.find(a => a.id === "test"));
