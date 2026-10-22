@@ -8,6 +8,7 @@ import {
 } from "./models";
 import { animalModel } from "./fauna";
 import { VoxelResources } from "./resources";
+import { trollModel } from "./troll";
 
 export function characterModel(
   resources: VoxelResources,
@@ -96,6 +97,7 @@ export function dragonModel(resources: VoxelResources, variant = "green") {
 }
 export function propModel(resources: VoxelResources, kind: string) {
   if (kind === "chest") return chestModel(resources);
+  if (kind === "troll") return trollModel(resources);
   const animal = animalModel(resources, kind);
   if (animal) {
     animal.userData.resident = true;
@@ -289,7 +291,6 @@ export function propModel(resources: VoxelResources, kind: string) {
       "worker",
       "traveller",
       "spirit",
-      "troll",
     ].includes(kind)
   ) {
     cube(
@@ -314,13 +315,6 @@ export function propModel(resources: VoxelResources, kind: string) {
           0.1,
           0.4 - i * 0.07,
         );
-    if (kind === "troll") {
-      root.scale.setScalar(1.8);
-      cube(0x73845b, 0, 1.04, 0.1, 0.55, 0.38, 0.48);
-      cube(0x73845b, -0.45, 0.54, 0, 0.3, 0.7, 0.3);
-      cube(0x73845b, 0.45, 0.54, 0, 0.3, 0.7, 0.3);
-      cube(0xb9b694, 0, 1.03, 0.35, 0.4, 0.07, 0.07);
-    }
     if (kind === "innkeeper") {
       cube(0xe3d6b0, 0, 0.45, 0.2, 0.32, 0.56, 0.05);
       cube(0x735c43, 0.4, 0.58, 0.2, 0.25, 0.3, 0.25);
@@ -361,7 +355,6 @@ export function propModel(resources: VoxelResources, kind: string) {
       "toad",
       "mushroom",
       "heron",
-      "troll",
       "squirrel",
     ].includes(kind)
   ) {

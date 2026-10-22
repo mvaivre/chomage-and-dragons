@@ -5,6 +5,7 @@ import "./globals.css";
 import "../components/voxel/voxel.css";
 import "../components/hud/adventure-ui.css";
 import "../components/hud/voxel-ui.css";
+import "../components/hud/event-ui.css";
 
 const pirata = Pirata_One({
   variable: "--font-pirata",

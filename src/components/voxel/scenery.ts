@@ -9,47 +9,39 @@ export function letterBoard(
   text: string,
   width = 2.8,
   height = 1.05,
+  mount: "post" | "wall" = "post",
 ) {
   const root = new THREE.Group(),
     b = r.batch(root);
   root.userData.text = text;
   root.userData.sign = true;
-  b.box(0x65452c, 0, 0.9, 0, 0.14, 1.8, 0.14);
+  if (mount === "post") b.box(0x65452c, 0, 0.9, 0, 0.14, 1.8, 0.14);
   b.box(0x62442e, 0, 1.75, 0, width + 0.14, height + 0.15, 0.16);
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
-  canvas.height = 384;
-  const c = canvas.getContext("2d")!;
-  c.fillStyle = "#dbc598";
-  c.fillRect(0, 0, 1024, 384);
-  c.strokeStyle = "#775a36";
-  c.lineWidth = 12;
-  c.strokeRect(18, 18, 988, 348);
-  c.fillStyle = "#392a20";
-  c.font = "bold 64px Georgia";
-  c.textAlign = "center";
-  c.textBaseline = "middle";
-  const words = text.split(" "),
-    lines: string[] = [];
-  let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (c.measureText(next).width > 880 && line) {
-      lines.push(line);
-      line = word;
-    } else line = next;
+  canvas.height = Math.round(canvas.width * height / width);
+  const c = canvas.getContext("2d")!, w = canvas.width, h = canvas.height;
+  c.fillStyle = "#dbc598"; c.fillRect(0, 0, w, h);
+  c.strokeStyle = "#775a36"; c.lineWidth = Math.max(4, h * 0.025);
+  const pad = Math.min(w, h) * 0.06;
+  c.strokeRect(pad, pad, w - pad * 2, h - pad * 2);
+  c.fillStyle = "#392a20"; c.textAlign = "center"; c.textBaseline = "middle";
+  const maxWidth = w - pad * 4;
+  let fontSize = Math.min(64, h * 0.28), lines: string[] = [];
+  for (;;) {
+    c.font = `bold ${fontSize}px Georgia`;
+    lines = []; let line = "";
+    for (const word of text.split(" ")) {
+      const next = line ? `${line} ${word}` : word;
+      if (c.measureText(next).width > maxWidth && line) { lines.push(line); line = word; }
+      else line = next;
+    }
+    if (line) lines.push(line);
+    if (fontSize <= 20 || (lines.length * fontSize * 1.15 < h - pad * 3 && lines.every(l => c.measureText(l).width <= maxWidth))) break;
+    fontSize -= 2;
   }
-  if (line) lines.push(line);
-  const fontSize = Math.min(64, 270 / Math.max(1, lines.length));
-  c.font = `bold ${fontSize}px Georgia`;
-  lines.forEach((l, i) =>
-    c.fillText(
-      l,
-      512,
-      192 + (i - (lines.length - 1) / 2) * fontSize * 1.15,
-      900,
-    ),
-  );
+  lines.forEach((line, i) => c.fillText(line, w / 2, h / 2 + (i - (lines.length - 1) / 2) * fontSize * 1.15));
+  root.userData.textLayout = { width, height, textureWidth: w, textureHeight: h, fontSize, lines };
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
@@ -163,9 +155,11 @@ export function cottage(
   for (let y = 0; y < 3; y++)
     surface.box(stone[y], -1.35, 3.77 + y * 0.72, -0.7, 0.55, 0.72, 0.55);
   b.box(0xbaa486, -1.35, 5.65, -0.7, 0.78, 0.17, 0.78);
-  for (let x = -4; x <= 4; x++)
-    b.box(x % 2 ? 0x92663d : 0x7d5737, x * 0.1, 1.25, 1.68, 0.095, 1.8, 0.17);
-  b.box(0xdec07e, 0.25, 1.25, 1.8, 0.08, 0.12, 0.08);
+  const door = new THREE.Group(), doorBatch = r.batch(door);
+  door.position.set(-0.48, 0.35, 1.68);
+  for (let x = 0; x < 9; x++) doorBatch.box(x % 2 ? 0x92663d : 0x7d5737, 0.08 + x * 0.1, 0.9, 0, 0.095, 1.8, 0.17);
+  doorBatch.box(0xdec07e, 0.75, 0.9, 0.12, 0.08, 0.12, 0.08);
+  doorBatch.finish(); root.add(door); root.userData.door = door;
   for (let i = 0; i < 3; i++)
     b.box(
       pick(stone, i),
@@ -188,8 +182,8 @@ export function cottage(
       0,
       true,
     );
-  const board = letterBoard(r, title, 3.4, 0.65);
-  board.position.set(0, 1.12, 1.9);
+  const board = letterBoard(r, title, 3.4, 0.5, "wall");
+  board.position.set(0, 0.84, 1.9);
   root.add(board);
   for (const x of [-2.5, 2.3]) {
     const lamp = lantern(r, 2.5, 14);
@@ -299,9 +293,9 @@ export function interiorDetails(
           0.05,
           0.65,
         );
-      b.box(0x3f564a, xx, y + 0.75, -0.9, 2.5, 0.15, 0.9);
+      b.box(0x3f564a, xx, y + 0.75, -2, 2.5, 0.15, 0.9);
       for (let k = 0; k < 6; k++)
-        b.box(0xb7b9a5, xx - 1 + k * 0.38, y + 0.86, -0.9, 0.14, 0.09, 0.8);
+        b.box(0xb7b9a5, xx - 1 + k * 0.38, y + 0.86, -2, 0.14, 0.09, 0.8);
       const wheel = new THREE.Group(),
         w = r.batch(wheel);
       wheel.position.set(xx - 0.9, y + 1.2, -1.65);
@@ -343,8 +337,10 @@ export function interiorDetails(
         `GUICHET ${n + 1} · Pause réglementaire`,
         2.6,
         0.6,
+        "wall",
       );
-      number.position.set(xx, y + 1.4, -4.7);
+      number.name = `counter-sign:${n}`;
+      number.position.set(xx, y + 2, -4.7);
       walls.add(number);
       for (let k = 0; k < 3; k++) {
         const sx = xx - 0.85 + k * 0.8;
@@ -408,8 +404,11 @@ export function interiorDetails(
         : "CENTRE ORP · Votre attente est importante",
     4.8,
     0.9,
+    "wall",
   );
-  sign.position.set(0, 1.6, -4.9);
+  sign.name = "room-title-sign";
+  sign.position.set(0, 3.25, -4.9);
+  for (const x of [-1.8, 1.8]) wb.box(timber, x, 4.65, -5, 0.1, 1, 0.1);
   walls.add(sign);
   if (tavern) {
     const x = to - cx - 3,
@@ -428,6 +427,11 @@ export function interiorDetails(
     const light = r.pointLight(0xff883b, 30, 9, 2);
     light.position.set(x, y + 1, -3);
     root.add(light);
+  }
+  for (const edge of [from + 0.25, to - 0.25]) {
+    const y = routeHeight(edge) - base;
+    for (const side of [-1, 1]) b.box(timber, edge - cx, y + 1.6, side * 1.9, 0.23, 3.2, 0.23);
+    b.box(timber, edge - cx, y + 3.2, 0, 0.24, 0.25, 4.05);
   }
   root.userData.animate = (time: number) => {
     for (const wheel of root.userData.wheels ?? [])

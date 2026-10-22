@@ -38,7 +38,6 @@ import {
   FOREGROUND_DEPTH,
   BACKGROUND_DEPTH,
   WORLD_SCALE,
-  routePoint,
   routeHeight,
   routeZ,
   voxelPalette,
@@ -59,6 +58,8 @@ import {
   dampAngle,
   type LifeBody,
 } from "./life";
+import { nextDoor, type RoomLocation } from "@/lib/game/doors";
+import { journeyPoint, portalSite, villageSites, millSite, roomRouteZ } from "./layout";
 import { INSPECTION_SECONDS } from "./conversations";
 import { letterBoard, cottage, interiorDetails, waysideCamp } from "./scenery";
 import { createReaction } from "./staging";
@@ -118,6 +119,8 @@ type Actor = {
     seen: boolean;
   };
   collectedChestStep?: number;
+  passage?: { boundary: number; direction: number; started: number; source: RoomLocation | null; destination: RoomLocation | null; start: THREE.Vector3 };
+
 };
 type Staging = ReturnType<typeof createReaction> & {
   started: number;
@@ -155,6 +158,11 @@ export function createVoxelWorld(
   renderer.shadowMap.enabled = quality.shadowSize > 0;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
+  const portalFade = document.createElement("div");
+  portalFade.setAttribute("aria-hidden", "true");
+  portalFade.className = "voxel-door-fade";
+  Object.assign(portalFade.style, { position: "absolute", inset: "0", pointerEvents: "none", background: "#152c27", opacity: "0" });
+  host.appendChild(portalFade);
   renderer.domElement.tabIndex = 0;
   renderer.domElement.setAttribute(
     "aria-label",
@@ -401,13 +409,22 @@ export function createVoxelWorld(
     root.userData.room = room;
     objects.set(id, root);
     world.add(root);
-    for (const [index, x] of [from - 2.5, to + 2.5].entries()) {
+    for (const index of [0, 1] as const) {
+      const site = portalSite(room, index);
       const outside = cottage(
         resources,
         index === 0 ? room.name : "Bon voyage !",
         room.id === "factory" ? 0x657d72 : 0x98633f,
       );
-      outside.position.set(x, terrainHeight(x, routeZ(x) - 5), routeZ(x) - 5);
+      outside.position.set(site.x, site.y, site.z);
+      outside.userData.portal = { room, end: index, ...site };
+      // The visible stepping stones use exactly the actor's approach curve.
+      const stones = resources.batch(outside);
+      for (let i = 0; i < 16; i++) {
+        const p = journeyPoint((site.boundary + (index ? 1 : -1) * (0.3 + i * 0.4)) * WORLD_SCALE);
+        stones.box(i % 3 ? 0xb8ac84 : 0xd2c59c, p.x - site.x, p.y - site.y - 0.18, p.z - site.z, 0.65, 0.12, 0.9);
+      }
+      stones.finish();
       objects.set(`facade:${room.from}:${index}`, outside);
       world.add(outside);
     }
@@ -648,7 +665,7 @@ export function createVoxelWorld(
           stride: 0,
           walkBlend: 0,
         };
-        const start = routePoint(target, actor.lane);
+        const start = journeyPoint(target, actor.lane);
         root.position.set(start.x, start.y, start.z);
         actor.previous.copy(root.position);
         actors.set(player.id, actor);
@@ -664,6 +681,7 @@ export function createVoxelWorld(
       if (Math.abs(target - actor.target) > 0.01) {
         cancelInspection();
         actor.pickup = undefined;
+        actor.passage = undefined;
         actor.collectedChestStep = undefined;
         actor.from = actor.x;
         actor.target = target;
@@ -689,7 +707,16 @@ export function createVoxelWorld(
         actor.pickup = undefined;
       if (actor.moving && !props.paused) {
         const pickup = actor.pickup;
-        if (pickup) {
+        if (actor.passage) {
+          const passage = actor.passage, elapsed = time - passage.started;
+          actor.x = passage.boundary + passage.direction * (elapsed >= 0.62 ? 0.1 : -0.1);
+          if (elapsed >= 1.05) {
+            actor.x = passage.direction > 0 ? Math.min(actor.target, actor.x) : Math.max(actor.target, actor.x);
+            actor.from = actor.x; actor.started = time - 0.95;
+            actor.duration = Math.max(0.2, Math.abs(actor.target - actor.x) / WORLD_LENGTH * JOURNEY_TARGET * 0.32);
+            actor.passage = undefined;
+          }
+        } else if (pickup) {
           actor.x = pickup.stop;
           const active = props.effects.some(
             (e) => e.kind === "chest" && e.playerId === player.id,
@@ -743,7 +770,8 @@ export function createVoxelWorld(
                   JOURNEY_TARGET,
                 )
               : null;
-          if (stop !== null && next >= stop) {
+          const crossing = scene.reducedMotion ? null : nextDoor(actor.x, next);
+          if (stop !== null && next >= stop && (!crossing || stop < crossing.x)) {
             actor.x = stop;
             actor.pickup = {
               step: props.pendingChestStep!,
@@ -752,7 +780,10 @@ export function createVoxelWorld(
               seen: false,
             };
           } else {
-            actor.x = next;
+            if (crossing) {
+              actor.passage = { boundary: crossing.x, direction: Math.sign(next - actor.x), started: time, source: interiorAt(actor.x) ?? null, destination: crossing.destination, start: actor.root.position.clone() };
+              actor.x = crossing.x - actor.passage.direction * 0.1;
+            } else actor.x = next;
             const crushing = props.effects.find(
               (e) => e.playerId === player.id && hasStampCrush(e),
             );
@@ -763,7 +794,7 @@ export function createVoxelWorld(
               (!crushingStage ||
                 (time - crushingStage.started) * 1000 <
                   reactionTiming(crushing.kind, true).duration);
-            if (u === 1 && !waitForRecovery) {
+            if (u === 1 && !actor.passage && !waitForRecovery) {
               actor.moving = false;
               props.onTravelDone(player.id);
             }
@@ -774,12 +805,22 @@ export function createVoxelWorld(
       const animated =
         actor.moving ||
         (player.id === "visual-preview" && props.devHero.motion !== "idle");
-      const p = routePoint(actor.x, actor.lane);
+      const p = journeyPoint(actor.x, actor.lane);
       if (all.length > 3) {
         p.x +=
           (Math.floor(index / 3) - (Math.ceil(all.length / 3) - 1) / 2) * 1.15;
-        p.y = routeHeight(p.x) + 0.18;
-        p.z = routeZ(p.x) + actor.lane;
+        const room = interiorAt(actor.x);
+        p.y = room ? journeyPoint(actor.x).y : routeHeight(p.x) + 0.18;
+        p.z = room ? roomRouteZ(room) + actor.lane : routeZ(p.x) + actor.lane;
+      }
+      if (actor.passage && time - actor.passage.started < 0.62) {
+        const pass = actor.passage, room = pass.source ?? pass.destination!;
+        const door = portalSite(room, Math.abs(pass.boundary - room.to) < 1 ? 1 : 0);
+        const elapsed = Math.min(1, (time - pass.started) / 0.6);
+        const end = pass.source ? journeyPoint(pass.boundary - pass.direction * 0.1, actor.lane) : { x: door.x, y: door.y + 0.36, z: door.doorZ - 0.35 };
+        p.x = THREE.MathUtils.lerp(pass.start.x, end.x, elapsed);
+        p.y = THREE.MathUtils.lerp(pass.start.y, end.y, elapsed);
+        p.z = THREE.MathUtils.lerp(pass.start.z, end.z, elapsed);
       }
       actor.velocity
         .set(p.x - actor.previous.x, 0, p.z - actor.previous.z)
@@ -857,14 +898,23 @@ export function createVoxelWorld(
         : (followed?.x ?? 0) / WORLD_SCALE;
     focusX +=
       (wanted - focusX) * (scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 5));
+    const focusPoint = journeyPoint(focusX * WORLD_SCALE);
     focus.lerp(
-      new THREE.Vector3(focusX, routeHeight(focusX) + 1.1, routeZ(focusX)),
+      new THREE.Vector3(focusPoint.x, focusPoint.y + 0.92, focusPoint.z),
       scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 5),
     );
     scene.focus = focusX * WORLD_SCALE;
     scene.targetFocus = wanted * WORLD_SCALE;
     scene.room = interiorAt(followed?.x ?? 0) ?? null;
-    scene.viewedRoom = interiorAt(focusX * WORLD_SCALE) ?? null;
+    const viewedRoom = scene.exploreCenter !== null ? interiorAt(focusX * WORLD_SCALE) ?? null : scene.room;
+    if (scene.viewedRoom?.from !== viewedRoom?.from && scene.exploreCenter === null && followed) {
+      focusX = followed.x / WORLD_SCALE;
+      const p = journeyPoint(followed.x); focus.set(p.x, p.y + 0.92, p.z); cameraFocus.copy(focus);
+    }
+    scene.viewedRoom = viewedRoom;
+    const passage = followed?.passage;
+    const portalTime = passage ? time - passage.started : -1;
+    portalFade.style.opacity = passage ? String(Math.max(0, Math.min(1, (portalTime - 0.43) / 0.14, (0.94 - portalTime) / 0.2))) : "0";
     stream(focus.x, focus.z);
     const aspect = width / height,
       halfW = aspect < 0.8 ? 8.5 : Math.max(13, 9.4 * aspect),
@@ -1019,22 +1069,16 @@ export function createVoxelWorld(
       }
     }
     // A lived-in hamlet at the start: the same scale and warm windows as the reference.
-    const villageX = (lap * WORLD_LENGTH) / WORLD_SCALE - 6;
-    if (Math.abs(villageX - focusX) < 32 && !objects.has(`village:${lap}`)) {
-      const house = cottage(resources, "BUREAU DES POSSIBLES", 0x94633f),
-        z = routeZ(villageX) - 5;
-      house.position.set(villageX, terrainHeight(villageX, z), z);
-      world.add(house);
-      objects.set(`village:${lap}`, house);
-      const bard = addObject(
-        `villager:${lap}`,
-        "traveller",
-        villageX - 1,
-        routeZ(villageX) - 2,
-        1.05,
-      );
-      bard.userData.villager = true;
+    for (const [i, site] of villageSites(lap).entries()) {
+      const id = `village:${lap}:${i}`;
+      if (Math.abs(site.x - focusX) < 34 && !objects.has(id)) {
+        const house = cottage(resources, site.title, site.roof);
+        house.position.set(site.x, terrainHeight(site.x, site.z), site.z);
+        world.add(house); objects.set(id, house);
+      }
     }
+    const villagerX = lap * WORLD_LENGTH / WORLD_SCALE - 1;
+    if (Math.abs(villagerX - focusX) < 30) addObject(`villager:${lap}`, "traveller", villagerX, routeZ(villagerX) - 2, 1.05);
     const roamerX = (lap * WORLD_LENGTH) / WORLD_SCALE + 3;
     if (Math.abs(roamerX - focusX) < 30) {
       const walker = addObject(
@@ -1053,10 +1097,10 @@ export function createVoxelWorld(
       objects.set(`camp:${lap}`, camp);
       world.add(camp);
     }
-    const millX = (lap * WORLD_LENGTH) / WORLD_SCALE + 21;
+    const mill = millSite(lap), millX = mill.x;
     if (Math.abs(millX - focusX) < 32 && !objects.has(`mill:${lap}`)) {
       const root = landmarkModel(resources, "windmill"),
-        z = routeZ(millX) - 7;
+        z = mill.z;
       root.position.set(millX, terrainHeight(millX, z), z);
       objects.set(`mill:${lap}`, root);
       world.add(root);
@@ -1126,17 +1170,18 @@ export function createVoxelWorld(
               desired.z += routeZ(desired.x) - routeZ(body.home.x);
             body.position.x += (desired.x - body.position.x) * u;
             body.position.z += (desired.z - body.position.z) * u;
+            const centerZ = roomFrom === undefined ? routeZ(body.position.x) : roomRouteZ(interiorAt(roomFrom)!);
             body.position.z = THREE.MathUtils.clamp(
               body.position.z,
-              routeZ(body.position.x) - 4.7,
-              routeZ(body.position.x) + 4.7,
+              centerZ - 4.7,
+              centerZ + 4.7,
             );
             body.position.y = ground(body.position.x, body.position.z);
             for (const actor of actors.values()) {
               const actorRoom = interiorAt(actor.x)?.from;
               if (
                 actorRoom !== roomFrom ||
-                actor.velocity.length() < 0.3 ||
+                actor.passage || actor.velocity.length() < 0.3 ||
                 !actor.moving
               )
                 continue;
@@ -1337,7 +1382,9 @@ export function createVoxelWorld(
       step += 10
     ) {
       const x = ((step / JOURNEY_TARGET) * WORLD_LENGTH) / WORLD_SCALE;
-      const chest = addObject(`chest:${step}`, "chest", x, routeZ(x), 1.15);
+      const chestPoint = journeyPoint(x * WORLD_SCALE);
+      const chest = addObject(`chest:${step}`, "chest", x, chestPoint.z, 1.15);
+      chest.position.y = chestPoint.y;
       const owner = props.players.find((p) => p.id === props.meId);
       chest.userData.interiorFrom = interiorAt(x * WORLD_SCALE)?.from;
       chest.userData.pickedUp =
@@ -1387,8 +1434,8 @@ export function createVoxelWorld(
         actor = effect.playerId ? actors.get(effect.playerId) : undefined;
       const p =
         effect.kind === "chest"
-          ? routePoint(effect.origin.x)
-          : (actor?.root.position ?? routePoint(effect.origin.x));
+          ? journeyPoint(effect.origin.x)
+          : (actor?.root.position ?? journeyPoint(effect.origin.x));
       if (effect.kind === "chest") {
         staging.root.userData.reducedMotion = scene.reducedMotion;
         staging.root.userData.collectorOffset = actor
@@ -1478,7 +1525,7 @@ export function createVoxelWorld(
           true,
         );
       finish();
-      const p = routePoint(burst.x);
+      const p = journeyPoint(burst.x);
       root.position.set(p.x, p.y + 1, p.z);
       root.userData.burstUntil = time + 1.2;
       world.add(root);
@@ -1507,6 +1554,11 @@ export function createVoxelWorld(
       obj.visible =
         !obj.userData.pickedUp &&
         (activeRoom ? roomFrom === activeRoom.from : roomFrom === undefined);
+      const portal = obj.userData.portal;
+      if (portal && obj.userData.door) {
+        const near = [...actors.values()].some(a => Math.abs(a.x / WORLD_SCALE - portal.boundary) < 4);
+        obj.userData.door.rotation.y = THREE.MathUtils.damp(obj.userData.door.rotation.y, near ? -Math.PI * 0.68 : 0, 7, dt);
+      }
       if (obj.userData.backwall)
         obj.userData.backwall.visible = Math.cos(viewAzimuth) > 0;
     }
@@ -1710,6 +1762,8 @@ export function createVoxelWorld(
         scale: a.root.scale.toArray(),
         tilt: a.root.rotation.z,
         pickup: a.pickup ?? null,
+        position: a.root.position.toArray(),
+        passage: a.passage ? { boundary: a.passage.boundary, elapsed: time - a.passage.started, source: a.passage.source?.id ?? null, destination: a.passage.destination?.id ?? null } : null,
       })),
       reactions: [...stagings].map(([id, s]) => ({
         id,
@@ -1728,6 +1782,8 @@ export function createVoxelWorld(
           visible: o.visible,
           collected: !!o.userData.pickedUp,
         })),
+      scenery: profileGeometry ? [...objects].filter(([id]) => /^(facade|mill|village):/.test(id)).map(([id, o]) => ({ id, position: o.position.toArray(), visible: o.visible, door: o.userData.door?.rotation.y })) : undefined,
+      trees: profileGeometry ? [...chunks.values()].flatMap(c => c.userData.trees ?? []) : undefined,
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       textures: renderer.info.memory.textures,
@@ -1795,6 +1851,7 @@ export function createVoxelWorld(
       resources.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
+      portalFade.remove();
       canvas.remove();
       scene.heroes.clear();
       delete (window as unknown as { __voxelWorld?: unknown }).__voxelWorld;

@@ -9,6 +9,7 @@ export const TERRAIN_BASE_THICKNESS = 1.6;
 export const FOG_NEAR = 23;
 export const FOG_FAR = 30;
 export const WORLD_METRES = WORLD_LENGTH / WORLD_SCALE;
+export const MILL_Z = -7.8;
 const LENGTH = WORLD_METRES;
 const smooth = (t: number) => {
   t = Math.max(0, Math.min(1, t));
@@ -55,6 +56,23 @@ export function villagePond(x: number, z: number) {
     ) < 1.6
   );
 }
+export type ForegroundPool = { x: number; z: number; y: number; rx: number; rz: number };
+const pools = new Map<number, ForegroundPool | null>();
+/** Sparse, level ponds inset in the foreground; never cross the walking lane. */
+export function foregroundPool(x: number): ForegroundPool | null {
+  const segment = Math.floor(x / 26);
+  if (pools.has(segment)) return pools.get(segment)!;
+  const center = segment * 26 + 9, biome = biomeWeights(center).a.id;
+  const pool = ["plaine", "foret", "marais", "lac", "taverne"].includes(biome)
+    ? { x: center, z: Math.max(6.8, routeZ(center) + 4.4), y: routeHeight(center) - 0.1, rx: 2.6, rz: 1.45 }
+    : null;
+  if (pools.size >= 64) pools.delete(pools.keys().next().value!);
+  pools.set(segment, pool);
+  return pool;
+}
+export function poolRadius(pool: ForegroundPool, x: number, z: number) {
+  return Math.hypot((x - pool.x) / pool.rx, (z - pool.z) / pool.rz);
+}
 export function terrainHeight(x: number, z: number) {
   if (villagePond(x, z))
     return routeHeight(Math.floor(Math.max(0, x) / LENGTH) * LENGTH + 4) - 0.25;
@@ -93,6 +111,20 @@ export function terrainHeight(x: number, z: number) {
     const cone = Math.max(0, 15 - radius * 0.8);
     y += cone * shoulder;
     if (radius < 3 && distance > 3) y -= 6;
+  }
+  // A broad terraced knoll carries the mill; its core is level under the tower.
+  const millX = Math.max(0, Math.floor(x / LENGTH)) * LENGTH + 21;
+  if (Math.abs(x - millX) < 5.8 && Math.abs(z - MILL_Z) < 4.2) {
+    const radius = Math.hypot((x - millX) / 5.8, (z - MILL_Z) / 4.2);
+    const plateau = Math.round((routeHeight(millX) + 1.5) * 4) / 4 + 0.12;
+    if (radius < 0.43) return plateau;
+    if (radius < 1) y += (plateau - y) * smooth((1 - radius) / 0.57);
+  }
+  const pool = foregroundPool(x);
+  if (pool) {
+    const radius = poolRadius(pool, x, z);
+    if (radius < 1) return pool.y - 0.22;
+    if (radius < 1.35) y += (pool.y - 0.22 - y) * smooth((1.35 - radius) / 0.35);
   }
   return Math.max(
     tileBottom(x) + 0.5,

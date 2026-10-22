@@ -6,18 +6,21 @@ import {
   FOREGROUND_DEPTH,
   BACKGROUND_DEPTH,
   tileBottom,
-  WORLD_METRES,
   routeHeight,
   routeZ,
   terrainHeight,
   voxelPalette,
   villagePond,
+  foregroundPool,
+  poolRadius,
 } from "./world";
 import { VoxelResources } from "./resources";
 import { groundDetails } from "./ground-details";
 import type { ContactPatch } from "./contact-shadows";
 import { plantTree } from "./trees";
+import { sceneryFootprints, treeFits } from "./layout";
 import { lantern } from "./scenery";
+import { pondLife } from "./pond-life";
 
 export const TILE_DEPTH = FOREGROUND_DEPTH + BACKGROUND_DEPTH;
 /** Rectangular streamed terrain with relief above a shared, closed underside. */
@@ -72,6 +75,8 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
         xx = x + cell / 2,
         zz = z + cell / 2;
       if (!inside(xx, zz)) continue;
+      const pool = foregroundPool(xx), wet = !!pool && poolRadius(pool, xx, zz) < 1;
+      const plant = wet ? (() => {}) as typeof box : box;
       const p = palettes[ix],
         depth = zz - routeZ(xx),
         path = Math.abs(depth) < 1.4,
@@ -90,6 +95,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
         [0, 1, 0],
         top,
       );
+      if (wet) quad([[x, pool!.y, z], [x, pool!.y, z + cell], [x + cell, pool!.y, z + cell], [x + cell, pool!.y, z]], [0, 1, 0], new THREE.Color(0x519b9b));
       const sides = [
         {
           dx: -cell,
@@ -171,7 +177,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
         const h = 0.08 + random() * 0.22,
           grass = [p.leaf, 0x76934b, 0x91a862, 0x486a44];
         if (biome !== "volcan" && biome !== "montagne" && biome !== "desert") {
-          box(
+          plant(
             grass[Math.floor(random() * grass.length)],
             xx,
             y + h / 2,
@@ -188,11 +194,11 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
                   ? [0xa5d9e2, 0xd4d3ef, 0x8ca9d1]
                   : [0xe5c069, 0xc874a3, 0xa6b5e1, 0xebe6b3, 0xd88e7c];
             const flower = flowers[Math.floor(random() * flowers.length)];
-            box(flower, xx, y + h, zz, 0.12, 0.07, 0.1);
-            box(flower, xx - 0.05, y + h - 0.02, zz, 0.07, 0.065, 0.07);
+            plant(flower, xx, y + h, zz, 0.12, 0.07, 0.1);
+            plant(flower, xx - 0.05, y + h - 0.02, zz, 0.07, 0.065, 0.07);
           }
         } else if (random() < 0.18)
-          box(p.rock, xx, y + 0.08, zz, 0.14 + random() * 0.2, 0.16, 0.18);
+          plant(p.rock, xx, y + 0.08, zz, 0.14 + random() * 0.2, 0.16, 0.18);
       }
       if (path && random() < 0.18)
         box(
@@ -249,6 +255,9 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
   const treeBatch = r.batch(planting);
   const canopyBatch = r.batch(planting, true);
   let treeTriangles = 0;
+  const reserved = sceneryFootprints(cx * s - 4, (cx + 1) * s + 4);
+  const trees: { x: number; z: number; size: number }[] = [];
+  root.userData.trees = trees;
   const treeCount = biome === "foret" ? 18 : 14;
   for (let t = 0; t < treeCount; t++) {
     const box = treeBatch.box;
@@ -265,10 +274,9 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
       y = terrainHeight(x, z),
       size = 0.85 + random() * 0.6;
     // Buildings and the pond have intentional clearings, rather than trees through roofs.
-    const houseX = Math.round(x / WORLD_METRES) * WORLD_METRES - 6;
     if (
-      villagePond(x, z) ||
-      (Math.abs(x - houseX) < 3 && Math.abs(z - routeZ(houseX) + 5) < 3)
+      !treeFits(x, z, size, reserved) ||
+      villagePond(x, z)
     )
       continue;
     if (biome === "desert") {
@@ -291,6 +299,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
       box(0xff9b42, x, y + 0.12, z, 1.2, 0.12, 0.22, 0, true);
       continue;
     }
+    trees.push({ x, z, size });
     contacts.push({ x, y: y + 0.035, z, rx: 1.05 * size, rz: 0.8 * size, opacity: 0.65 });
     treeTriangles += plantTree(treeBatch.box, canopyBatch.box, biome, t,
       x, y, z, size, p.leaf);
@@ -350,6 +359,7 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
     }
   }
   groundDetails(root, r, cx, box);
+  pondLife(root, r, cx);
   finish();
   root.userData.dispose = () => {
     for (const geo of geometries) geo.dispose();

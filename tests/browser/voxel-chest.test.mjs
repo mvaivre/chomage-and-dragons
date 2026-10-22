@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
+import { registerHooks } from "node:module";
+registerHooks({ resolve(s, c, n) {
+  if (s.startsWith("@/")) return n(new URL(`../../src/${s.slice(2)}.ts`, import.meta.url).href, c);
+  if (c.parentURL?.endsWith(".ts") && s.startsWith(".") && !/\.[a-z]+$/i.test(s)) return n(`${s}.ts`, c);
+  return n(s, c);
+} });
+const { journeyPoint } = await import("../../src/components/voxel/layout.ts");
 const url = process.env.GAME_TEST_URL ?? "http://localhost:3000";
 
 test(
@@ -70,11 +77,11 @@ test(
               window.__voxelWorld.chests.find((c) => c.id === "chest:10"),
             );
             assert.ok(chest.visible);
-            const x = chest.position[0];
+            const point = journeyPoint(1512);
             assert.ok(
               Math.abs(
                 chest.position[2] -
-                  (Math.sin(x * 0.055) * 4 + Math.sin(x * 0.15) * 1.2),
+                  point.z,
               ) < 0.00001,
             );
             await page.locator(".action-button--candidature").click();
@@ -88,7 +95,7 @@ test(
             );
             assert.equal(closed.pickup.opening, 0);
             assert.equal(Math.abs(closed.pickup.lidAngle), 0);
-            assert.ok(Math.abs(closed.position[0] - 30.24) < 0.00001);
+            assert.ok(Math.abs(closed.position[0] - point.x) < 0.00001);
             assert.equal(await page.locator(".reward-modal").count(), 0);
             assert.equal(await page.locator(".mini-game-invite").count(), 0);
             const stopped = await page.evaluate(

@@ -1,0 +1,81 @@
+/* The same quiet field journal for invitations, discoveries and earned loot. */
+.game-adventure { --event-panel: #19382ff5; --event-line: #c8bc8266; --event-ivory: #f3edd2; --event-gold: #dac58b; }
+.mini-game-invite-stage { position: absolute; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 20; width: min(calc(100vw - 32px), 760px); transform: translateX(-50%); animation: event-arrive 180ms ease-out both; }
+.mini-game-invite { position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 22px 24px; color: #f3edd2; background: #19382ff5; border: 1px solid #c8bc8266; border-radius: 4px; box-shadow: 0 14px 45px #0b211c70; }
+.mini-game-invite__art { width: 82px; height: 90px; display: grid; place-items: center; background: radial-gradient(ellipse, #b3b97030, transparent 72%); }
+.mini-game-invite__picture { width: 100%; height: 100%; object-fit: contain; filter: none; }
+.mini-game-invite__copy { min-width: 0; }
+.mini-game-invite__copy .mini-game-invite__kicker { color: #cabc8e; margin: 0 0 6px; font-size: 11px; letter-spacing: .13em; text-transform: uppercase; }
+.mini-game-invite h2 { margin: 0; color: #f3edd2; font: 400 clamp(24px, 2.5vw, 32px)/1.1 var(--font-pirata), Georgia, serif; }
+.mini-game-invite__stake { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0; color: #d9dec6; font-size: 16px; line-height: 1.2; }
+.mini-game-invite__stake b { color: #ead18e; font: 500 21px/1 var(--font-garamond), Georgia, serif; }
+.mini-game-invite__copy .mini-game-invite__record { margin: 7px 0 0; color: #bac9b0; font-size: 13px; line-height: 1.25; }
+.mini-game-invite__actions { display: grid; gap: 7px; min-width: 175px; }
+.mini-game-invite__play, .mini-game-invite__pass { min-height: 44px; padding: 10px 16px; border: 1px solid #dac58b77; border-radius: 3px; touch-action: manipulation; cursor: pointer; font-size: 16px; }
+.mini-game-invite__play { color: #20372b; background: #d6c48c; font-family: var(--font-pirata), Georgia, serif; font-size: 20px; }
+.mini-game-invite__pass { color: #d7ddc7; background: transparent; }
+.mini-game-invite__play:hover { background: #e4d5a2; }
+.mini-game-invite__pass:hover { background: #4d695233; }
+.mini-game-invite button:focus-visible { outline: 2px solid #f2d78b; outline-offset: 4px; }
+.game-adventure .reward-overlay { padding: 18px; background: #071e24b8; backdrop-filter: none; animation: event-fade 180ms ease-out both; }
+.game-adventure .reward-modal { width: min(680px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); min-height: 0; grid-template-columns: 160px minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 0; overflow-y: auto; color: var(--event-ivory); background: var(--event-panel); border: 1px solid var(--event-line); border-radius: 4px; box-shadow: 0 20px 65px #071d2466; transform: none; animation: event-card 180ms ease-out both; }
+.game-adventure .reward-modal__corners, .game-adventure .reward-modal__rays { display: none; }
+.game-adventure .reward-modal__visual { grid-row: 1 / 3; min-height: 200px; padding: 16px; border: 0; background: radial-gradient(ellipse at 50% 45%, #a4b97e25, transparent 70%); }
+.game-adventure .reward-modal__art { width: 100%; max-width: 180px; height: auto; filter: none; animation: none; }
+.game-adventure .reward-modal__copy { padding: 26px 26px 18px 6px; text-align: left; animation: none; }
+.game-adventure .reward-modal__eyebrow { color: #cabc8e; font-size: 11px; letter-spacing: .12em; }
+.game-adventure .reward-modal__title { color: var(--event-ivory); font: 400 clamp(28px, 4vw, 36px)/1.1 var(--font-pirata), Georgia, serif; text-shadow: none; margin-top: 7px; }
+.game-adventure .reward-modal__body, .game-adventure .reward-modal__place, .game-adventure .reward-modal__gain { color: #cbd7bc; font-size: 16px; line-height: 1.35; }
+.game-adventure .reward-modal__gain { justify-content: flex-start; margin-top: 16px; gap: 10px; }
+.game-adventure .reward-modal__gain strong { color: var(--event-gold); font-size: 30px; }
+.game-adventure .reward-modal__place strong { color: #e5dec0; }
+.game-adventure .reward-modal__route { height: 4px; border: 0; margin-top: 18px; background: #a8bc8040; }
+.game-adventure .reward-modal__route > div { background: #c8bb82; }
+.game-adventure .reward-modal__loot-label { width: fit-content; color: #e6d298; background: #9ba77a20; border: 1px solid #c8bc8244; border-radius: 3px; padding: 4px 9px; font-size: 12px; }
+.game-adventure .reward-modal__loot { background: #a4b98a12; border: 1px solid #c8bc8233; border-radius: 3px; padding: 10px; }
+.game-adventure .reward-modal__loot small { color: #b5c7a7; }
+.game-adventure .reward-modal__loot strong { color: #eee7c8; font-weight: 500; }
+.game-adventure .reward-modal__close, .game-adventure .shot-inbox-later { min-height: 46px; padding: 10px 16px; border: 1px solid #dac58b77; border-radius: 3px; background: #d6c48c; color: #20372b; box-shadow: none; transform: none; font-size: 18px; }
+.game-adventure .reward-modal__close { justify-self: stretch; margin: 0 26px 24px 6px; }
+.game-adventure .reward-modal__close:hover { background: #e4d5a2; box-shadow: none; transform: none; }
+.game-adventure .shot-inbox-note { border: 0; color: #bdccb0; background: none; }
+.game-adventure .shot-inbox-actions { padding: 0 26px 24px 6px; gap: 8px; }
+.game-adventure .shot-inbox-actions .reward-modal__close { margin: 0; }
+.game-adventure .shot-inbox-later { background: transparent; color: #d7ddc7; }
+.game-adventure .toast-notice__panel { background: var(--event-panel); color: var(--event-ivory); border: 1px solid var(--event-line); border-radius: 4px; padding: 15px 18px; box-shadow: 0 12px 40px #071d2466; }
+.game-adventure .toast-notice__art { filter: none; }
+.game-adventure .toast-notice__panel button { min-height: 44px; border: 1px solid #dac58b77; border-radius: 3px; background: #d6c48c; color: #20372b; box-shadow: none; transform: none; padding: 8px 12px; }
+.game-adventure .reward-modal button:focus-visible, .game-adventure .toast-notice button:focus-visible { outline: 2px solid #f2d78b; outline-offset: 3px; }
+.game-adventure .mini-game { --janky-yellow: #dac58b; --janky-paper-light: #f3edd2; --janky-paper: #e5dcc0; color: var(--event-ivory); background: #17362ffb; border: 1px solid var(--event-line); border-radius: 4px; box-shadow: 0 20px 65px #071d2470; }
+.game-adventure .mini-game::backdrop { background: #071e24b8; }
+.game-adventure .mini-game h2 { font-weight: 400; }
+.game-adventure .mini-game__eyebrow { color: #cabc8e; letter-spacing: .08em; font-size: 11px; }
+.game-adventure .mini-game__primary, .game-adventure .mini-game__skip { border: 1px solid #dac58b77; border-radius: 3px; box-shadow: none; min-height: 46px; }
+.game-adventure .mini-game__primary { background: #d6c48c; color: #20372b; }
+.game-adventure .mini-game__skip { color: #d7ddc7; }
+.game-adventure .mini-game__arena { border: 1px solid #c8bc8266; }
+.game-adventure .mini-game__hud { background: #0e2825; border: 0; }
+.game-adventure .mini-game__progress { border: 0; height: 4px; background: #a8bc8040; }
+.game-adventure .mini-game__stamp { border: 1px solid #dac58b88; border-radius: 3px; transform: translateX(-50%); }
+.game-adventure .mini-game button:focus-visible { outline: 2px solid #f2d78b; outline-offset: 3px; }
+@keyframes event-arrive { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+@keyframes event-card { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes event-fade { from { opacity: 0; } }
+@media (max-width: 600px) {
+  .mini-game-invite-stage { width: calc(100vw - 24px); bottom: max(12px, env(safe-area-inset-bottom)); }
+  .mini-game-invite { grid-template-columns: 58px minmax(0, 1fr); padding: 17px 16px; gap: 12px; }
+  .mini-game-invite__art { width: 58px; height: 76px; }
+  .mini-game-invite h2 { font-size: 26px; }
+  .mini-game-invite__actions { grid-column: 1 / -1; grid-template-columns: 2fr 1fr; min-width: 0; margin-top: 3px; }
+  .mini-game-invite__stake { font-size: 15px; margin-top: 7px; }
+  .game-adventure .reward-modal { grid-template-columns: 1fr; grid-template-rows: 110px auto auto; width: calc(100vw - 28px); max-height: calc(100dvh - 28px); }
+  .game-adventure .reward-modal__visual { grid-row: 1; min-height: 0; padding: 8px; }
+  .game-adventure .reward-modal__art { width: 112px; height: 100px; object-fit: contain; }
+  .game-adventure .reward-modal__copy { padding: 10px 20px 20px; }
+  .game-adventure .reward-modal__title { font-size: 29px; }
+  .game-adventure .reward-modal__close { margin: 0 20px 20px; }
+  .game-adventure .shot-inbox-actions { grid-column: 1; padding: 0 20px 20px; }
+  .game-adventure .toast-notice__panel { flex-wrap: wrap; }
+  .game-adventure .toast-notice__panel button { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .mini-game-invite-stage, .game-adventure .reward-overlay, .game-adventure .reward-modal { animation: none; } }

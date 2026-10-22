@@ -322,3 +322,51 @@ lecture autorisée par un geste plus récent. L’état Safari `interrupted` est
 repris. Le son respecte les préférences, la visibilité et le volume réduit pendant
 les défis ; quitter le jeu restaure le volume de l’accueil. Un contrôle du son est
 accessible dès l’accueil et la sélection.
+
+Les emplacements des façades, maisons du village, moulins, monuments et décors
+narratifs sont désormais partagés dans `voxel/layout.ts`. La plantation réserve
+l’empreinte entière, élargie au rayon de la couronne : un tronc libre ne suffit pas
+si ses feuilles traversent un toit. Les ailes du moulin conservent aussi un axe de
+vue dégagé. Le moulin repose sur le cœur plat d’une petite colline en terrasses.
+Un test génère les chunks de deux tours complets et compare les volumes des arbres
+aux emplacements réservés, y compris de part et d’autre de la jonction des tours.
+Les paysages lointains ne changent pas.
+
+Le départ comprend trois maisons nommées, le petit pont et sa mare, des habitants
+et les lanternes existantes. Des mares espacées de 26 mètres apparaissent au premier
+plan dans les biomes végétaux : lit creusé, eau horizontale opaque, berges, roseaux,
+nénuphars et deux canards animés. Leur génération est déterministe et ne décale pas
+le tirage des arbres ou fleurs existants. Une vignette ajoute moins de 500 triangles,
+les canards 96 chacun ; pas de réflexion, particules ni transparence supplémentaire.
+La profondeur de la tuile et les allées restent libres.
+
+Les trois salles utilisent une allée droite sur leur propre sol en relief, plutôt
+que les méandres du chemin extérieur. Le convoyeur de l’usine est reculé. Une entrée
+ou sortie partage son emplacement entre façade, porte articulée, dalles d’approche
+et trajectoire du personnage. Le passage marque une courte pause devant la porte,
+change de scène sous un fondu puis reprend la distance enregistrée. La caméra
+bascule avec le personnage ; les mouvements réduits passent directement à la salle.
+L’aller, le retour par annulation, les coffres et les longues distances conservent
+les coordonnées de sauvegarde. Les panneaux muraux n’ont plus de piquet ; le grand
+titre est placé au-dessus des guichets. La texture respecte le rapport largeur /
+hauteur de chaque panneau et le texte revient à la ligne sans compression horizontale.
+
+Les invitations, cartes de butin, notifications et cadres des treize mini-jeux
+reprennent le vert profond, l’ivoire et les fines lignes dorées du carnet et de la
+sélection. Leurs illustrations d’action sont conservées, les rayons tournants et
+sceaux géants retirés. Les contrôles natifs, le focus clavier et le démarrage au
+centre de l’arène restent identiques.
+
+Le troll possède son propre modèle de moins de 600 triangles et six lots : épaules
+massives, longs bras et grandes mains, oreilles, nez, yeux, défenses, pagne et massue.
+Sa taille est directement modélisée, car la pose des habitants remplace l’échelle
+racine. Le modèle partage les animations de marche, de parole et les réactions
+physiques des habitants. Les contrôles couvrent les pieds, la silhouette, les quatre
+membres, le budget et la libération des instances.
+
+Validation de cette passe : vues desktop et mobile de neuf biomes, des trois salles,
+des approches et sorties et de la jonction suivante (17 positions par appareil),
+plus gros plans et cadrages larges du village, moulin, monument et troll. Les captures
+et mesures sont dans `.qa/coherence/`. Les tests navigateur conservent le plafond
+mobile de 150 k triangles sur leurs compositions ; ces mesures Chrome avec viewport
+mobile ne constituent pas des mesures de fréquence sur un téléphone physique.

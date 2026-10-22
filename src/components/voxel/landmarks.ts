@@ -15,18 +15,9 @@ export function landmarkModel(resources: VoxelResources, kind: string) {
   };
   switch (kind) {
     case "windmill": {
-      for (let x = -5; x <= 5; x++)
-        for (let z = -4; z <= 4; z++)
-          if ((x * x) / 25 + (z * z) / 16 < 1)
-            box(
-              (x + z) % 3 ? 0xd4c49e : 0xbca980,
-              x * 0.2,
-              1.4,
-              z * 0.2,
-              0.2,
-              2.8,
-              0.2,
-            );
+      box(0xbca980, 0, 0.14, 0, 2.2, 0.28, 1.9);
+      box(0xd4c49e, 0, 1.5, 0, 1.6, 2.8, 1.5);
+      box(0xc6b48d, 0, 1.5, 0, 1.9, 2.8, 1.1);
       for (let i = 0; i < 7; i++)
         box(
           0x806044,

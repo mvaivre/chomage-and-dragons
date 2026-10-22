@@ -22,6 +22,7 @@ const { HIDDEN_ITEMS } = await import("../src/lib/game/hidden-objects.ts");
 const { VARIANTS } = await import("../src/lib/game/variants.ts");
 const {
   routeHeight,
+  biomeWeights,
   routePoint,
   routeZ,
   terrainHeight,
@@ -33,6 +34,8 @@ const {
   TERRAIN_BASE_THICKNESS,
   tileBottom,
   FOG_FAR,
+  foregroundPool,
+  poolRadius,
 } = await import("../src/components/voxel/world.ts");
 const { VoxelResources } = await import("../src/components/voxel/resources.ts");
 const { makeChunk } = await import("../src/components/voxel/chunks.ts");
@@ -343,10 +346,12 @@ test("heroes have head, torso and distance-driven gait as well as expressive act
   resources.dispose();
 });
 
-test("foreground stays level with the path in every biome while the back keeps real relief", () => {
+test("foreground stays level outside inset ponds while the back keeps real relief", () => {
   for (const biome of BIOMES) {
     const x = (((biome.from + biome.to) / 2) * WORLD_LENGTH) / WORLD_SCALE;
     for (const depth of [1.5, 2.5, 4, FOREGROUND_DEPTH - 0.2]) {
+      const pool = foregroundPool(x);
+      if (pool && poolRadius(pool, x, routeZ(x) + depth) < 1.35) continue;
       assert.ok(
         Math.abs(
           terrainHeight(x, routeZ(x) + depth) - (routeHeight(x) + 0.12),
@@ -363,6 +368,30 @@ test("foreground stays level with the path in every biome while the back keeps r
       (_, i) => terrainHeight(x + i, routeZ(x + i) - 8) - routeHeight(x + i),
     ).some((y) => Math.abs(y) > 1),
   );
+});
+
+test("foreground ponds have level water, a submerged bed, clear walking lanes and compact wildlife", () => {
+  const r = new VoxelResources();
+  for (let x = 0; x < WORLD_LENGTH / WORLD_SCALE * 2; x += 26) {
+    const pool = foregroundPool(x);
+    if (!pool) continue;
+    assert.ok(pool.z + pool.rz * 1.35 < FOREGROUND_DEPTH);
+    assert.ok(pool.z - pool.rz * 1.35 > routeZ(pool.x) + 1.4);
+    for (const dx of [-1, 0, 1]) assert.ok(terrainHeight(pool.x + dx, pool.z) < pool.y);
+  }
+  const chunk = makeChunk(0, 0, r), ducks = [];
+  chunk.traverse(o => { if (o.name === "pond-duck") ducks.push(o); });
+  assert.equal(ducks.length, 2);
+  const before = ducks.map(duck => duck.position.clone());
+  chunk.userData.animate(10);
+  for (const [index, duck] of ducks.entries()) {
+    let cost = 0;
+    duck.traverse(o => { if (o.isInstancedMesh) cost += o.count * 12; });
+    assert.ok(cost < 120);
+    assert.ok(duck.position.distanceTo(before[index]) > 0.1);
+    assert.ok(Math.abs(duck.position.y - foregroundPool(9).y) < 0.02);
+  }
+  chunk.userData.dispose(); assert.equal(r.instances.size, 0); r.dispose();
 });
 test("straight front and rear edges share a closed underside even across steep biome transitions", () => {
   const r = new VoxelResources();
@@ -539,6 +568,46 @@ test("a chest interrupts only its forward milestone; pickup remains closed befor
 });
 
 const { plantTree } = await import("../src/components/voxel/trees.ts");
+const { sceneryFootprints, journeyPoint, roomRouteZ, portalSite, millSite } = await import("../src/components/voxel/layout.ts");
+const { INTERIORS } = await import("../src/lib/game/decor.ts");
+
+test("every generated canopy stays clear of building roofs and mill sails across two laps", () => {
+  const r = new VoxelResources();
+  for (let cx = -1; cx < Math.ceil(WORLD_LENGTH / WORLD_SCALE * 2 / CHUNK_SIZE); cx++) {
+    const chunk = makeChunk(cx, 0, r), sites = sceneryFootprints(cx * CHUNK_SIZE - 4, (cx + 1) * CHUNK_SIZE + 4);
+    for (const tree of chunk.userData.trees) {
+      const bounds = new THREE.Box3();
+      const emit = (_color, x, y, z, w, h = w, d = w) => {
+        bounds.expandByPoint(new THREE.Vector3(x - w / 2, y - h / 2, z - d / 2));
+        bounds.expandByPoint(new THREE.Vector3(x + w / 2, y + h / 2, z + d / 2));
+      };
+      plantTree(emit, emit, biomeWeights(tree.x).a.id, 1, tree.x, 0, tree.z, tree.size, 0x426d3c);
+      for (const s of sites) assert.ok(bounds.max.x <= s.x - s.rx || bounds.min.x >= s.x + s.rx || bounds.max.z <= s.z - s.rz || bounds.min.z >= s.z + s.rz, `${cx}: tree intersects ${s.id}`);
+    }
+    chunk.userData.dispose();
+  }
+  const mill = millSite(0), level = terrainHeight(mill.x, mill.z);
+  for (const dx of [-0.9, 0.9]) for (const dz of [-0.6, 0.6]) assert.equal(terrainHeight(mill.x + dx, mill.z + dz), level);
+  assert.equal(r.instances.size, 0); r.dispose();
+});
+
+test("interior journeys use the room aisle and visible doors while preserving saved distances", () => {
+  for (const room of INTERIORS) {
+    for (let x = room.from + 0.1; x < room.to; x += 10) for (const lane of [-0.95, 0, 0.95]) {
+      const p = journeyPoint(x, lane);
+      assert.equal(p.x, x / WORLD_SCALE); assert.equal(p.z, roomRouteZ(room) + lane);
+      assert.equal(p.y, routeHeight(p.x) + 0.18);
+      assert.ok(Math.abs(p.z - roomRouteZ(room)) + 0.5 < 1.55, "body stays clear of counters, conveyors and door jambs");
+    }
+    for (const end of [0, 1]) {
+      const door = portalSite(room, end), boundary = end ? room.to : room.from;
+      const p = journeyPoint(boundary + (end ? 0.01 : -0.01));
+      assert.ok(Math.abs(p.x - door.x) < 0.001);
+      assert.ok(Math.abs(p.z - door.doorZ) < 0.001);
+      assert.ok(Math.abs(p.y - door.y - 0.36) < 0.001);
+    }
+  }
+});
 const { LocalLightPool } = await import("../src/components/voxel/lighting.ts");
 const { QUALITY, deviceQuality, QualityGovernor } = await import("../src/components/voxel/quality.ts");
 
@@ -694,4 +763,42 @@ test("mobile terrain strips preserve exactly the same surfaces, colors and decor
   full.userData.dispose(); mobile.userData.dispose();
   assert.equal(fullResources.instances.size, 0); assert.equal(mobileResources.instances.size, 0);
   fullResources.dispose(); mobileResources.dispose();
+});
+
+test("wall signs keep their text aspect and cannot overlap the room title", async () => {
+  const { letterBoard, interiorDetails } = await import("../src/components/voxel/scenery.ts");
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "document"), calls = [];
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { createElement() { const context = { font: "", fillRect() {}, strokeRect() {}, measureText(text) { return { width: text.length * parseFloat(this.font.replace("bold ", "")) * 0.55 }; }, fillText(...args) { calls.push(args); } }; return { width: 0, height: 0, getContext() { return context; } }; } } });
+  const r = new VoxelResources();
+  try {
+    for (const [width, height, text] of [[2.8, 1.05, "Votre expérience ne rentre pas horizontalement"], [2.6, 0.6, "GUICHET 5 · Pause réglementaire"], [3.4, 0.5, "BUREAU DES POSSIBLES"]]) {
+      const board = letterBoard(r, text, width, height, "wall"), layout = board.userData.textLayout;
+      assert.ok(Math.abs(layout.textureWidth / layout.textureHeight - width / height) < 0.04);
+      assert.equal(layout.lines.join(" "), text); assert.ok(layout.lines.length * layout.fontSize * 1.15 < layout.textureHeight);
+      assert.ok(new THREE.Box3().setFromObject(board).min.y > 1, "wall labels have no stray stake");
+      r.release(board);
+    }
+    for (const room of INTERIORS) {
+      const model = interiorDetails(r, room.id, room.from / WORLD_SCALE, room.to / WORLD_SCALE), title = model.getObjectByName("room-title-sign"), a = new THREE.Box3().setFromObject(title);
+      model.traverse(o => { if (o.name.startsWith("counter-sign:")) { const b = new THREE.Box3().setFromObject(o); assert.ok(!a.intersectsBox(b), `${room.id}: ${o.name}`); } });
+      r.release(model);
+    }
+    assert.ok(calls.length > 0 && calls.every(args => args.length === 3), "text is wrapped, never squeezed with fillText's maxWidth");
+    assert.equal(r.ownedMaterials.size, 0); assert.equal(r.instances.size, 0);
+  } finally { r.dispose(); if (previous) Object.defineProperty(globalThis, "document", previous); else delete globalThis.document; }
+});
+
+test("the forest troll has a grounded heavy silhouette, a face and four moving limbs below 600 triangles", () => {
+  const r = new VoxelResources(), troll = propModel(r, "troll"), bounds = new THREE.Box3().setFromObject(troll);
+  assert.equal(troll.name, "forest-troll"); assert.ok(Math.abs(bounds.min.y) < 0.00001);
+  assert.ok(bounds.max.y > 2.3 && bounds.getSize(new THREE.Vector3()).x > 1.9);
+  assert.equal(troll.userData.arms.length, 2); assert.equal(troll.userData.legs.length, 2);
+  let triangles = 0, draws = 0;
+  troll.traverse(o => { if (o.isInstancedMesh) { triangles += o.count * 12; draws++; } });
+  assert.ok(triangles < 600); assert.ok(draws <= 6);
+  troll.userData.animate(1, true, { stride: 1, blend: 1 });
+  assert.ok(troll.userData.legs[0].rotation.x > 0.1 && troll.userData.legs[1].rotation.x < -0.1);
+  troll.userData.animate(2, false, { blend: 0, motion: "send" });
+  assert.equal(Math.abs(troll.userData.legs[0].rotation.x), 0); assert.ok(Math.abs(troll.userData.head.rotation.x) > 0);
+  r.release(troll); assert.equal(r.instances.size, 0); r.dispose();
 });
