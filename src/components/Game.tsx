@@ -1033,10 +1033,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {recap && me ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
-      {welcomeVisible ? <Welcome key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
+      {welcomeVisible ? <Welcome characterId={me?.characterId} key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
       {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
         onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
-      {adventureOpen && me ? <AdventureMenu name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
+      {adventureOpen && me ? <AdventureMenu characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
         onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
         onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
         onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} >

@@ -26,7 +26,7 @@ const rites = [
   { name: "La compagnie", title: "Le serment du comptoir", symbol: "Ⅲ" },
 ] as const;
 
-export function Welcome({ onClose, scope }: { onClose: () => void; scope?: string }) {
+export function Welcome({ onClose, scope, characterId = "barde" }: { onClose: () => void; scope?: string; characterId?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const nextRite = useRef<HTMLButtonElement>(null);
@@ -64,7 +64,7 @@ export function Welcome({ onClose, scope }: { onClose: () => void; scope?: strin
     <div className="initiation-card__body">
       <p className="initiation-eyebrow">Rite {progress.stage + 1} sur 3 · Entraînement</p>
       <h1 ref={title} id="initiation-title" tabIndex={-1}>{rite.title}</h1>
-      {progress.stage === 0 ? <DragonLesson key={attempt} complete={progress.dragonDone} onComplete={completeDragon} /> : progress.stage === 1 ? <JourneyLesson encounters={progress.encounters} onAnswer={() => setProgress(value => ({ ...value, encounters: Math.min(INITIATION_ENCOUNTERS.length, value.encounters + 1) }))} /> : <TreasureLesson chestOpen={progress.chestOpen} powerCast={progress.powerCast} crownDone={progress.crownDone} onOpen={() => patch({ chestOpen: true })} onCast={() => patch({ powerCast: true })} onCrown={() => patch({ crownDone: true })} />}
+      {progress.stage === 0 ? <DragonLesson characterId={characterId} key={attempt} complete={progress.dragonDone} onComplete={completeDragon} /> : progress.stage === 1 ? <JourneyLesson characterId={characterId} encounters={progress.encounters} onAnswer={() => setProgress(value => ({ ...value, encounters: Math.min(INITIATION_ENCOUNTERS.length, value.encounters + 1) }))} /> : <TreasureLesson characterId={characterId} chestOpen={progress.chestOpen} powerCast={progress.powerCast} crownDone={progress.crownDone} onOpen={() => patch({ chestOpen: true })} onCast={() => patch({ powerCast: true })} onCrown={() => patch({ crownDone: true })} />}
     </div>
     <footer className="initiation-card__footer">
       {ready ? <button ref={nextRite} className="initiation-primary" type="button" onClick={() => progress.stage === 2 ? leave() : patch({ stage: (progress.stage + 1) as 1 | 2 })}>{progress.stage === 2 ? "Commencer le voyage" : "Rite suivant →"}</button> : null}

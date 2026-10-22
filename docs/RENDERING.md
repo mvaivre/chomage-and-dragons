@@ -262,9 +262,24 @@ d'un GPU de téléphone. Les effets ponctuels et les groupes plus nombreux peuve
 augmenter les pointes. Le repli automatique réduit encore la résolution si le rendu
 demeure lent.
 
-Les corps pleins des 15 personnages utilisent désormais des volumes étagés et des
-panneaux colorés, avec la même articulation : 2 868 à 6 864 triangles par personnage,
-contre 8 796 à 12 792 auparavant. Leurs accessoires, visages et gestes restent présents.
+Les 15 personnages partagent désormais un modèle à grandes masses de couleur dans
+le monde, le HUD, le choix des classes, le carnet et les trois rites d'initiation.
+Ils utilisent **288 à 384 triangles chacun** (6 à 7 appels de dessin), contre
+2 868 à 6 864 avant cette révision. Chaque modèle conserve ses quatre membres
+articulés, son visage, ses accessoires distinctifs et les poses des actions. Le test
+impose moins de 1 000 triangles avec le double de silhouette d'occlusion optionnel.
+
+Les aperçus de l'interface partagent **un seul contexte WebGL** : un studio
+orthographique rend directement vers des canvas 2D, sans encodage ni textures.
+Les vignettes sont statiques ; seul le personnage sélectionné ou le rite visible
+s'anime. Le studio suspend les vues hors écran et les onglets cachés, respecte les
+mouvements réduits, plafonne le DPR mobile à 1 et ne crée ni ombres temps réel ni
+post-traitement. Il libère ses ressources quand la dernière vue disparaît. Le choix
+peut tourner par glissement ou avec deux boutons accessibles au clavier.
+L'entraînement utilise le même personnage enregistré, le coffre à couvercle articulé
+et les modèles du dragon et du crapaud ; ses règles et sa sauvegarde restent isolées
+du journal. Les anciennes illustrations de personnages et le générateur détaillé
+abandonné ne sont plus utilisés.
 
 
 Sur les mêmes vues mobiles de la taverne : la pointe extérieure passe de 474 476

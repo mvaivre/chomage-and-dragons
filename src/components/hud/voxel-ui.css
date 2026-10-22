@@ -1,0 +1,111 @@
+/* A restrained field journal: deep greens, warm ivory, fine brass rules. */
+.voxel-portrait { position: relative; display: block; width: 100%; height: 100%; min-width: 0; }
+.voxel-portrait canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.voxel-portrait[data-interactive] canvas { cursor: grab; touch-action: pan-y; }
+.voxel-portrait[data-interactive] canvas:active { cursor: grabbing; }
+.voxel-portrait__turn { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; gap: 8px; color: #e5dbb9; }
+.voxel-portrait__turn span { font-size: 11px; opacity: .75; }
+.voxel-portrait__turn button { width: 36px; height: 36px; border: 1px solid #d9c58466; border-radius: 50%; background: #193b32; font-size: 22px; }
+.voxel-portrait__fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; }
+.character-screen.curtain { background: radial-gradient(ellipse at 30% 40%, #34594c, transparent 60%), #142e29; color: #f4edd3; }
+.character-screen.curtain::before, .character-screen.curtain::after { display: none; }
+.character-screen > div { padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.character-screen header h1 { font-size: clamp(2.2rem, 6vw, 3.7rem); text-shadow: none; }
+.character-screen header > p:last-child { margin-top: 10px; }
+.character-screen .hero-panel { max-width: 780px; background: #142e29e8; border: 1px solid #cbbb7966; border-radius: 3px; box-shadow: 0 20px 70px #081d2155; }
+.character-screen .hero-panel > h2 { color: #d7c78e; font-size: 11px; letter-spacing: .16em; font-weight: 400; }
+.hero-forge { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 28px; }
+.hero-preview { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; min-width: 0; }
+.hero-preview__stage { height: 300px; background: radial-gradient(ellipse at 50% 55%, #aec99c35, transparent 68%); }
+.character-screen .character-portrait { width: 100%; height: 100%; margin: 0; border: 0; background: none; box-shadow: none; }
+.character-screen .slot { background: #203e35; border: 1px solid #c7bc8359; border-radius: 3px; box-shadow: none; color: #f3e9c6; text-shadow: none; min-height: 44px; }
+.character-screen .slot::before, .character-screen .slot::after { display: none; }
+.character-screen .slot:hover { background: #385a46; }
+.character-screen .hero-confirm { background: #d6c48c; color: #20372b; font-size: 16px; letter-spacing: .03em; }
+.character-screen .hero-confirm:disabled { opacity: .45; }
+.character-screen input { border-radius: 3px; border-color: #c7bc8366; background: #0c252280; min-height: 46px; }
+.character-screen button:focus-visible, .character-screen input:focus-visible { outline: 2px solid #f2d586; outline-offset: 4px; }
+.hero-roster { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 7px; border-top: 1px solid #b7aa7640; padding-top: 18px; margin-top: 24px; }
+.hero-roster > button { height: 88px; min-width: 0; position: relative; padding-bottom: 20px; border: 1px solid transparent; background: #8daa7920; border-radius: 3px; color: #e9e1c7; }
+.hero-roster > button[aria-pressed=true] { border-color: #ddc878; background: #adc08a35; }
+.hero-roster > button:hover { background: #adc08a35; }
+.hero-roster > button > span { position: absolute; left: 0; right: 0; bottom: 5px; font-size: 11px; }
+.character-screen .roster-portrait { flex: 0 0 50px; height: 64px; }
+.game-adventure .journey-card .character-portrait.journey-card__portrait { width: 100%; height: 100%; border-radius: 50%; background: #809570; overflow: hidden; }
+.game-adventure .journey-card .journey-card__portrait canvas { width: 100%; height: 100%; }
+:root .initiation-card { --rite-ink: #eee8cc; --rite-gold: #d9c488; --rite-cream: #213c33; background: #19382f; border: 1px solid #c8bc8277; border-radius: 4px; color: #eee8cc; box-shadow: 0 25px 90px #071c20b3; }
+:root .initiation-card::backdrop { background: #071e24c9; backdrop-filter: none; }
+:root .initiation-card__header { background: #142f29; border-bottom-color: #b8a87544; }
+:root .initiation-card__body { background: none; }
+:root .initiation-card__footer { background: #142f29; border-top: 1px solid #b8a87533; }
+:root .initiation-card__footer > small, :root .initiation-card__links button, :root .initiation-hint { color: #c3c9ad; }
+:root .initiation-rites { background: #29483a; border-color: #b8a87533; }
+:root .initiation-rites li { color: #b7c5ac; }
+:root .initiation-rites li > span { background: #19372f; color: #cfccaa; border-color: #b8a87566; }
+:root .initiation-rites li[data-current=true] { color: #fff0bf; }
+:root .initiation-rites li[data-current=true] > span { background: #d6c48c; color: #19372f; border-color: #d6c48c; box-shadow: none; }
+:root .initiation-primary { background: #d6c48c; color: #20372b; border: 1px solid #e6d7a5; border-radius: 3px; box-shadow: none; }
+:root .initiation-card button:focus-visible { outline-color: #f1d280; }
+:root .initiation-flight, :root .initiation-road, :root .initiation-treasure { background: radial-gradient(ellipse at 55% 10%, #73948599, transparent 75%), #375d52; border: 1px solid #b8a87555; border-radius: 3px; }
+:root .initiation-flight > .voxel-portrait, :root .initiation-road > .voxel-portrait { position: absolute; inset: 0; }
+:root .initiation-road { height: 170px; }
+:root .initiation-road__label { z-index: 1; color: #dddcbc; }
+:root .initiation-launch { position: absolute; width: auto; min-width: 150px; left: 50%; top: 55%; transform: translate(-50%, -50%); }
+:root .initiation-flight-controls button, :root .initiation-choices > button, :root .initiation-crown__choices button { background: #365343; color: #f5ebc9; border: 1px solid #b8a87566; border-radius: 3px; box-shadow: none; }
+:root .initiation-choices > button:hover, :root .initiation-crown__choices button:hover { background: #4b6a50; }
+:root .initiation-flight-controls button[aria-disabled=true] { color: #9caa98; }
+:root .initiation-encounter__number { color: #d9c488; }
+:root .initiation-feedback { background: #8eae6e22; border-color: #9eb57a; }
+:root .initiation-feedback:empty { display: none; }
+:root .initiation-treasure { position: relative; display: flex; padding: 210px 12px 14px; flex-wrap: wrap; gap: 10px; min-height: 0; }
+:root .initiation-treasure > .voxel-portrait { position: absolute; inset: 0 0 auto; height: 210px; }
+:root .initiation-chest, :root .initiation-target { min-height: 44px; border: 1px solid #dbc78a; padding: 8px 16px; width: auto; border-radius: 3px; background: #d6c48c; color: #20372b; font-size: 1rem; }
+:root .initiation-chest > span { border: 0; }
+:root .initiation-treasure__power { flex-direction: row; width: auto; gap: 8px; color: #eee8cc; max-width: 55%; }
+:root .initiation-treasure__power .bitmap-art { width: 40px; height: 40px; }
+:root .initiation-treasure__arrow { color: #d9c488; }
+:root .initiation-ring-count i[data-collected=true] { background: #e0cb84; border-color: #e0cb84; box-shadow: none; }
+@media (max-width: 600px) {
+  .character-screen > div { gap: 18px; padding-left: 14px; padding-right: 14px; }
+  .character-screen .hero-panel { padding: 18px 16px; }
+  .character-screen header .gold-rule, .character-screen header .engrave:first-child { display: none; }
+  .hero-forge { grid-template-columns: 1fr; gap: 12px; }
+  .hero-preview { max-width: 310px; width: 100%; margin: auto; }
+  .hero-preview__stage { height: 230px; }
+  .hero-forge > div:last-child { gap: 12px; }
+  .hero-roster { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; padding-top: 12px; margin-top: 18px; }
+  .hero-roster > button { height: 76px; }
+  .hero-roster > button > span { font-size: 10px; }
+  :root .initiation-road { height: 140px; }
+  :root .initiation-treasure { padding-top: 185px; }
+  :root .initiation-treasure > .voxel-portrait { height: 185px; }
+}
+@media (prefers-reduced-motion: reduce) { .character-screen * { animation: none !important; transition: none !important; } }
+/* These selectors retire the old deliberately janky parchment colour overrides. */
+.character-screen.curtain h1 { color: #f3edd2; }
+.character-screen.curtain h1 span { color: #dcc88c; }
+.character-screen.curtain p { color: #e2dfc7 !important; }
+.character-screen.curtain input { color: #f3edd2; }
+.character-screen.curtain input::placeholder { color: #aaa98f; }
+.character-screen.curtain .gold-rule { height: 1px; background: linear-gradient(90deg, transparent, #d5c285, transparent); border: 0; transform: none; box-shadow: none; }
+.character-screen.curtain .hero-confirm { color: #19372c; }
+.journal-hero { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #d5c28544; margin-bottom: 16px; }
+.journal-hero > .character-portrait { width: 150px; height: 220px; background: radial-gradient(ellipse, #9fb77933, transparent 70%); border: 0; box-shadow: none; }
+.journal-hero small { color: #cbbb89; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.journal-hero h3 { font-family: var(--font-pirata), serif; color: #f3edd2; font-size: 26px; margin: 6px 0; }
+.journal-hero p { color: #d7dcc5; font-size: 15px; }
+.voxel-landing { background: radial-gradient(ellipse at 40% 15%, #34594c, transparent 65%), #142e29; }
+.voxel-landing .frame { color: #e9e2c6; background: #19382f; border: 1px solid #c8bc8266; border-radius: 3px; box-shadow: none; transform: none; }
+.voxel-landing .frame::before, .voxel-landing .frame::after { display: none; }
+.voxel-landing .slot { background: #365343; color: #f3edd2; border: 1px solid #c8bc8266; box-shadow: none; transform: none; text-shadow: none; }
+.voxel-landing .slot::before, .voxel-landing .slot::after { display: none; }
+.voxel-landing input { color: #f3edd2; border-radius: 3px; }
+.voxel-landing .gold-rule { height: 1px; background: #c8bc8266; transform: none; }
+.landing-company { display: flex; height: 140px; width: min(360px, 90vw); flex-shrink: 0; margin-top: -10px; }
+.landing-company .character-portrait { width: 33%; height: 100%; background: none; border: 0; box-shadow: none; }
+@media (max-width: 400px) { .journal-hero { grid-template-columns: 110px 1fr; gap: 10px; } .journal-hero > .character-portrait { width: 110px; height: 190px; } .journal-hero .voxel-portrait__turn span { display: none; } }
+.voxel-portrait__fallback { display: none; }
+.voxel-portrait canvas[data-failed] ~ .voxel-portrait__fallback { display: grid; }
+.character-screen.curtain h1 { transform: none; }
+.character-screen .engrave, .voxel-landing .engrave { color: #dac993; text-shadow: none; }
+.character-screen.curtain .slot [class*="text-parchment"], .character-screen.curtain .slot [class*="text-gold"] { color: #eee4c5 !important; }

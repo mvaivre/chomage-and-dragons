@@ -1,11 +1,10 @@
 "use client";
+import { memo } from "react";
+import type { Character } from "@/lib/game/characters";
+import { VoxelPortrait } from "@/components/voxel/PortraitStudio";
 
-import { characterArt, type Character } from "@/lib/game/characters";
-
-/** The selection screen shares the in-game illustration without another WebGL context. */
-export function CharacterPortrait({ character }: { character: Character }) {
-  return <div className="character-portrait">
-    {/* eslint-disable-next-line @next/next/no-img-element -- already optimized local alpha WebP */}
-    <img src={characterArt(character.id)} alt={character.name} width={240} height={280} />
-  </div>;
-}
+export const CharacterPortrait = memo(function CharacterPortrait({ character, interactive = false, framing = "full", className = "" }: {
+  character: Character; interactive?: boolean; framing?: "full" | "bust"; className?: string;
+}) {
+  return <VoxelPortrait characterId={character.id} label={character.name} interactive={interactive} animated={interactive} framing={framing} className={`character-portrait ${className}`} />;
+});

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { MiniGameKind } from "@/lib/data/types";
 import { MINI_GAMES } from "@/lib/game/mini-games";
 import { HIDDEN_ITEMS, hiddenBiomeLabel } from "@/lib/game/hidden-objects";
+import { CharacterPortrait } from "./CharacterPortrait";
+import { characterById } from "@/lib/game/characters";
 import { BIOMES, WORLD_LENGTH } from "@/lib/game/world";
 
 const BADGES: Record<string, string> = {
@@ -30,9 +32,11 @@ export function AdventureMenu({
   onExplore,
   onInitiation,
   name,
+  characterId,
   children,
 }: {
   name: string;
+  characterId: string;
   children?: ReactNode;
   foundIds: readonly string[];
   initialTab?: "journey" | "games" | "hunt";
@@ -107,6 +111,7 @@ export function AdventureMenu({
       </div>
       {tab === "journey" ? (
         <div className="adventure-menu__profile">
+          <div className="journal-hero"><CharacterPortrait character={characterById(characterId)} interactive /><div><small>Ton compagnon de route</small><h3>{characterById(characterId).name}</h3><p>{characterById(characterId).blurb}</p></div></div>
           <button
             className="adventure-menu__profile-link"
             type="button"

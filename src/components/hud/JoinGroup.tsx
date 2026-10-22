@@ -28,7 +28,7 @@ export function JoinGroup({ slug, name }: { slug: string; name: string }) {
   };
 
   return (
-    <main className="flex h-full w-full flex-col items-center justify-center gap-6 overflow-y-auto bg-ink-deep px-4 py-8 text-parchment">
+    <main className="voxel-landing flex h-full w-full flex-col items-center justify-center gap-6 overflow-y-auto bg-ink-deep px-4 py-8 text-parchment">
       <header className="text-center">
         <p className="engrave text-xs opacity-70">Invitation</p>
         <h1 className="font-display text-4xl tracking-wide text-gold-light">{name}</h1>

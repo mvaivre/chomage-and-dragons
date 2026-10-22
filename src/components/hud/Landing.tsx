@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { CharacterPortrait } from "./CharacterPortrait";
+import { characterById } from "@/lib/game/characters";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createGroup } from "@/lib/data/remote-store";
@@ -41,12 +43,13 @@ export function Landing() {
   };
 
   return (
-    <main className="flex h-full w-full flex-col items-center gap-6 overflow-y-auto bg-ink-deep px-4 py-8 text-parchment">
+    <main className="voxel-landing flex h-full w-full flex-col items-center gap-6 overflow-y-auto bg-ink-deep px-4 py-8 text-parchment">
       <header className="text-center">
         <p className="engrave text-xs opacity-70">Saison 2026</p>
         <h1 className="font-display text-4xl tracking-wide text-gold-light sm:text-5xl">Chômage &amp; Dragons</h1>
       </header>
 
+      <div className="landing-company" aria-label="Les compagnons de route">{["chevalier", "sorciere", "barde"].map(id => <CharacterPortrait key={id} character={characterById(id)} />)}</div>
       {known.length > 0 ? (
         <section className="frame riveted rise w-full max-w-md p-5">
           <h2 className="engrave text-center text-sm">Tes groupes sur cet appareil</h2>

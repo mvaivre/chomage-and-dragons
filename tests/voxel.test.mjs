@@ -103,6 +103,7 @@ function signature(root) {
     if (o.isInstancedMesh) {
       hash.update(Buffer.from(o.instanceMatrix.array.buffer));
       hash.update(String(o.material.color.getHex()));
+      if (o.instanceColor) hash.update(Buffer.from(o.instanceColor.array.buffer));
     }
   });
   return hash.digest("hex");
@@ -117,7 +118,7 @@ test("all characters and collectibles have distinct voxel models with registered
     assert.ok(b.max.y > 1.7, c.id);
     let triangles = 0;
     root.traverse(o => { if (o.isInstancedMesh) triangles += o.count * 12; });
-    assert.ok(triangles <= 14000, `${c.id}: model plus its occlusion proxy stay bounded`);
+    assert.ok(triangles <= 1000, `${c.id}: model plus its occlusion proxy stay bounded`);
     signatures.add(signature(root));
     r.release(root);
     assert.equal(

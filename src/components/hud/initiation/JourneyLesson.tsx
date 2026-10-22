@@ -1,5 +1,5 @@
 "use client";
-import { VoxelDisplay } from "@/components/voxel/Display";
+import { VoxelPortrait } from "@/components/voxel/PortraitStudio";
 
 import { useEffect, useRef, useState } from "react";
 import { JOURNEY_STEPS, STEPS_PER_LEVEL } from "@/lib/config";
@@ -7,7 +7,7 @@ import { answerInitiation, INITIATION_ACTIONS, INITIATION_ENCOUNTERS, initiation
 import type { ActionKind } from "@/lib/data/types";
 import { ActionArtwork } from "../Artwork";
 
-export function JourneyLesson({ encounters, onAnswer }: { encounters: number; onAnswer: () => void }) {
+export function JourneyLesson({ characterId, encounters, onAnswer }: { characterId: string; encounters: number; onAnswer: () => void }) {
   const [feedback, setFeedback] = useState("");
   const [wrong, setWrong] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -35,7 +35,7 @@ export function JourneyLesson({ encounters, onAnswer }: { encounters: number; on
     <p className="initiation-lead">Déclare tes démarches pour avancer</p>
     <div className="initiation-road" role="img" aria-label={`Héros à ${steps} pas. Coffre à ${STEPS_PER_LEVEL} pas.`}>
       <span className="initiation-road__label">CAMP D’ESSAI</span>
-      <VoxelDisplay width={360} height={130} draw={ctx=>{ctx.background(360,130);for(let i=0;i<11;i++)ctx.block(0xc1b18a,29+i*28.8,95,27,14,9,3);ctx.person(29+steps*28.8,89,.72,0x879ba3);ctx.paper(326,84,30,23,0xb48a4a);}}/>
+      <VoxelPortrait scene="road" characterId={characterId} steps={steps} animated label="Ton personnage sur le chemin d’entraînement" />
       <span className="initiation-road__count">{steps} pas</span>
     </div>
     <div className="initiation-encounter" aria-live="polite" aria-atomic="true">

@@ -5,11 +5,11 @@ import {
   advanceDragonLesson, createDragonLesson, DRAGON_RITE_LANES,
   steerDragonLesson, type DragonLessonRun,
 } from "@/lib/game/initiation";
-import { VoxelDisplay } from "@/components/voxel/Display";
+import { VoxelPortrait } from "@/components/voxel/PortraitStudio";
 import { useDialogKeyboard } from "../useDialogKeyboard";
 
 const laneName = ["haut", "milieu", "bas"];
-export function DragonLesson({ complete, onComplete }: { complete: boolean; onComplete: () => void }) {
+export function DragonLesson({ characterId, complete, onComplete }: { characterId: string; complete: boolean; onComplete: () => void }) {
   const lesson = useRef<HTMLElement>(null);
   const [initial] = useState(createDragonLesson);
   const run = useRef<DragonLessonRun>(initial);
@@ -53,16 +53,17 @@ export function DragonLesson({ complete, onComplete }: { complete: boolean; onCo
   });
   return <section ref={lesson} className="initiation-lesson initiation-lesson--dragon" aria-label="Rite du dragon">
     <p className="initiation-lead">Traverse les quatre anneaux avec les flèches ↑ et ↓</p>
-    <div className="initiation-flight" data-lane={view.lane} data-flying={flightActive && !paused} role="img" aria-label={done ? "Les quatre anneaux ont été traversés." : `Dragon en ${laneName[view.lane]}, anneau en ${laneName[ringLane]}. ${view.collected} sur quatre traversés.`}>
-      <VoxelDisplay draw={(ctx,viewport)=>{ctx.background();for(let lane=0;lane<3;lane++)ctx.block(0x345849,180,67+lane*53,340,38,3,-7);if(!done){const x=view.ringX*3.6,y=67+ringLane*53;ctx.block(0xd9b86b,x-10,y,4,30,6,4);ctx.block(0xd9b86b,x+10,y,4,30,6,4);ctx.block(0xd9b86b,x,y-15,20,4,6,4);ctx.block(0xd9b86b,x,y+15,20,4,6,4);}ctx.dragon(88,67+(done?1:view.lane)*53,.75,flightActive&&!paused&&!viewport.reducedMotion?viewport.now:0);ctx.person(85,50+(done?1:view.lane)*53,.45,0x97a8ad);}}/>
+    <div className="initiation-flight" data-lane={view.lane} data-flying={flightActive && !paused} role="group" aria-label={done ? "Les quatre anneaux ont été traversés." : `Dragon en ${laneName[view.lane]}, anneau en ${laneName[ringLane]}. ${view.collected} sur quatre traversés.`}>
+      <VoxelPortrait scene="flight" characterId={characterId} animated={flightActive && !paused} lane={view.lane} ringLane={ringLane} ringX={view.ringX} done={done} label="Ton personnage à dos de dragon" />
       <span className="initiation-flight__seal">{done ? "PERMIS DE DRAGON" : "ÉCOLE DE VOL"}</span>
+      {!started && !done ? <button className="initiation-primary initiation-launch" type="button" onClick={() => { run.current.status = "flying"; setStarted(true); }}>Décoller</button> : null}
       {paused && !done ? <span className="initiation-flight__pause">Vol en pause</span> : null}
     </div>
     <div className="initiation-flight__readout" aria-live="polite" aria-atomic="true">
       <span className="initiation-ring-count" aria-label={`${done ? 4 : view.collected} anneaux sur quatre`}>{DRAGON_RITE_LANES.map((_, i) => <i key={i} data-collected={done || i < view.collected} aria-hidden />)}</span>
       <span>{done ? "Épreuve réussie" : !started ? "Prêt à décoller" : paused ? "En pause" : view.misses ? `Vise en ${laneName[ringLane]}` : `Vise en ${laneName[ringLane]}`}</span>
     </div>
-    {!started && !done ? <button className="initiation-primary" type="button" onClick={() => { run.current.status = "flying"; setStarted(true); }}>Décoller</button> : !done ? <div className="initiation-flight-controls">
+    {started && !done ? <div className="initiation-flight-controls">
       <button ref={upControl} type="button" onClick={() => steer(-1)} aria-label="Monter le dragon" aria-disabled={paused || view.lane === 0}>↑ Monter</button>
       <button type="button" className="initiation-flight-controls__pause" onClick={() => setPaused(value => !value)} aria-label={paused ? "Reprendre le vol" : "Mettre le vol en pause"}>{paused ? "▶" : "Ⅱ"}</button>
       <button type="button" onClick={() => steer(1)} aria-label="Descendre le dragon" aria-disabled={paused || view.lane === 2}>↓ Descendre</button>

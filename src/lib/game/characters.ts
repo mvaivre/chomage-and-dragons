@@ -2,7 +2,7 @@
  * Les classes de Chômage & Dragons.
  *
  * Chaque classe est une blague de recherche d'emploi déguisée en archétype de jeu
- * de rôle. Chaque silhouette partage la même illustration dans la scène et la sélection.
+ * de rôle. Chaque classe partage le même modèle voxel dans le monde, la sélection et le carnet.
  */
 
 export type HatStyle =
@@ -179,10 +179,4 @@ export const CHARACTERS: Character[] = [
 
 export function characterById(id: string): Character {
   return CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
-}
-
-/** Original illustrated portraits remain part of the interface. */
-export function characterArt(id: string): string {
-  const artId = characterById(id).id;
-  return `/art/world-v3/characters/${artId === "skater" ? "skateuse" : artId}.webp`;
 }

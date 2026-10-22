@@ -1,8 +1,8 @@
 import * as THREE from "three";
+import { compactHero } from "./heroes";
 import { chestModel } from "./chest";
 import { characterById } from "@/lib/game/characters";
 import {
-  detailedCharacter,
   detailedDragon,
   type VoxelDetailContext,
 } from "./models";
@@ -16,13 +16,8 @@ export function characterModel(
 ) {
   const root = new THREE.Group(),
     instances: THREE.InstancedMesh[] = [];
-  const ctx = {
-    cube: resources.cube,
-    material: resources.material,
-    geometry: resources.geometry,
-    instances,
-  } as VoxelDetailContext;
-  detailedCharacter(ctx, root, characterById(id));
+  compactHero(resources, root, characterById(id));
+  root.traverse(o => { if (o instanceof THREE.InstancedMesh) instances.push(o); });
   instances.forEach((mesh) => resources.instances.add(mesh));
   if (occlusion) {
     const matrices: THREE.Matrix4[] = [];
@@ -37,7 +32,8 @@ export function characterModel(
       mat.stencilRef = 1;
       mat.stencilFunc = THREE.AlwaysStencilFunc;
       mat.stencilZPass = THREE.ReplaceStencilOp;
-      resources.addFog(mat);
+      mat.onBeforeCompile = (mesh.material as THREE.MeshStandardMaterial).onBeforeCompile;
+      mat.customProgramCacheKey = (mesh.material as THREE.MeshStandardMaterial).customProgramCacheKey;
       resources.ownedMaterials.add(mat);
       mesh.material = mat;
       mesh.userData.ownedMaterial = mat;

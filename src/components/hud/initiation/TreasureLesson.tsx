@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { VoxelPortrait } from "@/components/voxel/PortraitStudio";
 import { STEPS_PER_LEVEL } from "@/lib/config";
-import { ChestArtwork, CrownArtwork, PowerArtwork } from "../Artwork";
+import { CrownArtwork, PowerArtwork } from "../Artwork";
 
-export function TreasureLesson({ chestOpen, powerCast, crownDone, onOpen, onCast, onCrown }: {
-  chestOpen: boolean; powerCast: boolean; crownDone: boolean;
+export function TreasureLesson({ characterId, chestOpen, powerCast, crownDone, onOpen, onCast, onCrown }: {
+  characterId: string; chestOpen: boolean; powerCast: boolean; crownDone: boolean;
   onOpen: () => void; onCast: () => void; onCrown: () => void;
 }) {
   const [wrong, setWrong] = useState(false);
@@ -18,13 +19,14 @@ export function TreasureLesson({ chestOpen, powerCast, crownDone, onOpen, onCast
   return <section className="initiation-lesson initiation-lesson--treasure" aria-label="Rite de la compagnie">
     <p className="initiation-lead">Tu reçois un coffre avec un pouvoir tous les {STEPS_PER_LEVEL} pas</p>
     <div className="initiation-treasure" data-open={chestOpen} data-cast={powerCast}>
+      <VoxelPortrait scene="treasure" characterId={characterId} chestOpen={chestOpen} powerCast={powerCast} animated label={powerCast ? "Le gobelin est devenu un crapaud" : "Ton personnage, le coffre et le gobelin d’entraînement"} />
       {!chestOpen ? <button type="button" className="initiation-chest" onClick={onOpen}>
-        <ChestArtwork /><span>Ouvrir le coffre</span>
+        <span>Ouvrir le coffre</span>
       </button> : !powerCast ? <>
         <div className="initiation-treasure__power"><PowerArtwork kind="crapaud" /><span>Malédiction du crapaud</span></div>
         <span className="initiation-treasure__arrow" aria-hidden>→</span>
-        <button ref={target} type="button" className="initiation-target" onClick={onCast}><span className="initiation-target__goblin" aria-hidden /><span>Viser le gobelin<br />d’entraînement</span></button>
-      </> : <div className="initiation-treasure__cast"><span aria-hidden>🐸</span><strong>Pouvoir utilisé</strong></div>}
+        <button ref={target} type="button" className="initiation-target" onClick={onCast}><span>Viser le gobelin<br />d’entraînement</span></button>
+      </> : <div className="initiation-treasure__cast"><strong>Pouvoir utilisé</strong></div>}
     </div>
     {powerCast ? <div className="initiation-crown">
       <CrownArtwork />

@@ -2,7 +2,8 @@
 
 import type { PlayerView } from "@/hooks/useGame";
 import { STEPS_PER_LEVEL } from "@/lib/config";
-import { characterById, characterArt } from "@/lib/game/characters";
+import { CharacterPortrait } from "./CharacterPortrait";
+import { characterById } from "@/lib/game/characters";
 import { untilNextChest } from "@/lib/game/scoring";
 import { interiorAt } from "@/lib/game/decor";
 import { biomeAt, worldXFor } from "@/lib/game/world";
@@ -93,14 +94,7 @@ function QuestCard({
           aria-expanded={menuOpen}
           title="Carnet · quêtes, butins et réglages"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- optimized original portrait */}
-          <img
-            src={characterArt(me.characterId)}
-            alt=""
-            width={208}
-            height={293}
-            className="journey-card__portrait"
-          />
+          <CharacterPortrait character={characterById(me.characterId)} framing="bust" className="journey-card__portrait" />
           <span aria-hidden="true">☰</span>
           {me.availablePowers.length ? (
             <b

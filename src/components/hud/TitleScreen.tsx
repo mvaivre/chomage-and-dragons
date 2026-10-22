@@ -40,8 +40,8 @@ export function TitleScreen({
   const [forging, setForging] = useState(players.length === 0);
 
   return (
-    <div className="curtain absolute inset-0 z-30 overflow-y-auto">
-      <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center gap-8 px-6 py-12">
+    <div className="character-screen curtain absolute inset-0 z-30 overflow-y-auto">
+      <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center gap-6 px-5 py-8">
         <header className="rise text-center">
           <p className="engrave text-xs opacity-70">{SEASON.label}</p>
           <h1 className="engrave mt-2 text-4xl leading-[1.15] sm:text-6xl">
@@ -101,7 +101,7 @@ function Roster({
   );
 
   return (
-    <section className="frame riveted rise w-full max-w-2xl p-6">
+    <section className="hero-panel rise w-full p-6">
       <h2 className="engrave text-center text-sm">Qui es-tu ?</h2>
       <div className="gold-rule mx-auto mt-3 mb-5 w-40" />
 
@@ -115,7 +115,8 @@ function Roster({
                 onClick={() => onPick(player.id)}
                 className="slot w-full flex-row! items-center! justify-between! gap-4 px-4 py-3 text-left"
               >
-                <span className="min-w-0">
+                <CharacterPortrait character={character} framing="bust" className="roster-portrait" />
+                <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-lg tracking-wide text-parchment">
                     {player.name}
                   </span>
@@ -190,12 +191,12 @@ function Forge({
   }
 
   return (
-    <section className="frame riveted rise w-full max-w-2xl p-6">
-      <h2 className="engrave text-center text-sm">Forge ton personnage</h2>
+    <section className="hero-panel rise w-full p-6">
+      <h2 className="engrave text-center text-sm">Choisis ton compagnon de route</h2>
       <div className="gold-rule mx-auto mt-3 mb-5 w-40" />
 
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-stretch">
-        <div className="flex items-center gap-1">
+      <div className="hero-forge">
+        <div className="hero-preview">
           <button
             type="button"
             onClick={() => move(-1)}
@@ -205,8 +206,8 @@ function Forge({
             ‹
           </button>
 
-          <div className="relative">
-            <CharacterPortrait character={character} />
+          <div className="hero-preview__stage">
+            <CharacterPortrait character={character} interactive />
           </div>
 
           <button
@@ -277,12 +278,18 @@ function Forge({
               type="button"
               onClick={create}
               disabled={!ready}
-              className="slot flex-1 px-4 py-2.5 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed"
+              className="slot hero-confirm flex-1 px-4 py-2.5 font-display text-sm tracking-widest text-gold-light disabled:cursor-not-allowed"
             >
               Entrer dans la partie
             </button>
           </div>
         </div>
+      </div>
+      <div className="hero-roster" role="group" aria-label="Classes disponibles">
+        {freeCharacters.map((item, i) => <button type="button" key={item.id} aria-label={item.name} aria-pressed={i === index} onClick={() => setIndex(i)} title={item.name}>
+          <CharacterPortrait character={item} />
+          <span>{item.name.split(" ")[0]}</span>
+        </button>)}
       </div>
     </section>
   );
