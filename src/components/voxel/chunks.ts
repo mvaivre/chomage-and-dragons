@@ -143,7 +143,8 @@ export function makeChunk(cx: number, cz: number, r: VoxelResources) {
           nz = zz + side.dz,
           edge = !inside(nx, nz);
         const bottom = edge ? tileBottom(xx) : heights[heightIndex + side.dx / cell * rows + side.dz / cell];
-        if (bottom >= y - 0.01) continue;
+        // Millimetre slopes still need a face: skipping them leaves sky-visible cracks.
+        if (bottom >= y - 1e-7) continue;
         const [a, b] = side.p;
         if (edge) {
           const layers = [

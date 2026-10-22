@@ -433,7 +433,7 @@ L’injection se fait par les points d’extension documentés de
 [Three.js Material](https://threejs.org/docs/pages/Material.html), avec une clé de
 programme distincte pour chaque variante.
 
-Validation : 156 tests unitaires, dont des contrôles sur trois tours des emprises
+Validation : 157 tests unitaires, dont des contrôles sur trois tours des emprises
 réelles, des animations bornées, des canopées, de la libération des ressources,
 des rivières, du masque devant/derrière et du cadrage des villages surélevés.
 Les captures du vrai jeu couvrent 22 positions en compositions bureau/mobile,
@@ -448,6 +448,12 @@ La régression navigateur du masque compare les pixels réellement rendus sur un
 scène figée : derrière le même arbre, le barde passe de 0 à 1 084 pixels roses
 visibles quand le masque est activé. L’arbre reste chargé dans les deux cas.
 Le parcours mobile de régression après les corrections de cadrage atteint
-121 424 triangles et 130 appels au maximum ; les retours forêt/volcan et les
+123 794 triangles et 130 appels au maximum ; les retours forêt/volcan et les
 scènes intérieures passent également les budgets. Les 13 mini-jeux, les rites,
 les coffres, les collisions et les portes ont été rejoués sans erreur.
+
+Les raccords de terrain ferment aussi les différences de hauteur inférieures à un
+centimètre. L’ancien seuil omettait ces faces et laissait de fines fissures visibles
+en caméra arrière. Un test vérifie les arêtes partagées de la géométrie réelle ;
+la fermeture ajoute environ 2 400 triangles à la pointe du parcours mobile testé,
+qui reste sous 124 k.

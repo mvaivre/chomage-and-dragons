@@ -89,3 +89,18 @@ test('the default desktop composition contains elevated villages and their hero 
  }
  r.dispose();
 });
+
+test('even tiny height changes close their shared terrain edges in reverse views',()=>{
+ const r=new VoxelResources(true,4),chunk=makeChunk(1,0,r),tops=new Map(),sides=new Map();
+ const key=(a,b)=>[[a[0],a[2]],[b[0],b[2]]].map(p=>p.map(v=>v.toFixed(5)).join(',')).sort().join('|');
+ for(const mesh of chunk.children.filter(o=>o.isMesh&&!o.isInstancedMesh&&o.name!=='fogged-ground-continuation')){
+  const {position:p,normal:n}=mesh.geometry.attributes;
+  for(let i=0;i<p.count;i+=6){const q=[0,1,2,5].map(j=>[p.getX(i+j),p.getY(i+j),p.getZ(i+j)]);
+   if(n.getY(i)>.99)for(let j=0;j<4;j++){const a=q[j],b=q[(j+1)%4],k=key(a,b),edges=tops.get(k)??[];edges.push([Math.min(a[1],b[1]),Math.max(a[1],b[1])]);tops.set(k,edges);}
+   else if(Math.abs(n.getY(i))<.01){const k=key(q[0],q[1]);sides.set(k,[Math.min(...q.map(p=>p[1])),Math.max(...q.map(p=>p[1]))]);}
+  }
+ }
+ let smallEdges=0;
+ for(const[k,edges]of tops){if(edges.length!==2)continue;const bottom=Math.min(...edges.flat()),top=Math.max(...edges.flat());if(top-bottom<1e-6||top-bottom>.02)continue;smallEdges++;const face=sides.get(k);assert.ok(face&&face[0]<=bottom+2e-6&&face[1]>=top-2e-6,`unclosed edge ${k}, height ${top-bottom}`);}
+ assert.ok(smallEdges>30);chunk.userData.dispose();r.dispose();
+});
