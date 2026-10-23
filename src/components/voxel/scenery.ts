@@ -11,6 +11,7 @@ export function letterBoard(
   width = 2.8,
   height = 1.05,
   mount: "post" | "wall" = "post",
+  largeText = false,
 ) {
   const root = new THREE.Group(),
     b = r.batch(root, false, 0, true);
@@ -28,7 +29,7 @@ export function letterBoard(
   c.strokeRect(pad, pad, w - pad * 2, h - pad * 2);
   c.fillStyle = "#392a20"; c.textAlign = "center"; c.textBaseline = "middle";
   const maxWidth = w - pad * 4;
-  let fontSize = Math.min(64, h * 0.28), lines: string[] = [];
+  let fontSize = Math.min(largeText ? 180 : 64, h * (largeText ? .65 : .28)), lines: string[] = [];
   for (;;) {
     c.font = `bold ${fontSize}px Georgia`;
     lines = []; let line = "";

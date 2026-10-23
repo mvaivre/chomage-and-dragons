@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { MiniGameKind } from "@/lib/data/types";
+import { GameArtwork } from "../Artwork";
 import { useDialogKeyboard } from "../useDialogKeyboard";
 
 export type MiniGameKeyEvent = globalThis.KeyboardEvent;
@@ -64,6 +65,7 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
     onClose={event => { if (!event.currentTarget.open) onLeave(); }}>
     <button type="button" className="mini-game__close" onClick={onLeave} aria-label="Fermer le mini-jeu">×</button>
     <header>
+      <GameArtwork kind={kind} className="mini-game__heading-icon" />
       <p className="mini-game__eyebrow">{eyebrow}</p>
       <h2 id="mini-game-title">{title}</h2>
       <p id="mini-game-instructions">{instructions}</p>

@@ -37,6 +37,7 @@ const {
   foregroundPool,
   poolRadius,
   riverAt,
+  riverSites,
 } = await import("../src/components/voxel/world.ts");
 const { VoxelResources } = await import("../src/components/voxel/resources.ts");
 const { makeChunk } = await import("../src/components/voxel/chunks.ts");
@@ -347,9 +348,11 @@ test("heroes have head, torso and distance-driven gait as well as expressive act
   resources.dispose();
 });
 
-test("foreground stays level outside inset ponds while the back keeps real relief", () => {
+test("non-volcanic foreground stays level outside inset ponds while the back keeps real relief", () => {
   for (const biome of BIOMES) {
+    if (biome.id === "volcan") continue;
     const x = (((biome.from + biome.to) / 2) * WORLD_LENGTH) / WORLD_SCALE;
+    if (riverSites(0).some(site => Math.abs(site.x - x) < 9)) continue;
     for (const depth of [1.5, 2.5, 4, FOREGROUND_DEPTH - 0.2]) {
       const pool = foregroundPool(x);
       if (pool && poolRadius(pool, x, routeZ(x) + depth) < 1.35) continue;
@@ -404,20 +407,20 @@ test("straight front and rear edges share a closed underside even across steep b
       n = mesh.geometry.attributes.normal;
     const bottoms = new Map();
     let underside = 0;
-    for (let i = 0; i < p.count; i += 6) {
+    for (let i = 0; i < p.count; i += 3) {
       if (n.getY(i) < -0.1) {
         underside++;
-        for (let j = 0; j < 6; j++)
+        for (let j = 0; j < 3; j++)
           assert.ok(
             Math.abs(p.getY(i + j) - tileBottom(p.getX(i + j))) < 0.00001,
           );
       }
       if (
-        Math.abs(n.getZ(i)) < 0.9 ||
+        Math.abs(n.getZ(i)) < 0.9 || Math.abs(n.getY(i)) > .01 ||
         (p.getZ(i) !== FOREGROUND_DEPTH && p.getZ(i) !== -BACKGROUND_DEPTH)
       )
         continue;
-      for (let j = 0; j < 6; j++) {
+      for (let j = 0; j < 3; j++) {
         const x = p.getX(i + j),
           z = p.getZ(i + j),
           y = p.getY(i + j),
@@ -425,7 +428,7 @@ test("straight front and rear edges share a closed underside even across steep b
         bottoms.set(key, Math.min(bottoms.get(key) ?? Infinity, y));
       }
     }
-    assert.equal(underside, CHUNK_SIZE / 0.5);
+    assert.equal(underside, CHUNK_SIZE / 0.5 * 2);
     for (const [key, y] of bottoms) {
       const [x] = key.split(":").map(Number);
       assert.ok(Math.abs(y - tileBottom(x)) < 0.00001, key);
@@ -736,9 +739,9 @@ test("mobile terrain strips preserve exactly the same surfaces, colors and decor
     root.traverse(mesh => {
       if (!mesh.isMesh || mesh.isInstancedMesh) return;
       const { position, normal, color } = mesh.geometry.attributes;
-      for (let i = 0; i < position.count; i += 6) {
+      for (let i = 0; i < position.count; i += 3) {
         const face = [];
-        for (let j = 0; j < 6; j++) for (const attr of [position, normal, color])
+        for (let j = 0; j < 3; j++) for (const attr of [position, normal, color])
           face.push(attr.getX(i + j), attr.getY(i + j), attr.getZ(i + j));
         quads.push(face.join(","));
       }

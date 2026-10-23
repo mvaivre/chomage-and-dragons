@@ -1,5 +1,6 @@
 "use client";
 
+import { CompanyLandscape } from "./CompanyLandscape";
 import type { PlayerView } from "@/hooks/useGame";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -42,7 +43,7 @@ export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[];
     });
   }, [players, size]);
   return <div ref={root} className="journey-map">
-    <div className="journey-map__painting" role="img" aria-label="Carte médiévale du voyage de la compagnie" />
+    <div className="journey-map__painting" role="img" aria-label="Carte voxel du voyage de la compagnie"><CompanyLandscape route={Array.from({length:25},(_,i)=>`${(16+i/24*68)*6},${mapRouteY(i/24)*4}`).join(" ")} /></div>
     <svg className="journey-map__connections" aria-hidden="true" width="100%" height="100%">
       {pins.map((pin, index) => <line key={players[index].id} x1={pin.routeX} y1={pin.routeY} x2={pin.x} y2={pin.y} />)}
     </svg>

@@ -465,15 +465,23 @@ qui reste sous 124 k.
 du rendu principal, sans redessiner les objets. La zone nette suit le héros ou la
 cible inspectée. Le flou commence à 2,8 mètres de différence de profondeur caméra
 et atteint son maximum à 11 mètres, à l’avant comme à l’arrière. Deux filtres à
-mi-résolution alimentent une composition avec l’image nette ; le centre net reste
+résolution réduite alimentent une composition avec l’image nette ; le centre net reste
 à la résolution originale. Le filtrage limite la diffusion des détails nets dans le
 fond flou. Le HUD et les dialogues DOM restent nets.
 
-Cet effet est réservé au profil élevé et suit le bouton des effets visuels.
-Les profils mobile/équilibré et faible gardent le rendu direct : les buffers de
-composition et de flou sont ramenés à 1 × 1. La baisse automatique de qualité
-libère également leurs grandes textures. Les trois dessins plein écran ajoutent trois triangles par image, sans nouvelle
-lumière, flou volumétrique ou modification des modèles du monde.
+La configuration actuelle utilise une caméra en perspective téléobjectif à 64 m,
+avec décodage non linéaire de la profondeur GPU. `frameRoadPerspective` conserve le
+chemin au centre de la zone utilisable malgré les barres d'interface, le zoom et
+l'orbite. La mise au point suit le personnage ou l'objet inspecté.
+
+Le flou est désormais indépendant du bouton des effets lumineux : mi-résolution
+sur le profil élevé, quart de résolution sur le profil équilibré/mobile. Le bloom
+et les ombres dynamiques restent coupés sur mobile. Le profil faible coupe aussi
+le flou et ramène les buffers à 1 × 1 ; la baisse automatique conserve ce repli.
+Les trois dessins plein écran ajoutent trois triangles par image, sans redessiner
+les modèles. Le pourtour utilise un fond presque noir, légèrement teinté par le
+biome ; la brume rejoint cette même couleur entre 18 et 31 m, avant la fin de la
+zone chargée. Le flou dépend de la profondeur des objets, pas d'un dégradé vertical.
 
 La brume utilisait sa couleur linéaire après la conversion de l’image vers sRGB :
 le rendu direct produisait donc un halo sombre, différent du ciel. Sa couleur passe
@@ -496,3 +504,226 @@ avec/sans profondeur de champ réduit l’énergie des détails lointains d’en
 31 %, tout en conservant 1 084 / 1 085 pixels roses du héros. Le parcours mobile
 émulé atteint 131 698 triangles et 135 appels en pointe, sous les plafonds
 150 k / 200. Ces mesures ne sont pas un benchmark de téléphone physique.
+
+### Road-centred camera and volcanic terrain correction
+
+The road, including its interior approach path, is now the camera anchor. Background
+vignettes can widen the default view but never raise its target towards their roofs.
+The orthographic UI inset is divided by zoom, so the road remains at the centre of
+the usable screen during zoom and orbit. Object inspection temporarily retains its
+own target. `roadFrustum` and the real browser projection regression cover desktop,
+mobile, multiple zooms and camera angles.
+
+The previous volcanic cone was added on top of an eight-metre shoulder immediately
+behind a depressed lava channel. This produced a sheer wall. The volcanic slice now
+has a single broad ridge, a graded forge terrace, an open dragon shelf, and three
+irregular lava basins. Its foreground has shallow ash undulations, basalt clusters,
+sulphur, charred scrub and one small animated skink per volcanic chunk. Those props
+continue onto the shoulder using its actual sampled surface height. Other biomes'
+height fields and distant landscape grammars remain unchanged.
+
+Terraces in the volcanic slice and its immediate transitions use shared longitudinal
+vertices. They retain stepped cross-slopes without the narrow vertical risers along
+every road-altitude sample. Outer shoulders use a continuous shared grid and short
+boundary stitching; there are no long tapered faces between shoulder columns. Tests
+check slope limits, forge ground contact, lava/path separation, finite vertices,
+triangle winding, matching chunk boundaries and resource release.
+
+Visual comparison covered the volcano at close desktop, mobile, wide and reverse
+compositions, plus the village camera regression. In Chrome mobile emulation the
+nine-biome traversal peaked at 131,378 triangles and 135 draw calls; the volcanic
+capture at 166 steps used 68,609 triangles / 104 calls. Mobile still has no bloom,
+depth of field or shadow map. These are emulated-device measurements, not timings
+from a physical phone.
+
+### Continuous ground detail audit
+
+See [the decor audit](DECOR_AUDIT.md) for the before/after survey of nine biomes,
+eight transitions and three interiors. `terrain-surface.ts` applies world-space grain
+to both the fine ground and the coarse continuation; its per-vertex surface mask
+excludes water. There is no bitmap or extra surface geometry. `shoulder-cover.ts`
+uses the existing opaque cube material and a continuous density envelope for low
+vegetation and stones. These details use separate front/back batches so their
+bounds cannot force dense near-ground foliage to render outside the camera view.
+The shared surface sampler follows the actual triangles and river levels.
+
+### Clôture du relief et du rendu miniature — 22 octobre 2026
+
+Les observations et chiffres historiques ci-dessus précèdent cette dernière passe.
+Le maillage central partage désormais ses sommets dans les deux axes : les pentes
+facettées remplacent les risers répétés. Le grain procédural conserve les détails
+voxel sans multiplier les triangles. `terrainHeight` décrit le champ sculpté et
+nivelé ; `terrainSurface` échantillonne exactement les triangles rendus pour placer
+les objets. Le prolongement partage la hauteur de sa bordure avec ce maillage.
+
+`sites.ts` décrit les emprises sans interroger la hauteur du terrain. Les maisons
+ordinaires disposent d'une plate-forme nivelée avec un raccord doux sur 4,5 m ; les
+cabanes de pêche gardent leurs pilotis. Les rivières varient en largeur et en axe,
+avec un méandre réduit au passage des ponts. Les objets narratifs utilisent une
+berge sèche et partagent leur réservation avec le générateur d'arbres.
+
+Validation finale : 172 tests unitaires, lint, build de production, parcours des
+neuf biomes, huit transitions et trois intérieurs sur ordinateur et mobile, plus
+vues inversées et rapprochées. Le parcours émulé culmine à 122 780 triangles /
+144 appels ; les captures de parties réelles atteignent 125 616 / 147. Le flou
+mobile utilise 98 × 211 pixels pour ses deux filtres sur une fenêtre 390 × 844,
+sans bloom ni ombres. Cela vérifie des budgets et le rendu, pas les FPS d'un
+appareil physique. Voir [l'audit complet](DECOR_AUDIT.md) et ses captures.
+
+### Bâtiments visibles et franchissement des portes — 22 octobre 2026
+
+Les portails utilisent désormais `entrances.ts` : grand centre ORP en pierre avec
+colonnes et horloge, usine à CV avec toiture métallique et cheminées, taverne à
+colombages. Les façades mesurent environ neuf mètres de large. Les murs encadrent
+une ouverture réelle de deux mètres ; la porte pivote vers l'intérieur. Les
+enseignes utilisent une typographie agrandie, sans déformer le texte.
+
+La route extérieure s'arrête avant chaque zone intérieure. Une allée pavée de huit
+mètres suit exactement `journeyPoint` jusqu'au seuil. Les herbes sont exclues de
+cette courbe et les coffres suivent ses coordonnées X et Z. Les emprises du bâti,
+du nivellement du terrain et des arbres partagent `portalFootprint`. Les maisons
+du village aux tours suivants évitent aussi la sortie de la taverne. Seules les
+vignettes forestières empêchées par les nouveaux bâtiments élargissent leur recherche
+d'emplacement ; les autres paysages gardent leurs positions précédentes.
+
+Le cadrage s'élargit progressivement à l'approche des entrées, y compris sur mobile,
+en conservant la cible sur le chemin. Le personnage passe le seuil avant la coupure
+sous fondu ; l'intérieur dédié est affiché quand le fondu est opaque. Cette étape
+s'applique aussi en déplacement inverse et avec les animations réduites : les portes
+s'ouvrent alors immédiatement, mais le franchissement n'est plus supprimé.
+
+Contrôles : modèle et ouverture réelle par lancer de rayon, emprises et allées sur
+plusieurs tours, entrée / sortie et annulation des trois bâtiments dans les deux
+modes d'animation, présence réelle des façades dans la liste de rendu GPU et cadrage
+des portes sur ordinateur et téléphone émulé. Captures : `.qa/entrances/final/`.
+
+Validation de cette passe : 175 tests unitaires, lint et build réussis. Les 12
+trajets entrée/sortie/annulation (trois bâtiments, deux modes d'animation), plus
+le scénario parent et le contrôle des trois façades sur ordinateur/mobile,
+passent les 14 vérifications navigateur des portes. Les contrôles de cadrage,
+d'occlusion, des neuf biomes et de streaming restent valides. Les captures
+mobiles des entrées culminent à 142 210 triangles et 154 appels, sans shadow map ;
+le parcours des biomes atteint 130 684 triangles et 162 appels. Émulation Chrome,
+pas mesure de FPS sur un téléphone physique.
+
+### Interface et iconographie voxel — 22 octobre 2026
+
+`voxel-icons.ts` décrit 40 petits modèles isométriques en volumes et trois faces
+ombrées par volume. Le composant `VoxelIcon` les dessine en SVG, dans le même cadre
+optique de 64 unités ; chaque modèle reste sous 120 faces. Ces symboles n'ajoutent
+ni canvas WebGL, ni texture, ni boucle d'animation. `art.ts` partage la correspondance
+entre actions, pouvoirs, mini-jeux et modèles ; les anciens chemins bitmap ont été
+retirés du catalogue. Les identifiants enregistrés des réactions sociales restent
+inchangés ; seul leur rendu remplace les emojis, avec des libellés accessibles.
+
+Les actions ont trois lignes communes — icône, libellé et gain — à toutes les
+largeurs contrôlées. Les illustrations des coffres, couronnes, objets cachés et
+récompenses, ainsi que les icônes des 13 quêtes, du son et des réactions, utilisent
+la même famille. L'atlas de la compagnie est désormais dessiné en SVG voxel ; les
+positions sauvegardées des joueurs et leur déplacement depuis la carte restent
+inchangés.
+
+`ui-icons.css` harmonise les derniers panneaux parchemin/comiques avec le carnet
+vert sombre : classement et scores, butins, rendez-vous, découvertes, récapitulatifs,
+notifications et jeux textuels. Le carnet du personnage et l'inventaire n'ont plus
+de débordement horizontal sur téléphone. Les colonnes du classement réservent
+explicitement leur place au nom, au verre et au nombre de pas. Les commandes caméra
+restent au-dessus du bandeau d'actions.
+
+Validation : 176 tests unitaires, lint et build réussis. Douze vérifications navigateur
+couvrent l'alignement à 320, 390, 844, 900 et 1280 pixels, les 13 mini-jeux dans les
+deux formats, les reliques et l'inventaire, les saisies clavier, la sélection 3D,
+les rites et le cadrage réel. Aucun chargement d'ancienne illustration `/art/` dans
+le parcours UI ; les tests d'entraînement vérifient aussi que la sauvegarde reste
+intacte. Captures des fenêtres : `.qa/ui-voxel/final/` ; accueil, rites, découverte,
+récompense et invitation : `.qa/ui-voxel/flows/`.
+
+### Exploration stable et disparition progressive — 22 octobre 2026
+
+Le cadrage automatique des grands décors et des entrées est conservé en suivant le
+personnage. En exploration libre (Shift-glisser ou flèches), `ExplorationZoom` fige
+l’échelle effectivement visible ; seuls les gestes explicites de zoom la modifient.
+Le retour « Mon personnage » rétablit le cadrage habituel. Les inspections de panneaux
+et de PNJ continuent à disposer de leur zoom temporaire.
+
+La transition vers le fond sombre s’étale sur 13 m (18 à 31 m), avec une ondulation
+lente ancrée dans les coordonnées du monde. Sa modulation s’annule aux extrémités :
+la zone proche reste intacte et le bord chargé reste complètement masqué. Aucun
+maillage, texture, transparence ni passe de rendu supplémentaire ; l’effet miniature
+et son rayon de flou réduit restent inchangés.
+
+Contrôles : régression Shift traversant plusieurs biomes et deux intérieurs, zoom
+manuel et retour au personnage ; lecture GPU du fade à plusieurs distances et angles,
+contrôle du fond en rendu direct/HDR et de la continuité du grain. Comparaison visuelle
+sur ordinateur rapproché, mobile et vue large : `.qa/exploration-fade/`.
+
+### Labels synchronisés et optimisation de la boucle — 22 octobre 2026
+
+Les coordonnées des noms et des cibles interactives étaient publiées toutes les
+100 ms via un état React, alors que la scène dessinait plus souvent. La régression
+navigateur reproduisait 5 mises à jour du nom pour 20 images pendant un zoom.
+`WorldLabelLayer` conserve maintenant les mêmes nœuds DOM et applique leur transform
+à chaque image du monde. Le texte et les attributs accessibles ne sont modifiés
+que lorsque leur contenu change ; une délégation de clic unique utilise toujours
+la cible actuelle. Les noms suivent la hauteur et la transformation du personnage,
+y compris sa taille et son écrasement. Aucun React render pour déplacer un label.
+
+La boucle utilise des échéances (`FramePacer`) plutôt qu’un seuil de 32 ms : objectif
+60 images/s sur le profil élevé, 30 sur les profils mobile/repli, 10 en pause et
+aucun dessin dans un onglet caché. Le rythme est testé à 60/90/120/144 Hz, sans rafale
+de rattrapage après une longue suspension. La simulation conserve son delta réel et
+ses sous-pas de physique. Les effets, plafonds géométriques et budgets mobiles sont
+conservés.
+
+Les calculs répétés sont réduits à plusieurs niveaux :
+
+- Une mise à jour des matrices de la scène, réutilisée pour projeter les labels,
+  sélectionner les lumières et dessiner. Les transformations animées restent actives.
+- Les dimensions du HUD sont mesurées sur invalidation/ResizeObserver ; les lectures
+  de layout et recherches DOM par image sont supprimées. Le cadrage tient compte
+  du véritable HUD, y compris après changement de taille ou d’identité.
+- `SceneObjects.revision` invalide la découverte des cibles lors d’un ajout, d’une
+  suppression, d’un remplacement ou d’un changement de pièce. Les déplacements des
+  mêmes PNJ réutilisent leurs références, avec une projection actuelle à chaque image.
+- Les hauteurs exactes des nœuds du sol utilisent douze buckets spatiaux Float64
+  bornés à environ 168 KiB. Le cache des seuils de porte reste borné à 64 pièces ;
+  un seuil n’est évalué que sur l’allée concernée. La personnalisation des panneaux
+  est recalculée au changement de données ou de tour, pas à chaque image.
+- La sélection des deux/quatre lumières réutilise des candidats et vecteurs fixes,
+  sans tableau de toutes les sources ni tri complet. Les sources libérées ne restent
+  pas référencées par les candidats.
+- Les empreintes de contact téléversent uniquement les instances/alphas modifiés.
+  Un sol statique ne provoque plus un upload complet des buffers à chaque image.
+- Les relevés détaillés (géométries, bounds, PNJ, décors) sont évalués à la lecture.
+  En production, les diagnostics sont absents sans `?debug`/`?profile`. Le compteur
+  visible de l’atelier n’est rafraîchi qu’en cas de changement, au plus deux fois/s.
+
+Comparaison locale Chrome/Metal, quatre scènes stables, fenêtres de trois secondes,
+mêmes tailles et profils, un joueur. `ScriptDuration / images` inclut l’overlay ;
+ce n’est ni un temps GPU ni un benchmark de téléphone physique. Le profil CPU ajoute
+un surcoût aux deux mesures ordinateur forêt/volcan.
+
+| Vue | Script/image ordinateur avant → après | Script/image mobile émulé avant → après |
+| --- | --- | --- |
+| Village | 1,72 → 1,16 ms | 1,60 → 1,20 ms |
+| Forêt | 1,67 → 1,13 ms | 1,38 → 1,08 ms |
+| Volcan | 1,69 → 1,20 ms | 1,32 → 0,97 ms |
+| Taverne | 1,24 → 0,87 ms | 1,20 → 0,92 ms |
+
+La cadence médiane ordinateur passe de 33,3 à 16,7 ms. Le téléphone émulé reste à
+33,3 ms avec son budget d’énergie. Les recalculs de layout observés passent de
+9–24 par fenêtre à zéro (le volcan mobile était déjà à zéro). Les triangles restent
+comparables ; les légères différences de culling sur ordinateur viennent du cadrage
+dans le HUD réel. Les noms plus fréquents n’ajoutent aucun triangle. Sources brutes :
+`.qa/perf-deep/before.json`, `.qa/perf-deep/after.json` ; script de mesure dans le même
+dossier. Les valeurs de heap sans GC forcé ne mesurent pas une fuite.
+
+Validation finale : 181 tests unitaires et les 53 vérifications navigateur des
+scènes/interactions (scénarios parents inclus), lint, TypeScript et build de production.
+Les tests du PNJ mobile cliquent désormais son centre avec un vrai pointeur : attendre
+que son hotspot soit immobile pendant deux images ne convient plus à une projection
+synchronisée. L’assertion d’icône du test de rechargement utilise le SVG voxel actuel.
+Le test des noms observe 38/38 mises à jour sur ordinateur et 20/20 sur téléphone émulé
+pendant un zoom, sans remplacement du texte. Le build lancé localement a aussi été
+contrôlé sur les deux formats, avec des noms visibles et sans diagnostic global hors
+mode debug. Captures : `.qa/perf-deep/production-desktop.png` et `production-mobile.png`.

@@ -187,9 +187,9 @@ test(
             await page.evaluate(() => window.__voxelWorld.room),
             "orp",
           );
-          assert.match(
-            await page.locator(".action-button--refus img").getAttribute("src"),
-            /art\/world-v3\/ui\/action-refus/,
+          assert.equal(
+            await page.locator(".action-button--refus svg").getAttribute("data-voxel-icon"),
+            "refusal",
           );
           await page.locator(".action-undo").click();
           await ready(page);

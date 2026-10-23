@@ -8,6 +8,7 @@ import { untilNextChest } from "@/lib/game/scoring";
 import { interiorAt } from "@/lib/game/decor";
 import { biomeAt, worldXFor } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
+import { VoxelIcon } from "./VoxelIcon";
 import { ChestArtwork, CrownArtwork } from "./Artwork";
 import { useTween } from "./Moment";
 
@@ -95,7 +96,7 @@ function QuestCard({
           title="Carnet · quêtes, butins et réglages"
         >
           <CharacterPortrait character={characterById(me.characterId)} framing="bust" className="journey-card__portrait" />
-          <span aria-hidden="true">☰</span>
+          <VoxelIcon name="menu" />
           {me.availablePowers.length ? (
             <b
               className="journey-card__loot"
@@ -118,7 +119,7 @@ function QuestCard({
               className="journey-card__streak"
               title={`${streak} semaines d’affilée avec au moins une action`}
             >
-              🔥 {streak}
+              <VoxelIcon name="fire" /> {streak}
             </span>
           ) : null}
         </div>

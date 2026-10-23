@@ -19,6 +19,10 @@ export class ContactShadows {
   private material: THREE.ShaderMaterial;
   private matrix = new THREE.Matrix4();
   private used = 0;
+  private matrixFirst = Infinity;
+  private matrixLast = 0;
+  private shadeFirst = Infinity;
+  private shadeLast = 0;
   constructor(world: THREE.Scene, focus: THREE.Vector2, capacity = 256) {
     this.shades = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
     this.geometry.setAttribute("contactOpacity", this.shades);
@@ -65,18 +69,33 @@ export class ContactShadows {
   }
   begin(enabled: boolean) {
     this.used = 0;
+    this.matrixFirst = this.shadeFirst = Infinity; this.matrixLast = this.shadeLast = 0;
     this.mesh.visible = enabled;
   }
   add({ x, y, z, rx, rz, opacity = 1 }: ContactPatch) {
     if (!this.mesh.visible || this.used >= this.shades.count) return;
-    this.matrix.makeScale(rx, 1, rz).setPosition(x, y, z);
-    this.mesh.setMatrixAt(this.used, this.matrix);
-    this.shades.setX(this.used++, opacity);
+    const offset = this.used * 16, values = this.mesh.instanceMatrix.array;
+    if (values[offset] !== Math.fround(rx) || values[offset + 10] !== Math.fround(rz) || values[offset + 12] !== Math.fround(x) || values[offset + 13] !== Math.fround(y) || values[offset + 14] !== Math.fround(z)) {
+      this.matrix.makeScale(rx, 1, rz).setPosition(x, y, z);
+      this.mesh.setMatrixAt(this.used, this.matrix);
+      this.matrixFirst = Math.min(this.matrixFirst, offset); this.matrixLast = offset + 16;
+    }
+    if (this.shades.getX(this.used) !== Math.fround(opacity)) {
+      this.shades.setX(this.used, opacity);
+      this.shadeFirst = Math.min(this.shadeFirst, this.used); this.shadeLast = this.used + 1;
+    }
+    this.used++;
   }
   finish() {
     this.mesh.count = this.used;
-    if (this.used) {
+    if (this.matrixLast) {
+      this.mesh.instanceMatrix.clearUpdateRanges();
+      this.mesh.instanceMatrix.addUpdateRange(this.matrixFirst, this.matrixLast - this.matrixFirst);
       this.mesh.instanceMatrix.needsUpdate = true;
+    }
+    if (this.shadeLast) {
+      this.shades.clearUpdateRanges();
+      this.shades.addUpdateRange(this.shadeFirst, this.shadeLast - this.shadeFirst);
       this.shades.needsUpdate = true;
     }
   }

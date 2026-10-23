@@ -1,17 +1,7 @@
-import type { ActionKind, PowerKind } from "@/lib/data/types";
+import type { ActionKind, PowerKind, MiniGameKind } from "@/lib/data/types";
+import type { VoxelIconName } from "./voxel-icons";
 
-/** The interface and in-world reactions use the same illustrated vocabulary. */
-export const ACTION_ART: Record<ActionKind, string> = {
-  candidature: "/art/world-v3/ui/action-candidature.webp",
-  refus: "/art/world-v3/ui/action-refus.webp",
-  entretien: "/art/world-v3/ui/action-entretien.webp",
-  rejetApresEntretien: "/art/world-v3/ui/action-rejet.webp",
-  embauche: "/art/world-v3/ui/action-embauche.webp",
-};
-export const POWER_ART: Record<PowerKind, string> = {
-  shot: "/art/world-v3/ui/power-shot.webp",
-  feuSacré: "/art/world-v3/ui/power-fire.webp",
-  fienteDragon: "/art/world-v3/ui/power-dragon.webp",
-  paperasse: "/art/world-v3/ui/power-paper.webp",
-  crapaud: "/art/world-v3/ui/power-frog.webp",
-};
+/** One procedural voxel vocabulary, shared by every UI surface. */
+export const ACTION_ICONS: Record<ActionKind,VoxelIconName>={candidature:'pigeon',refus:'refusal',entretien:'interview',rejetApresEntretien:'stamp',embauche:'castle'};
+export const POWER_ICONS: Record<PowerKind,VoxelIconName>={shot:'mug',feuSacré:'fire',fienteDragon:'dragon',paperasse:'papers',crapaud:'frog'};
+export const GAME_ICONS: Record<MiniGameKind,VoxelIconName>={dragon:'dragon',pigeon:'pigeon',keywords:'scroll',stamp:'stamp',quiz:'crystal',ghosting:'ghost',slots:'coins',pigeonRace:'flag',paperCut:'sword',snake:'snake',maze:'lamp',stack:'stack',pong:'paddle'};

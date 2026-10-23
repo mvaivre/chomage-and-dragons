@@ -1,5 +1,6 @@
 "use client";
 
+import { CrownArtwork, GameArtwork } from "./Artwork";
 import { useEffect, useRef } from "react";
 import type { PlayerView } from "@/hooks/useGame";
 import type { DailyRun, MiniGameKind } from "@/lib/data/types";
@@ -23,7 +24,7 @@ export function DailyButton({ kind, runs, meId, onPlay, onOpen }: {
   return <button type="button" className="daily-button pointer-events-auto" data-done={Boolean(mine)}
     onClick={mine ? onOpen : onPlay}
     aria-label={mine ? `Défi du jour, ${game.title} : voir le classement` : `Jouer le défi du jour : ${game.title}`}>
-    <span className="daily-button__seal" aria-hidden>{mine ? (index === 0 ? "👑" : index + 1) : "!"}</span>
+    <span className="daily-button__seal" aria-hidden>{mine ? (index === 0 ? <CrownArtwork /> : index + 1) : <GameArtwork kind={kind} />}</span>
     <span className="daily-button__text">
       <small>Défi du jour</small>
       <b>{game.title}</b>
@@ -61,7 +62,7 @@ export function DailySheet({ kind, runs, players, meId, onClose }: {
       </div>
       {runs.length ? <ol className="daily__ranking">
         {runs.slice(0, 8).map((run, index) => <li key={run.id} data-me={run.playerId === meId}>
-          <span className="daily__rank">{index === 0 ? "👑" : index + 1}</span>
+          <span className="daily__rank">{index === 0 ? <CrownArtwork /> : index + 1}</span>
           <span className="daily__name">{byId.get(run.playerId)?.name ?? "?"}</span>
           <b>{run.score} {SCORE_UNITS[kind]}</b>
         </li>)}

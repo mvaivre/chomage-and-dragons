@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { VoxelResources } from "./resources";
 import { plantTree } from "./trees";
-import { routeZ, terrainHeight, voxelPalette } from "./world";
+import { routeZ, terrainSurface as terrainHeight, voxelPalette } from "./world";
 
 export function foregroundGrove(r: VoxelResources, x: number, biome: string) {
   const root = new THREE.Group(), bark = r.batch(root, false, 0, true), leaves = r.batch(root, true, 0, true);

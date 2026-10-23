@@ -1,5 +1,6 @@
 "use client";
 
+import { RelicArtwork } from "./Artwork";
 import { useEffect, useRef } from "react";
 import { HIDDEN_ITEMS, type HiddenItem } from "@/lib/game/hidden-objects";
 
@@ -20,8 +21,7 @@ export function HiddenObjectDiscovery({ item, onClose, onCollection }: {
     <small>Collection 1 sur {HIDDEN_ITEMS.length}</small>
     <h2 id="hidden-discovery-title">Objets cachés</h2>
     <figure>
-      {/* eslint-disable-next-line @next/next/no-img-element -- pre-optimized local alpha art */}
-      <img src={`/art/world-v3/collectibles/${item.model}.webp`} width={88} height={88} alt="" />
+      <RelicArtwork model={item.model} className="hidden-discovery__art" />
       <figcaption>{item.name}</figcaption>
     </figure>
     <div id="hidden-discovery-rules">

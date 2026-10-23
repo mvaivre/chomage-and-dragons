@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { VoxelResources } from "./resources";
 import type { LandscapePlot } from "./layout";
-import { terrainHeight } from "./world";
+import { terrainSurface as terrainHeight } from "./world";
 
 /** Small authored grammars on deterministic, reserved plots. No bitmap assets. */
 export function landscapeModel(r: VoxelResources, plot: LandscapePlot) {
@@ -12,6 +12,7 @@ export function landscapeModel(r: VoxelResources, plot: LandscapePlot) {
   root.userData.landscape = { kind: plot.kind, biome: plot.biome };
   const animations: ((t: number) => void)[] = [];
   const house = (x: number, z: number, roof: number, snow = false, stilt = false) => {
+    const corners = [-1.4, 1.4].flatMap(dx => [-1.15, 1.15].map(dz => yAt(x + dx, z + dz)));
     const floor = Math.max(...[-1.4, 1.4].flatMap(dx => [-1.15, 1.15].map(dz => yAt(x + dx, z + dz)))) + (stilt ? 0.7 : 0.12);
     if (stilt) for (const dx of [-1.3, 1.3]) for (const dz of [-1.05, 1.05]) {
       const g = yAt(x + dx, z + dz), h = floor - g + .25;
@@ -20,6 +21,8 @@ export function landscapeModel(r: VoxelResources, plot: LandscapePlot) {
       const low = Math.min(...[-1.4, 1.4].flatMap(dx => [-1.15, 1.15].map(dz => yAt(x + dx, z + dz)))) - .12;
       box(0x899181, x, (low + floor) / 2, z, 2.95, floor - low, 2.4);
     }
+    (root.userData.houses ??= []).push({ x: plot.x + x, z: plot.z + z, floor: base + floor, groundRange: Math.max(...corners) - Math.min(...corners), stilt });
+    if (!stilt) for (let i = 0; i < 2; i++) box(0x989781, x, floor - .04 - i * .05, z + 1.45 + i * .27, .95, .1, .4);
     box(stilt ? 0x7c7562 : 0xccbd92, x, floor + 1, z, 2.9, 2, 2.35);
     box(0x6f533d, x, floor + .05, z, 3.15, .15, 2.6);
     box(0x765d45, x, floor + .75, z + 1.19, .65, 1.5, .08);

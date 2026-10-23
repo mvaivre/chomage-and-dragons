@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { VoxelResources } from "./resources";
-import { CHUNK_SIZE, foregroundPool, terrainHeight, type ForegroundPool } from "./world";
+import { CHUNK_SIZE, foregroundPool, terrainSurface as terrainHeight, type ForegroundPool } from "./world";
 
 /** Entire vignette costs <500 triangles. Water uses the terrain's existing material. */
 export function pondLife(root: THREE.Group, r: VoxelResources, cx: number) {

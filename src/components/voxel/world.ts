@@ -1,4 +1,5 @@
 import { BIOMES, WORLD_LENGTH, mixColor } from "@/lib/game/world";
+import { buildingPadsNear, outsideRoadVisible } from "./sites";
 import { TEARS_MONUMENT_X } from "@/lib/game/tears";
 
 export const WORLD_SCALE = 50;
@@ -7,9 +8,9 @@ export const CHUNK_SIZE = 16;
 export const FOREGROUND_DEPTH = 12;
 export const BACKGROUND_DEPTH = 15;
 export const TERRAIN_BASE_THICKNESS = 1.6;
-export const FOG_NEAR = 23;
-export const FOG_FAR = 30;
+export { FOG_NEAR, FOG_FAR } from "./distance-fog";
 export const WORLD_METRES = WORLD_LENGTH / WORLD_SCALE;
+export function outdoorPathAt(x: number, z: number) { return Math.abs(z - routeZ(x)) < 1.4 && outsideRoadVisible(x); }
 export const MILL_Z = -7.8;
 export const TEARS_Z = -8.4;
 const LENGTH = WORLD_METRES;
@@ -50,15 +51,25 @@ export function riverSites(lap: number): RiverSite[] {
   }
   return sites;
 }
+/** A varying channel footprint shared by terrain, water and the current glints. */
+export function riverProfile(site: RiverSite, z: number) {
+  const neck = .3 + .7 * smooth(Math.abs(z - routeZ(site.x)) / 6);
+  return { center: site.x + (Math.sin(z * .19 + site.x * .03) * 1.8 + Math.sin(z * .47) * .35) * neck, width: 2.05 + Math.sin(z * .28 + site.x * .07) * .38 + Math.cos(z * .51) * .12 };
+}
 export function riverAt(x: number, z: number) {
   if (x < 0) return null;
-  for (const site of riverSites(Math.floor(x / LENGTH)))
-    if (Math.abs(x - site.x) < 4 && Math.abs(x - site.x - Math.sin(z * 0.24) * 0.65) < 2.7) return site;
+  for (const site of riverSites(Math.floor(x / LENGTH))) {
+    if (Math.abs(x - site.x) > 6) continue;
+    const profile = riverProfile(site, z);
+    if (Math.abs(x - profile.center) < profile.width) return site;
+  }
   return null;
 }
 /** Both long edges and the closed underside share this longitudinal altitude. */
 export function tileBottom(x: number) {
-  return routeHeight(x) + 0.12 - TERRAIN_BASE_THICKNESS;
+  let bottom = routeHeight(x) + .12 - TERRAIN_BASE_THICKNESS;
+  for (const site of riverSites(Math.max(0, Math.floor(x / LENGTH)))) if (Math.abs(x - site.x) < 5) bottom = Math.min(bottom, site.y - .9);
+  return bottom;
 }
 function noise(x: number, z: number) {
   return (
@@ -93,13 +104,58 @@ export function foregroundPool(x: number): ForegroundPool | null {
 export function poolRadius(pool: ForegroundPool, x: number, z: number) {
   return Math.hypot((x - pool.x) / pool.rx, (z - pool.z) / pool.rz);
 }
-export function terrainHeight(x: number, z: number) {
-  const river = riverAt(x, z);
-  if (river) return Math.max(tileBottom(x) + 0.35, river.y - 0.3);
+const lavaPools = new Map<number, ForegroundPool[]>();
+/** Small irregular lava basins, separated from the walking lane and dragon nest. */
+export function volcanoPools(lap: number): ForegroundPool[] {
+  const cached = lavaPools.get(lap); if (cached) return cached;
+  const sites = [[.814, 7.4, 2.8, 1.7], [.839, 9.1, 3.3, 2], [.809, -5.8, 2.7, 1.5]].map(([ratio, z, rx, rz]) => {
+    const x = (lap + ratio) * LENGTH;
+    return { x, z, rx, rz, y: Math.floor((routeHeight(x) - .35) * 4) / 4 + .12 };
+  });
+  if (lavaPools.size > 16) lavaPools.clear();
+  lavaPools.set(lap, sites); return sites;
+}
+export function lavaRadius(pool: ForegroundPool, x: number, z: number) {
+  const dx = (x - pool.x) / pool.rx, dz = (z - pool.z) / pool.rz, angle = Math.atan2(dz, dx);
+  return Math.hypot(dx, dz) / (1 + .12 * Math.sin(angle * 3) + .07 * Math.cos(angle * 5));
+}
+export function lavaAt(x: number, z: number) {
+  if (biomeWeights(x).a.id !== "volcan") return null;
+  return volcanoPools(Math.max(0, Math.floor(x / LENGTH))).find(p => lavaRadius(p, x, z) < 1) ?? null;
+}
+function volcanicHeight(x: number, z: number) {
+  const lap = Math.max(0, Math.floor(x / LENGTH)), base = routeHeight(x), depth = routeZ(x) - z;
+  const center = (lap + .835) * LENGTH;
+  // One broad terraced ridge, rather than adding a cone on top of a sheer bank.
+  const ridge = smooth((depth - 2.8) / 15) * (5 + noise(x, z) * .7);
+  const summit = 3.5 * smooth(1 - Math.hypot((x - center) / 15, (z + 15) / 12)) * smooth((depth - 4) / 8);
+  const front = smooth((-depth - 2.5) / 3) * (.55 + .35 * Math.sin(x * .32 + z * .4) + .25 * Math.cos(z * .7 - x * .15));
+  let y = base + ridge + summit + front;
+  // The forge sits on a broad graded terrace, not on a foundation tower.
+  const forgeX = (lap + .822) * LENGTH, terrace = Math.max(Math.abs(x - forgeX) / 2, Math.abs(z + 11) / 1.8);
+  if (terrace < 2.3) y += (routeHeight(forgeX) + 2 - y) * (1 - smooth((terrace - 1) / 1.3));
+  // An open shelf keeps the resident dragon readable and away from the hillside.
+  const nestZ = routeZ(center) - 4, nest = Math.max(Math.abs(x - center) / 3.5, Math.abs(z - nestZ) / 1.7);
+  if (nest < 1.8) y += (base - y) * (1 - smooth((nest - 1) / .8));
+  for (const pool of volcanoPools(lap)) {
+    const radius = lavaRadius(pool, x, z);
+    if (radius < 1) return pool.y - .28;
+    if (radius < 2.4) y += (pool.y - .28 - y) * smooth((2.4 - radius) / 1.4);
+  }
+  // Quantize in world space: a terrace has one altitude along its full width.
+  // Quantizing relative to the undulating road created thousands of dark slivers.
+  return Math.max(tileBottom(x) + .5, Math.floor(y * 4) / 4 + .12);
+}
+function naturalTerrainHeight(x: number, z: number) {
   if (villagePond(x, z))
     return routeHeight(Math.floor(Math.max(0, x) / LENGTH) * LENGTH + 4) - 0.25;
-  const { a, b, t } = biomeWeights(x),
-    distance = Math.abs(z - routeZ(x));
+  const { a, b, t } = biomeWeights(x);
+  if (a.id === "volcan") {
+    const volcanic = volcanicHeight(x, z);
+    if (t === 0) return volcanic;
+    const next = routeHeight(x) + .12 + Math.floor((noise(x, z) * .45 + .85) * .65 * smooth((routeZ(x) - z - 2.8) / 4.5) * 4) / 4;
+    return volcanic + (next - volcanic) * t;
+  }
   const amplitude = (id: string) =>
     id === "montagne"
       ? 9
@@ -111,28 +167,22 @@ export function terrainHeight(x: number, z: number) {
             ? 2.4
             : 0.65;
   const amount = amplitude(a.id) * (1 - t) + amplitude(b.id) * t;
-  const shoulder = smooth((routeZ(x) - z - 2.8) / 4.5);
+  const shoulder = smooth((routeZ(x) - z - 2.8) / (4.5 + Math.max(0, amount - 1) * .7));
   const base = routeHeight(x);
   // Back hills rise above the road rather than disappearing below a floating platform.
-  let y = base + (noise(x, z) * 0.45 + 0.85) * amount * shoulder;
+  const broken = (Math.sin(x * .81 + Math.sin(z * .47)) * Math.cos(z * .63) + Math.sin(x * .39 - z * .81)) * .5;
+  let y = base + (noise(x, z) * .45 + .85) * amount * shoulder + broken * Math.min(1.8, Math.max(0, amount - 2) * .3) * shoulder;
   const depth = z - routeZ(x);
   if (
-    ["lac", "marais", "cascade", "volcan"].includes(a.id) &&
+    ["lac", "marais", "cascade"].includes(a.id) &&
     t < 0.85 &&
     depth < -1.6 &&
     depth > -5.1
   ) {
     y = Math.min(
       y,
-      routeHeight(x) - (a.id === "cascade" ? 2.8 : a.id === "volcan" ? 1.7 : 1),
+      routeHeight(x) - (a.id === "cascade" ? 2.8 : 1),
     );
-  }
-  if (a.id === "volcan") {
-    const local = (x % LENGTH) - (LENGTH * (a.from + a.to)) / 2;
-    const radius = Math.hypot(local, z + 13);
-    const cone = Math.max(0, 15 - radius * 0.8);
-    y += cone * shoulder;
-    if (radius < 3 && distance > 3) y -= 6;
   }
   // A broad terraced knoll carries the mill; its core is level under the tower.
   const millX = Math.max(0, Math.floor(x / LENGTH)) * LENGTH + 21;
@@ -154,17 +204,52 @@ export function terrainHeight(x: number, z: number) {
     if (radius < 1) return plateau;
     if (radius < 1.3) y += (plateau - y) * smooth((1.3 - radius) / 0.3);
   }
-  return Math.max(
-    tileBottom(x) + 0.5,
-    base + 0.12 + Math.floor((y - base) * 4) / 4,
-  );
+  const step = amount > 3 ? .5 : .25;
+  const terraced = depth < -2.8 ? Math.floor(y / step) * step + .12 : base + .12 + Math.floor((y - base) * 4) / 4;
+  const standard = Math.max(tileBottom(x) + .5, terraced);
+  return b.id === "volcan" && t > 0 ? standard + (volcanicHeight(x, z) - standard) * t : standard;
+}
+function unpaddedHeight(x: number, z: number) {
+  const natural = naturalTerrainHeight(x, z);
+  for (const site of riverSites(Math.max(0, Math.floor(x / LENGTH)))) {
+    if (Math.abs(x - site.x) > 12) continue;
+    const { center, width } = riverProfile(site, z), distance = Math.abs(x - center);
+    if (distance < width) return Math.max(tileBottom(x) + .2, site.y - .35);
+    const bank = Math.max(2.2, Math.min(5.5, (natural - site.y) * .7 + 2));
+    if (distance < width + bank) return Math.max(tileBottom(x) + .2, site.y + .025 + (natural - site.y - .025) * smooth((distance - width) / bank));
+  }
+  return natural;
+}
+const padLevels = new Map<string, number>();
+export function terrainHeight(x: number, z: number) {
+  let y = unpaddedHeight(x, z);
+  // Preserve the complete playable lane, including bridge and door approaches.
+  const clearance = smooth((Math.abs(z - routeZ(x)) - 1.6) / 1.3);
+  if (clearance === 0) return y;
+  let nearest: ReturnType<typeof buildingPadsNear>[number] | undefined, distance = 4.5;
+  for (const pad of buildingPadsNear(x)) {
+    const d = Math.hypot(Math.max(0, Math.abs(x - pad.x) - pad.rx), Math.max(0, Math.abs(z - pad.z) - pad.rz));
+    if (d < distance && d < (pad.id.startsWith("portal-pad:") ? 2 : 4.5)) { nearest = pad; distance = d; }
+  }
+  if (nearest) {
+    const pad = nearest;
+    let level = padLevels.get(pad.id);
+    if (level === undefined) {
+      level = Math.round(Math.max(unpaddedHeight(pad.x, pad.z), routeHeight(pad.x - pad.rx) - .8, routeHeight(pad.x + pad.rx) - .8) * 4) / 4;
+      if (padLevels.size > 256) padLevels.clear(); padLevels.set(pad.id, level);
+    }
+    y += (level - y) * (1 - smooth(distance / (pad.id.startsWith("portal-pad:") ? 2 : 4.5))) * clearance;
+  }
+  return Math.max(tileBottom(x) + .2, y);
 }
 /** The visual shoulder starts at the exact edge-column height, then eases to the
  * landscape base. It never changes the saved road or the playable terrain. */
 export function continuationHeight(x: number, z: number) {
-  const edge = z < 0 ? -BACKGROUND_DEPTH : FOREGROUND_DEPTH, side = z < 0 ? -1 : 1;
-  const boundary = terrainHeight(x, edge - side * .25), base = routeHeight(x) + .12;
-  return boundary + (base - boundary) * smooth(Math.abs(z - edge) / 16);
+  const edge = z < 0 ? -BACKGROUND_DEPTH : FOREGROUND_DEPTH;
+  const boundary = (terrainHeight(x, edge - .25) + terrainHeight(x, edge + .25)) / 2, base = routeHeight(x) + .12;
+  const d = Math.abs(z - edge);
+  const ash = z > FOREGROUND_DEPTH && biomeWeights(x).a.id === "volcan" ? .55 * Math.sin(x * .27 + z * .35) * smooth(d / 4) * (1 - smooth(d / 18)) : 0;
+  return boundary + (base - boundary) * smooth(d / 16) + ash;
 }
 const COLORS: Record<
   string,
@@ -249,4 +334,44 @@ export function voxelPalette(x: number) {
 export function routePoint(legacyX: number, lane = 0) {
   const x = legacyX / WORLD_SCALE;
   return { x, y: routeHeight(x) + 0.18, z: routeZ(x) + lane };
+}
+
+/** Exact triangle sample of the shoulder, including river banks, for grounded props. */
+export function continuationSurface(x: number, z: number) {
+  const gx = Math.floor(x * 2) / 2, side = z < 0 ? -1 : 1, edge = side < 0 ? -BACKGROUND_DEPTH : FOREGROUND_DEPTH;
+  const row = Math.floor(Math.abs(z - edge) / 2), z0 = edge + side * row * 2, z1 = z0 + side * 2, a = Math.min(z0, z1), b = Math.max(z0, z1);
+  const height = (xx: number, zz: number) => riverAt(xx, zz)?.y ?? continuationHeight(xx, zz);
+  const node = (xx: number, zz: number) => (height(xx - .25, zz) + height(xx + .25, zz)) / 2;
+  const u = (x - gx) * 2, v = (z - a) / 2, lo = node(gx, a), hi = node(gx + .5, b);
+  return v >= u ? (1 - v) * lo + (v - u) * node(gx, b) + u * hi : (1 - u) * lo + v * hi + (u - v) * node(gx + .5, a);
+}
+
+// Reuse exact half-metre corner heights for moving feet and contact shadows.
+// Twelve spatial buckets bound memory to ~168 KiB, independently of journey length.
+const surfaceNodes = new Map<number, Float64Array>();
+const SURFACE_ROWS = (BACKGROUND_DEPTH + FOREGROUND_DEPTH) * 2 + 2;
+function surfaceNode(x: number, z: number) {
+  const chunk = Math.floor(x / CHUNK_SIZE);
+  let nodes = surfaceNodes.get(chunk);
+  if (!nodes) {
+    if (surfaceNodes.size >= 12) surfaceNodes.delete(surfaceNodes.keys().next().value!);
+    nodes = new Float64Array(CHUNK_SIZE * 2 * SURFACE_ROWS).fill(NaN); surfaceNodes.set(chunk, nodes);
+  }
+  const index = Math.round((x - chunk * CHUNK_SIZE) * 2) * SURFACE_ROWS + Math.round((z + BACKGROUND_DEPTH) * 2);
+  let value = nodes[index];
+  if (Number.isNaN(value)) {
+    const height = (xx: number, zz: number) => outdoorPathAt(xx, zz) && !riverAt(xx, zz) ? routeHeight(xx) + .17 : terrainHeight(xx, zz);
+    value = (height(x - .25, z - .25) + height(x + .25, z - .25) + height(x - .25, z + .25) + height(x + .25, z + .25)) / 4;
+    nodes[index] = value;
+  }
+  return value;
+}
+/** Rendered half-metre height-field surface. Four shared corner samples remove
+ * contour-like risers while props still touch the actual terrain triangles. */
+export function terrainSurface(x: number, z: number) {
+  if (z < -BACKGROUND_DEPTH || z > FOREGROUND_DEPTH) return continuationSurface(x, z);
+  const gx = Math.floor(x * 2) / 2, gz = Math.floor(z * 2) / 2;
+  const node = surfaceNode;
+  const u = (x - gx) * 2, v = (z - gz) * 2, a = node(gx, gz), c = node(gx + .5, gz + .5);
+  return v >= u ? (1 - v) * a + (v - u) * node(gx, gz + .5) + u * c : (1 - u) * a + v * c + (u - v) * node(gx + .5, gz);
 }

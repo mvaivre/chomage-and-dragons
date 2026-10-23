@@ -18,6 +18,14 @@ const ready = (p) =>
       !document.querySelector(".action-button--refus")?.disabled,
   );
 
+// The hotspot now moves on every rendered frame. Click its current centre with
+// a real pointer, rather than waiting for Playwright's two-frame stability gate.
+async function clickRoamingNpc(page) {
+  const box = await page.locator('[data-world-object="wanderer:0"]').boundingBox();
+  assert.ok(box, "the roaming NPC has an accessible hotspot");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 test(
   "voxel inhabitants, expressive heroes, physical collisions and temporary close-ups",
   { timeout: 90000 },
@@ -79,7 +87,7 @@ test(
             return Math.hypot(p.x - old.x, p.z - old.z) > 0.2;
           }, position);
           for (let i = 0; i < 2; i++) {
-            await page.locator('[data-world-object="wanderer:0"]').click();
+            await clickRoamingNpc(page);
             const line = await page
               .locator(".voxel-speech")
               .getAttribute("data-line");
@@ -130,7 +138,7 @@ test(
               return original.apply(this, args);
             };
           });
-          await page.locator('[data-world-object="wanderer:0"]').click();
+          await clickRoamingNpc(page);
           const card = page.locator(".voxel-speech");
           const full = await card.getAttribute("data-line");
           assert.equal(await card.getAttribute("data-typing"), "true");
@@ -168,7 +176,7 @@ test(
           await page.keyboard.press("Escape");
           await ready(page);
           const muted = await page.evaluate(() => window.__letterSounds);
-          await page.locator('[data-world-object="wanderer:0"]').click();
+          await clickRoamingNpc(page);
           await page.waitForTimeout(220);
           assert.equal(await page.evaluate(() => window.__letterSounds), muted);
           assert.equal(
@@ -180,7 +188,7 @@ test(
             .getByRole("button", { name: "Fermer le dialogue" })
             .click();
           await page.emulateMedia({ reducedMotion: "reduce" });
-          await page.locator('[data-world-object="wanderer:0"]').click();
+          await clickRoamingNpc(page);
           await page.waitForFunction(
             () =>
               document.querySelector(".voxel-speech")?.dataset.typing ===

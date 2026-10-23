@@ -4,8 +4,8 @@ const {continuationHeight,terrainHeight,routeHeight,BACKGROUND_DEPTH,FOREGROUND_
 const {miniatureDefocus,MiniaturePass}=await import('../src/components/voxel/miniature.ts');
 test('the continuation meets each terrain edge and slopes down smoothly instead of cutting a cliff',()=>{
  for(const x of [18.75,171.25,272.25,387.25,497.25,512.25])for(const side of [-1,1]){
-  const edge=side<0?-BACKGROUND_DEPTH:FOREGROUND_DEPTH,inside=edge-side*.25;
-  assert.ok(Math.abs(continuationHeight(x,edge)-terrainHeight(x,inside))<1e-8);
+  const edge=side<0?-BACKGROUND_DEPTH:FOREGROUND_DEPTH;
+  assert.ok(Math.abs(continuationHeight(x,edge)-(terrainHeight(x,edge-.25)+terrainHeight(x,edge+.25))/2)<1e-8);
   assert.ok(Math.abs(continuationHeight(x,edge+side*18)-routeHeight(x)-.12)<1e-8);
   let previous=continuationHeight(x,edge),lastDelta=0;
   for(let d=.1;d<=18;d+=.1){const y=continuationHeight(x,edge+side*d),delta=y-previous;assert.ok(Math.abs(delta)<.4,'bounded slope');assert.ok(Math.abs(delta-lastDelta)<.03,'no sudden ledge');previous=y;lastDelta=delta;}

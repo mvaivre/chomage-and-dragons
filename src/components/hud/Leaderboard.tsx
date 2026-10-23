@@ -342,7 +342,7 @@ function Standings({
                 )}
               </span>
 
-              <span className="min-w-0 flex-1">
+              <span className="standing-row__identity min-w-0 flex-1">
                 <span className="flex items-baseline gap-2">
                   <span className="truncate font-display text-xl text-parchment-ink">
                     {row.player.name}
@@ -358,7 +358,7 @@ function Standings({
                 </span>
               </span>
 
-              <span className="hidden shrink-0 items-center gap-3 sm:flex">
+              <span className="standing-row__counts hidden shrink-0 items-center gap-3 sm:flex">
                 {ACTION_ORDER.map((kind) => {
                   return (
                     <span
@@ -375,7 +375,7 @@ function Standings({
 
               <ShotTally count={row.player.shotsOwed} />
 
-              <span className="w-16 shrink-0 text-right text-parchment-ink">
+              <span className="standing-row__steps w-16 shrink-0 text-right text-parchment-ink">
                 <strong className="block font-display text-2xl leading-none">{row.steps}</strong>
                 <small className="text-xs text-parchment-ink/45">pas</small>
               </span>
@@ -414,7 +414,7 @@ function Palmares({
               <span className="w-32 shrink-0 font-display text-sm text-parchment-ink/75 capitalize">
                 {monthLabel(crown.monthKey)}
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="standing-row__identity min-w-0 flex-1">
                 {winner ? (
                   <span className="flex items-center gap-2">
                     <CrownArtwork className="palmares-crown-art" />

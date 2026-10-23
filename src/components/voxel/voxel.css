@@ -29,7 +29,10 @@
 .voxel-name,
 .voxel-target {
   position: absolute;
+  left: 0;
+  top: 0;
   transform: translate(-50%, -100%);
+  contain: layout style;
 }
 .voxel-name {
   font:

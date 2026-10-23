@@ -1,8 +1,8 @@
-/** Stable budgets: phones skip postprocessing before their first frame. */
+/** Stable budgets: phones use quarter-resolution focus, without bloom or dynamic shadows. */
 export const QUALITY = [
-  { name: "high", bloom: true, dpr: 1.5, pixels: 1_400_000, shadowSize: 1024, shadowHz: 8, lights: 4 },
-  { name: "balanced", bloom: false, dpr: 1, pixels: 700_000, shadowSize: 0, shadowHz: 0, lights: 2 },
-  { name: "low", bloom: false, dpr: 0.85, pixels: 450_000, shadowSize: 0, shadowHz: 0, lights: 2 },
+  { name: "high", bloom: true, miniatureScale: .5, dpr: 1.5, pixels: 1_400_000, shadowSize: 1024, shadowHz: 8, lights: 4 },
+  { name: "balanced", bloom: false, miniatureScale: .25, dpr: 1, pixels: 700_000, shadowSize: 0, shadowHz: 0, lights: 2 },
+  { name: "low", bloom: false, miniatureScale: 0, dpr: 0.85, pixels: 450_000, shadowSize: 0, shadowHz: 0, lights: 2 },
 ] as const;
 export function deviceQuality(width: number, coarse: boolean, cores: number, memory = 8) {
   return width <= 760 || coarse || cores <= 4 || memory <= 4 ? 1 : 0;

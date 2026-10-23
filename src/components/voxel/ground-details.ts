@@ -6,7 +6,7 @@ import {
   BACKGROUND_DEPTH,
   CHUNK_SIZE,
   routeZ,
-  terrainHeight,
+  terrainSurface as terrainHeight,
   voxelPalette,
 } from "./world";
 

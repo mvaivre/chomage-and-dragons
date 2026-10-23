@@ -332,7 +332,7 @@ export function ClaimDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="claim-title"
-        className="frame riveted rise grid w-full max-w-sm gap-3 p-5"
+        className="claim-card frame grid w-full max-w-sm gap-3 p-5"
         onSubmit={(event) => { event.preventDefault(); void submit(); }}
       >
         <h2 id="claim-title" className="engrave text-center text-sm">Reprendre {player?.name ?? "ce personnage"}</h2>

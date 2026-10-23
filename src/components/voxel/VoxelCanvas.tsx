@@ -1,5 +1,6 @@
 "use client";
 import { Dialogue } from "./Dialogue";
+import { WorldLabelLayer } from "./label-layer";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   createVoxelWorld,
@@ -16,10 +17,10 @@ import { conversationLine, INSPECTION_SECONDS } from "./conversations";
 
 function VoxelCanvas(props: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null),
+    labelHost = useRef<HTMLDivElement>(null),
     live = useRef(props),
     runtime = useRef<ReturnType<typeof createVoxelWorld> | null>(null);
-  const [labels, setLabels] = useState<WorldLabel[]>([]),
-    [error, setError] = useState(false),
+  const [error, setError] = useState(false),
     [effects, setEffects] = useState(true),
     [speech, setSpeech] = useState<{
       text: string;
@@ -87,12 +88,17 @@ function VoxelCanvas(props: GameCanvasProps) {
     return () => window.clearTimeout(timer);
   }, [speech, props.paused]);
   useEffect(() => {
-    if (!host.current) return;
+    if (!host.current || !labelHost.current) return;
+    const labels = new WorldLabelLayer(labelHost.current, label => {
+      if (live.current.paused) return;
+      if (label.kind === "hidden") live.current.onFindHidden(label.id);
+      else speak(label);
+    });
     try {
       runtime.current = createVoxelWorld(
         host.current,
         () => live.current,
-        setLabels,
+        frame => labels.update(frame, live.current.meId),
         speak,
       );
     } catch (reason) {
@@ -102,6 +108,7 @@ function VoxelCanvas(props: GameCanvasProps) {
     return () => {
       runtime.current?.dispose();
       runtime.current = null;
+      labels.dispose();
     };
   }, [speak]);
   const closeSpeech = () => {
@@ -117,53 +124,7 @@ function VoxelCanvas(props: GameCanvasProps) {
           navigateur, puis recharge la page.
         </div>
       )}
-      <div className="voxel-labels">
-        {labels.map((label) =>
-          label.kind === "player" ? (
-            <span
-              key={label.id}
-              className={`voxel-name ${label.id === props.meId ? "is-me" : ""}`}
-              style={{ left: label.x, top: label.y }}
-            >
-              {label.text}
-            </span>
-          ) : (
-            <button
-              key={label.id}
-              type="button"
-              className={`voxel-target voxel-target--${label.kind}`}
-              style={{ left: label.x, top: label.y }}
-              data-world-object={label.id}
-              data-hidden-item={label.kind === "hidden" ? label.id : undefined}
-              aria-label={
-                label.kind === "hidden"
-                  ? `Ramasser : ${label.text}`
-                  : label.kind === "sign"
-                    ? `Lire le panneau : ${label.text}`
-                    : label.kind === "dragon"
-                      ? "Parler au dragon"
-                      : `Parler : ${ENVIRONMENT_LABELS[label.extra as EnvironmentKind] ?? label.text}`
-              }
-              title={
-                label.kind === "hidden"
-                  ? label.text
-                  : label.kind === "sign"
-                    ? `Lire le panneau : ${label.text}`
-                    : label.kind === "dragon"
-                      ? "Parler au dragon"
-                      : (ENVIRONMENT_LABELS[label.extra as EnvironmentKind] ??
-                        label.text)
-              }
-              onClick={() => {
-                if (label.kind === "hidden") props.onFindHidden(label.id);
-                else speak(label);
-              }}
-            >
-              {label.kind === "hidden" || label.kind === "sign" ? null : "···"}
-            </button>
-          ),
-        )}
-      </div>
+      <div className="voxel-labels" ref={labelHost} />
       <nav className="voxel-camera" aria-label="Caméra du monde">
         <button
           type="button"

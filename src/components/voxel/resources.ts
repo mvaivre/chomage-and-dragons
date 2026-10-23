@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { FOG_NEAR, FOG_FAR } from "./world";
+import { DISTANCE_FOG_GLSL } from "./distance-fog";
 import { OcclusionWindow, OCCLUSION_DECLARATIONS, OCCLUSION_FRAGMENT } from "./occlusion";
 
 /** GPU resources shared across chunks, characters, portraits and interactive arenas. */
@@ -56,11 +56,11 @@ export class VoxelResources {
         `vec4 voxelPosition=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nvoxelPosition=instanceMatrix*voxelPosition;\n#endif\nvVoxelWorld=(modelMatrix*voxelPosition).xyz;\n#include <project_vertex>`,
       );
       shader.fragmentShader =
-        "uniform vec2 voxelFocus; uniform vec3 voxelFog; varying vec3 vVoxelWorld;\n" +
+        "uniform vec2 voxelFocus; uniform vec3 voxelFog; varying vec3 vVoxelWorld;\n" + DISTANCE_FOG_GLSL +
         shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <fog_fragment>",
-        `#include <fog_fragment>\nfloat vf=smoothstep(${FOG_NEAR.toFixed(1)},${FOG_FAR.toFixed(1)},length(vVoxelWorld.xz-voxelFocus)); if(vf>0.0) gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(voxelFog,1.0)).rgb,vf);`,
+        `#include <fog_fragment>\nfloat vf=voxelDistanceFog(vVoxelWorld.xz); if(vf>0.0) gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(voxelFog,1.0)).rgb,vf);`,
       );
       if (occluder) {
         shader.uniforms.voxelWindows = { value: this.cutout.windows };
@@ -73,7 +73,7 @@ export class VoxelResources {
         shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + OCCLUSION_FRAGMENT);
       }
     };
-    mat.customProgramCacheKey = () => `voxel-radial-fog-v3:${occluder}`;
+    mat.customProgramCacheKey = () => `voxel-radial-fog-v4:${occluder}`;
   }
   geometry = <T extends THREE.BufferGeometry>(value: T): T => {
     this.geometries.add(value);
@@ -112,7 +112,7 @@ export class VoxelResources {
             "#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance *= vColor.xyz;\n#endif",
           );
       };
-      mat.customProgramCacheKey = () => `voxel-batch-v6:${fog}:${glow}:${foliage}:${occluder}`;
+      mat.customProgramCacheKey = () => `voxel-batch-v7:${fog}:${glow}:${foliage}:${occluder}`;
       this.batchMaterials.set(key, mat);
     }
     return mat;

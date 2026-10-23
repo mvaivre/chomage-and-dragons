@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { lantern } from "./scenery";
 import { VoxelResources } from "./resources";
-import { routeHeight, routeZ, terrainHeight, type RiverSite } from "./world";
+import { routeHeight, routeZ, terrainHeight, riverProfile, type RiverSite } from "./world";
 
 /** A raised plank deck with clear air and flowing water underneath; rails stay off the route. */
 export function riverBridge(r: VoxelResources, site: RiverSite) {
@@ -28,10 +28,11 @@ export function riverBridge(r: VoxelResources, site: RiverSite) {
   for (let i = 0; i < 16; i++) glints.box(0xa4d1c6, 0, 0, 0, .55, .025, .09);
   glints.finish(); root.add(flow);
   const mesh = flow.children[0] as THREE.InstancedMesh, pose = new THREE.Object3D();
+  pose.scale.set(.55, .025, .09);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.castShadow = false;
   root.userData.animate = (time: number) => {
     for (let i = 0; i < mesh.count; i++) {
-      const z = -14.5 + ((i * 1.7 + time * .55) % 26), x = site.x + Math.sin(z * .24) * .65 + Math.sin(i * 3) * 1.4;
+      const z = -14.5 + ((i * 1.7 + time * .55) % 26), profile = riverProfile(site, z), x = profile.center + Math.sin(i * 3) * profile.width * .65;
       pose.position.set(x, site.y + .025, z); pose.updateMatrix(); mesh.setMatrixAt(i, pose.matrix);
     }
     mesh.instanceMatrix.needsUpdate = true;

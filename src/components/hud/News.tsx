@@ -7,7 +7,7 @@ import { CHEER_EMOJIS } from "@/lib/game/reducer";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { variantFor } from "@/lib/game/variants";
 import { stepsForEvent } from "@/lib/game/scoring";
-import { ActionArtwork } from "./Artwork";
+import { ActionArtwork, CheerArtwork, CHEER_ICONS } from "./Artwork";
 
 export interface NewsItem {
   id: string;
@@ -23,7 +23,7 @@ export function NewsToast({ item, players, onCheer }: { item: NewsItem; players:
   if (item.kind === "cheer" && item.cheer) {
     const from = byId.get(item.cheer.playerId)?.name ?? "Quelqu’un";
     return <div className="news-toast" data-kind="cheer">
-      <span className="news-toast__emoji" aria-hidden>{item.cheer.emoji}</span>
+      <CheerArtwork emoji={item.cheer.emoji} className="news-toast__emoji" />
       <span><strong>{from}</strong> salue ton action</span>
     </div>;
   }
@@ -36,8 +36,8 @@ export function NewsToast({ item, players, onCheer }: { item: NewsItem; players:
       <span><strong>{player?.name ?? "Une âme"}</strong> · {ACTION_LABELS_ONE[event.kind]}</span>
       {variant.rarity !== "common" ? <small>{variant.name}</small> : null}
       <span className="news-toast__react" role="group" aria-label={`Réagir à l’action de ${player?.name ?? "cette personne"}`}>
-        {CHEER_EMOJIS.map((emoji) => <button key={emoji} type="button" aria-pressed={sent === emoji} disabled={sent !== null && sent !== emoji}
-          onClick={() => { if (sent) return; setSent(emoji); onCheer(event.id, emoji); }}>{emoji}</button>)}
+        {CHEER_EMOJIS.map((emoji) => <button key={emoji} type="button" aria-label={CHEER_ICONS[emoji].label} title={CHEER_ICONS[emoji].label} aria-pressed={sent === emoji} disabled={sent !== null && sent !== emoji}
+          onClick={() => { if (sent) return; setSent(emoji); onCheer(event.id, emoji); }}><CheerArtwork emoji={emoji} /></button>)}
       </span>
     </span>
   </div>;
@@ -73,7 +73,7 @@ export function AwayRecap({ events, cheers, players, onClose }: {
         })}
       </ol>
       {cheers.length ? <p className="recap__cheers">
-        On t’a salué·e : {cheers.map((c) => `${c.emoji} ${byId.get(c.playerId)?.name ?? "?"}`).join(" · ")}
+        On t’a salué·e : {cheers.map((c) => <span key={c.id}><CheerArtwork emoji={c.emoji} /> {byId.get(c.playerId)?.name ?? "?"}</span>)}
       </p> : null}
       <div className="recap__actions">
         <button type="button" className="recap__close" onClick={onClose} autoFocus>Reprendre la route</button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { VoxelIcon } from "./VoxelIcon";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { MonthlyMeetup as Meetup } from "@/lib/data/types";
 import { monthKey, monthLabel } from "@/lib/game/calendar";
@@ -90,7 +91,7 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
         </time>
       </div>
       <button type="button" className="monthly-meetup__date" onClick={() => open(current)} disabled={!playerId || disabled}>
-        <span aria-hidden="true">🍻</span>
+        <VoxelIcon name="mug" className="monthly-meetup__icon" />
         <span><small>Verre du mois</small><b>{currentMeetup ? meetupDateLabel(currentMeetup.at) : "Une date à choisir"}</b>
           {currentMeetup?.place ? <em>{currentMeetup.place}</em> : null}</span>
         {playerId ? <span className="monthly-meetup__edit">{currentMeetup ? "Changer" : "Fixer"}</span> : null}

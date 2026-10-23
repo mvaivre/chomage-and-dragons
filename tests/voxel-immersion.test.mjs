@@ -81,26 +81,25 @@ test('the default desktop composition contains elevated villages and their hero 
  const {landscapeView}=await import('../src/components/voxel/layout.ts'),r=new VoxelResources();
  for(const plot of landscapePlots(0).filter(p=>['hamlet','alpine-hamlet','forge'].includes(p.kind))){
   const model=landscapeModel(r,plot),bounds=new THREE.Box3().setFromObject(model),frame=landscapeView(plot.x);
-  const focus=new THREE.Vector3(plot.x,routeHeight(plot.x)+1.1+frame.lift,routeZ(plot.x)),camera=new THREE.OrthographicCamera(-14.1,14.1,8.9,-9.9,.1,100);
+  const focus=new THREE.Vector3(plot.x,routeHeight(plot.x)+.18,routeZ(plot.x)),camera=new THREE.OrthographicCamera(-14.1,14.1,8.9,-9.9,.1,100);
   camera.position.set(focus.x+Math.sin(.62)*38*Math.cos(.74),focus.y+Math.sin(.74)*38,focus.z+Math.cos(.62)*38*Math.cos(.74));camera.lookAt(focus);camera.zoom=frame.zoom;camera.updateProjectionMatrix();camera.updateMatrixWorld();
   for(const x of [bounds.min.x,bounds.max.x])for(const z of [bounds.min.z,bounds.max.z]){const p=new THREE.Vector3(x,bounds.max.y,z).project(camera);assert.ok(p.y<.94,`${plot.kind} roof is framed (${p.y})`);}
+  assert.equal(frame.lift,0);
   const hero=new THREE.Vector3(plot.x,routeHeight(plot.x)+1,routeZ(plot.x)).project(camera);assert.ok(hero.y>-.78,`${plot.kind}: hero above action dock`);
   r.release(model);
  }
  r.dispose();
 });
 
-test('even tiny height changes close their shared terrain edges in reverse views',()=>{
- const r=new VoxelResources(true,4),chunk=makeChunk(1,0,r),tops=new Map(),sides=new Map();
- const key=(a,b)=>[[a[0],a[2]],[b[0],b[2]]].map(p=>p.map(v=>v.toFixed(5)).join(',')).sort().join('|');
- for(const mesh of chunk.children.filter(o=>o.isMesh&&!o.isInstancedMesh&&o.name!=='fogged-ground-continuation')){
-  const {position:p,normal:n}=mesh.geometry.attributes;
-  for(let i=0;i<p.count;i+=6){const q=[0,1,2,5].map(j=>[p.getX(i+j),p.getY(i+j),p.getZ(i+j)]);
-   if(n.getY(i)>.99)for(let j=0;j<4;j++){const a=q[j],b=q[(j+1)%4],k=key(a,b),edges=tops.get(k)??[];edges.push([Math.min(a[1],b[1]),Math.max(a[1],b[1])]);tops.set(k,edges);}
-   else if(Math.abs(n.getY(i))<.01){const k=key(q[0],q[1]);sides.set(k,[Math.min(...q.map(p=>p[1])),Math.max(...q.map(p=>p[1]))]);}
+test('all longitudinal terrain edges are shared instead of narrow vertical risers',()=>{
+ const r=new VoxelResources(true,4);
+ for(const cx of [0,1,12,23,26,28,31,34]){
+  const chunk=makeChunk(cx,0,r);
+  for(const mesh of chunk.children.filter(o=>o.isMesh&&!o.isInstancedMesh&&o.name!=='fogged-ground-continuation')){
+   const n=mesh.geometry.attributes.normal;
+   for(let i=0;i<n.count;i+=3)assert.ok(!(Math.abs(n.getX(i))>.99&&Math.abs(n.getY(i))<.01),'no dark longitudinal sliver');
   }
+  chunk.userData.dispose();
  }
- let smallEdges=0;
- for(const[k,edges]of tops){if(edges.length!==2)continue;const bottom=Math.min(...edges.flat()),top=Math.max(...edges.flat());if(top-bottom<1e-6||top-bottom>.02)continue;smallEdges++;const face=sides.get(k);assert.ok(face&&face[0]<=bottom+2e-6&&face[1]>=top-2e-6,`unclosed edge ${k}, height ${top-bottom}`);}
- assert.ok(smallEdges>30);chunk.userData.dispose();r.dispose();
+ r.dispose();
 });

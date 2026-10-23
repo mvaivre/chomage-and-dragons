@@ -4,25 +4,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { MiniGameKind } from "@/lib/data/types";
 import { MINI_GAMES } from "@/lib/game/mini-games";
 import { HIDDEN_ITEMS, hiddenBiomeLabel } from "@/lib/game/hidden-objects";
+import { GameArtwork, RelicArtwork } from "./Artwork";
+import { VoxelIcon } from "./VoxelIcon";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { characterById } from "@/lib/game/characters";
 import { BIOMES, WORLD_LENGTH } from "@/lib/game/world";
-
-const BADGES: Record<string, string> = {
-  dragon: "🐉",
-  pigeon: "🕊",
-  keywords: "📜",
-  stamp: "🔨",
-  quiz: "🔮",
-  ghosting: "👻",
-  slots: "💰",
-  pigeonRace: "🏁",
-  paperCut: "⚔",
-  snake: "🐍",
-  maze: "🕯",
-  stack: "🧱",
-  pong: "🏓",
-};
 
 export function AdventureMenu({
   foundIds,
@@ -131,7 +117,7 @@ export function AdventureMenu({
             type="button"
             onClick={onInitiation}
           >
-            🐉 Les rites d’initiation <span>Apprendre à jouer</span>
+            <VoxelIcon name="dragon" /><div>Les rites d’initiation <small>Apprendre à jouer</small></div>
           </button>
           <div className="adventure-menu__games">
             {Object.values(MINI_GAMES).map((game) => (
@@ -140,7 +126,7 @@ export function AdventureMenu({
                 type="button"
                 onClick={() => onPlay(game.kind)}
               >
-                <span aria-hidden="true">{BADGES[game.kind] ?? "⚔"}</span>
+                <GameArtwork kind={game.kind} className="adventure-menu__game-icon" />
                 <div>
                   <strong>{game.title}</strong>
                   <small>{game.misery}</small>
@@ -163,13 +149,7 @@ export function AdventureMenu({
                 <article key={item.id} data-found={found}>
                   <span className="adventure-menu__relic" aria-hidden="true">
                     {found ? (
-                      /* eslint-disable-next-line @next/next/no-img-element -- pre-optimized local alpha art */
-                      <img
-                        src={`/art/world-v3/collectibles/${item.model}.webp`}
-                        width={64}
-                        height={64}
-                        alt=""
-                      />
+                      <RelicArtwork model={item.model} />
                     ) : (
                       "?"
                     )}
