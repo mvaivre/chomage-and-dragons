@@ -29,7 +29,8 @@ test("factory entrances, machines, flying CVs and stamping workers preserve jour
     const hero = await page.evaluate(() => window.__voxelWorld.actors.find(a => a.id === "test"));
     assert.ok(Math.abs(hero.x - 31 / 200 * 30240) < 0.01);
     await page.getByRole("button", { name: "Ranger le butin" }).click();
-    for (let i = 0; i < 2; i++) { await page.locator(".mini-game-invite__pass").waitFor(); await page.locator(".mini-game-invite__pass").click(); }
+    await page.locator(".wild-encounter[open], .roadside-invite[open]").waitFor();
+    await page.keyboard.press("Escape");
     await ready(page);
     const before = await page.evaluate(() => ({ save: localStorage.getItem("louchomage:v2"), factory: window.__voxelWorld.factory, workers: window.__voxelWorld.inhabitants.filter(n => n.kind === "worker") }));
     await page.waitForTimeout(650);

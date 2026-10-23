@@ -485,8 +485,8 @@ export function createVoxelWorld(
         objects.set(`staff:${room.from}:${station.index}`, worker); world.add(worker);
       }
     } else
-      for (let i = 0; i < 6; i++) {
-        const x = from + 2 + i * 5,
+      for (let i = 0; i < 2; i++) {
+        const x = from + 9 + i * 12,
           staff = addObject(
             `staff:${room.from}:${i}`,
             room.id === "orp" ? "clerk" : "worker",
@@ -1405,7 +1405,8 @@ export function createVoxelWorld(
           lastLifeShadow = time;
         }
       }
-      if (obj.userData.camp || obj.userData.startingMarket)
+      if ((obj.userData.camp || obj.userData.startingMarket) &&
+          (!obj.userData.interior || obj.userData.room?.from === scene.viewedRoom?.from))
         obj.userData.animate?.(scene.reducedMotion ? 0 : time);
       if (obj.userData.sails && !scene.reducedMotion)
         obj.userData.sails.rotation.z = time * 0.18;
@@ -1928,6 +1929,7 @@ export function createVoxelWorld(
         })() : undefined,
       })) : undefined; },
       get factory() { return profileGeometry && activeRoom?.id === "factory" ? objects.get(`room:${activeRoom.from}`)?.userData.productionLine?.userData.snapshot() : undefined; },
+      get interiorActivity() { return profileGeometry && activeRoom ? objects.get(`room:${activeRoom.from}`)?.userData.activity?.userData.snapshot() : undefined; },
       get trees() { return profileGeometry ? [...chunks.values()].flatMap(c => c.userData.trees ?? []) : undefined; },
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,

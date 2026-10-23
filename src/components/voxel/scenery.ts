@@ -3,6 +3,7 @@ import type { ContactPatch } from "./contact-shadows";
 import { VoxelResources } from "./resources";
 import { routeHeight, routeZ } from "./world";
 import { factoryLine, factoryStations, FACTORY_AISLE } from "./factory";
+import { interiorActivity } from "./interior-activity";
 
 /** Text belongs to the board, on both faces, and follows perspective/occlusion. */
 export function letterBoard(
@@ -323,11 +324,11 @@ export function interiorDetails(
       wb.box(timber, xx, y + 2, -4.8, 4.1, 0.12, 0.5);
       wb.box(timber, xx, y + 3.1, -4.8, 4.1, 0.12, 0.5);
       for (let shelf = 0; shelf < 3; shelf++)
-        for (let k = 0; k < 11; k++) {
+        for (let k = 0; k < 8; k++) {
           const c = [0x507d5b, 0xb27744, 0x82485f, 0x9bab70][k % 4];
           wb.box(
             c,
-            xx - 1.65 + k * 0.33,
+            xx - 1.65 + k * 0.47,
             y + 1.2 + shelf * 1.1,
             -4.7,
             0.14,
@@ -336,7 +337,7 @@ export function interiorDetails(
           );
           wb.box(
             c,
-            xx - 1.65 + k * 0.33,
+            xx - 1.65 + k * 0.47,
             y + 1.46 + shelf * 1.1,
             -4.7,
             0.07,
@@ -353,7 +354,7 @@ export function interiorDetails(
       b.box(0x9d6e3b, xx, y + 0.9, 2.8, 2.2, 0.2, 1.4);
       for (const dx of [-0.8, 0.8]) {
         b.box(timber, xx + dx, y + 0.45, 2.8, 0.13, 0.9, 1);
-        b.box(0x805b35, xx + dx, y + 0.45, 1.9, 0.5, 0.14, 0.5);
+        b.box(0x805b35, xx + dx, y + 0.45, 3.8, 0.5, 0.14, 0.5);
       }
       b.box(0xf7c36a, xx, y + 1.23, 2.8, 0.09, 0.38, 0.09, 0, true);
       b.box(0x725634, xx, y + 1.02, 2.8, 0.4, 0.08, 0.4);
@@ -367,6 +368,9 @@ export function interiorDetails(
     for (let x = from + 0.5; x < to; x += 1.25) for (const side of [-1, 1])
       b.box(0xb6a473, x - cx, routeHeight(x) - base + 0.181, side * FACTORY_AISLE, 0.48, 0.018, 0.055);
   }
+  const activity = interiorActivity(r, room, from, to, furnishings);
+  root.add(activity); root.userData.activity = activity;
+  contacts.push(...activity.userData.contactPatches);
   const sign = letterBoard(
     r,
     tavern
@@ -405,7 +409,10 @@ export function interiorDetails(
     for (const side of [-1, 1]) b.box(timber, edge - cx, y + 1.6, side * 1.9, 0.23, 3.2, 0.23);
     b.box(timber, edge - cx, y + 3.2, 0, 0.24, 0.25, 4.05);
   }
-  root.userData.animate = (time: number) => { root.userData.productionLine?.userData.animate(time); };
+  root.userData.animate = (time: number) => {
+    root.userData.productionLine?.userData.animate(time);
+    root.userData.activity?.userData.animate(time);
+  };
   root.userData.camp = true;
   b.finish();
   wb.finish();
