@@ -7,11 +7,9 @@ import { QUALITY, deviceQuality, QualityGovernor } from "./quality";
 import { chestStopForJourney } from "./travel";
 import { hasStampCrush, stampCrushPose, STAMP_RELEASE } from "./stamp-crush";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { MiniaturePass } from "./miniature";
-import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
-import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+import { ScenePass, sceneSamples } from "./scene-pass";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { HIDDEN_ITEMS } from "@/lib/game/hidden-objects";
@@ -207,15 +205,12 @@ export function createVoxelWorld(
   const rim = new THREE.DirectionalLight(0x9bc7d4, 1);
   rim.position.set(15, 12, -20);
   world.add(rim);
-  const sceneDepth = new THREE.DepthTexture(1, 1, THREE.UnsignedInt248Type);
-  sceneDepth.format = THREE.DepthStencilFormat;
+  const samples = sceneSamples(renderer);
   const composer = new EffectComposer(
     renderer,
     new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
-      samples: 0,
-      stencilBuffer: true,
-      depthTexture: sceneDepth,
+      depthBuffer: false,
     }),
   );
   const bloom = new UnrealBloomPass(
@@ -226,12 +221,10 @@ export function createVoxelWorld(
   );
   const miniature = new MiniaturePass();
   const miniatureRequested = !(new URLSearchParams(location.search).has("debug") && new URLSearchParams(location.search).get("miniature") === "0");
-  composer.addPass(new RenderPass(world, camera));
-  composer.addPass(miniature);
+  const source = new ScenePass(world, camera, miniature, samples);
+  composer.addPass(source);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
-  const antialias = new ShaderPass(FXAAShader);
-  composer.addPass(antialias);
   const localLights = new LocalLightPool(world, deviceLevel ? 2 : 4);
   const contactShadows = new ContactShadows(world, resources.focus);
   const chunks = new Map<string, THREE.Group>(),
@@ -513,12 +506,12 @@ export function createVoxelWorld(
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height);
     // Focus is independent of bloom. Low quality releases its targets entirely.
-    const post = quality.bloom || (quality.miniatureScale > 0 && miniatureRequested);
-    miniature.setResolutionScale(quality.miniatureScale);
+    // Unsupported HDR multisampling falls back to the native antialiased canvas.
+    const post = samples > 0 && (quality.bloom || (quality.miniatureScale > 0 && miniatureRequested));
+    miniature.setResolutionScale(samples ? quality.miniatureScale : 0);
     composer.setPixelRatio(post ? dpr : 1);
     composer.setSize(post ? width : 1, post ? height : 1);
-    miniature.enabled = quality.miniatureScale > 0 && miniatureRequested;
-    antialias.uniforms.resolution.value.set(1 / Math.max(1, width * dpr), 1 / Math.max(1, height * dpr));
+    miniature.enabled = samples > 0 && quality.miniatureScale > 0 && miniatureRequested;
   }
   const hudRoot = host.closest(".game-adventure") ?? host.parentElement;
   let hudTop: Element | null = null, hudDock: Element | null = null, hudNodesDirty = true, hudInsetsDirty = true;
@@ -1774,7 +1767,7 @@ export function createVoxelWorld(
     renderer.info.reset();
     const renderStarted = performance.now();
     miniature.setFocus(resources.cutout.count ? resources.cutout.windows[0].z : MINIATURE_CAMERA_DISTANCE, camera.near, camera.far, true);
-    bloom.enabled = effectsEnabled && quality.bloom;
+    bloom.enabled = samples > 0 && effectsEnabled && quality.bloom;
     if (bloom.enabled || miniature.enabled) composer.render(dt);
     else renderer.render(world, camera);
     renderMilliseconds = performance.now() - renderStarted;
@@ -1794,10 +1787,11 @@ export function createVoxelWorld(
         renderMs: renderMilliseconds,
         frameMs: frameInterval,
         quality: quality.name,
-        bloom: effectsEnabled && quality.bloom,
+        bloom: bloom.enabled,
         miniature: miniature.enabled,
         miniatureScale: quality.miniatureScale,
-        antialias: (effectsEnabled && quality.bloom) || miniature.enabled ? "fxaa" : "msaa",
+        antialias: "msaa",
+        sourceSamples: bloom.enabled || miniature.enabled ? samples : null,
         surround: world.background instanceof THREE.Color ? world.background.getHexString() : null,
         projection: "perspective",
         focusDepth: resources.cutout.count ? resources.cutout.windows[0].z : MINIATURE_CAMERA_DISTANCE,

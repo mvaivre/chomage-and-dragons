@@ -27,6 +27,8 @@ test("voxel transitions keep bounded draw, shader and mobile budgets without cha
         await page.waitForFunction(() => window.__voxelWorld?.ready && !document.querySelector(".action-button--candidature")?.disabled);
         const before = await page.evaluate(() => localStorage.getItem("louchomage:v2"));
         const initial = await page.evaluate(() => window.__voxelWorld.performance);
+        assert.equal(initial.antialias, "msaa");
+        assert.ok([2, 4].includes(initial.sourceSamples), "scene edges are antialiased before postprocessing");
         if (mobile) {
           assert.equal(initial.bloom, false);
           assert.equal(initial.miniature, true);

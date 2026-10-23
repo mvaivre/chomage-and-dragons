@@ -758,3 +758,33 @@ La forêt, le lac, le volcan et l'ORP ont ensuite été comparés dans ces trois
 Les 182 tests unitaires, le lint, la compilation et 12 contrôles navigateur passent,
 dont le démarrage audio mobile et les allers-retours forêt/volcan. Les scènes mobiles
 vérifiées restent sous 150 000 triangles, sans ombres dynamiques ni bloom.
+
+### Netteté conservée avant le tilt-shift — 23 octobre 2026
+
+La passe FXAA globale est retirée. `ScenePass` dessine la scène une seule fois dans
+une cible HDR avec MSAA matériel (jusqu'à quatre échantillons), puis résout couleur
+et profondeur avant le flou miniature. Les buffers de composition restent sans
+multisampling et sans profondeur ; la résolution du jeu et les budgets géométriques
+ne changent pas. Le stencil sert aux silhouettes dans la source mais n'est pas
+recopié dans les effets. Les ressources sont redimensionnées/libérées avec le profil.
+
+Le composite garde la source nette dans la zone de mise au point. Un voisinage de
+un pixel protège aussi la couverture partielle des contours MSAA : un pixel de
+profondeur résolue sur le fond ne doit pas effacer le bord d'un personnage net.
+Le rayon et l'intensité du flou éloigné restent ceux de la passe précédente.
+
+Le nombre d'échantillons est choisi dans l'intersection des formats couleur HDR et
+profondeur/stencil réellement supportés. En l'absence de MSAA HDR compatible, le jeu
+utilise directement le canvas avec son anticrénelage matériel, sans effets de flou
+ni bloom. Le profil bas suit déjà ce chemin pour préserver les performances.
+
+Le test GPU compare un contrôle sans AA, le MSAA sans flou, puis le même MSAA avec
+flou. Il vérifie une couverture subpixel réelle, la conservation exacte des surfaces
+nettes et de leurs contours, le flou des détails éloignés grâce à la profondeur
+résolue, l'absence d'erreurs GL et la libération de toutes les textures. Le repli
+sur matériel incompatible est également exercé dans le vrai jeu mobile.
+Comparaisons forêt proche/mobile/large : `.qa/source-msaa/`.
+Validation finale : 184 tests unitaires, lint et build passent. Contrôles GPU/focus
+sur le build de production, allers-retours forêt/volcan avec l'explorateur de dev,
+et comparaison des quatre scènes : environ 60 i/s sur ordinateur et 30 i/s en mobile
+émulé sur la machine de test, MSAA 4x actif, sans dépassement des budgets mobiles.

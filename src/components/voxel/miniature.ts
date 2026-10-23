@@ -38,8 +38,22 @@ export class MiniaturePass extends Pass {
     }`,
   });
   private composite = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, vertexShader,
-    uniforms: { tDiffuse: { value: null }, tBlur: { value: null }, tDepth: { value: null }, nearPlane: { value: .1 }, farPlane: { value: 170 }, focusDepth: { value: 38 }, perspectiveCamera: { value: 0 } },
-    fragmentShader: depthFunctions + `uniform sampler2D tDiffuse,tBlur;void main(){vec4 sharp=texture2D(tDiffuse,vUv);gl_FragColor=vec4(mix(sharp.rgb,texture2D(tBlur,vUv).rgb,blurAt(vUv)*0.6),sharp.a);}`,
+    uniforms: { tDiffuse: { value: null }, tBlur: { value: null }, tDepth: { value: null }, sourceTexel: { value: new THREE.Vector2() }, nearPlane: { value: .1 }, farPlane: { value: 170 }, focusDepth: { value: 38 }, perspectiveCamera: { value: 0 } },
+    // Depth resolves to one sample, while MSAA color averages coverage. Protect
+    // the one-pixel fringe next to focused geometry so blur cannot erase its AA.
+    fragmentShader: depthFunctions + `uniform sampler2D tDiffuse,tBlur;uniform vec2 sourceTexel;
+    void main(){
+      vec4 sharp=texture2D(tDiffuse,vUv);float coc=blurAt(vUv);
+      if(coc>0.0){
+        coc=min(coc,min(blurAt(vUv+vec2(sourceTexel.x,0.0)),blurAt(vUv-vec2(sourceTexel.x,0.0))));
+        coc=min(coc,min(blurAt(vUv+vec2(0.0,sourceTexel.y)),blurAt(vUv-vec2(0.0,sourceTexel.y))));
+        if(coc>0.0){
+          coc=min(coc,min(blurAt(vUv+sourceTexel),blurAt(vUv-sourceTexel)));
+          coc=min(coc,min(blurAt(vUv+vec2(sourceTexel.x,-sourceTexel.y)),blurAt(vUv+vec2(-sourceTexel.x,sourceTexel.y))));
+        }
+      }
+      gl_FragColor=vec4(mix(sharp.rgb,texture2D(tBlur,vUv).rgb,coc*0.6),sharp.a);
+    }`,
   });
   private quad = new FullScreenQuad(this.filter);
   setFocus(depth: number, near: number, far: number, perspective = false) {
@@ -48,6 +62,7 @@ export class MiniaturePass extends Pass {
   setResolutionScale(scale: number) { this.scale = scale; this.setSize(this.width, this.height); }
   setSize(width: number, height: number) {
     this.width = width; this.height = height;
+    this.composite.uniforms.sourceTexel.value.set(1 / Math.max(1, width), 1 / Math.max(1, height));
     this.blurSize.set(Math.max(1, Math.ceil(width * this.scale)), Math.max(1, Math.ceil(height * this.scale)));
     this.a.setSize(this.blurSize.x, this.blurSize.y); this.b.setSize(this.blurSize.x, this.blurSize.y);
   }
