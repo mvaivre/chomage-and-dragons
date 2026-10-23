@@ -788,3 +788,31 @@ Validation finale : 184 tests unitaires, lint et build passent. Contrôles GPU/f
 sur le build de production, allers-retours forêt/volcan avec l'explorateur de dev,
 et comparaison des quatre scènes : environ 60 i/s sur ordinateur et 30 i/s en mobile
 émulé sur la machine de test, MSAA 4x actif, sans dépassement des budgets mobiles.
+
+### Contournement des héros par les PNJ — 23 octobre 2026
+
+Les impacts du héros sont évalués avant le déplacement autonome du PNJ : le choc,
+la projection, les rebonds et le rétablissement sont conservés. Tant qu'il marche,
+le PNJ contourne les héros présents sur le même étage et dans la même scène par une
+tangente locale, puis rejoint sa destination de patrouille. Le côté du détour reste
+stable et tient compte des limites du décor ; une destination située dans le héros
+est temporairement arrêtée à son périmètre.
+
+Un contrôle continu du segment parcouru empêche la traversée à faible fréquence ou
+vers un second joueur. Les rares chevauchements de départ/atterrissage sont séparés
+avec une direction déterministe. L'évitement n'agit pas sur un PNJ projeté et ne
+modifie aucun trajet, score ni sauvegarde du jeu. Une liste de positions des héros
+est réutilisée pour la scène ; aucune navigation globale, géométrie ou dépendance
+physique supplémentaire.
+
+Validation : simulations à 10/30/120 Hz, cible bloquée, centres confondus, plusieurs
+joueurs, étages distincts et bord du décor ; contrôle dans le jeu ordinateur/mobile
+d'un croisement autonome sans choc et d'un vrai déplacement qui projette toujours
+un PNJ. Les 193 tests unitaires, le lint, le build et les contrôles navigateur sur
+le build de production passent. Captures et parcours : `.qa/npc-avoidance/`.
+
+Les rayons proviennent des dimensions réelles des modèles, mesurées une fois à leur
+création, et tiennent compte de l'échelle du héros. Le seuil de choc utilise la même
+zone que l'évitement, afin qu'un PNJ ne puisse pas être repoussé silencieusement
+devant un héros qui le percute. Le pigeon en moonwalk suit également cette logique,
+sans réécrire sa position après les collisions.

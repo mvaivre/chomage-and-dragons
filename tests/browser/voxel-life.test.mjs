@@ -188,6 +188,10 @@ test(
             .getByRole("button", { name: "Fermer le dialogue" })
             .click();
           await page.emulateMedia({ reducedMotion: "reduce" });
+          // Media changes park walkers at home. Let the new physical position
+          // reach its hotspot before clicking; the old centre may be metres away.
+          const frame = await page.evaluate(() => window.__voxelWorld.performance.frames);
+          await page.waitForFunction(f => window.__voxelWorld.performance.frames >= f + 2, frame);
           await clickRoamingNpc(page);
           await page.waitForFunction(
             () =>

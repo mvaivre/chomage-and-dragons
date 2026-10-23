@@ -54,11 +54,13 @@ import {
   createLifeBody,
   WALKERS,
   patrol,
+  walkAround,
   launch,
   stepLife,
   segmentDistance,
   dampAngle,
   type LifeBody,
+  type WalkingObstacle,
 } from "./life";
 import { nextDoor, type RoomLocation } from "@/lib/game/doors";
 import { journeyPoint, portalSite, villageSites, millSite, roomRouteZ, tearsSite, landscapePlots, foregroundPlots, landscapeView, narrativeSite, entranceViewZoom } from "./layout";
@@ -110,6 +112,8 @@ export interface WorldLabel {
 type Actor = {
   root: THREE.Group;
   height: number;
+  bodyRadius: number;
+  obstacle: WalkingObstacle;
   character: string;
   x: number;
   from: number;
@@ -231,6 +235,7 @@ export function createVoxelWorld(
     actors = new Map<string, Actor>(),
     stagings = new Map<string, Staging>(),
     objects = new SceneObjects();
+  const walkingObstacles: WalkingObstacle[] = [];
   const props0 = getProps(),
     initial =
       props0.players.find(
@@ -688,11 +693,13 @@ export function createVoxelWorld(
         if (actor) resources.release(actor.root);
         const root = characterModel(resources, player.characterId);
         world.add(root);
+        const size = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+        const bodyRadius = Math.hypot(size.x, size.z) * .5;
         actor = {
           root,
-          height: new THREE.Box3()
-            .setFromObject(root)
-            .getSize(new THREE.Vector3()).y,
+          height: size.y,
+          bodyRadius,
+          obstacle: { x: 0, y: 0, z: 0, radius: bodyRadius },
           character: player.characterId,
           x: target,
           from: target,
@@ -1188,6 +1195,14 @@ export function createVoxelWorld(
       objects.set(`tears:${lap}`, root);
       world.add(root);
     }
+    walkingObstacles.length = 0;
+    for (const actor of actors.values())
+      if (!actor.passage && interiorAt(actor.x)?.from === scene.viewedRoom?.from) {
+        const p = actor.root.position;
+        actor.obstacle.x = p.x; actor.obstacle.y = p.y; actor.obstacle.z = p.z;
+        actor.obstacle.radius = actor.bodyRadius * Math.max(actor.root.scale.x, actor.root.scale.z);
+        walkingObstacles.push(actor.obstacle);
+      }
     const residents = environmentSites(left, right, 1);
     for (const r of residents)
       addObject(
@@ -1209,6 +1224,8 @@ export function createVoxelWorld(
             obj.userData.phase ?? obj.position.x * 0.31,
           );
           obj.userData.life = body;
+          const size = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
+          obj.userData.walkRadius = Math.hypot(size.x, size.z) * .5;
         }
         const roomFrom = obj.userData.interiorFrom as number | undefined;
         const stationed = id.startsWith("staff:");
@@ -1235,23 +1252,16 @@ export function createVoxelWorld(
             const desired =
                 inspection?.id === id
                   ? body.position
-                  : obj.userData.factoryWork ? body.home : patrol(body, time, stationed, scene.reducedMotion),
-              u = scene.reducedMotion ? 1 : 1 - Math.exp(-dt * 4);
+                  : obj.userData.moonwalk !== undefined ? { x: obj.userData.moonwalk + tavernMoonwalk(time, scene.reducedMotion).offset / WORLD_SCALE, y: body.home.y, z: body.home.z }
+                  : obj.userData.factoryWork ? body.home : patrol(body, time, stationed, scene.reducedMotion);
             if (
               roomFrom === undefined &&
               inspection?.id !== id &&
               !scene.reducedMotion
             )
               desired.z += routeZ(desired.x) - routeZ(body.home.x);
-            body.position.x += (desired.x - body.position.x) * u;
-            body.position.z += (desired.z - body.position.z) * u;
-            const centerZ = roomFrom === undefined ? routeZ(body.position.x) : roomRouteZ(interiorAt(roomFrom)!);
-            body.position.z = THREE.MathUtils.clamp(
-              body.position.z,
-              centerZ - 4.7,
-              centerZ + 4.7,
-            );
-            body.position.y = ground(body.position.x, body.position.z);
+            // Hero impacts take priority over autonomous steering. Test the NPC
+            // before it moves aside, so avoidance can never cancel a real hit.
             for (const actor of actors.values()) {
               const actorRoom = interiorAt(actor.x)?.from;
               if (
@@ -1260,7 +1270,7 @@ export function createVoxelWorld(
                 !actor.moving
               )
                 continue;
-              const radius = /hen|hedgehog|scarab|crow/.test(kind) ? 0.7 : 0.95;
+              const radius = obj.userData.walkRadius + actor.bodyRadius * Math.max(actor.root.scale.x, actor.root.scale.z) + .15;
               if (
                 segmentDistance(
                   actor.previous,
@@ -1291,6 +1301,12 @@ export function createVoxelWorld(
                   break;
                 }
               }
+            }
+            if (body.mode === "walking") {
+              const centerZ = roomFrom === undefined ? routeZ(body.position.x) : roomRouteZ(interiorAt(roomFrom)!);
+              walkAround(body, desired, dt, walkingObstacles, obj.userData.walkRadius + .15,
+                centerZ - 4.7, centerZ + 4.7, scene.reducedMotion);
+              body.position.y = ground(body.position.x, body.position.z);
             }
           }
           stepLife(body, dt, ground);
@@ -1384,9 +1400,8 @@ export function createVoxelWorld(
             : Math.sin(time * 1.5) * 0.025);
         obj.rotation.z = Math.sin(time * 2) * 0.035;
       }
-      if (obj.userData.moonwalk !== undefined) {
+      if (obj.userData.moonwalk !== undefined && obj.userData.life?.mode === "walking") {
         const walk = tavernMoonwalk(time, scene.reducedMotion);
-        obj.position.x = obj.userData.moonwalk + walk.offset / WORLD_SCALE;
         obj.rotation.y = (walk.facing * Math.PI) / 2;
       }
     }
@@ -1855,6 +1870,7 @@ export function createVoxelWorld(
         tilt: a.root.rotation.z,
         pickup: a.pickup ?? null,
         position: a.root.position.toArray(),
+        radius: a.obstacle.radius,
         bounds: profileGeometry ? (() => { const b = new THREE.Box3().setFromObject(a.root); return { min: b.min.toArray(), max: b.max.toArray() }; })() : undefined,
         passage: a.passage ? { boundary: a.passage.boundary, elapsed: time - a.passage.started, source: a.passage.source?.id ?? null, destination: a.passage.destination?.id ?? null } : null,
       })); },
@@ -1902,6 +1918,7 @@ export function createVoxelWorld(
         .map(([id, o]) => ({
           id,
           kind: o.userData.kind,
+          radius: o.userData.walkRadius,
           ...o.userData.life,
           visible: o.visible,
           stamp: o.userData.stamp,
