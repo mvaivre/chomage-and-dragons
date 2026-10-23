@@ -10,6 +10,8 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { MiniaturePass } from "./miniature";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { HIDDEN_ITEMS } from "@/lib/game/hidden-objects";
@@ -70,6 +72,8 @@ import { foregroundGrove } from "./foreground";
 import { INSPECTION_SECONDS } from "./conversations";
 import { letterBoard, cottage, interiorDetails, waysideCamp } from "./scenery";
 import { entranceBuilding } from "./entrances";
+import { startingMarket } from "./starting-market";
+import { START_MARKET_X } from "./sites";
 import { createReaction } from "./staging";
 
 export interface GameCanvasProps {
@@ -226,6 +230,8 @@ export function createVoxelWorld(
   composer.addPass(miniature);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  const antialias = new ShaderPass(FXAAShader);
+  composer.addPass(antialias);
   const localLights = new LocalLightPool(world, deviceLevel ? 2 : 4);
   const contactShadows = new ContactShadows(world, resources.focus);
   const chunks = new Map<string, THREE.Group>(),
@@ -512,6 +518,7 @@ export function createVoxelWorld(
     composer.setPixelRatio(post ? dpr : 1);
     composer.setSize(post ? width : 1, post ? height : 1);
     miniature.enabled = quality.miniatureScale > 0 && miniatureRequested;
+    antialias.uniforms.resolution.value.set(1 / Math.max(1, width * dpr), 1 / Math.max(1, height * dpr));
   }
   const hudRoot = host.closest(".game-adventure") ?? host.parentElement;
   let hudTop: Element | null = null, hudDock: Element | null = null, hudNodesDirty = true, hudInsetsDirty = true;
@@ -1073,9 +1080,10 @@ export function createVoxelWorld(
       const light = currentDaylight();
       scene.night = light.night;
       scene.warm = light.warm;
-      const color = new THREE.Color(0x080e14).lerp(new THREE.Color(palette.sky), .035);
+      const color = new THREE.Color(palette.ground).multiplyScalar(1 - light.night * .65);
       resources.fogColor.copy(color);
       world.background = scene.viewedRoom ? new THREE.Color(0x080b10) : color;
+      if (scene.viewedRoom) resources.fogColor.set(0x080b10);
       ambient.intensity = scene.viewedRoom ? 0.65 : 1.45 - light.night * 1.05;
       sun.intensity = scene.viewedRoom ? 0.25 : 3.2 - light.night * 2.85;
       rim.intensity = scene.viewedRoom ? 0.15 : 1 - light.night * 0.7;
@@ -1127,6 +1135,9 @@ export function createVoxelWorld(
         world.add(sign);
         objects.set(key, sign);
       }
+    }
+    if (Math.abs(focusX - START_MARKET_X) < 34 && !objects.has("starting-market")) {
+      const market = startingMarket(resources); world.add(market); objects.set("starting-market", market);
     }
     // A lived-in hamlet at the start: the same scale and warm windows as the reference.
     for (const [i, site] of villageSites(lap).entries()) {
@@ -1361,7 +1372,7 @@ export function createVoxelWorld(
           lastLifeShadow = time;
         }
       }
-      if (obj.userData.camp)
+      if (obj.userData.camp || obj.userData.startingMarket)
         obj.userData.animate?.(scene.reducedMotion ? 0 : time);
       if (obj.userData.sails && !scene.reducedMotion)
         obj.userData.sails.rotation.z = time * 0.18;
@@ -1786,6 +1797,8 @@ export function createVoxelWorld(
         bloom: effectsEnabled && quality.bloom,
         miniature: miniature.enabled,
         miniatureScale: quality.miniatureScale,
+        antialias: (effectsEnabled && quality.bloom) || miniature.enabled ? "fxaa" : "msaa",
+        surround: world.background instanceof THREE.Color ? world.background.getHexString() : null,
         projection: "perspective",
         focusDepth: resources.cutout.count ? resources.cutout.windows[0].z : MINIATURE_CAMERA_DISTANCE,
         blurSize: miniature.blurSize.toArray(),

@@ -18,7 +18,8 @@ export interface MusicTrack {
   loopEnd: number;
 }
 
-export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny", MusicTrack> = {
+export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny" | "peaceful", MusicTrack> = {
+  peaceful: { id: "peaceful", src: "/audio/music/peaceful-medieval.mp3", title: "Medieval Music", artist: "kiravale", gain: 0.307, loopStart: 0, loopEnd: 182.8 },
   firelit: { id: "firelit", src: "/audio/music/firelit-tavern.mp3", title: "Fantasy Worlds — Firelit Tavern", artist: "vadim_makes_sound", gain: 0.481, loopStart: 0.54, loopEnd: 134.88 },
   medieval: { id: "medieval", src: "/audio/music/medieval.mp3", title: "Medieval", artist: "SigmaMusicArt", gain: 0.689, loopStart: 0.45, loopEnd: 110.97 },
   ambient: { id: "ambient", src: "/audio/music/city-tavern-ambient.mp3", title: "Medieval City / Tavern Ambient", artist: "DEUSLOWER", gain: 1.39, loopStart: 6.95, loopEnd: 161.97 },
@@ -30,9 +31,9 @@ export type MusicPhase = "intro" | "adventure";
 export function trackForPlace(where: string, phase: MusicPhase = "adventure"): MusicTrack {
   if (phase === "intro" || where === "taverne" || where === "tavern") return TRACKS.firelit;
   if (where === "volcan") return TRACKS.medieval;
-  if (where === "foret") return TRACKS.firelit;
+  if (where === "plaine" || where === "foret" || where === "lac") return TRACKS.peaceful;
   if (where === "orp" || where === "factory") return TRACKS.funny;
-  if (where === "marais" || where === "lac" || where === "cascade" || where === "desert") return TRACKS.ambient;
+  if (where === "marais" || where === "cascade" || where === "desert") return TRACKS.ambient;
   return TRACKS.medieval;
 }
 

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Pass, FullScreenQuad } from "three/addons/postprocessing/Pass.js";
 
 const smooth = (n: number) => { const t = Math.max(0, Math.min(1, n)); return t * t * (3 - 2 * t); };
-const blurStep = 3.2;
+const blurStep = 1.6;
 export function miniatureDefocus(depth: number, focus: number) { return smooth((Math.abs(depth - focus) - 2.8) / 8.2); }
 const vertexShader = `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
 const depthFunctions = `
@@ -39,7 +39,7 @@ export class MiniaturePass extends Pass {
   });
   private composite = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, vertexShader,
     uniforms: { tDiffuse: { value: null }, tBlur: { value: null }, tDepth: { value: null }, nearPlane: { value: .1 }, farPlane: { value: 170 }, focusDepth: { value: 38 }, perspectiveCamera: { value: 0 } },
-    fragmentShader: depthFunctions + `uniform sampler2D tDiffuse,tBlur;void main(){vec4 sharp=texture2D(tDiffuse,vUv);gl_FragColor=vec4(mix(sharp.rgb,texture2D(tBlur,vUv).rgb,blurAt(vUv)),sharp.a);}`,
+    fragmentShader: depthFunctions + `uniform sampler2D tDiffuse,tBlur;void main(){vec4 sharp=texture2D(tDiffuse,vUv);gl_FragColor=vec4(mix(sharp.rgb,texture2D(tBlur,vUv).rgb,blurAt(vUv)*0.6),sharp.a);}`,
   });
   private quad = new FullScreenQuad(this.filter);
   setFocus(depth: number, near: number, far: number, perspective = false) {

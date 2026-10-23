@@ -40,7 +40,7 @@ test('the supplied recordings decode and play through the game sound controls', 
   await page.goto(`${url}/local?debug&hour=12&variant=classic`);
   await page.waitForFunction(() => window.__voxelWorld?.ready && window.__musicState);
 
-  await t.test('all four MP3s are served as audio and decode to non-silent samples', async () => {
+  await t.test('all five MP3s are served as audio and decode to non-silent samples', async () => {
     for (const [id, track] of Object.entries(TRACKS)) {
       const decoded = await page.evaluate(async src => {
         const response = await fetch(src);
@@ -71,20 +71,20 @@ test('the supplied recordings decode and play through the game sound controls', 
     await page.keyboard.press('Shift');
     await page.waitForFunction(() => window.__musicState().voices.some(voice => !voice.paused && voice.time > 0.2));
     const playing = await page.evaluate(() => window.__musicState());
-    assert.equal(playing.track, 'medieval');
+    assert.equal(playing.track, 'peaceful');
     const firstTime = playing.voices.find(voice => voice.id === playing.track).time;
     await page.getByRole('button', {name: /Ouvrir le carnet/}).click();
     const toggle = page.locator('.sound-toggle');
     await toggle.click();
     await page.waitForFunction(() => !window.__musicState().enabled && window.__musicState().voices.every(voice => voice.paused));
     assert.equal(await toggle.getAttribute('data-state'), 'effects');
-    const pausedTime = await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'medieval').time);
+    const pausedTime = await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'peaceful').time);
     await page.waitForTimeout(350);
-    assert.equal(await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'medieval').time), pausedTime);
+    assert.equal(await page.evaluate(() => window.__musicState().voices.find(voice => voice.id === 'peaceful').time), pausedTime);
     await toggle.click();
     assert.equal(await toggle.getAttribute('data-state'), 'none');
     await toggle.click();
-    await page.waitForFunction(time => window.__musicState().enabled && window.__musicState().voices.some(voice => voice.id === 'medieval' && !voice.paused && voice.time > time), pausedTime);
+    await page.waitForFunction(time => window.__musicState().enabled && window.__musicState().voices.some(voice => voice.id === 'peaceful' && !voice.paused && voice.time > time), pausedTime);
     assert.equal(await toggle.getAttribute('data-state'), 'all');
     assert.ok(pausedTime >= firstTime);
     assert.equal(await page.evaluate(() => localStorage.getItem('louchomage:musique:v1')), '1');
@@ -116,7 +116,7 @@ test('the first mobile touch starts the intro; the same decks keep playing throu
   await page.getByRole('button',{name:'Entrer dans la partie',exact:true}).tap();
   await page.locator('.initiation-card[open]').waitFor();
   await page.getByRole('button',{name:'Passer l’initiation',exact:true}).tap();
-  await page.waitForFunction(()=>window.__musicState().track==='medieval'&&window.__musicState().context==='running'&&window.__musicState().voices.some(v=>v.id==='medieval'&&!v.paused&&v.time>1&&v.gain>0));
+  await page.waitForFunction(()=>window.__musicState().track==='peaceful'&&window.__musicState().context==='running'&&window.__musicState().voices.some(v=>v.id==='peaceful'&&!v.paused&&v.time>1&&v.gain>0));
   assert.equal(await page.evaluate(()=>window.__testMusicElements.length),allocated,'arriving in the game never replaces the unlocked audio elements');
   assert.equal(await page.locator('.dialogue-bubble').count(),0);
   assert.deepEqual(errors,[]);

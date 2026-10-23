@@ -727,3 +727,34 @@ Le test des noms observe 38/38 mises à jour sur ordinateur et 20/20 sur télép
 pendant un zoom, sans remplacement du texte. Le build lancé localement a aussi été
 contrôlé sur les deux formats, avec des noms visibles et sans diagnostic global hors
 mode debug. Captures : `.qa/perf-deep/production-desktop.png` et `production-mobile.png`.
+
+### Accueil, teinte du monde et netteté — 23 octobre 2026
+
+Le départ est fermé à gauche par une charrette de marché, un étal et son marchand
+animé. Une flèche physique indique la droite ; la route s'arrête sous la charrette.
+Le marché reste entièrement avant la position zéro, réserve son empreinte pour les
+plantations et n'ajoute ni texture ni lumière. Le parcours sauvegardé reste identique.
+
+Le pourtour extérieur reprend maintenant la couleur du sol du biome, modulée par
+la nuit. Il remplace le fond presque noir de la version précédente, avec la même
+transition progressive et irrégulière sur 18 à 31 m. Les intérieurs gardent leur
+fond sombre. Le rayon du flou miniature est divisé par deux et son mélange maximal
+est limité à 60 %, pour mieux lire les décors éloignés.
+
+L'anticrénelage du canvas ne s'appliquait pas aux cibles intermédiaires du rendu
+miniature. Une passe FXAA après la conversion de couleur lisse désormais les
+contours du rendu composé. La résolution et les plafonds mobiles restent inchangés ;
+le repli sans post-traitement conserve le MSAA du canvas. Coût ajouté : une passe
+plein écran, sans géométrie du monde supplémentaire.
+
+La piste fournie `kiravale-medieval-music-593694.mp3` accompagne la plaine de départ,
+la forêt et le lac, sans redémarrer aux frontières paisibles. Le gain mesuré vise
+-20 LUFS et la boucle évite le silence final ; les autres ambiances sont conservées.
+
+Validation représentative : ordinateur rapproché, mobile et vue large au départ,
+contrôle des empreintes et de la fermeture de la route par rayons. Captures et logs :
+`.qa/start-market/`.
+La forêt, le lac, le volcan et l'ORP ont ensuite été comparés dans ces trois cadrages.
+Les 182 tests unitaires, le lint, la compilation et 12 contrôles navigateur passent,
+dont le démarrage audio mobile et les allers-retours forêt/volcan. Les scènes mobiles
+vérifiées restent sous 150 000 triangles, sans ombres dynamiques ni bloom.

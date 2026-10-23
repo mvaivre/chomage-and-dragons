@@ -20,6 +20,8 @@ export function narrativeSite(anchor: number) {
   return { x: anchor, z: routeZ(anchor) - 7 };
 }
 
+export const START_MARKET_X = -5.5;
+export function startingMarketSite(): Footprint { return { id: "starting-market", x: START_MARKET_X - 1.3, z: routeZ(START_MARKET_X) - 1.1, rx: 3.6, rz: 3.9 }; }
 export function millSite(lap: number) { return { x: lap * WORLD_METRES + 21, z: MILL_Z }; }
 export function villageSites(lap: number) {
   return [-8, 1, 10].map((offset, i) => { const x = lap * WORLD_METRES + offset; return { x, z: routeZ(x) - 7 - (i === 1 ? 1 : 0), title: ["BUREAU DES POSSIBLES", "AUBERGE DU PREMIER PAS", "LA POSTE DES CANDIDATS"][i], roof: [0x94633f, 0x718653, 0x8a665d][i] }; }).filter(site => !interiorsInRange((site.x - 12) * WORLD_SCALE, (site.x + 12) * WORLD_SCALE).some(room => [0, 1].some(end => {
@@ -53,6 +55,7 @@ export function onPortalApproach(x: number, z: number) {
 }
 /** The road ends at the doorstep, rather than bypassing a virtual interior. */
 export function outsideRoadVisible(x: number) {
+  if (x < START_MARKET_X - .75) return false;
   const legacyX = x * WORLD_SCALE;
   if (interiorAt(legacyX)) return false;
   return !interiorsInRange(legacyX - PORTAL_APPROACH * WORLD_SCALE, legacyX + PORTAL_APPROACH * WORLD_SCALE)
@@ -63,7 +66,7 @@ export function tearsSite(lap: number) { return { id: `tears:${lap}`, x: lap * W
 export type Footprint = { id: string; x: number; z: number; rx: number; rz: number };
 /** The same sites reserve planting space and place the actual models. */
 function baseFootprints(left: number, right: number): Footprint[] {
-  const result: Footprint[] = [];
+  const result: Footprint[] = [startingMarketSite()];
   for (let lap = Math.max(0, Math.floor((left - 24) / WORLD_METRES)); lap <= Math.max(0, Math.floor((right + 12) / WORLD_METRES)); lap++) {
     villageSites(lap).forEach((site, i) => result.push({ ...site, id: `village:${lap}:${i}`, rx: 3.1, rz: 2.8 }));
     result.push({ ...millSite(lap), id: `mill:${lap}`, rx: 3, rz: 2.3 });
