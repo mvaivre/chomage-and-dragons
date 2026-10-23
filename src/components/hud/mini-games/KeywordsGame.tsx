@@ -91,7 +91,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
     if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
-      start();
+      if (status === "ready") return;
       steerBasket(sim, sim.targetX + (event.key === "ArrowLeft" ? -44 : 44));
     } else if (ACTION_KEYS.has(event.key) && !event.repeat) {
       event.preventDefault();
@@ -108,8 +108,14 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
       : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}` : "Le robot réfléchit…";
 
   return <MiniGameShell kind="keywords" eyebrow={practice ? "Entraînement" : "Défi"} title="Le CV à mots-clés"
+    launchContent={status === "ready" ? <section className="keyword-briefing" aria-labelledby="keyword-briefing-title">
+      <span className="keyword-briefing__eyebrow">L’annonce du recruteur</span>
+      <h3 id="keyword-briefing-title">Les 5 mots à récupérer</h3>
+      <ul>{sim.required.map(word => <li key={word}>{word}</li>)}</ul>
+      <p>Récupère ces mots dans ton CV.<br />Les autres sont des pièges !</p>
+    </section> : null}
     instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
-    hud={<>
+    hud={status === "ready" ? null : <>
       <span className="mini-game__counter"><b>{caught.length}</b> / {RAIN.required} mots</span>
       <span className="mini-game__lives">
         {Array.from({ length: RAIN.badAllowed + 1 }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < bad} />)}
@@ -130,8 +136,8 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
     }}
     skip={phase === "play" && (status === "ready" || status === "running") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
     <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena mini-game__arena--drag" data-phase={phase} data-won={won}
-      aria-label="Déplacer le CV" disabled={phase !== "play"}
-      onPointerDown={event => { event.preventDefault(); start(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
+      aria-label="Déplacer le CV" disabled={phase !== "play" || status === "ready"}
+      onPointerDown={event => { event.preventDefault(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "CV VALIDÉ ×2" : "REJETÉ PAR LE ROBOT"}</span> : null}
     </button>

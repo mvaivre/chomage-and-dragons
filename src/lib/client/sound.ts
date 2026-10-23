@@ -268,6 +268,35 @@ export const sfx = {
     tone({ freq: 180, to: 520, dur: 0.22, type: "triangle", gain: 0.22, vibrato: 18, attack: 0.005 });
     tone({ at: 0.18, freq: 480, to: 260, dur: 0.2, type: "triangle", gain: 0.14, vibrato: 14 });
   },
+  /** A short rising arcade sting, followed by the object's landing. */
+  encounterAppear(wild = false, quick = false) {
+    const speed = quick ? .22 : 1;
+    hiss({ dur: .38 * speed, filter: "bandpass", freq: 350, to: 2600, gain: .2, attack: .04 });
+    [0, 3, 7, 12, 15].forEach((note, i) => tone({ at: (.1 + i * .075) * speed, freq: NOTE(note + (wild ? -12 : 0)), dur: .1 * speed, type: "square", gain: .11 }));
+    tone({ at: .5 * speed, freq: 140, to: 55, dur: .16 * speed, type: "sine", gain: .35 });
+    tone({ at: .63 * speed, freq: NOTE(19), dur: .35 * speed, type: "triangle", gain: .12 });
+  },
+  /** The choices have arrived: a tactile pop and a two-note question. */
+  encounterPrompt() {
+    tone({ freq: 400, to: 900, dur: .07, type: "triangle", gain: .24 });
+    tone({ at: .07, freq: NOTE(12), dur: .09, type: "square", gain: .1 });
+    tone({ at: .16, freq: NOTE(19), dur: .2, type: "triangle", gain: .14 });
+  },
+  battleStart() {
+    [0, 7, 3, 10].forEach((note, i) => tone({ at: i * .08, freq: NOTE(note), dur: .12, type: "square", gain: .12 }));
+  },
+  battleMove(move: "argue" | "polite" | "rest" | "capture") {
+    if (move === "capture") {
+      hiss({ dur: .22, filter: "bandpass", freq: 400, to: 2400, gain: .2 });
+      tone({ at: .25, freq: 880, to: 440, dur: .12, type: "triangle", gain: .18 });
+      for (const at of [.5, .75, 1]) tone({ at, freq: 320, to: 450, dur: .055, type: "square", gain: .1 });
+    } else if (move === "rest") {
+      [0, 4, 7].forEach((note, i) => tone({ at: i * .1, freq: NOTE(note + 12), dur: .22, type: "sine", gain: .13 }));
+    } else {
+      tone({ freq: move === "argue" ? 260 : 620, to: move === "argue" ? 90 : 880, dur: .16, type: move === "argue" ? "square" : "triangle", gain: .18 });
+      hiss({ at: .12, dur: .08, filter: "bandpass", freq: 1600, gain: .2 });
+    }
+  },
   /** The mini-game invitation: two bright notes. */
   invite() {
     tone({ freq: NOTE(7), dur: 0.12, type: "triangle", gain: 0.16 });

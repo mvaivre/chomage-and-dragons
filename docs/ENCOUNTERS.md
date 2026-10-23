@@ -4,9 +4,13 @@ Les déplacements consécutifs aux démarches font apparaître de petits objets 
 
 Toutes les trois nouvelles démarches (hors embauche), une rencontre sauvage remplace la halte. Le premier cycle fait découvrir les sept espèces : CV froissé, Conseiller ORP, Chaise de bureau, Café de trop, Lettre de refus, Brume du doute et IA du chômage éternel. L’ordre varie par personnage ; une rencontre sur douze environ possède une variante rare. Les rencontres ne modifient ni les pas, ni les pouvoirs, ni les classements.
 
-Le combat utilise quatre commandes : Agir (Argument béton ou Relance polie), Souffler, Chômageball et Partir. Les attaques réduisent la résistance sans supprimer la possibilité de capture. Une grosse attaque adverse est annoncée ; relancer poliment ou souffler amortit le choc. Chaque rencontre offre trois chômageballs. À vingt points de résistance ou moins, la capture est assurée. Une défaite ou une fuite rend la main sans retirer de pas.
+Une apparition animée montre d’abord l’objet en gros plan, avec silhouette, halo, zoom et effets sonores. Le dialogue et ses choix apparaissent ensuite automatiquement, avec un son distinct. La séquence se passe au clavier ou au toucher et s’adapte à la réduction des mouvements.
+
+Le combat propose directement Argument béton, Relance polie, Souffler, Chômageball et Continuer mon chemin, sans sous-menu. Les attaques réduisent la résistance sans supprimer la possibilité de capture. Une grosse attaque adverse est annoncée ; relancer poliment ou souffler amortit le choc. Chaque rencontre offre trois chômageballs. À vingt points de résistance ou moins, la capture est assurée. Une défaite ou une fuite rend la main sans retirer de pas.
 
 Le carnet contient « Captures / Mes dossiers classés » : captures en premier, silhouettes inconnues, variantes rares, nombre d’exemplaires, lieu et date. Les résultats et les tours sont persistés dans `GameState.encounters`, en solo comme dans les groupes. Chaque tour passe par le réducteur partagé ; le serveur vérifie le propriétaire et le numéro du tour, puis calcule lui-même les dégâts et la capture. Un rechargement reprend le combat. Annuler une démarche ne permet pas de retirer une nouvelle rencontre au même ordinal. Les captures déjà acquises restent dans l’album.
+
+Le jeu des mots-clés présente les cinq mots exacts de l’annonce dans un panneau de préparation avant « Lancer le robot ». La pluie reste arrêtée tant que le joueur n’a pas lancé la partie.
 
 « Ne relance pas », l’ancien jeu de chat, n’est plus proposé. Ses types et ses anciennes sauvegardes restent lisibles.
 

@@ -95,3 +95,116 @@ dialog.roadside-invite .mini-game-invite__pass { font-size: 15px; }
 }
 @media (max-height: 550px) and (min-width: 601px) { .wild-encounter__field { height: 235px; } .wild-encounter__hero { height: 160px; width: 150px; } .wild-encounter__message { min-height: 130px; } }
 @media (prefers-reduced-motion: reduce) { .wild-encounter *, dialog.roadside-invite { animation: none !important; transition: none !important; } }
+
+/* Encounter entrance: the object gets the stage before any choice can be made. */
+.encounter-entrance { position: relative; display: grid; place-items: center; height: 430px; isolation: isolate; overflow: hidden; color: #faf0cd; background: radial-gradient(ellipse at 50% 55%, #a6b970 0, #476c50 40%, #173d36 76%); }
+.encounter-entrance[data-wild="true"] { background: radial-gradient(ellipse at 50% 55%, #b6ac6c 0, #68714a 35%, #1c3935 75%); }
+.encounter-entrance::before, .encounter-entrance::after { content: ""; position: absolute; z-index: 3; left: 0; right: 0; height: 28px; background: #17372f; animation: encounter-letterbox 650ms ease-out both; }
+.encounter-entrance::before { top: 0; }
+.encounter-entrance::after { bottom: 0; }
+.encounter-entrance__eyebrow { position: absolute; z-index: 4; top: 35px; letter-spacing: .2em; text-transform: uppercase; font: 700 11px/1.2 system-ui, sans-serif; }
+.encounter-entrance__object { position: relative; z-index: 2; width: 240px; height: 240px; animation: encounter-zoom 1100ms cubic-bezier(.2,.8,.25,1.1) both; }
+.encounter-entrance__halo { position: absolute; width: 290px; height: 290px; border-radius: 50%; border: 2px solid #fff1a45e; box-shadow: 0 0 0 20px #fff1a412, 0 0 80px #f1d88860; animation: encounter-ring 1100ms ease-out both; }
+.encounter-entrance__shadow { position: absolute; top: 70%; width: 180px; height: 24px; border-radius: 50%; background: #172e3055; animation: encounter-shadow 1s ease both; }
+.encounter-entrance__rays { position: absolute; inset: -100%; opacity: .3; animation: encounter-rays 6s linear infinite; }
+.encounter-entrance__rays i { position: absolute; left: 50%; top: 50%; width: 80%; height: 38px; background: linear-gradient(90deg, transparent 10%, #f1dd8a 90%); transform-origin: left center; clip-path: polygon(0 50%,100% 0,100% 100%); }
+.encounter-entrance__surprise { position: absolute; z-index: 4; left: calc(50% + 110px); top: 70px; display: grid; place-items: center; width: 44px; height: 54px; border: 3px solid #223c34; border-radius: 8px 8px 8px 0; box-shadow: 4px 4px 0 #15392f77; background: #f7df8c; color: #263d33; font: 900 36px/1 system-ui,sans-serif; animation: encounter-surprise 800ms ease both; }
+.encounter-entrance__sparks { position: absolute; inset: 0; pointer-events: none; }
+.encounter-entrance__sparks i { position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; background: #f9e7a5; box-shadow: 0 0 12px #fff2b2; transform-origin: 0 0; animation: encounter-spark 900ms 400ms ease-out both; }
+.encounter-entrance__caption { position: absolute; z-index: 4; bottom: 57px; margin: 0; font-size: 24px; text-shadow: 0 2px #173d36; animation: encounter-caption 700ms ease both; }
+.encounter-entrance__skip { position: absolute; z-index: 5; right: 14px; bottom: 4px; padding: 6px 10px; font: 11px/1.2 system-ui,sans-serif; color: #e6e5c9; cursor: pointer; }
+.encounter-entrance__skip span { margin-left: 7px; }
+dialog.roadside-invite { inset: 0; margin: auto; width: min(760px,calc(100vw - 32px)); max-height: calc(100dvh - 28px); overflow: auto; color: #233e35; border: 3px solid #d8c78b; border-radius: 7px; background: #f2ebd1; box-shadow: 0 0 0 4px #25443c,0 24px 90px #071e2499; }
+dialog.roadside-invite::backdrop { background: #071e248c; }
+.roadside-invite__scene { height: 285px; position: relative; display: grid; place-items: center; overflow: hidden; background: radial-gradient(ellipse at 50% 45%,#e8ebc8,transparent 60%),linear-gradient(#b1c7a1,#d6deba); }
+.roadside-invite__scene > .encounter-artwork { position: relative; width: 225px; height: 225px; animation: roadside-object-idle 2.8s ease-in-out infinite; }
+.roadside-invite__platform { position: absolute; width: 270px; height: 44px; bottom: 29px; border-radius: 50%; background: #78936266; box-shadow: 0 6px 0 #6b86533b,0 0 0 10px #97ad7970; }
+dialog.roadside-invite .mini-game-invite { grid-template-columns: minmax(0,1fr) 220px; align-items: stretch; padding: 0; gap: 0; border: 0; border-top: 4px solid #526d4c; border-radius: 0; box-shadow: none; color: #233e35; background: #f3edd6; animation: encounter-menu-pop 260ms cubic-bezier(.2,.8,.3,1.25) both; }
+dialog.roadside-invite .mini-game-invite__art { display: none; }
+dialog.roadside-invite .mini-game-invite__copy { padding: 20px 22px; }
+dialog.roadside-invite .mini-game-invite__kicker { color: #5d7659; font: 700 10px/1.4 system-ui,sans-serif; letter-spacing: .08em; }
+dialog.roadside-invite h2 { color: #233e35; font-size: 30px; }
+dialog.roadside-invite .roadside-invite__line { color: #425b46; font-size: 18px; }
+dialog.roadside-invite small { color: #63704e; font-size: 13px; }
+dialog.roadside-invite .mini-game-invite__actions { min-width: 0; padding: 14px; border-left: 2px solid #a5af8a; display: grid; align-content: center; gap: 10px; }
+dialog.roadside-invite .mini-game-invite__play { background: #37644b; color: #f8f0d5; border: 2px solid #284a39; border-radius: 4px; box-shadow: 0 4px 0 #1b382d; font: 700 18px/1.2 var(--font-garamond),Georgia,serif; }
+dialog.roadside-invite .mini-game-invite__pass { color: #405b46; border: 2px solid #9aa783; background: #e5e6c9; font-size: 16px; }
+.wild-encounter[data-entrance="ready"] .wild-encounter__dialogue { animation: encounter-menu-pop 260ms cubic-bezier(.2,.8,.3,1.25) both; }
+.wild-encounter__commands { width: 310px; gap: 9px; padding: 13px; }
+.wild-encounter__dialogue { grid-template-columns: minmax(0,1fr) auto; }
+.wild-encounter__commands button { display: flex; align-items: center; gap: 8px; border-width: 2px; box-shadow: 0 3px 0 #768566; border-radius: 5px; min-height: 58px; font-weight: 700; padding: 8px; }
+.wild-encounter__commands button > svg { flex: none; width: 25px; height: 30px; }
+.wild-encounter__commands button small { font-weight: 400; font-size: 11px; }
+.wild-encounter__commands [data-move="argue"] { background: #f1c5a2; border-color: #b27c5c; box-shadow: 0 3px 0 #a56e51; }
+.wild-encounter__commands [data-move="polite"] { background: #c8dce1; border-color: #71999c; box-shadow: 0 3px 0 #607e86; }
+.wild-encounter__commands [data-move="rest"] { background: #d6e0b7; border-color: #8a9d68; }
+.wild-encounter__commands [data-move="capture"] { background: #f5da8a; border-color: #b18b43; box-shadow: 0 3px 0 #a07b35; }
+.wild-encounter__commands [data-move="leave"] { grid-column: 1 / -1; justify-content: space-between; min-height: 36px; margin-top: 3px; border: 0; box-shadow: none; background: transparent; font-size: 14px; font-weight: 400; }
+.wild-encounter__choices button { border-width: 2px; box-shadow: 0 3px 0 #8a977b; font-weight: 700; }
+.wild-encounter__choices button:first-child { box-shadow: 0 3px 0 #243d31; }
+.wild-encounter__commands button:active:not(:disabled), .wild-encounter__choices button:active, .roadside-invite button:active { translate: 0 2px; box-shadow: none; }
+.wild-encounter__impact { position: absolute; z-index: 4; right: 95px; top: 65px; font: 95px/1 system-ui,sans-serif; color: #fce3a1; text-shadow: 0 0 8px #ec984a; pointer-events: none; animation: encounter-impact 450ms ease-out both; }
+.wild-encounter__recovery { position: absolute; z-index: 4; left: 100px; bottom: 120px; color: #2e7852; font: 900 30px/1 system-ui,sans-serif; pointer-events: none; animation: encounter-heal 650ms ease-out both; }
+.wild-encounter[data-animation="argue"] .wild-encounter__hero { animation: encounter-lunge 350ms ease; }
+.wild-encounter[data-animation="polite"] .wild-encounter__hero { animation: encounter-lunge 350ms ease; }
+.wild-encounter[data-animation="rest"] .wild-encounter__hero { filter: drop-shadow(0 0 12px #c0e4a1); }
+@keyframes encounter-zoom { 0% { opacity: 0; transform: scale(.18) translateY(90px) rotate(-12deg); filter: brightness(0); } 22% { opacity: 1; filter: brightness(.12); } 55% { filter: brightness(1.5); transform: scale(1.14) translateY(-8px) rotate(3deg); } 78%,100% { filter: brightness(1); transform: scale(1) translateY(0) rotate(0); } }
+@keyframes encounter-ring { 0% { opacity: 0; transform: scale(.15); } 50% { opacity: 1; } 100% { opacity: .6; transform: scale(1.25); } }
+@keyframes encounter-shadow { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
+@keyframes encounter-letterbox { from { transform: scaleY(3); } to { transform: scaleY(1); } }
+@keyframes encounter-rays { to { transform: rotate(360deg); } }
+@keyframes encounter-surprise { 0%,25% { opacity: 0; transform: translateY(20px) scale(.2); } 50% { opacity: 1; transform: translateY(-10px) scale(1.2) rotate(8deg); } 100% { transform: translateY(0) scale(1) rotate(-5deg); } }
+@keyframes encounter-spark { 0% { opacity: 0; transform: translateX(20px) scale(1.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateX(190px) scale(0); } }
+@keyframes encounter-caption { 0%,50% { opacity: 0; translate: 0 12px; } 100% { opacity: 1; translate: 0 0; } }
+@keyframes encounter-menu-pop { from { opacity: 0; transform: translateY(25px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes encounter-impact { from { opacity: 1; transform: scale(.3) rotate(-20deg); } to { opacity: 0; transform: scale(1.5) rotate(20deg); } }
+@keyframes encounter-heal { from { opacity: 0; transform: translateY(15px); } 30% { opacity: 1; } to { opacity: 0; transform: translateY(-25px); } }
+@keyframes encounter-lunge { 50% { transform: translate(18px,-8px); } }
+@keyframes roadside-object-idle { 50% { transform: translateY(-5px) rotate(2deg); } }
+@media (max-width: 600px) {
+  dialog.roadside-invite { inset: 0; width: calc(100vw - 20px); margin: auto; }
+  .encounter-entrance { height: 350px; }
+  .encounter-entrance__object { width: 195px; height: 195px; }
+  .encounter-entrance__halo { width: 220px; height: 220px; }
+  .encounter-entrance__surprise { left: calc(50% + 77px); top: 64px; width: 35px; height: 43px; font-size: 29px; }
+  .encounter-entrance__caption { font-size: 20px; }
+  .roadside-invite__scene { height: 220px; }
+  .roadside-invite__scene > .encounter-artwork { width: 170px; height: 170px; }
+  .roadside-invite__platform { width: 205px; height: 30px; bottom: 26px; }
+  dialog.roadside-invite .mini-game-invite { grid-template-columns: 1fr; padding: 0; gap: 0; }
+  dialog.roadside-invite .mini-game-invite__copy { padding: 15px 16px 10px; }
+  dialog.roadside-invite h2 { font-size: 27px; }
+  dialog.roadside-invite .roadside-invite__line { font-size: 16px; }
+  dialog.roadside-invite .mini-game-invite__actions { grid-column: auto; grid-template-columns: 1fr; border-left: 0; padding: 8px 14px 16px; margin: 0; }
+  .wild-encounter__dialogue { grid-template-columns: 1fr; }
+  .wild-encounter__commands { width: auto; padding: 10px 12px; }
+  .wild-encounter__commands button { min-height: 54px; font-size: 17px; }
+  .wild-encounter__commands button > svg { width: 23px; height: 27px; }
+  .wild-encounter__commands button small { font-size: 10px; }
+  .wild-encounter__impact { right: 30px; top: 90px; font-size: 70px; }
+  .wild-encounter__recovery { left: 45px; bottom: 90px; }
+}
+@media (max-height: 550px) and (min-width: 601px) {
+  .encounter-entrance { height: 280px; }
+  .encounter-entrance__object { width: 180px; height: 180px; }
+  .encounter-entrance__caption { bottom: 35px; font-size: 20px; }
+  .encounter-entrance__eyebrow { top: 25px; }
+  .encounter-entrance__surprise { top: 35px; }
+  .roadside-invite__scene { height: 170px; }
+  .roadside-invite__scene > .encounter-artwork { width: 150px; height: 150px; }
+  .roadside-invite__platform { width: 180px; height: 28px; bottom: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .encounter-entrance *, .encounter-entrance::before, .encounter-entrance::after, .roadside-invite *, .wild-encounter * { animation: none !important; transition: none !important; } }
+
+/* Read the actual seeded job ad before the clock and rain start. */
+.game-adventure .mini-game .mini-game__arena-launch--briefing { align-content: center; gap: 14px; padding: 16px; background: #173b35f5; }
+.keyword-briefing { width: 100%; text-align: center; color: #f4edcd; pointer-events: auto; }
+.keyword-briefing__eyebrow { color: #b7c89e; font: 700 10px/1.2 system-ui,sans-serif; text-transform: uppercase; letter-spacing: .12em; }
+.keyword-briefing h3 { margin: 6px 0 13px; color: #f5df97; font: 27px/1.1 var(--font-pirata),Georgia,serif; }
+.keyword-briefing ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.keyword-briefing li { padding: 6px 12px; background: #e9e3bd; border: 2px solid #b5b987; border-radius: 5px; color: #254537; box-shadow: 0 3px 0 #0e2824; font: 700 18px/1.2 var(--font-garamond),Georgia,serif; }
+.keyword-briefing p { margin: 12px 0 0; font-size: 15px; line-height: 1.3; }
+@media (max-width: 600px) { .game-adventure .mini-game .mini-game__arena-launch--briefing { padding: 12px 8px; gap: 10px; } .keyword-briefing h3 { font-size: 23px; margin-bottom: 10px; } .keyword-briefing ul { gap: 6px; } .keyword-briefing li { font-size: 16px; padding: 4px 8px; } .keyword-briefing p { font-size: 13px; margin-top: 10px; } }
+
+.wild-encounter__enemy { animation: wild-idle 2.7s ease-in-out infinite; }
+.wild-encounter:focus-visible, dialog.roadside-invite:focus-visible { outline: 2px solid #efd993; outline-offset: 3px; }

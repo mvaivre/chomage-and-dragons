@@ -14,6 +14,8 @@ export interface MiniGameShellProps {
   instructions: ReactNode;
   /** Counters and gauges shown in a strip above the arena. */
   hud?: ReactNode;
+  /** A readable briefing inside the arena before the explicit start action. */
+  launchContent?: ReactNode;
   /** Live region under the arena: the current stake, then the outcome. */
   status: ReactNode;
   primary: { label: string; disabled?: boolean; onClick: () => void; inArena?: boolean; hidden?: boolean };
@@ -31,7 +33,7 @@ export interface MiniGameShellProps {
  * Escape and the keyboard, with the same header, arena slot, live status and
  * contextual actions. The start action sits over the arena. Games only differ inside the arena and in their copy.
  */
-export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status, primary, skip, onLeave, onKeyDown, focusKey, children }: MiniGameShellProps) {
+export function MiniGameShell({ kind, eyebrow, title, instructions, hud, launchContent, status, primary, skip, onLeave, onKeyDown, focusKey, children }: MiniGameShellProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const primaryButton = useRef<HTMLButtonElement>(null);
   useDialogKeyboard(dialog, onKeyDown);
@@ -73,7 +75,7 @@ export function MiniGameShell({ kind, eyebrow, title, instructions, hud, status,
     {hud ? <div className="mini-game__hud" aria-hidden>{hud}</div> : null}
     <div className="mini-game__playfield">
       {children}
-      {primary.inArena ? <div className="mini-game__arena-launch">{primaryAction}</div> : null}
+      {primary.inArena ? <div className={`mini-game__arena-launch${launchContent ? " mini-game__arena-launch--briefing" : ""}`}>{launchContent}{primaryAction}</div> : null}
     </div>
     <div className="mini-game__result" role="status" aria-live="polite">{status}</div>
     <footer>

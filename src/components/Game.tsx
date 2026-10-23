@@ -324,9 +324,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
   useEffect(() => {
-    setMusicDucked(miniGameVisible || wildVisible || welcomeVisible);
+    setMusicDucked(miniGameVisible || wildVisible || inviteVisible || welcomeVisible);
     return () => setMusicDucked(false);
-  }, [miniGameVisible, wildVisible, welcomeVisible]);
+  }, [miniGameVisible, wildVisible, inviteVisible, welcomeVisible]);
   useEffect(() => {
     scene.momentActive = momentActive || miniGameVisible || wildVisible || inviteVisible;
     return () => { scene.momentActive = false; };
