@@ -40,8 +40,25 @@ test('wild encounters, captures, reloads and roadside games on desktop and mobil
       await page.getByRole('button',{name:'Relever le défi',exact:true}).click();
       for(const name of ['Argument béton','Relance polie','Souffler','Chômageball']) assert.equal(await page.getByRole('button',{name:new RegExp('^'+name)}).isVisible(),true);
       assert.equal(await page.getByRole('button',{name:/^Agir|^← Retour/}).count(),0);
+      const hero=page.getByRole('region',{name:'Toi : Mika',exact:true});
+      const enemy=page.getByRole('region',{name:'Adversaire : IA du chômage éternel',exact:true});
+      assert.equal(await hero.locator('.wild-fighter__identity').innerText(),'TOI\nMika');
+      assert.match(await enemy.locator('.wild-fighter__identity').innerText(),/^ADVERSAIRE/);
       await page.getByRole('button',{name:/^Relance polie/}).click();
+      await page.locator('.wild-encounter[data-phase="player"]').waitFor();
+      assert.equal(await hero.locator('[data-energy]').getAttribute('data-energy'),'100','your move does not instantly subtract the incoming hit');
+      await page.locator('.wild-encounter[data-phase="enemy-windup"]').waitFor();
+      assert.equal(await hero.locator('[data-energy]').getAttribute('data-energy'),'100','windup announces the opponent before damage');
+      assert.match(await page.locator('#wild-message').innerText(),/Remplacement intégral/);
+      assert.equal(await page.locator('.wild-encounter__projectile').count(),1);
+      await page.screenshot({path:`${output}/enemy-windup.png`});
+      await page.locator('.wild-encounter[data-phase="enemy-hit"]').waitFor();
+      assert.equal(await hero.locator('[data-energy]').getAttribute('data-energy'),'94');
+      assert.equal(await hero.locator('.wild-fighter__damage').innerText(),'−6');
+      await page.screenshot({path:`${output}/enemy-impact.png`});
       await page.waitForFunction(()=>!document.querySelector('.wild-encounter__commands button')?.disabled);
+      const sizes=await page.evaluate(()=>({message:document.querySelector('.wild-encounter__message').getBoundingClientRect().height,actions:document.querySelector('.wild-encounter__commands').getBoundingClientRect().width,field:document.querySelector('.wild-encounter__field').getBoundingClientRect().width}));
+      assert.ok(sizes.message<70&&sizes.actions>=sizes.field-2,'short status strip and full-width actions');
       assert.equal((await saved(page)).encounters[0].hp,82);
       await page.screenshot({path:`${output}/direct-battle-actions.png`});
       await page.keyboard.press('Escape');assert.equal((await saved(page)).encounters[0].status,'fled');assert.deepEqual(errors,[]);
@@ -93,6 +110,14 @@ test('wild encounters, captures, reloads and roadside games on desktop and mobil
           await page.waitForFunction(()=>!document.querySelector('.wild-encounter__commands button')?.disabled);
         }
         await page.screenshot({path:`${output}/${name}-battle.png`});
+        if(name==='mobile'){
+          await page.setViewportSize({width:320,height:568});
+          await page.getByRole('button',{name:/^Argument béton/}).scrollIntoViewIfNeeded();
+          await page.screenshot({path:`${output}/small-mobile-battle.png`});
+          assert.equal(await page.locator('.wild-encounter').evaluate(n=>n.scrollWidth<=n.clientWidth+1),true);
+          assert.equal(await page.locator('.wild-encounter [data-move="leave"]').evaluate(n=>{const a=n.getBoundingClientRect(),b=n.closest('dialog').getBoundingClientRect();return a.top>=b.top&&a.bottom<=b.bottom;}),true,'all commands fit the smallest portrait without scrolling');
+          await page.setViewportSize(viewport);
+        }
         await page.getByRole('button',{name:/^Chômageball/}).click();
         await page.getByRole('button',{name:'Voir ma collection',exact:true}).click();
         await page.getByRole('heading',{name:'Mes dossiers classés',exact:true}).waitFor();

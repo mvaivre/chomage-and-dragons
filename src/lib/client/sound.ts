@@ -285,6 +285,10 @@ export const sfx = {
   battleStart() {
     [0, 7, 3, 10].forEach((note, i) => tone({ at: i * .08, freq: NOTE(note), dur: .12, type: "square", gain: .12 }));
   },
+  enemyAttack(heavy = false) {
+    hiss({ dur: .3, filter: "bandpass", freq: 2400, to: 350, gain: heavy ? .32 : .22 });
+    tone({ freq: heavy ? 110 : 180, to: 65, dur: .26, type: "sawtooth", gain: heavy ? .2 : .14 });
+  },
   battleMove(move: "argue" | "polite" | "rest" | "capture") {
     if (move === "capture") {
       hiss({ dur: .22, filter: "bandpass", freq: 400, to: 2400, gain: .2 });

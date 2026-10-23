@@ -27,7 +27,7 @@ class AudioContext {
 }
 globalThis.window={AudioContext,localStorage:{getItem:()=>null,setItem:()=>{}}};
 const {sfx,setMuted}=await import('../src/lib/client/sound.ts');
-const sounds=[()=>sfx.encounterAppear(),()=>sfx.encounterAppear(true),()=>sfx.encounterPrompt(),()=>sfx.battleStart(),...['argue','polite','rest','capture'].map(move=>()=>sfx.battleMove(move))];
+const sounds=[()=>sfx.encounterAppear(),()=>sfx.encounterAppear(true),()=>sfx.encounterPrompt(),()=>sfx.battleStart(),()=>sfx.enemyAttack(),()=>sfx.enemyAttack(true),...['argue','polite','rest','capture'].map(move=>()=>sfx.battleMove(move))];
 
 test('all encounter cues honor mute and schedule only short, finite sounds',()=>{
   setMuted(true);for(const sound of sounds)sound();assert.equal(AudioContext.instances.length,0);

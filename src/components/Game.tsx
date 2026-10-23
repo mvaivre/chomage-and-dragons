@@ -1103,7 +1103,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {wildVisible && wildEncounter && me ? <WildEncounter key={wildEncounter.id} encounter={wildEncounter} name={me.name} characterId={me.characterId}
         onMove={move => {
           if (move !== "leave") setShownEncounterId(wildEncounter.id);
-          encounterMove(wildEncounter.id, wildEncounter.turn, move);
+          return encounterMove(wildEncounter.id, wildEncounter.turn, move).encounter;
         }}
         onDone={() => setShownEncounterId(null)}
         onCollection={() => { setShownEncounterId(null); setAdventureTab("captures"); setAdventureOpen(true); }} /> : null}
