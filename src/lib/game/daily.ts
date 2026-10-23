@@ -22,7 +22,7 @@ export const ARCADE_DAILY_FROM = "2026-10-09";
 
 export function dailyChallenge(day: string, groupKey = "groupe"): { kind: MiniGameKind; seedId: string } {
   const random = mulberry32(seedFrom(`daily:${groupKey}:${day}`));
-  const pool = day < ARCADE_DAILY_FROM ? LEGACY_DAILY_GAMES : DAILY_GAMES;
+  const pool = day < ARCADE_DAILY_FROM ? LEGACY_DAILY_GAMES : day < "2026-10-23" ? DAILY_GAMES : DAILY_GAMES.filter(kind => kind !== "ghosting");
   const kind = pool[Math.floor(random() * pool.length)];
   return { kind, seedId: `daily-${groupKey}-${day}` };
 }

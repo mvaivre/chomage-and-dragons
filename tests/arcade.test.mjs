@@ -41,7 +41,7 @@ test('all six challenges have deterministic courses, score limits, action rotati
   assert.deepEqual(Array.from({ length: 5 }, (_, i) => miniGameForAction('candidature', i)), ['pigeon', 'keywords', 'dragon', 'pigeonRace', 'paperCut']);
   assert.deepEqual(Array.from({ length: 2 }, (_, i) => miniGameForAction('refus', i)), ['stamp', 'stack']);
   assert.deepEqual(Array.from({ length: 2 }, (_, i) => miniGameForAction('entretien', i)), ['quiz', 'pong']);
-  assert.deepEqual(Array.from({ length: 3 }, (_, i) => miniGameForAction('rejetApresEntretien', i)), ['ghosting', 'snake', 'maze']);
+  assert.deepEqual(Array.from({ length: 3 }, (_, i) => miniGameForAction('rejetApresEntretien', i)), ['snake', 'maze', 'snake']);
   const selected = new Set(Array.from({ length: 365 }, (_, i) => dailyChallenge(`2027-${i}`, 'friends').kind));
   assert.ok(kinds.every(kind => selected.has(kind)));
 });

@@ -2,61 +2,33 @@
 
 import { useEffect, useRef } from "react";
 import type { ActionKind, MiniGameKind } from "@/lib/data/types";
-import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
+import { MINI_GAME_BONUS } from "@/lib/config";
 import { MINI_GAMES } from "@/lib/game/mini-games";
 import { SCORE_UNITS } from "@/lib/game/scores";
+import { STATIONS } from "@/lib/game/encounter-models";
 import { sfx } from "@/lib/client/sound";
-import { ActionArtwork, ChestArtwork } from "./Artwork";
+import { EncounterArtwork } from "./EncounterArtwork";
+import { useDialogKeyboard } from "./useDialogKeyboard";
 
-/** What winning brings: a big seal and its caption. */
-function stake(action: ActionKind | "chest"): { seal: string; line: string } {
-  if (action === "chest") return { seal: "+1", line: "butin en plus" };
-  if (action === "candidature") return { seal: "×2", line: `+${JOURNEY_STEPS.candidature + MINI_GAME_BONUS.candidature} pas au lieu de ${JOURNEY_STEPS.candidature}` };
-  if (action === "entretien") return { seal: `+${MINI_GAME_BONUS.entretien}`, line: `${JOURNEY_STEPS.entretien + MINI_GAME_BONUS.entretien} pas au lieu de ${JOURNEY_STEPS.entretien}` };
-  return { seal: `+${MINI_GAME_BONUS[action]}`, line: "pas bonus" };
-}
-
-/**
- * The challenge arrives once the action's moment has played out, as a card:
- * the moment is never cut short, and the player chooses when to dive in.
- * Enter or Space plays, Escape passes.
- */
+/** The world object has already appeared along the walk. One choice opens its game. */
 export function MiniGameInvite({ kind, action, record, onPlay, onPass }: {
-  kind: MiniGameKind;
-  action: ActionKind | "chest";
+  kind: MiniGameKind; action: ActionKind | "chest";
   record?: { score: number; holder: string } | null;
-  onPlay: () => void;
-  onPass: () => void;
+  onPlay: () => void; onPass: () => void;
 }) {
-  const play = useRef<HTMLButtonElement>(null);
-  const copy = MINI_GAMES[kind];
-  const pass = useRef(onPass);
-  useEffect(() => { pass.current = onPass; });
+  const dialog = useRef<HTMLDialogElement>(null), play = useRef<HTMLButtonElement>(null);
+  const copy = STATIONS[kind];
+  useDialogKeyboard(dialog);
   useEffect(() => {
-    sfx.invite();
-    play.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); pass.current(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const node = dialog.current, previous = document.activeElement as HTMLElement | null;
+    node?.showModal(); sfx.invite(); play.current?.focus();
+    return () => { node?.close(); previous?.focus(); };
   }, []);
-  const reward = stake(action);
-  return <div className="mini-game-invite-stage">
-    <section className="mini-game-invite" role="dialog" aria-modal="false" aria-labelledby="mini-game-invite-title">
-    <div className="mini-game-invite__art" aria-hidden>
-      {action === "chest" ? <ChestArtwork className="mini-game-invite__picture" /> : <ActionArtwork kind={action} className="mini-game-invite__picture" />}
-    </div>
-    <div className="mini-game-invite__copy">
-      <p className="mini-game-invite__kicker">{action === "chest" ? "Le double fond du coffre" : "Une quête de traverse"}</p>
-      <h2 id="mini-game-invite-title">{copy.title}</h2>
-      <p className="mini-game-invite__stake"><b>{reward.seal}</b><span>{reward.line}</span></p>
-      {record ? <p className="mini-game-invite__record">Record : {record.score} {SCORE_UNITS[kind]} · {record.holder}</p> : null}
-    </div>
-    <div className="mini-game-invite__actions">
-      <button ref={play} type="button" className="mini-game-invite__play" onClick={onPlay}>Relever le défi</button>
-      <button type="button" className="mini-game-invite__pass" onClick={onPass}>Passer</button>
-    </div>
+  return <dialog ref={dialog} className="mini-game-invite-stage roadside-invite" aria-labelledby="mini-game-invite-title" onCancel={event => { event.preventDefault(); onPass(); }} onKeyDown={event => event.stopPropagation()}>
+    <section className="mini-game-invite">
+      <div className="mini-game-invite__art" aria-hidden="true"><EncounterArtwork model={kind} className="mini-game-invite__picture" /></div>
+      <div className="mini-game-invite__copy"><p className="mini-game-invite__kicker">Au bord du chemin · {MINI_GAMES[kind].title}</p><h2 id="mini-game-invite-title">{copy.title}</h2><p className="roadside-invite__line">{copy.line}</p><small>{action === "chest" ? "À gagner : un butin en plus" : `À gagner : +${MINI_GAME_BONUS[action]} pas bonus`}</small>{record ? <small className="mini-game-invite__record">Record : {record.score} {SCORE_UNITS[kind]} · {record.holder}</small> : null}</div>
+      <div className="mini-game-invite__actions"><button ref={play} type="button" className="mini-game-invite__play" onClick={onPlay}>{copy.play}</button><button type="button" className="mini-game-invite__pass" onClick={onPass}>Continuer mon chemin</button></div>
     </section>
-  </div>;
+  </dialog>;
 }

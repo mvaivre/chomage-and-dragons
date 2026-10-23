@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../components/hud/hidden-object-discovery.css";
+@import "../components/hud/encounters.css";
 @import "../components/hud/adventure-menu.css";
 @import "../components/hud/monthly-meetup.css";
 @import "../components/hud/initiation/initiation.css";

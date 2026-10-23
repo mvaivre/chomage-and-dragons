@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { encounterBoxes, type EncounterModel } from "@/lib/game/encounter-models";
 import { FramePacer } from "./frame-pacer";
 import { SceneObjects } from "./scene-objects";
 import { ContactShadows, type ContactPatch } from "./contact-shadows";
@@ -83,6 +84,7 @@ export interface GameCanvasProps {
   decor: GroupDecor;
   effects: Effect[];
   hiddenFoundIds: readonly string[];
+  encounter?: { id: string; model: EncounterModel; rare: boolean; worldX: number } | null;
   onFindHidden: (id: string) => void;
   onSceneReady: () => void;
   onEffectDone: (id: string) => void;
@@ -235,6 +237,7 @@ export function createVoxelWorld(
     actors = new Map<string, Actor>(),
     stagings = new Map<string, Staging>(),
     objects = new SceneObjects();
+  let roadside: { key: string; root: THREE.Group } | null = null;
   const walkingObstacles: WalkingObstacle[] = [];
   const props0 = getProps(),
     initial =
@@ -666,6 +669,27 @@ export function createVoxelWorld(
     ) {
       previewRevision = props.devCameraTarget.revision;
       scene.exploreCenter = props.devCameraTarget.worldX;
+    }
+    const encounter = props.encounter;
+    const roadsideKey = encounter ? `${encounter.id}:${encounter.model}:${encounter.rare}` : null;
+    if ((roadside?.key ?? null) !== roadsideKey) {
+      if (roadside) resources.release(roadside.root);
+      roadside = null;
+      if (encounter && roadsideKey) {
+        const root = new THREE.Group(), batch = resources.batch(root);
+        for (const b of encounterBoxes(encounter.model, encounter.rare)) batch.box(b.color, b.x, b.y, b.z, b.w, b.h, b.d);
+        batch.finish(); root.name = "roadside-encounter"; root.scale.setScalar(.72);
+        world.add(root); roadside = { key: roadsideKey, root };
+      }
+      renderer.domElement.dataset.encounter = encounter?.model ?? "";
+      sun.shadow.needsUpdate = true;
+    }
+    if (roadside && encounter) {
+      const p = journeyPoint(encounter.worldX, -1.9), room = interiorAt(encounter.worldX);
+      roadside.root.position.set(p.x + 3, room ? p.y : terrainHeight(p.x + 3, p.z) + .04, p.z);
+      roadside.root.rotation.y = .25 + (scene.reducedMotion ? 0 : Math.sin(time * 2) * .04);
+      const viewedRoom = interiorAt(scene.exploreCenter ?? encounter.worldX);
+      roadside.root.visible = viewedRoom?.from === room?.from;
     }
     const journeyChanged = lastJourneyRevision !== props.journeyRevision;
     lastJourneyRevision = props.journeyRevision;
@@ -1654,6 +1678,7 @@ export function createVoxelWorld(
       }
       if (obj.userData.backwall) obj.userData.backwall.visible = true;
     }
+    if (roadside && props.encounter) roadside.root.visible = activeRoom?.from === interiorAt(props.encounter.worldX)?.from;
     for (const actor of actors.values()) {
       const room = interiorAt(actor.x);
       actor.root.visible =
@@ -1974,6 +1999,7 @@ export function createVoxelWorld(
       composer.dispose();
       contactShadows.dispose();
       sun.shadow.dispose();
+      if (roadside) resources.release(roadside.root);
       resources.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

@@ -1,4 +1,5 @@
-import type { ActionKind, Cheer, CheerEmoji, DailyRun, Discovery, GameEvent, GameState, MiniGameKind, MiniGameResult, MonthlyMeetup, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import type { ActionKind, Cheer, CheerEmoji, DailyRun, Discovery, EncounterMove, WildEncounter, GameEvent, GameState, MiniGameKind, MiniGameResult, MonthlyMeetup, Player, PowerCast, PowerKind } from "@/lib/data/types";
+import { playEncounter, reserveEncounter } from "@/lib/game/encounters";
 import { dailyChallenge, zurichDay } from "@/lib/game/daily";
 import { clampScore } from "@/lib/game/scores";
 import { JOURNEY_STEPS } from "@/lib/config";
@@ -35,7 +36,8 @@ export type GameAction =
   | { type: "cheer"; playerId: string; eventId: string; emoji: CheerEmoji }
   | { type: "dailyRun"; playerId: string; day: string; kind: MiniGameKind; score?: number; start?: boolean }
   | { type: "scheduleMeetup"; playerId: string; monthKey: string; at: string; place: string }
-  | { type: "findHidden"; playerId: string; itemId: string };
+  | { type: "findHidden"; playerId: string; itemId: string }
+  | { type: "encounterMove"; encounterId: string; turn: number; move: EncounterMove };
 
 export interface ActionContext {
   /** A fresh identifier for anything the action creates. */
@@ -62,6 +64,7 @@ export interface ActionResults {
   dailyRun: { run: DailyRun | null; rejected?: string };
   scheduleMeetup: { meetup: MonthlyMeetup | null; rejected?: string };
   findHidden: { discovery: Discovery | null; rejected?: string };
+  encounterMove: { encounter: WildEncounter | null; rejected?: string };
 }
 
 export type ActionResult<A extends GameAction> = ActionResults[A["type"]];
@@ -88,7 +91,10 @@ function addEvent(state: GameState, action: Extract<GameAction, { type: "addEven
   if (player.hiredAt) return { state, result: { event: null, offer: null, chestGame: null, rejected: "player already hired" } };
   const event: GameEvent = { id: context.id(), playerId: action.playerId, kind: action.kind, at: context.now() };
   const reservation = reserveMiniGame(state, event);
-  const crossed = reserveCrossedChest(state, { ...reservation.state, events: [...state.events, reservation.event] }, action.playerId, event.id);
+  const wild = reserveEncounter(reservation.state, event);
+  const crossed = reserveCrossedChest(state, { ...wild.state, events: [...state.events, reservation.event] }, action.playerId, event.id);
+  const replaced = Boolean(wild.encounter || crossed.chestGame?.offer);
+  if (replaced) crossed.state = { ...crossed.state, miniGames: crossed.state.miniGames?.map(a => a.id === event.id && a.result === "pending" ? { ...a, result: "skipped" } : a) };
   const next: GameState = {
     ...crossed.state,
     // Une embauche sort le personnage de la course active, sans toucher au score.
@@ -96,7 +102,7 @@ function addEvent(state: GameState, action: Extract<GameAction, { type: "addEven
       ? state.players.map((p) => (p.id === action.playerId && !p.hiredAt ? { ...p, hiredAt: event.at } : p))
       : state.players,
   };
-  return { state: next, result: { event: reservation.event, offer: reservation.offer, chestGame: crossed.chestGame } };
+  return { state: next, result: { event: reservation.event, offer: replaced ? null : reservation.offer, chestGame: wild.encounter ? null : crossed.chestGame } };
 }
 
 function finishMiniGame(state: GameState, action: Extract<GameAction, { type: "finishMiniGame" }>) {
@@ -245,6 +251,7 @@ function removePlayer(state: GameState, action: Extract<GameAction, { type: "rem
       daily: state.daily?.filter((run) => run.playerId !== action.playerId),
       cheers: state.cheers?.filter((c) => c.playerId !== action.playerId && state.events.some((e) => e.id === c.eventId && e.playerId !== action.playerId)),
       discoveries: state.discoveries?.filter((d) => d.playerId !== action.playerId),
+      encounters: state.encounters?.filter((e) => e.playerId !== action.playerId),
     },
     result: {},
   };
@@ -252,6 +259,10 @@ function removePlayer(state: GameState, action: Extract<GameAction, { type: "rem
 
 export function applyAction<A extends GameAction>(state: GameState, action: A, context: ActionContext): { state: GameState; result: ActionResult<A> } {
   switch (action.type) {
+    case "encounterMove": {
+      const played = playEncounter(state, action.encounterId, action.turn, action.move, context.now());
+      return { state: played.state, result: { encounter: played.encounter, ...(played.rejected ? { rejected: played.rejected } : {}) } } as { state: GameState; result: ActionResult<A> };
+    }
     case "addEvent": return addEvent(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "finishMiniGame": return finishMiniGame(state, action) as { state: GameState; result: ActionResult<A> };
     case "castPower": return castPower(state, action, context) as { state: GameState; result: ActionResult<A> };

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { MiniGameKind } from "@/lib/data/types";
-import { MINI_GAMES } from "@/lib/game/mini-games";
+import type { MiniGameKind, WildEncounter } from "@/lib/data/types";
+import { PLAYABLE_MINI_GAMES } from "@/lib/game/mini-games";
+import { CaptureCollection } from "./CaptureCollection";
 import { HIDDEN_ITEMS, hiddenBiomeLabel } from "@/lib/game/hidden-objects";
 import { GameArtwork, RelicArtwork } from "./Artwork";
 import { VoxelIcon } from "./VoxelIcon";
@@ -12,6 +13,7 @@ import { BIOMES, WORLD_LENGTH } from "@/lib/game/world";
 
 export function AdventureMenu({
   foundIds,
+  encounters,
   initialTab = "games",
   onClose,
   onPlay,
@@ -25,14 +27,15 @@ export function AdventureMenu({
   characterId: string;
   children?: ReactNode;
   foundIds: readonly string[];
-  initialTab?: "journey" | "games" | "hunt";
+  encounters: readonly WildEncounter[];
+  initialTab?: "journey" | "games" | "hunt" | "captures";
   onClose: () => void;
   onPlay: (kind: MiniGameKind) => void;
   onExplore: (x: number) => void;
   onInitiation: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [tab, setTab] = useState<"journey" | "games" | "hunt">(initialTab);
+  const [tab, setTab] = useState<"journey" | "games" | "hunt" | "captures">(initialTab);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const node = dialog.current;
@@ -62,7 +65,7 @@ export function AdventureMenu({
             ? "L’aventure t’attend"
             : tab === "games"
               ? "Quêtes"
-              : "Objets perdus"}
+              : tab === "captures" ? "Mes dossiers classés" : "Objets perdus"}
         </h2>
         <button type="button" aria-label="Fermer le carnet" onClick={onClose}>
           ×
@@ -87,6 +90,7 @@ export function AdventureMenu({
         >
           Quêtes
         </button>
+        <button type="button" aria-pressed={tab === "captures"} onClick={() => setTab("captures")}>Captures · {new Set(encounters.filter(e => e.status === "captured").map(e => e.monster)).size}/7</button>
         <button
           type="button"
           aria-pressed={tab === "hunt"}
@@ -103,8 +107,9 @@ export function AdventureMenu({
             type="button"
             onClick={() => setTab("games")}
           >
-            Les quêtes de traverse <span>13 défis à découvrir →</span>
+            Les quêtes de traverse <span>12 défis à découvrir →</span>
           </button>
+          <button className="adventure-menu__profile-link" type="button" onClick={() => setTab("captures")}>Mes dossiers classés <span>Rencontres sauvages et chômageballs →</span></button>
           {children}
         </div>
       ) : tab === "games" ? (
@@ -120,7 +125,7 @@ export function AdventureMenu({
             <VoxelIcon name="dragon" /><div>Les rites d’initiation <small>Apprendre à jouer</small></div>
           </button>
           <div className="adventure-menu__games">
-            {Object.values(MINI_GAMES).map((game) => (
+            {PLAYABLE_MINI_GAMES.map((game) => (
               <button
                 key={game.kind}
                 type="button"
@@ -136,7 +141,7 @@ export function AdventureMenu({
             ))}
           </div>
         </>
-      ) : (
+      ) : tab === "captures" ? <CaptureCollection encounters={encounters} /> : (
         <>
           <p className="adventure-menu__intro">
             Clique sur les objets cachés dans le décor pour les collectionner

@@ -110,6 +110,11 @@ export function authorize(state: GameState, action: GameAction, tokenPlayer: str
     case "scheduleMeetup":
     case "findHidden":
     case "dailyRun": return own(action.playerId);
+    case "encounterMove": {
+      const encounter = state.encounters?.find(e => e.id === action.encounterId);
+      if (!encounter) throw new GroupError(404, "Rencontre inconnue.");
+      return own(encounter.playerId);
+    }
     case "finishMiniGame": {
       const attempt = state.miniGames?.find((a) => a.id === action.attemptId);
       if (!attempt) throw new GroupError(404, "Tentative inconnue.");
@@ -138,7 +143,7 @@ export function validateContext(context: unknown, now = new Date()): ActionConte
   return { id: () => id, now: () => at };
 }
 
-const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun", "scheduleMeetup", "findHidden"]);
+const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun", "scheduleMeetup", "findHidden", "encounterMove"]);
 
 export function validateAction(action: unknown): GameAction {
   const given = action as { type?: unknown } | null;

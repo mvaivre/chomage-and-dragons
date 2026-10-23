@@ -163,12 +163,18 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
     sous l'œil du gnome, +1 pas ;
   - entretien : **le Test de personnalité**, cinq questions, la bonne réponse est
     celle du recruteur, le recul passe de −3 à −2 pas ;
-  - rejet après entretien : **Ne relance pas**, quatorze jours de silence, réponds
-    au vrai message et jamais aux points de suspension, +2 pas ;
+  - rejet après entretien : **Snake** et **Labyrinthe des recruteurs**, +2 pas ;
   - coffre : **Salaire selon expérience**, la machine à sous du double fond,
     trois CHF pour un butin de plus.
 
-  Chaque défi arrive en carte d'invitation une fois le moment joué. Chaque partie
+  Chaque défi apparaît sous forme d’objet voxel au bord du chemin : nid de pigeons,
+  machine à sous, serpent sur des CV… Un dialogue permet de jouer ou de continuer.
+  Toutes les trois démarches, une rencontre sauvage remplace le mini-jeu : sept
+  créatures à affaiblir et capturer avec des **chômageballs**, dont l’IA du chômage
+  éternel. Les captures et variantes rares se retrouvent dans le carnet, dans
+  **Mes dossiers classés**, et les combats se reprennent après rechargement.
+  Un seul défi est proposé par déplacement. [Mécaniques et sauvegardes](docs/ENCOUNTERS.md).
+  Chaque partie
   garde un score et le groupe un record par jeu. Le défi quotidien a été retiré
   du HUD ; les anciens résultats restent compatibles avec les sauvegardes.
 - l'**annulation** de la dernière action, pour le clic de trop
@@ -186,7 +192,7 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
 - le **verre du mois** : compte à rebours jusqu’à la clôture à minuit à Zurich,
   date/heure et lieu modifiables par chaque membre, sauvegardés avec le groupe.
   Le rendez-vous peut se tenir jusqu’au 14 du mois suivant sans déplacer la couronne
-- une **salle des défis** dans « Quêtes », pour jouer librement aux treize mini-jeux,
+- une **salle des défis** dans « Quêtes », pour jouer librement aux douze mini-jeux,
   dont six nouveaux : Grand Prix des pigeons à l’envers, découpe de dossiers,
   serpent administratif, labyrinthe des recruteurs, pile de dossiers et renvoi à
   l’expéditeur. Clavier, glisser et boutons tactiles ; les entraînements restent

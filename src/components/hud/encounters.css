@@ -1,0 +1,97 @@
+.encounter-artwork { display: block; width: 100%; height: 100%; overflow: visible; }
+/* The road remains visible around a compact, native dialogue box. */
+dialog.roadside-invite { position: fixed; inset: auto 0 max(24px, env(safe-area-inset-bottom)); margin: 0 auto; width: min(860px, calc(100vw - 32px)); max-width: none; padding: 0; border: 0; overflow: visible; background: transparent; transform: none; color: #f3edd2; }
+dialog.roadside-invite::backdrop { background: #071e2433; }
+dialog.roadside-invite .mini-game-invite { grid-template-columns: 110px minmax(0,1fr) auto; gap: 22px; border: 2px solid #c8bc82; box-shadow: 0 0 0 4px #19382f, 0 16px 50px #071e2480; }
+dialog.roadside-invite .mini-game-invite__art { width: 110px; height: 120px; }
+.roadside-invite__line { margin: 9px 0 7px; line-height: 1.3; font-size: 17px; color: #e0e3ce; }
+.roadside-invite small { display: block; color: #bccea9; }
+dialog.roadside-invite .mini-game-invite__pass { font-size: 15px; }
+.wild-encounter { --wild-ink: #203c37; width: min(760px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: auto; border: 2px solid #c5bd91; border-radius: 6px; background: #f0ead3; color: var(--wild-ink); box-shadow: 0 0 0 4px #25443c, 0 24px 90px #071e2499; font-family: var(--font-garamond), Georgia, serif; }
+.wild-encounter::backdrop { background: #071e2499; }
+.wild-encounter__heading { padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; background: #24463d; color: #e7e6c9; font: 12px/1.2 system-ui, sans-serif; letter-spacing: .06em; }
+.wild-encounter__heading button { display: grid; place-items: center; width: 32px; height: 30px; font: 24px/1 Georgia, serif; cursor: pointer; }
+.wild-encounter__field { position: relative; height: 318px; overflow: hidden; background: radial-gradient(ellipse at 75% 30%, #d3dfbd 0, transparent 52%), linear-gradient(#bdcfb4 0%, #e6e7c9 72%, #cad2b2 100%); }
+.wild-encounter__field::before { content: ""; position: absolute; inset: 0; opacity: .35; background: repeating-linear-gradient(0deg, transparent 0 5px, #78997310 5px 6px); pointer-events: none; }
+.wild-encounter__enemy-card, .wild-encounter__hero-card { position: absolute; z-index: 2; width: 44%; border: 2px solid #64765a; border-radius: 3px 3px 16px 3px; padding: 10px 14px; background: #f6f1d9f5; box-shadow: 4px 4px 0 #66826a44; }
+.wild-encounter__enemy-card { left: 24px; top: 22px; }
+.wild-encounter__hero-card { right: 24px; bottom: 22px; }
+.wild-encounter h2 { margin: 0; font: 400 clamp(22px, 3vw, 28px)/1.05 var(--font-pirata), Georgia, serif; }
+.wild-encounter__hero-card strong { font-size: 23px; font-weight: 600; }
+.wild-encounter__field small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.3; }
+.wild-encounter label { display: flex; align-items: center; gap: 8px; margin-top: 7px; font: 10px/1.2 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+.wild-encounter meter { width: 100%; height: 11px; flex: 1; accent-color: #568963; }
+.wild-encounter meter::-webkit-meter-bar { background: #c3c9ab; border: 1px solid #7a8c70; border-radius: 3px; }
+.wild-encounter meter::-webkit-meter-optimum-value { background: #568963; transition: width 450ms ease; }
+.wild-encounter__enemy-platform, .wild-encounter__hero-platform { position: absolute; border-radius: 50%; background: #82997166; border: 8px solid #a4b58a77; box-shadow: 0 7px 0 #83937033; }
+.wild-encounter__enemy-platform { width: 205px; height: 48px; top: 162px; right: 33px; }
+.wild-encounter__hero-platform { width: 235px; height: 52px; bottom: 6px; left: 20px; }
+.wild-encounter__enemy { position: absolute; z-index: 1; width: 185px; height: 185px; right: 45px; top: 9px; animation: wild-arrive 350ms ease-out both, wild-idle 2.7s 350ms ease-in-out infinite; }
+.wild-encounter__hero { position: absolute; width: 190px; height: 205px; bottom: 6px; left: 38px; }
+.wild-encounter__hero .character-portrait { width: 100%; height: 100%; background: none; border: 0; box-shadow: none; }
+.wild-encounter__dialogue { position: relative; z-index: 3; display: grid; grid-template-columns: minmax(0,1fr) 280px; border-top: 3px solid #64765a; background: #f5efd9; }
+.wild-encounter__message { padding: 20px 22px; min-height: 174px; }
+.wild-encounter__message p { margin: 0; font-size: 20px; line-height: 1.3; }
+.wild-encounter__message small { display: block; margin-top: 10px; color: #5c7059; font-size: 14px; line-height: 1.3; }
+.wild-encounter__choices, .wild-encounter__commands { padding: 12px; border-left: 2px solid #a3ad8d; display: grid; gap: 8px; align-content: center; }
+.wild-encounter__commands { grid-template-columns: 1fr 1fr; }
+.wild-encounter__choices button, .wild-encounter__commands button { min-height: 48px; text-align: left; padding: 8px 11px; border: 1px solid #849474; border-radius: 3px; background: #e3e5c9; font-size: 18px; line-height: 1.1; cursor: pointer; touch-action: manipulation; }
+.wild-encounter__choices button:first-child { color: #f5efd5; background: #385e46; }
+.wild-encounter__commands button small { display: block; font-size: 11px; color: #526d55; margin-top: 5px; line-height: 1.2; }
+.wild-encounter button:hover { filter: brightness(1.06); }
+.wild-encounter button:disabled { opacity: .6; cursor: wait; }
+.wild-encounter button:focus-visible { outline: 3px solid #bf8f46; outline-offset: 2px; }
+.wild-encounter__ball { position: absolute; width: 74px; height: 74px; right: 100px; top: 110px; z-index: 3; }
+.wild-encounter[data-animation="capture"] .wild-encounter__ball { animation: wild-catch 1.2s ease both; }
+.wild-encounter[data-animation="capture"] .wild-encounter__enemy { animation: wild-shrink 400ms ease both; }
+.wild-encounter[data-status="captured"] .wild-encounter__enemy { visibility: hidden; }
+.wild-encounter[data-animation="argue"] .wild-encounter__enemy, .wild-encounter[data-animation="polite"] .wild-encounter__enemy { animation: wild-hit 300ms ease; }
+.capture-collection__intro, .capture-collection__empty { color: #c2cdb4; line-height: 1.4; margin: 0 0 18px; }
+.capture-collection__grid { display: grid; gap: 12px; }
+.capture-collection article { display: grid; grid-template-columns: 100px minmax(0,1fr); gap: 16px; align-items: center; padding: 16px; border: 1px solid #c8bc8244; border-radius: 4px; background: #ffffff04; }
+.capture-collection article[data-found="false"] { opacity: .65; }
+.capture-collection__art { height: 100px; display: grid; place-items: center; font: 48px var(--font-pirata), Georgia, serif; color: #8d9d82; }
+.capture-collection article small { color: #c7b983; font-size: 12px; }
+.capture-collection h3 { margin: 4px 0; color: #f3edd2; font: 24px/1.1 var(--font-pirata), Georgia, serif; }
+.capture-collection article p { margin: 4px 0 8px; color: #c8d3bb; font-size: 16px; line-height: 1.3; }
+.capture-collection summary { cursor: pointer; color: #d8ca95; font-size: 14px; }
+.capture-collection ul { list-style: none; padding: 0; margin-top: 8px; }
+.capture-collection li { color: #c2cdb4; padding: 8px 0; border-top: 1px solid #c8bc8222; font-size: 13px; }
+.adventure-menu__tabs { flex-wrap: wrap; }
+@keyframes wild-arrive { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes wild-idle { 50% { transform: translateY(-5px); } }
+@keyframes wild-hit { 25%, 75% { transform: translateX(8px); opacity: .4; } 50% { transform: translateX(-8px); } }
+@keyframes wild-shrink { to { transform: scale(.1); opacity: 0; } }
+@keyframes wild-catch { 0% { transform: translate(-160px,80px) rotate(-150deg) scale(.4); } 35% { transform: translate(0,-20px) rotate(15deg); } 55%,75% { transform: rotate(-15deg); } 65%,85% { transform: rotate(15deg); } 100% { transform: rotate(0); } }
+@media (max-width: 600px) {
+  dialog.roadside-invite { width: calc(100vw - 24px); bottom: max(14px, env(safe-area-inset-bottom)); }
+  dialog.roadside-invite .mini-game-invite { grid-template-columns: 76px minmax(0,1fr); gap: 10px; padding: 16px; }
+  dialog.roadside-invite .mini-game-invite__art { width: 76px; height: 94px; }
+  dialog.roadside-invite h2 { font-size: 24px; }
+  dialog.roadside-invite .mini-game-invite__actions { grid-template-columns: 1fr; }
+  .roadside-invite__line { font-size: 15px; }
+  .wild-encounter { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); }
+  .wild-encounter__heading { font-size: 10px; padding: 5px 12px; }
+  .wild-encounter__field { height: 260px; }
+  .wild-encounter__enemy-card { left: 10px; top: 12px; width: 54%; padding: 8px 10px; }
+  .wild-encounter h2 { font-size: 23px; }
+  .wild-encounter__enemy { width: 124px; height: 138px; right: 6px; top: 45px; }
+  .wild-encounter__enemy-platform { right: 0; top: 151px; width: 130px; height: 30px; border-width: 5px; }
+  .wild-encounter__hero { width: 126px; height: 156px; bottom: 2px; left: 4px; }
+  .wild-encounter__hero-platform { left: -5px; bottom: 4px; width: 145px; height: 32px; border-width: 5px; }
+  .wild-encounter__hero-card { right: 10px; bottom: 10px; width: 57%; padding: 8px 10px; }
+  .wild-encounter__hero-card strong { font-size: 20px; }
+  .wild-encounter__field small { font-size: 10px; }
+  .wild-encounter label { font-size: 8px; }
+  .wild-encounter__dialogue { grid-template-columns: 1fr; }
+  .wild-encounter__message { padding: 12px 14px; min-height: 0; }
+  .wild-encounter__message p { font-size: 17px; }
+  .wild-encounter__message small { font-size: 12px; margin-top: 6px; }
+  .wild-encounter__choices, .wild-encounter__commands { padding: 10px 12px 12px; border-left: 0; border-top: 1px solid #a3ad8d; }
+  .wild-encounter__choices button { text-align: center; }
+  .wild-encounter__ball { width: 60px; height: 60px; right: 40px; top: 110px; }
+  .capture-collection article { grid-template-columns: 70px minmax(0,1fr); padding: 12px; gap: 12px; }
+  .capture-collection__art { height: 80px; }
+}
+@media (max-height: 550px) and (min-width: 601px) { .wild-encounter__field { height: 235px; } .wild-encounter__hero { height: 160px; width: 150px; } .wild-encounter__message { min-height: 130px; } }
+@media (prefers-reduced-motion: reduce) { .wild-encounter *, dialog.roadside-invite { animation: none !important; transition: none !important; } }

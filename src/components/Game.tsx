@@ -32,6 +32,8 @@ import { HIDDEN_ITEMS, hiddenItemForId, type HiddenItem } from "@/lib/game/hidde
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
+import { WildEncounter } from "@/components/hud/WildEncounter";
+import { activeEncounter } from "@/lib/game/encounters";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
@@ -65,7 +67,7 @@ import {
   type AvailablePower,
 } from "@/lib/game/powers";
 import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
-import { MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
+import { MINI_GAMES, PLAYABLE_MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
@@ -189,6 +191,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
     scheduleMeetup,
     discoveries,
     findHidden,
+    encounters,
+    encounterMove,
   } = useGame(mode);
 
   // Historical daily records still contribute to the group’s personalised scenery.
@@ -202,7 +206,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
   const [adventureOpen, setAdventureOpen] = useState(false);
-  const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt">("games");
+  const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt" | "captures">("games");
   const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
@@ -210,6 +214,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
+  const [shownEncounterId, setShownEncounterId] = useState<string | null>(null);
+  const [roadsideChest, setRoadsideChest] = useState<{ attemptId: string } | null>(null);
   const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
   const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string; source?: "arcade" } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
@@ -291,6 +297,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
   const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
+  const myEncounters = useMemo(() => encounters.filter(e => e.playerId === identity), [encounters, identity]);
+  const wildEncounter = myEncounters.find(e => e.id === shownEncounterId && events.some(event => event.id === e.eventId)) ?? myEncounters.findLast(e => activeEncounter(e) && events.some(event => event.id === e.eventId)) ?? null;
   const firstFindVisible = Boolean(identity && firstFind?.playerId === identity);
   const handleFindHidden = useCallback((itemId: string) => {
     if (!identity || hiddenFoundIds.includes(itemId)) return;
@@ -310,21 +318,23 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
+    (!awaitingTravel && !momentActive && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
   // First an invitation card, then the game itself once the player accepts.
+  const wildVisible = Boolean(sceneReady && wildEncounter && !awaitingTravel && !momentActive && rewardMoments.length === 0 && !miniGameOffer && !practiceMiniGame && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible);
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
   useEffect(() => {
-    setMusicDucked(miniGameVisible || welcomeVisible);
+    setMusicDucked(miniGameVisible || wildVisible || welcomeVisible);
     return () => setMusicDucked(false);
-  }, [miniGameVisible, welcomeVisible]);
+  }, [miniGameVisible, wildVisible, welcomeVisible]);
   useEffect(() => {
-    scene.momentActive = momentActive || miniGameVisible;
+    scene.momentActive = momentActive || miniGameVisible || wildVisible || inviteVisible;
     return () => { scene.momentActive = false; };
-  }, [momentActive, miniGameVisible]);
+  }, [momentActive, miniGameVisible, wildVisible, inviteVisible]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
+      setRoadsideChest(null);
       // The chest's double bottom opens once the loot is put away and no other game waits.
       if (!miniGameOffer && pendingChestGame.current) {
         setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
@@ -397,7 +407,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const onKeyDown = (event: KeyboardEvent) => {
       // The native mini-game dialog owns Escape, Space, Enter and focus.
       // The invitation owns Escape too. Preventing it here would keep a dialog open.
-      if (miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
+      if (wildVisible || miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -423,7 +433,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, wildVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
 
   useEffect(
     () => () => {
@@ -567,7 +577,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
-      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
+      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
       setObservedPlayerId(null);
@@ -582,6 +592,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       }
       if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
       pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
+      setRoadsideChest(chestGame?.offer ? { attemptId: chestGame.attemptId } : null);
       const origin = heroOrigin(me);
 
       // The staging is drawn from the event id: every friend sees the same variant.
@@ -659,7 +670,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, rewardMoments.length, miniGameOffer, schedule],
+    [addEvent, me, rewardMoments.length, miniGameOffer, wildEncounter, schedule],
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
@@ -685,7 +696,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
       pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: 0 } };
       setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
-      pendingChestGame.current = chestGame.offer ? { attemptId: chestGame.attemptId, eventId: miniGameOffer.eventId } : null;
+      pendingChestGame.current = null;
     }
     setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: `${copy.winFeedback} · +${bonus} pas bonus` });
   }, [miniGameOffer, me, finishMiniGame]);
@@ -738,7 +749,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   );
 
   const handleUndo = useCallback(() => {
-    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
+    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
     setObservedPlayerId(null);
@@ -746,7 +757,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
-  }, [me, undoLast, rewardMoments.length, miniGameOffer]);
+  }, [me, undoLast, rewardMoments.length, miniGameOffer, wildEncounter]);
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
@@ -791,7 +802,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setObservedPlayerId(null);
   }, [releaseFocus]);
   const dragonChallengeOpen = useRef(false);
-  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !rewardMoments.length); });
+  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !wildEncounter && !rewardMoments.length); });
   const handleDragonChallenge = useCallback(() => {
     if (dragonChallengeOpen.current) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
   }, []);
@@ -828,6 +839,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setAwaitingTravel(false);
     setRewardMoments([]);
     setMiniGameOffer(null);
+    setShownEncounterId(null);
+    setRoadsideChest(null);
     pendingChestGame.current = null;
     setFirstFind(null);
     setEffects([]);
@@ -896,13 +909,14 @@ export function Game({ slug = null }: { slug?: string | null }) {
   return (
     <main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        encounter={me && (wildEncounter || miniGameOffer || roadsideChest) ? { id: wildEncounter?.id ?? miniGameOffer?.attemptId ?? roadsideChest!.attemptId, model: wildEncounter?.monster ?? miniGameOffer?.kind ?? "slots", rare: wildEncounter?.rare ?? false, worldX: worldXFor(me.position) } : null}
         hiddenFoundIds={hiddenFoundIds}
         onFindHidden={handleFindHidden}
         atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={handleDragonChallenge}
         onDragonSwallow={handleDragonSwallow}
         onSceneReady={handleSceneReady}
-        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible || inviteVisible || wildVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -954,7 +968,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               </select>
               <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
                 <option value="">Mini-jeu (entraînement)…</option>
-                {Object.values(MINI_GAMES).map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
+                {PLAYABLE_MINI_GAMES.map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
               </select>
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
@@ -991,7 +1005,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
           <header className="hud-top">
             <div className="hud-journey">
               <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
-                menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0}
+                menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || wildEncounter !== null || rewardMoments.length > 0}
                 onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }} />
             </div>
             <CompactLeaderboard
@@ -1017,6 +1031,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
+                wildEncounter !== null ||
                 practiceMiniGame !== null ||
                 awaitingTravel ||
                 shotInbox !== null
@@ -1037,7 +1052,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       {welcomeVisible ? <Welcome characterId={me?.characterId} key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
       {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
         onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
-      {adventureOpen && me ? <AdventureMenu characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
+      {adventureOpen && me ? <AdventureMenu encounters={myEncounters} characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
         onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
         onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
         onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} >
@@ -1084,6 +1099,14 @@ export function Game({ slug = null }: { slug?: string | null }) {
           onPass={handlePassMiniGame} /> :
         miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
           record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
+
+      {wildVisible && wildEncounter && me ? <WildEncounter key={wildEncounter.id} encounter={wildEncounter} name={me.name} characterId={me.characterId}
+        onMove={move => {
+          if (move !== "leave") setShownEncounterId(wildEncounter.id);
+          encounterMove(wildEncounter.id, wildEncounter.turn, move);
+        }}
+        onDone={() => setShownEncounterId(null)}
+        onCollection={() => { setShownEncounterId(null); setAdventureTab("captures"); setAdventureOpen(true); }} /> : null}
 
       {shotInbox ? (
         <ShotInbox
