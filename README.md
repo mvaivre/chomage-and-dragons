@@ -33,7 +33,7 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - **Next.js 16** + **React 19** — hébergé sur **Vercel**
 - **Pixi.js 8** via **@pixi/react 8** — la carte d'aventure en 2D
 - **Tailwind CSS 4** — l'interface parchemin autour du canvas
-- **Neon Postgres** — *pas encore branché*, voir ci-dessous
+- **Neon Postgres** — base persistante des groupes en production
 
 ## Structure
 
@@ -242,9 +242,28 @@ déploie. Deux variables d'environnement, voir `.env.example` :
   créé au premier appel, sans migration à lancer.
 - `SESSION_SECRET`, un secret aléatoire qui signe les cookies de session des groupes.
 
-Sans `DATABASE_URL`, les groupes vivent en mémoire et disparaissent avec le processus :
-c'est le mode du développement et des tests. Le mode solo, `/local`, ne touche jamais
-au serveur.
+En production, `DATABASE_URL` et `SESSION_SECRET` sont obligatoires : le serveur
+refuse une configuration incomplète plutôt que d'accepter une progression volatile
+ou des sessions invalidées au prochain déploiement. Conserver le même secret entre
+les déploiements.
+
+Depuis le 30 octobre 2026, les données de production doivent être conservées.
+Aucune remise à zéro, aucun seed et aucun test de mutation ne doit viser cette base.
+Voir les règles dans [`AGENTS.md`](AGENTS.md). Les changements de schéma restent
+additifs et compatibles avec les données existantes. Le relevé du lancement et
+l'emplacement de l'archive de secours sont dans [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
+
+Sans `DATABASE_URL`, le développement et les tests unitaires utilisent une base
+en mémoire, isolée de Neon. Pour tester un build de production **en local** :
+
+```sh
+env -u DATABASE_URL ALLOW_IN_MEMORY_DB=1 SESSION_SECRET=local-browser-tests-only pnpm start --hostname 127.0.0.1 --port 3100
+```
+
+Cette base est jetable ; l'option est refusée sur Vercel. Pour des tests persistants,
+utiliser une base locale ou une branche Neon de test séparée, jamais la branche de
+production. Les previews Vercel doivent elles aussi utiliser une branche de test
+isolée. Le mode solo, `/local`, ne touche jamais au serveur.
 
 
 ### Vérification des parcours du jeu
@@ -261,7 +280,7 @@ Pour les tests dans un vrai navigateur :
 ```sh
 pnpm exec playwright install chromium
 pnpm build
-pnpm start --port 3100
+env -u DATABASE_URL ALLOW_IN_MEMORY_DB=1 SESSION_SECRET=local-browser-tests-only pnpm start --hostname 127.0.0.1 --port 3100
 ```
 
 Puis, dans un autre terminal :
@@ -272,7 +291,10 @@ GAME_TEST_URL=http://localhost:3100 pnpm test:browser
 
 Les fichiers de tests s’exécutent l’un après l’autre pour éviter que plusieurs
 navigateurs saturent le GPU. Ils utilisent des contextes isolés, sans toucher à la
-sauvegarde de votre navigateur. `GAME_TEST_URL` désigne le serveur à tester.
+sauvegarde de votre navigateur. `GAME_TEST_URL` désigne le serveur local/de test
+isolé, jamais la production.
+Utiliser `http://localhost:3100` pour ces tests : le client HTTP de Playwright
+ne renvoie pas le cookie sécurisé des groupes sur `http://127.0.0.1:3100`.
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` permet de choisir un Chromium installé
 plutôt que celui fourni par Playwright.
 

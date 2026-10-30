@@ -10,6 +10,9 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 const { corporateAnswer } = await import('../../src/lib/game/personality-quiz.ts');
 
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3100';
+if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)) {
+  throw new Error('Group browser tests require an isolated localhost server; never run them against production.');
+}
 const ready = async page => {
   await page.waitForFunction(() => document.querySelector('.initiation-card[open]') || (document.querySelector('.action-button--entretien') && !document.querySelector('.action-button--entretien').disabled));
   if (await page.locator('.initiation-card').count()) await page.getByRole('button', { name: 'Passer l’initiation' }).click();
@@ -18,7 +21,10 @@ const ready = async page => {
 
 test('real game journeys, rewards, undo and mobile controls', { timeout: 360_000 }, async t => {
   const server = process.env.GAME_TEST_URL ? null : spawn(process.execPath,
-    ['node_modules/next/dist/bin/next', 'start', '--port', '3100'], { stdio: 'ignore' });
+    ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', '3100'], {
+      stdio: 'ignore',
+      env: { ...process.env, DATABASE_URL: '', ALLOW_IN_MEMORY_DB: '1', SESSION_SECRET: 'local-browser-tests-only' },
+    });
   t.after(() => server?.kill());
   for (let attempt = 0; attempt < 100; attempt++) {
     try { if ((await fetch(url)).ok) break; } catch { /* Server is still starting. */ }

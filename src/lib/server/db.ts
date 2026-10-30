@@ -219,12 +219,15 @@ declare global {
   var __louchomageDb: Db | undefined;
 }
 
-/** Neon when configured, otherwise the process-local memory database. */
+/** Production must never silently accept progress into a disposable database. */
 export function getDb(): Db {
   if (!globalThis.__louchomageDb) {
     const url = process.env.DATABASE_URL;
+    const localMemory = process.env.ALLOW_IN_MEMORY_DB === "1" && !process.env.VERCEL;
+    if (!url && process.env.NODE_ENV === "production" && !localMemory) {
+      throw new Error("DATABASE_URL is required in production. Use an isolated database for tests.");
+    }
     globalThis.__louchomageDb = url ? createNeonDb(url) : createMemoryDb();
-    if (!url && process.env.NODE_ENV === "production") console.warn("DATABASE_URL is not set: groups live in memory and vanish with the process.");
   }
   return globalThis.__louchomageDb;
 }

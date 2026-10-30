@@ -8,6 +8,31 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# Production data preservation
+
+From 2026-10-30, the deployed Neon database is production. Treat all persisted
+groups, characters, progress, inventories, captures, action history and credentials
+as irreplaceable user data. Never delete, truncate, reset, reseed or overwrite it
+to test, debug, deploy or simplify a migration. Deployments must preserve existing
+data and use additive, backward-compatible schema changes.
+
+The pre-launch cleanup authorized on 2026-10-30 is complete. The five old tables
+were moved to `prelaunch_archive_20261030`; the active `public` tables were verified
+empty. Cutoff: `2026-10-30T17:24:23Z`. See `docs/PRODUCTION.md`. This was a one-time
+operation, not standing permission for future cleanup. Never rerun it or delete
+the recovery archive on later production data.
+
+Run automated and manual mutation tests against the local in-memory database or a
+separate disposable local/test database. Never point development, preview fixtures,
+browser tests or seed/reset scripts at the production database. Verify the target
+environment before any database write outside normal application use.
+
+Normal player-requested game actions (including undo, character removal and device
+recovery) continue through the application's existing authorization and game rules.
+This preservation rule prohibits operational data destruction; it does not freeze
+gameplay. Any future destructive maintenance requires a new, explicit user request
+for that exact operation and a recoverable backup before execution.
+
 # Visual iteration strategy
 
 Treat environment work as a visually test-driven process:

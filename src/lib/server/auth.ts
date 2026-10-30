@@ -30,14 +30,16 @@ declare global {
 function sessionSecret(): string {
   const configured = process.env.SESSION_SECRET;
   if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET is required in production so sessions survive deployments.");
+  }
   if (!globalThis.__louchomageSessionSecret) {
-    // Serverless instances must agree on the key, or visitors bounce back to the
-    // password page. The database URL is a secret every instance shares.
+    // Development may reuse a stable key when an isolated database is configured.
+    // Production always requires its own explicit signing secret above.
     const database = process.env.DATABASE_URL;
     globalThis.__louchomageSessionSecret = database
       ? createHash("sha256").update(`louchomage-session:${database}`).digest("base64url")
       : randomBytes(32).toString("base64url");
-    if (process.env.NODE_ENV === "production") console.warn("SESSION_SECRET is not set: using a key derived from DATABASE_URL.");
   }
   return globalThis.__louchomageSessionSecret;
 }
