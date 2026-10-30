@@ -1,7 +1,9 @@
+import { t as tr } from "@/lib/i18n/index";
 import type { WorldLabel } from "./engine";
 import { ENVIRONMENT_LABELS, type EnvironmentKind } from "@/lib/game/environment";
 
-type Entry = { node: HTMLElement; label: WorldLabel; frame: number; transform: string; me: boolean };
+type Entry = { node: HTMLElement; label: WorldLabel; frame: number; transform: string; me: boolean ;
+};
 
 /** Frame-synchronous overlay owned by the renderer. React owns the surrounding UI,
  * never the moving coordinates. Stable nodes retain keyboard focus and listeners. */
@@ -31,21 +33,33 @@ export class WorldLabelLayer {
       }
       const { node } = entry;
       if (entry.frame === 0 || entry.me !== me || entry.label.text !== label.text || entry.label.extra !== label.extra) {
-        if (label.kind === "player") { node.className = `voxel-name${me ? " is-me" : ""}`; node.textContent = label.text; }
-        else {
-          node.className = `voxel-target voxel-target--${label.kind}`;
-          node.textContent = label.kind === "hidden" || label.kind === "sign" ? "" : "···";
-          const description = label.kind === "hidden" ? `Ramasser : ${label.text}` : label.kind === "sign" ? `Lire le panneau : ${label.text}` : label.kind === "dragon" ? "Parler au dragon" : `Parler : ${ENVIRONMENT_LABELS[label.extra as EnvironmentKind] ?? label.text}`;
-          node.setAttribute("aria-label", description);
-          node.title = label.kind === "hidden" ? label.text : description;
-          if (label.kind === "hidden") node.dataset.hiddenItem = label.id;
+        if (label.kind === "player") { node.className = `voxel-name${me ? " is-me" : ""}`;
+                    node.textContent = label.text;
+                }
+                else {
+                    node.className = `voxel-target voxel-target--${label.kind}`;
+                    node.textContent = tr(label.kind === "hidden" || label.kind === "sign" ? "" : "···", undefined);
+                    const description = label.kind === "hidden" ? tr("Ramasser : {0}", [tr(label.text)]) : label.kind === "sign" ? tr("Lire le panneau : {0}", [tr(label.text)]) : label.kind === "dragon" ? tr("Parler au dragon") : tr("Parler : {0}", [tr(ENVIRONMENT_LABELS[label.extra as EnvironmentKind] ?? label.text)]);
+                    node.setAttribute("aria-label", description);
+                    node.title = label.kind === "hidden" ? tr(label.text) : description;
+                    if (label.kind === "hidden")
+                        node.dataset.hiddenItem = label.id;
+                }
+            }
+            const transform = `translate3d(${label.x.toFixed(3)}px,${label.y.toFixed(3)}px,0) translate(-50%,-100%)`;
+            if (transform !== entry.transform) {
+                node.style.transform = transform;
+                entry.transform = transform;
+            }
+            entry.label = label;
+            entry.me = me;
+            entry.frame = this.frame;
         }
-      }
-      const transform = `translate3d(${label.x.toFixed(3)}px,${label.y.toFixed(3)}px,0) translate(-50%,-100%)`;
-      if (transform !== entry.transform) { node.style.transform = transform; entry.transform = transform; }
-      entry.label = label; entry.me = me; entry.frame = this.frame;
+        for (const [id, entry] of this.entries)
+            if (entry.frame !== this.frame) {
+                entry.node.remove();
+                this.entries.delete(id);
+            }
     }
-    for (const [id, entry] of this.entries) if (entry.frame !== this.frame) { entry.node.remove(); this.entries.delete(id); }
-  }
-  dispose() { this.host.removeEventListener("click", this.click); this.host.replaceChildren(); this.entries.clear(); }
+    dispose() { this.host.removeEventListener("click", this.click); this.host.replaceChildren(); this.entries.clear(); }
 }

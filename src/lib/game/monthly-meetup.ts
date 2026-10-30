@@ -1,3 +1,4 @@
+import { localeTag } from "@/lib/i18n/index";
 import { monthKey } from "@/lib/game/calendar";
 
 /** All rendez-vous use the same calendar as the monthly crown. */
@@ -7,7 +8,7 @@ const LOCAL_FORMAT = new Intl.DateTimeFormat("en-CA", {
   year: "numeric", month: "2-digit", day: "2-digit",
   hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
 });
-const DATE_FORMAT = new Intl.DateTimeFormat("fr-CH", {
+const dateFormat = () => new Intl.DateTimeFormat(localeTag(), {
   timeZone: MEETUP_TIME_ZONE,
   weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
 });
@@ -84,7 +85,7 @@ export function validateMeetupInput(key: unknown, at: unknown, place: unknown, n
 }
 
 export function meetupDateLabel(at: string): string {
-  return DATE_FORMAT.format(new Date(at));
+  return dateFormat().format(new Date(at));
 }
 
 export function monthCountdown(key: string, now: Date): string {

@@ -1,0 +1,33 @@
+"use client";
+
+import { useState } from "react";
+
+import type { MiniGameKind } from "@/lib/data/types";
+import { DragonGame } from "./DragonGame";
+import { GhostingGame } from "./GhostingGame";
+import { KeywordsGame } from "./KeywordsGame";
+import type { MiniGameProps } from "../mini-games/MiniGameShell";
+import { PigeonGame } from "./PigeonGame";
+import { QuizGame } from "./QuizGame";
+import { SlotsGame } from "./SlotsGame";
+import { StampGame } from "./StampGame";
+import { ArcadeGame } from "./ArcadeGame";
+
+/** One optional challenge per action; the reservation logic lives in lib/game/mini-games. */
+export function MiniGame({ kind, ...live }: MiniGameProps & { kind: MiniGameKind }) {
+  // The record to beat is the one standing when the game opened: once your own
+  // score is saved, it must not turn "new record" into "your best".
+  const [standing] = useState(() => ({ record: live.record ?? null, best: live.best ?? null }));
+  const props = { ...live, record: standing.record, best: standing.best };
+  switch (kind) {
+    case "dragon": return <DragonGame {...props} />;
+    case "pigeon": return <PigeonGame {...props} />;
+    case "keywords": return <KeywordsGame {...props} />;
+    case "stamp": return <StampGame {...props} />;
+    case "quiz": return <QuizGame {...props} />;
+    case "ghosting": return <GhostingGame {...props} />;
+    case "slots": return <SlotsGame {...props} />;
+    case "pigeonRace": case "paperCut": case "snake": case "maze": case "stack": case "pong":
+      return <ArcadeGame key={`${kind}:${props.seedId}`} kind={kind} {...props} />;
+  }
+}

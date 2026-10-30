@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
@@ -30,7 +32,7 @@ function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView
   ctx.fillStyle = "#d4a53f";
   ctx.beginPath(); ctx.roundRect(24, 18, WIDTH - 48, 30, 8); ctx.fill(); ctx.stroke();
   ctx.fillStyle = INK; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("SALAIRE SELON EXPÉRIENCE", WIDTH / 2, 38);
+  ctx.fillText(tr("SALAIRE SELON EXPÉRIENCE", undefined), WIDTH / 2, 38);
   // Lights around the title, blinking while spinning.
   for (let i = 0; i < 12; i++) {
     const on = sim.status === "spinning" ? Math.floor(now / 120 + i) % 3 === 0 : sim.status === "won" ? Math.floor(now / 90) % 2 === 0 : false;
@@ -56,7 +58,7 @@ function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView
       ctx.fillStyle = jackpot ? "#d4a53f" : "#4a4238";
       ctx.font = jackpot ? "bold 20px system-ui, sans-serif" : "bold 11px system-ui, sans-serif";
       if (jackpot) { ctx.beginPath(); ctx.arc(REEL_X[index], y, 15, 0, Math.PI * 2); ctx.fillStyle = "#f5d163"; ctx.fill(); ctx.strokeStyle = "#8a6a1e"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#6b4d10"; ctx.font = "bold 12px system-ui, sans-serif"; }
-      ctx.fillText(symbol, REEL_X[index], y + 1);
+      ctx.fillText(tr(symbol, undefined), REEL_X[index], y + 1);
       ctx.strokeStyle = "rgb(40 36 26 / 0.15)"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x + 4, y + ROW / 2); ctx.lineTo(x + REEL_W - 4, y + ROW / 2); ctx.stroke();
     }
@@ -67,7 +69,7 @@ function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView
     ctx.strokeRect(x, REEL_TOP, REEL_W, REEL_H);
     if (sim.status === "spinning" && index === sim.current) {
       ctx.fillStyle = "#f5d163"; ctx.font = "bold 10px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("▲ STOP", REEL_X[index], REEL_TOP + REEL_H + 12);
+      ctx.fillText(tr("▲ STOP", undefined), REEL_X[index], REEL_TOP + REEL_H + 12);
     }
   });
   // Payline.
@@ -79,99 +81,96 @@ function drawSlots(ctx: CanvasRenderingContext2D, sim: SlotsSim, view: ArenaView
   ctx.fillStyle = "#5a2320";
   ctx.beginPath(); ctx.roundRect(60, 196, WIDTH - 120, 22, 6); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.stroke();
   ctx.fillStyle = "#f5e8bd"; ctx.font = "9px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(sim.status === "won" ? "JACKPOT · BUTIN SUPPLÉMENTAIRE" : sim.status === "lost" ? `${jackpotCount(sim)} CHF sur 3 · « à discuter »` : "3 × CHF = un butin de plus", WIDTH / 2, 210);
+  ctx.fillText(tr(sim.status === "won" ? "JACKPOT · BUTIN SUPPLÉMENTAIRE" : sim.status === "lost" ? `${jackpotCount(sim)} CHF sur 3 · « à discuter »` : "3 × CHF = un butin de plus", undefined), WIDTH / 2, 210);
 }
-
 /** The chest's double bottom: stop the three reels on CHF. */
 export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
-  const [sim] = useState<SlotsSim>(() => createSlotsSim(seedFrom(seedId)));
-  const resolved = useRef<MiniGameResult | null>(null);
-  const [phase, setPhase] = useState<"play" | "result">("play");
-  const phaseRef = useRef(phase);
-  const [status, setStatus] = useState<SlotsStatus>("ready");
-  const [stopped, setStopped] = useState(0);
-  const [outcome, setOutcome] = useState<MiniGameResult | null>(null);
-  const timeouts = useRef<number[]>([]);
-
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
-  const [score, setScore] = useState<number | null>(null);
-  const settle = useCallback((result: MiniGameResult) => {
-    if (resolved.current) return;
-    resolved.current = result;
-    setOutcome(result);
-    const points = result === "skipped" ? undefined : slotsScore(sim);
-    if (points !== undefined) setScore(points);
-    onResolve(result, points);
-  }, [onResolve, sim]);
-
-  const frame = useCallback((ctx: CanvasRenderingContext2D, view: ArenaView, dt: number, node: HTMLButtonElement) => {
-    stepSlots(sim, dt);
-    // The browser tests stop the reels through the real input path using these.
-    const reel = sim.reels[Math.min(sim.current, sim.reels.length - 1)];
-    node.dataset.status = sim.status;
-    node.dataset.reel = String(sim.current);
-    node.dataset.offset = reel.offset.toFixed(3);
-    node.dataset.chf = reel.symbols.map((s, i) => s === "CHF" ? i : -1).filter(i => i >= 0).join(",");
-    node.dataset.autopilot = String(slotsAutopilot(sim));
-    drawSlots(ctx, sim, view);
-  }, [sim]);
-  const { arena, canvas } = useArenaCanvas<HTMLButtonElement>({ height: HEIGHT, width: WIDTH }, frame);
-
-  const tap = useCallback(() => {
-    if (phaseRef.current !== "play") return;
-    const events = stopReel(sim);
-    if (events.includes("stop")) sfx.stamp();
-    if (events.includes("won")) sfx.fanfare();
-    if (events.includes("lost")) sfx.sad();
-    if (!events.length) return;
-    setStatus(sim.status);
-    setStopped(sim.current);
-    if (events.includes("won") || events.includes("lost")) {
-      settle(sim.status === "won" ? "won" : "lost");
-      timeouts.current.push(window.setTimeout(() => setPhase("result"), 900));
-    }
-  }, [sim, settle]);
-
-  const leave = () => {
-    if (!resolved.current) settle("skipped");
-    onDone();
-  };
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key)) return;
-    if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
-    event.preventDefault();
-    tap();
-  };
-
-  const won = outcome === "won";
-  const instructions = phase === "result"
-    ? won ? "1 butin supplémentaire" : punchlineFor(`slots:${seedId}`)
-    : status === "ready" ? `Arrête les ${SLOTS.reels} rouleaux sur CHF`
-    : `Arrête le rouleau ${stopped + 1} sur CHF`;
-
-  return <MiniGameShell kind="slots" eyebrow={practice ? "Entraînement" : "Défi"} title="Salaire selon expérience"
-    instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
-    hud={<>
-      <span className="mini-game__counter"><b>{stopped}</b> / {SLOTS.reels} rouleaux</span>
-      <span className="mini-game__progress"><span style={{ width: `${stopped / SLOTS.reels * 100}%` }} /></span>
-      <span className="mini-game__score">CHF : <b>{jackpotCount(sim)}</b></span>
-    </>}
-    status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? "Touche ou Espace : lancer, puis arrêter" : "Touche ou Espace : arrêter"}</span>}
-    primary={{
-      inArena: phase === "play" && status === "ready",
-      label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",
-      disabled: phase === "play" && status !== "ready" && status !== "spinning",
-      onClick: () => phase === "play" ? tap() : onDone(),
-    }}
-    skip={phase === "play" && status === "ready" ? { label: "Refermer le coffre", onClick: leave } : null}>
-    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena" data-phase={phase} data-won={won}
-      aria-label="Arrêter le rouleau" disabled={phase !== "play"}
-      onPointerDown={event => { event.preventDefault(); tap(); }} onContextMenu={event => event.preventDefault()}>
-      <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour lancer<small>puis tape pour arrêter chaque rouleau</small></span> : null}
-      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "JACKPOT !" : "SELON EXPÉRIENCE"}</span> : null}
+    const uiLocale = useLocale();
+    const [sim] = useState<SlotsSim>(() => createSlotsSim(seedFrom(seedId)));
+    const resolved = useRef<MiniGameResult | null>(null);
+    const [phase, setPhase] = useState<"play" | "result">("play");
+    const phaseRef = useRef(phase);
+    const [status, setStatus] = useState<SlotsStatus>("ready");
+    const [stopped, setStopped] = useState(0);
+    const [outcome, setOutcome] = useState<MiniGameResult | null>(null);
+    const timeouts = useRef<number[]>([]);
+    useEffect(() => { phaseRef.current = phase; }, [phase]);
+    useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
+    const [score, setScore] = useState<number | null>(null);
+    const settle = useCallback((result: MiniGameResult) => {
+        if (resolved.current)
+            return;
+        resolved.current = result;
+        setOutcome(result);
+        const points = result === "skipped" ? undefined : slotsScore(sim);
+        if (points !== undefined)
+            setScore(points);
+        onResolve(result, points);
+    }, [onResolve, sim]);
+    const frame = useCallback((ctx: CanvasRenderingContext2D, view: ArenaView, dt: number, node: HTMLButtonElement) => {
+        stepSlots(sim, dt);
+        // The browser tests stop the reels through the real input path using these.
+        const reel = sim.reels[Math.min(sim.current, sim.reels.length - 1)];
+        node.dataset.status = sim.status;
+        node.dataset.reel = String(sim.current);
+        node.dataset.offset = reel.offset.toFixed(3);
+        node.dataset.chf = reel.symbols.map((s, i) => s === "CHF" ? i : -1).filter(i => i >= 0).join(",");
+        node.dataset.autopilot = String(slotsAutopilot(sim));
+        drawSlots(ctx, sim, view);
+    }, [sim]);
+    const { arena, canvas } = useArenaCanvas<HTMLButtonElement>({ height: HEIGHT, width: WIDTH }, frame);
+    const tap = useCallback(() => {
+        if (phaseRef.current !== "play")
+            return;
+        const events = stopReel(sim);
+        if (events.includes("stop"))
+            sfx.stamp();
+        if (events.includes("won"))
+            sfx.fanfare();
+        if (events.includes("lost"))
+            sfx.sad();
+        if (!events.length)
+            return;
+        setStatus(sim.status);
+        setStopped(sim.current);
+        if (events.includes("won") || events.includes("lost")) {
+            settle(sim.status === "won" ? "won" : "lost");
+            timeouts.current.push(window.setTimeout(() => setPhase("result"), 900));
+        }
+    }, [sim, settle]);
+    const leave = () => {
+        if (!resolved.current)
+            settle("skipped");
+        onDone();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+        if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key))
+            return;
+        if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close"))
+            return;
+        event.preventDefault();
+        tap();
+    };
+    const won = outcome === "won";
+    const instructions = phase === "result"
+        ? won ? "1 butin supplémentaire" : punchlineFor(`slots:${seedId}`)
+        : status === "ready" ? `Arrête les ${SLOTS.reels} rouleaux sur CHF`
+            : `Arrête le rouleau ${stopped + 1} sur CHF`;
+    return <MiniGameShell kind="slots" eyebrow={tr(practice ? "Entraînement" : "Défi", undefined, uiLocale)} title={tr("Salaire selon expérience", undefined, uiLocale)} instructions={tr(instructions, undefined, uiLocale)} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase} hud={<>
+      <span className="mini-game__counter"><b>{stopped}</b> / {SLOTS.reels}{tr(" rouleaux", undefined, uiLocale)}</span>
+      <span className="mini-game__progress"><span style={{ width: `${stopped / SLOTS.reels * 100}%` }}/></span>
+      <span className="mini-game__score">{tr("CHF : ", undefined, uiLocale)}<b>{jackpotCount(sim)}</b></span>
+    </>} status={phase === "result" ? <><strong>{tr(won ? "Jackpot · +1 butin" : "Butin conservé", undefined, uiLocale)}</strong><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice}/></> :
+            <span>{tr(status === "ready" ? "Touche ou Espace : lancer, puis arrêter" : "Touche ou Espace : arrêter", undefined, uiLocale)}</span>} primary={{
+            inArena: phase === "play" && status === "ready",
+            label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",
+            disabled: phase === "play" && status !== "ready" && status !== "spinning",
+            onClick: () => phase === "play" ? tap() : onDone(),
+        }} skip={phase === "play" && status === "ready" ? { label: "Refermer le coffre", onClick: leave } : null}>
+    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena" data-phase={phase} data-won={won} aria-label={tr("Arrêter le rouleau", undefined, uiLocale)} disabled={phase !== "play"} onPointerDown={event => { event.preventDefault(); tap(); }} onContextMenu={event => event.preventDefault()}>
+      <canvas ref={canvas} className="mini-game__canvas" aria-hidden/>
+      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>{tr("Touche pour lancer", undefined, uiLocale)}<small>{tr("puis tape pour arrêter chaque rouleau", undefined, uiLocale)}</small></span> : null}
+      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "JACKPOT !" : "SELON EXPÉRIENCE", undefined, uiLocale)}</span> : null}
     </button>
   </MiniGameShell>;
 }

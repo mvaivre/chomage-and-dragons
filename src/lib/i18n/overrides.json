@@ -1,0 +1,1634 @@
+{
+  "Chômage & Dragons": [
+    "Chômage & Dragons",
+    "Chômage & Dragons",
+    "Chômage & Dragons",
+    "Chômage & Dragons"
+  ],
+  "Langue": [
+    "Language",
+    "Sprache",
+    "Idioma",
+    "Lingua"
+  ],
+  "Choisis ton univers": [
+    "Choose your world",
+    "Wähle deine Welt",
+    "Elige tu mundo",
+    "Scegli il tuo mondo"
+  ],
+  "La même aventure, deux façons de la vivre.": [
+    "One adventure, two ways to experience it.",
+    "Ein Abenteuer, zwei Perspektiven.",
+    "Una aventura, dos formas de vivirla.",
+    "Un’avventura, due modi di viverla."
+  ],
+  "Le conte illustré": [
+    "The illustrated tale",
+    "Die Bilderbuchwelt",
+    "El cuento ilustrado",
+    "Il racconto illustrato"
+  ],
+  "Le monde miniature": [
+    "The miniature world",
+    "Die Miniaturwelt",
+    "El mundo en miniatura",
+    "Il mondo in miniatura"
+  ],
+  "Des paysages dessinés à la main, au fil du chemin.": [
+    "Hand-drawn landscapes along your journey.",
+    "Eine handgezeichnete Welt entlang deines Weges.",
+    "Paisajes dibujados a mano a lo largo del camino.",
+    "Paesaggi disegnati a mano lungo il cammino."
+  ],
+  "Un royaume en relief à explorer sous tous les angles.": [
+    "A miniature kingdom to explore from every angle.",
+    "Ein kleines Königreich aus jeder Perspektive erkunden.",
+    "Un pequeño reino que explorar desde todos los ángulos.",
+    "Un piccolo regno da esplorare da ogni angolazione."
+  ],
+  "Entrer en 2D": [
+    "Enter in 2D",
+    "In 2D starten",
+    "Entrar en 2D",
+    "Entra in 2D"
+  ],
+  "Entrer en 3D": [
+    "Enter in 3D",
+    "In 3D starten",
+    "Entrar en 3D",
+    "Entra in 3D"
+  ],
+  "Tu pourras changer de vue à tout moment. Ta progression reste la même.": [
+    "You can switch views at any time. Your progress stays the same.",
+    "Du kannst die Ansicht jederzeit wechseln. Dein Fortschritt bleibt erhalten.",
+    "Puedes cambiar de vista cuando quieras. Tu progreso se conserva.",
+    "Puoi cambiare vista in qualsiasi momento. I tuoi progressi restano gli stessi."
+  ],
+  "Le voyage se prépare…": [
+    "Getting your journey ready…",
+    "Deine Reise wird vorbereitet…",
+    "Preparando tu viaje…",
+    "Preparazione del viaggio…"
+  ],
+  "Créer un groupe": [
+    "Create a group",
+    "Gruppe erstellen",
+    "Crear un grupo",
+    "Crea un gruppo"
+  ],
+  "Rejoindre un groupe": [
+    "Join a group",
+    "Einer Gruppe beitreten",
+    "Unirse a un grupo",
+    "Unisciti a un gruppo"
+  ],
+  "Tes groupes sur cet appareil": [
+    "Your groups on this device",
+    "Deine Gruppen auf diesem Gerät",
+    "Tus grupos en este dispositivo",
+    "I tuoi gruppi su questo dispositivo"
+  ],
+  "Nom du groupe": [
+    "Group name",
+    "Gruppenname",
+    "Nombre del grupo",
+    "Nome del gruppo"
+  ],
+  "Mot de passe du groupe": [
+    "Group password",
+    "Gruppenpasswort",
+    "Contraseña del grupo",
+    "Password del gruppo"
+  ],
+  "Encore une fois": [
+    "Confirm password",
+    "Passwort bestätigen",
+    "Confirmar contraseña",
+    "Conferma la password"
+  ],
+  "Les deux mots de passe diffèrent.": [
+    "The passwords do not match.",
+    "Die Passwörter stimmen nicht überein.",
+    "Las contraseñas no coinciden.",
+    "Le password non coincidono."
+  ],
+  "Créer et entrer": [
+    "Create and enter",
+    "Erstellen und eintreten",
+    "Crear y entrar",
+    "Crea ed entra"
+  ],
+  "Création…": [
+    "Creating…",
+    "Wird erstellt…",
+    "Creando…",
+    "Creazione…"
+  ],
+  "Lien ou code du groupe": [
+    "Group link or code",
+    "Gruppenlink oder Code",
+    "Enlace o código del grupo",
+    "Link o codice del gruppo"
+  ],
+  "Ouvrir": [
+    "Open",
+    "Öffnen",
+    "Abrir",
+    "Apri"
+  ],
+  "Mode solo": [
+    "Solo mode",
+    "Solomodus",
+    "Modo individual",
+    "Modalità solitaria"
+  ],
+  "Retour à l’accueil": [
+    "Back to home",
+    "Zurück zur Startseite",
+    "Volver al inicio",
+    "Torna alla pagina iniziale"
+  ],
+  "Entrer dans le groupe": [
+    "Enter the group",
+    "Der Gruppe beitreten",
+    "Entrar en el grupo",
+    "Entra nel gruppo"
+  ],
+  "Vérification…": [
+    "Checking…",
+    "Wird überprüft…",
+    "Comprobando…",
+    "Verifica…"
+  ],
+  "Choisis ton compagnon de route": [
+    "Choose your travelling companion",
+    "Wähle deinen Weggefährten",
+    "Elige a tu compañero de viaje",
+    "Scegli il tuo compagno di viaggio"
+  ],
+  "Ton nom": [
+    "Your name",
+    "Dein Name",
+    "Tu nombre",
+    "Il tuo nome"
+  ],
+  "Mika": [
+    "Mika",
+    "Mika",
+    "Mika",
+    "Mika"
+  ],
+  "Code PIN, 4 à 6 chiffres": [
+    "PIN, 4 to 6 digits",
+    "PIN, 4 bis 6 Ziffern",
+    "PIN de 4 a 6 dígitos",
+    "PIN da 4 a 6 cifre"
+  ],
+  "Code PIN": [
+    "PIN",
+    "PIN",
+    "PIN",
+    "PIN"
+  ],
+  "Entrer dans la partie": [
+    "Enter the game",
+    "Spiel betreten",
+    "Entrar en la partida",
+    "Entra nella partita"
+  ],
+  "Nouvelle âme en peine": [
+    "A new lost soul",
+    "Eine neue verlorene Seele",
+    "Una nueva alma en pena",
+    "Una nuova anima in pena"
+  ],
+  "Qui es-tu ?": [
+    "Who are you?",
+    "Wer bist du?",
+    "¿Quién eres?",
+    "Chi sei?"
+  ],
+  "Reprendre": [
+    "Resume",
+    "Fortsetzen",
+    "Continuar",
+    "Riprendi"
+  ],
+  "Retour": [
+    "Back",
+    "Zurück",
+    "Volver",
+    "Indietro"
+  ],
+  "Annuler": [
+    "Undo",
+    "Rückgängig",
+    "Deshacer",
+    "Annulla"
+  ],
+  "Annuler ma dernière action (Z)": [
+    "Undo my last action (Z)",
+    "Letzte Aktion rückgängig machen (Z)",
+    "Deshacer mi última acción (Z)",
+    "Annulla la mia ultima azione (Z)"
+  ],
+  "Tes démarches font avancer ton personnage.": [
+    "Your job search moves your character forward.",
+    "Deine Stellensuche bringt deinen Charakter weiter.",
+    "Tu búsqueda de empleo hace avanzar a tu personaje.",
+    "La tua ricerca di lavoro fa avanzare il tuo personaggio."
+  ],
+  "Candidature": [
+    "Application",
+    "Bewerbung",
+    "Candidatura",
+    "Candidatura"
+  ],
+  "Refus": [
+    "Rejection",
+    "Absage",
+    "Rechazo",
+    "Rifiuto"
+  ],
+  "Entretien": [
+    "Interview",
+    "Vorstellungsgespräch",
+    "Entrevista",
+    "Colloquio"
+  ],
+  "Rejet après entretien": [
+    "Rejected after interview",
+    "Absage nach dem Gespräch",
+    "Rechazo tras la entrevista",
+    "Rifiuto dopo il colloquio"
+  ],
+  "Rejet post-entretien": [
+    "Rejected after interview",
+    "Absage nach dem Gespräch",
+    "Rechazo tras la entrevista",
+    "Rifiuto dopo il colloquio"
+  ],
+  "Engagé·e": [
+    "Hired",
+    "Eingestellt",
+    "Contratado/a",
+    "Assunto/a"
+  ],
+  "Embauche": [
+    "Hired",
+    "Einstellung",
+    "Contratación",
+    "Assunzione"
+  ],
+  "pas": [
+    "steps",
+    "Schritte",
+    "pasos",
+    "passi"
+  ],
+  "Niveau": [
+    "Level",
+    "Stufe",
+    "Nivel",
+    "Livello"
+  ],
+  "Niv.": [
+    "Lv.",
+    "St.",
+    "Nv.",
+    "Liv."
+  ],
+  "Saison": [
+    "Season",
+    "Saison",
+    "Temporada",
+    "Stagione"
+  ],
+  "Ce mois": [
+    "This month",
+    "Diesen Monat",
+    "Este mes",
+    "Questo mese"
+  ],
+  "Palmarès": [
+    "Hall of fame",
+    "Ehrentafel",
+    "Palmarés",
+    "Albo d’oro"
+  ],
+  "Couronne du mois": [
+    "Crown of the month",
+    "Krone des Monats",
+    "Corona del mes",
+    "Corona del mese"
+  ],
+  "Classement & carte": [
+    "Rankings & map",
+    "Rangliste & Karte",
+    "Clasificación y mapa",
+    "Classifica e mappa"
+  ],
+  "Quêtes": [
+    "Quests",
+    "Quests",
+    "Misiones",
+    "Missioni"
+  ],
+  "Butins": [
+    "Loot",
+    "Beute",
+    "Botín",
+    "Bottino"
+  ],
+  "Captures": [
+    "Captures",
+    "Fänge",
+    "Capturas",
+    "Catture"
+  ],
+  "Collection": [
+    "Collection",
+    "Sammlung",
+    "Colección",
+    "Collezione"
+  ],
+  "Réglages": [
+    "Settings",
+    "Einstellungen",
+    "Ajustes",
+    "Impostazioni"
+  ],
+  "Compagnons & carte": [
+    "Companions & map",
+    "Gefährten & Karte",
+    "Compañeros y mapa",
+    "Compagni e mappa"
+  ],
+  "Ambiance sonore": [
+    "Sound",
+    "Klangkulisse",
+    "Sonido",
+    "Audio"
+  ],
+  "Fermer": [
+    "Close",
+    "Schliessen",
+    "Cerrar",
+    "Chiudi"
+  ],
+  "Continuer le voyage": [
+    "Continue the journey",
+    "Reise fortsetzen",
+    "Continuar el viaje",
+    "Continua il viaggio"
+  ],
+  "Passer l’initiation": [
+    "Skip the tutorial",
+    "Einführung überspringen",
+    "Saltar el tutorial",
+    "Salta il tutorial"
+  ],
+  "Recommencer": [
+    "Start again",
+    "Neu beginnen",
+    "Volver a empezar",
+    "Ricomincia"
+  ],
+  "À toi d’essayer": [
+    "Your turn to try",
+    "Probiere es aus",
+    "Te toca probar",
+    "Tocca a te provare"
+  ],
+  "Un essai, pas une vraie démarche": [
+    "Just a practice run, not a real job application",
+    "Nur eine Übung, keine echte Bewerbung",
+    "Solo una prueba, no una candidatura real",
+    "Solo una prova, non una vera candidatura"
+  ],
+  "Ta progression reste la même.": [
+    "Your progress stays the same.",
+    "Dein Fortschritt bleibt erhalten.",
+    "Tu progreso se conserva.",
+    "I tuoi progressi restano gli stessi."
+  ],
+  "Aperçu 3D indisponible": [
+    "3D preview unavailable",
+    "3D-Vorschau nicht verfügbar",
+    "Vista previa 3D no disponible",
+    "Anteprima 3D non disponibile"
+  ],
+  "Vue 3D · Glisse pour tourner": [
+    "3D view · Drag to rotate",
+    "3D-Ansicht · Zum Drehen ziehen",
+    "Vista 3D · Arrastra para girar",
+    "Vista 3D · Trascina per ruotare"
+  ],
+  "Tourner le personnage à gauche": [
+    "Rotate character left",
+    "Charakter nach links drehen",
+    "Girar el personaje a la izquierda",
+    "Ruota il personaggio a sinistra"
+  ],
+  "Tourner le personnage à droite": [
+    "Rotate character right",
+    "Charakter nach rechts drehen",
+    "Girar el personaje a la derecha",
+    "Ruota il personaggio a destra"
+  ],
+  "Ce groupe n’existe plus": [
+    "This group no longer exists",
+    "Diese Gruppe gibt es nicht mehr",
+    "Este grupo ya no existe",
+    "Questo gruppo non esiste più"
+  ],
+  "Le voyage commence": [
+    "The journey begins",
+    "Die Reise beginnt",
+    "El viaje comienza",
+    "Il viaggio comincia"
+  ],
+  "Hors ligne": [
+    "Offline",
+    "Offline",
+    "Sin conexión",
+    "Offline"
+  ],
+  "Session expirée": [
+    "Session expired",
+    "Sitzung abgelaufen",
+    "Sesión caducada",
+    "Sessione scaduta"
+  ],
+  "Synchronisation": [
+    "Sync",
+    "Synchronisierung",
+    "Sincronización",
+    "Sincronizzazione"
+  ],
+  "Chargement de la partie…": [
+    "Loading the game…",
+    "Spiel wird geladen…",
+    "Cargando la partida…",
+    "Caricamento della partita…"
+  ],
+  "Préparation du voyage…": [
+    "Getting your journey ready…",
+    "Deine Reise wird vorbereitet…",
+    "Preparando tu viaje…",
+    "Preparazione del viaggio…"
+  ],
+  "Réessayer": [
+    "Try again",
+    "Erneut versuchen",
+    "Reintentar",
+    "Riprova"
+  ],
+  "Ouvrir en 2D": [
+    "Open in 2D",
+    "In 2D öffnen",
+    "Abrir en 2D",
+    "Apri in 2D"
+  ],
+  "Bravo": [
+    "Well done",
+    "Bravo",
+    "Bravo",
+    "Bravo"
+  ],
+  "À ta santé": [
+    "Cheers",
+    "Prost",
+    "Salud",
+    "Alla salute"
+  ],
+  "Bien joué": [
+    "Nice one",
+    "Gut gemacht",
+    "Bien hecho",
+    "Ben fatto"
+  ],
+  "Ça me fait rire": [
+    "That made me laugh",
+    "Das bringt mich zum Lachen",
+    "Me hace reír",
+    "Mi fa ridere"
+  ],
+  "Courage": [
+    "Hang in there",
+    "Kopf hoch",
+    "Ánimo",
+    "Coraggio"
+  ],
+  "Couronne de {0}": [
+    "Crown of {0}",
+    "Krone im {0}",
+    "Corona de {0}",
+    "Corona di {0}"
+  ],
+  "Centre ORP": [
+    "Job Centre (ORP)",
+    "RAV-Zentrum",
+    "Oficina de empleo (ORP)",
+    "Centro URC"
+  ],
+  "Usine à CV": [
+    "CV Factory",
+    "Lebenslauffabrik",
+    "Fábrica de currículos",
+    "Fabbrica di CV"
+  ],
+  "pas ·": [
+    "steps ·",
+    "Schritte ·",
+    "pasos ·",
+    "passi ·"
+  ],
+  "{0} t’a lancé cette farce pendant ton absence.": [
+    "{0} played this prank on you while you were away.",
+    "{0} hat dir während deiner Abwesenheit diesen Streich gespielt.",
+    "{0} te gastó esta broma mientras no estabas.",
+    "{0} ti ha fatto questo scherzo mentre eri via."
+  ],
+  "{0}{1} · {2}{3} pas{4}": [
+    "{0}{1} · {2}{3} steps{4}",
+    "{0}{1} · {2}{3} Schritte{4}",
+    "{0}{1} · {2}{3} pasos{4}",
+    "{0}{1} · {2}{3} passi{4}"
+  ],
+  "Rang {0}": [
+    "Rank {0}",
+    "Rang {0}",
+    "Puesto {0}",
+    "Posizione {0}"
+  ],
+  "Engagé·es · {0}": [
+    "Hired · {0}",
+    "Eingestellt · {0}",
+    "Contratados · {0}",
+    "Assunti · {0}"
+  ],
+  "Saluer {0}": [
+    "Greet {0}",
+    "{0} grüssen",
+    "Saludar a {0}",
+    "Saluta {0}"
+  ],
+  "{0} · Nv {1}": [
+    "{0} · Lv {1}",
+    "{0} · St {1}",
+    "{0} · Nv {1}",
+    "{0} · Liv {1}"
+  ],
+  "Ramasser : {0}": [
+    "Pick up: {0}",
+    "Aufheben: {0}",
+    "Recoger: {0}",
+    "Raccogli: {0}"
+  ],
+  "{0} pas": [
+    "{0} steps",
+    "{0} Schritte",
+    "{0} pasos",
+    "{0} passi"
+  ],
+  "{0}{1} pas": [
+    "{0}{1} steps",
+    "{0}{1} Schritte",
+    "{0}{1} pasos",
+    "{0}{1} passi"
+  ],
+  "{0} shot{1} à boire": [
+    "{0} shot{1} to drink",
+    "{0} Shot{1} noch zu trinken",
+    "{0} chupito{1} por beber",
+    "{0} shottino{1} da bere"
+  ],
+  "d’{0}": [
+    "of {0}",
+    "im {0}",
+    "de {0}",
+    "di {0}"
+  ],
+  "La compagnie · {0}": [
+    "The company · {0}",
+    "Die Gefährten · {0}",
+    "La compañía · {0}",
+    "La compagnia · {0}"
+  ],
+  ", dont {0} moment{1} rare{2}": [
+    ", including {0} rare moment{1}{2}",
+    ", davon {0} seltene Moment{1}{2}",
+    ", incluidos {0} momento{1} raro{2}",
+    ", di cui {0} moment{1} rar{2}"
+  ],
+  "Ouvrir le carnet de {0}": [
+    "Open {0}’s journal",
+    "{0}s Tagebuch öffnen",
+    "Abrir el diario de {0}",
+    "Apri il diario di {0}"
+  ],
+  "{0} butins dans le carnet": [
+    "{0} treasures in your journal",
+    "{0} Schätze im Tagebuch",
+    "{0} tesoros en el diario",
+    "{0} tesori nel diario"
+  ],
+  "{0} semaines d’affilée avec au moins une action": [
+    "{0} consecutive weeks with at least one action",
+    "{0} Wochen in Folge mit mindestens einer Aktion",
+    "{0} semanas seguidas con al menos una acción",
+    "{0} settimane consecutive con almeno un’azione"
+  ],
+  "{0} capturé !": [
+    "{0} captured!",
+    "{0} gefangen!",
+    "¡{0} capturado!",
+    "{0} catturato!"
+  ],
+  "−{0} énergie. À toi !": [
+    "−{0} energy. Your turn!",
+    "−{0} Energie. Du bist dran!",
+    "−{0} de energía. ¡Te toca!",
+    "−{0} energia. Tocca a te!"
+  ],
+  "Toi : {0}": [
+    "You: {0}",
+    "Du: {0}",
+    "Tú: {0}",
+    "Tu: {0}"
+  ],
+  "+{0} pas": [
+    "+{0} steps",
+    "+{0} Schritte",
+    "+{0} pasos",
+    "+{0} passi"
+  ],
+  "+{0} pas conservés": [
+    "+{0} steps kept",
+    "+{0} Schritte bleiben erhalten",
+    "+{0} pasos conservados",
+    "+{0} passi conservati"
+  ],
+  "Attrape uniquement les {0} mots de l’annonce": [
+    "Catch only the {0} words from the job ad",
+    "Fange nur die {0} Wörter aus der Stellenanzeige",
+    "Atrapa solo las {0} palabras de la oferta",
+    "Raccogli solo le {0} parole dell’annuncio"
+  ],
+  "Encore {0} mot{1}": [
+    "{0} word{1} left",
+    "Noch {0} Wörter{1}",
+    "Quedan {0} palabra{1}",
+    "Restano {0} parole{1}"
+  ],
+  "Franchis les {0} tours pour livrer le courrier": [
+    "Pass all {0} towers to deliver the mail",
+    "Überwinde die {0} Türme und liefere die Post ab",
+    "Supera las {0} torres para entregar el correo",
+    "Supera le {0} torri per consegnare la posta"
+  ],
+  "Encore {0} tour{1}": [
+    "{0} tower{1} left",
+    "Noch {0} Türme{1}",
+    "Quedan {0} torre{1}",
+    "Restano {0} torri{1}"
+  ],
+  "{0}/{1} bonnes réponses · {2} s par question": [
+    "{0}/{1} correct answers · {2} s per question",
+    "{0}/{1} richtige Antworten · {2} s pro Frage",
+    "{0}/{1} respuestas correctas · {2} s por pregunta",
+    "{0}/{1} risposte corrette · {2} s per domanda"
+  ],
+  "Arrête le rouleau {0} sur CHF": [
+    "Stop reel {0} on CHF",
+    "Stoppe Walze {0} bei CHF",
+    "Detén el rodillo {0} en CHF",
+    "Ferma il rullo {0} su CHF"
+  ],
+  "Tamponne les {0} dossiers dans la zone dorée": [
+    "Stamp the {0} files in the golden zone",
+    "Stemple die {0} Dossiers in der goldenen Zone ab",
+    "Sella los {0} expedientes en la zona dorada",
+    "Timbra i {0} fascicoli nella zona dorata"
+  ],
+  "COMBO ×{0}": [
+    "COMBO ×{0}",
+    "KOMBO ×{0}",
+    "COMBO ×{0}",
+    "COMBO ×{0}"
+  ],
+  "Toi {0} — {1} Recruteur": [
+    "You {0} — {1} Recruiter",
+    "Du {0} — {1} Personalchef",
+    "Tú {0} — {1} Reclutador",
+    "Tu {0} — {1} Selezionatore"
+  ],
+  "{0} · Sortie": [
+    "{0} · Exit",
+    "{0} · Ausgang",
+    "{0} · Salida",
+    "{0} · Uscita"
+  ],
+  "Parler : {0}": [
+    "Talk: {0}",
+    "Sprechen: {0}",
+    "Hablar: {0}",
+    "Parla: {0}"
+  ],
+  "GUICHET {0} · Pause réglementaire": [
+    "COUNTER {0} · Mandatory break",
+    "SCHALTER {0} · Vorgeschriebene Pause",
+    "VENTANILLA {0} · Descanso reglamentario",
+    "SPORTELLO {0} · Pausa regolamentare"
+  ],
+  "{0} est passé·e ici. Respect.": [
+    "{0} was here. Respect.",
+    "{0} war hier. Respekt.",
+    "{0} pasó por aquí. Respeto.",
+    "{0} è passato di qui. Rispetto."
+  ],
+  "Couronne du mois · {0}": [
+    "Crown of the month · {0}",
+    "Krone des Monats · {0}",
+    "Corona del mes · {0}",
+    "Corona del mese · {0}"
+  ],
+  "{0} · Engagé·e, toujours de la compagnie": [
+    "{0} · Hired, still one of us",
+    "{0} · Eingestellt, weiterhin Teil der Gruppe",
+    "{0} · Con trabajo, siempre de la compañía",
+    "{0} · Con un lavoro, sempre della compagnia"
+  ],
+  "{0} te défie. Affaiblis-le, puis lance une chômageball !": [
+    "{0} challenges you. Weaken it, then throw a chômageball!",
+    "{0} fordert dich heraus. Schwäche es und wirf dann einen Chômageball!",
+    "{0} te desafía. ¡Debilítalo y lanza una chômageball!",
+    "{0} ti sfida. Indeboliscilo, poi lancia una chômageball!"
+  ],
+  "{0} capturé ! Pour une fois, c’est toi qui conserves le dossier.": [
+    "{0} captured! For once, you get to keep the file.",
+    "{0} gefangen! Diesmal behältst du das Dossier.",
+    "¡{0} capturado! Por una vez, te quedas tú con el expediente.",
+    "{0} catturato! Per una volta, sei tu a conservare il fascicolo."
+  ],
+  "{0} s’échappe de la chômageball !": [
+    "{0} escapes from the chômageball!",
+    "{0} entkommt dem Chômageball!",
+    "¡{0} escapa de la chômageball!",
+    "{0} scappa dalla chômageball!"
+  ],
+  "Argument béton ! {0} perd {1} points de résistance.": [
+    "Rock-solid argument! {0} loses {1} resistance points.",
+    "Starkes Argument! {0} verliert {1} Widerstandspunkte.",
+    "¡Argumento contundente! {0} pierde {1} puntos de resistencia.",
+    "Argomento inconfutabile! {0} perde {1} punti di resistenza."
+  ],
+  "Relance polie ! {0} perd {1} points de résistance. Tu gardes ton calme.": [
+    "Polite follow-up! {0} loses {1} resistance points. You keep your cool.",
+    "Höfliche Nachfrage! {0} verliert {1} Widerstandspunkte. Du bleibst ruhig.",
+    "¡Recordatorio educado! {0} pierde {1} puntos de resistencia. Mantienes la calma.",
+    "Sollecito cortese! {0} perde {1} punti di resistenza. Mantieni la calma."
+  ],
+  "{0} utilise « {1} ». −{2} énergie.": [
+    "{0} uses “{1}”. −{2} energy.",
+    "{0} setzt «{1}» ein. −{2} Energie.",
+    "{0} usa «{1}». −{2} de energía.",
+    "{0} usa «{1}». −{2} energia."
+  ],
+  "{0} j {1} h": [
+    "{0} d {1} h",
+    "{0} T {1} Std.",
+    "{0} d {1} h",
+    "{0} g {1} h"
+  ],
+  "{0} h {1} min": [
+    "{0} h {1} min",
+    "{0} Std. {1} Min.",
+    "{0} h {1} min",
+    "{0} h {1} min"
+  ],
+  "synergie": [
+    "synergy",
+    "Synergie",
+    "sinergia",
+    "sinergia"
+  ],
+  "agile": [
+    "agile",
+    "agil",
+    "ágil",
+    "agile"
+  ],
+  "proactif·ve": [
+    "proactive",
+    "proaktiv",
+    "proactivo/a",
+    "proattivo/a"
+  ],
+  "polyvalent·e": [
+    "versatile",
+    "vielseitig",
+    "polivalente",
+    "polivalente"
+  ],
+  "résilient·e": [
+    "resilient",
+    "belastbar",
+    "resiliente",
+    "resiliente"
+  ],
+  "autonome": [
+    "independent",
+    "selbstständig",
+    "autónomo/a",
+    "autonomo/a"
+  ],
+  "esprit d’équipe": [
+    "team spirit",
+    "Teamgeist",
+    "espíritu de equipo",
+    "spirito di squadra"
+  ],
+  "force de proposition": [
+    "initiative",
+    "Eigeninitiative",
+    "iniciativa",
+    "spirito di iniziativa"
+  ],
+  "orienté·e résultats": [
+    "results-driven",
+    "ergebnisorientiert",
+    "orientado/a a resultados",
+    "orientato/a ai risultati"
+  ],
+  "rigoureux·se": [
+    "meticulous",
+    "sorgfältig",
+    "riguroso/a",
+    "preciso/a"
+  ],
+  "dynamique": [
+    "energetic",
+    "dynamisch",
+    "dinámico/a",
+    "dinamico/a"
+  ],
+  "passionné·e": [
+    "passionate",
+    "leidenschaftlich",
+    "apasionado/a",
+    "appassionato/a"
+  ],
+  "curieux·se": [
+    "curious",
+    "neugierig",
+    "curioso/a",
+    "curioso/a"
+  ],
+  "bienveillance": [
+    "kindness",
+    "Wohlwollen",
+    "amabilidad",
+    "gentilezza"
+  ],
+  "Excel avancé": [
+    "advanced Excel",
+    "Excel für Fortgeschrittene",
+    "Excel avanzado",
+    "Excel avanzato"
+  ],
+  "anglais courant": [
+    "fluent English",
+    "fliessend Englisch",
+    "inglés fluido",
+    "inglese fluente"
+  ],
+  "permis B": [
+    "category B licence",
+    "Führerausweis B",
+    "carnet B",
+    "patente B"
+  ],
+  "flexible": [
+    "flexible",
+    "flexibel",
+    "flexible",
+    "flessibile"
+  ],
+  "multitâche": [
+    "multitasking",
+    "Multitasking",
+    "multitarea",
+    "multitasking"
+  ],
+  "disruptif": [
+    "disruptive",
+    "disruptiv",
+    "disruptivo",
+    "dirompente"
+  ],
+  "fôtes d’ortografe": [
+    "speling misstakes",
+    "Rechtschreibfeler",
+    "faltas de hortografía",
+    "erori di ortografia"
+  ],
+  "leadership": [
+    "leadership",
+    "Führungskompetenz",
+    "liderazgo",
+    "leadership"
+  ],
+  "+2 pas": [
+    "+2 steps",
+    "+2 Schritte",
+    "+2 pasos",
+    "+2 passi"
+  ],
+  "+2 pas bonus": [
+    "+2 bonus steps",
+    "+2 Bonusschritte",
+    "+2 pasos extra",
+    "+2 passi bonus"
+  ],
+  "Essayer une candidature · +2 pas": [
+    "Try an application · +2 steps",
+    "Bewerbung ausprobieren · +2 Schritte",
+    "Probar una candidatura · +2 pasos",
+    "Prova una candidatura · +2 passi"
+  ],
+  "À gagner : +{0} pas bonus": [
+    "Win +{0} bonus steps",
+    "Zu gewinnen: +{0} Bonusschritte",
+    "Gana +{0} pasos extra",
+    "In palio: +{0} passi bonus"
+  ],
+  "Prochain butin dans {0} pas": [
+    "Next treasure in {0} steps",
+    "Nächster Schatz in {0} Schritten",
+    "Próximo tesoro en {0} pasos",
+    "Prossimo tesoro fra {0} passi"
+  ],
+  "Garder mes +{0} pas": [
+    "Keep my +{0} steps",
+    "Meine +{0} Schritte behalten",
+    "Conservar mis +{0} pasos",
+    "Conserva i miei +{0} passi"
+  ],
+  "×2 · +{0} pas": [
+    "×2 · +{0} steps",
+    "×2 · +{0} Schritte",
+    "×2 · +{0} pasos",
+    "×2 · +{0} passi"
+  ],
+  "{0} pas au lieu de {1}": [
+    "{0} steps instead of {1}",
+    "{0} Schritte statt {1}",
+    "{0} pasos en vez de {1}",
+    "{0} passi invece di {1}"
+  ],
+  "{0} · +{1} pas bonus": [
+    "{0} · +{1} bonus steps",
+    "{0} · +{1} Bonusschritte",
+    "{0} · +{1} pasos extra",
+    "{0} · +{1} passi bonus"
+  ],
+  "CV validé, pas doublés": [
+    "CV approved, double steps",
+    "Lebenslauf angenommen, doppelte Schritte",
+    "CV aprobado, pasos dobles",
+    "CV approvato, passi raddoppiati"
+  ],
+  "Livraison réussie, pas doublés": [
+    "Delivery complete, double steps",
+    "Zugestellt, doppelte Schritte",
+    "Entrega completada, pasos dobles",
+    "Consegna riuscita, passi raddoppiati"
+  ],
+  "Dossier validé, 1 pas bonus": [
+    "File approved, 1 bonus step",
+    "Dossier angenommen, 1 Bonusschritt",
+    "Expediente aprobado, 1 paso extra",
+    "Fascicolo approvato, 1 passo bonus"
+  ],
+  "Réponse à temps, 2 pas bonus": [
+    "Replied in time, 2 bonus steps",
+    "Rechtzeitig geantwortet, 2 Bonusschritte",
+    "Respuesta a tiempo, 2 pasos extra",
+    "Risposta in tempo, 2 passi bonus"
+  ],
+  "Une candidature, des pas en plus.": [
+    "One application, more steps.",
+    "Eine Bewerbung, weitere Schritte.",
+    "Una candidatura, más pasos.",
+    "Una candidatura, altri passi."
+  ],
+  "Trois pas en arrière.": [
+    "Three steps back.",
+    "Drei Schritte zurück.",
+    "Tres pasos atrás.",
+    "Tre passi indietro."
+  ],
+  "Six pas gagnés.": [
+    "Six steps gained.",
+    "Sechs Schritte gewonnen.",
+    "Seis pasos ganados.",
+    "Sei passi guadagnati."
+  ],
+  "Les pas de chaque démarche": [
+    "Steps for each action",
+    "Schritte pro Aktion",
+    "Pasos de cada acción",
+    "Passi per ogni azione"
+  ],
+  "Le serveur ne répond pas.": [
+    "The server is not responding.",
+    "Der Server antwortet nicht.",
+    "El servidor no responde.",
+    "Il server non risponde."
+  ],
+  "Ce personnage n’est pas lié à cet appareil.": [
+    "This character is not linked to this device.",
+    "Dieser Charakter ist nicht mit diesem Gerät verknüpft.",
+    "Este personaje no está vinculado a este dispositivo.",
+    "Questo personaggio non è collegato a questo dispositivo."
+  ],
+  "Mauvais mot de passe.": [
+    "Incorrect password.",
+    "Falsches Passwort.",
+    "Contraseña incorrecta.",
+    "Password errata."
+  ],
+  "Ne relance pas": [
+    "Don’t follow up",
+    "Nicht nachhaken",
+    "No insistas",
+    "Non sollecitare"
+  ],
+  "La file d’attente infinie": [
+    "The endless queue",
+    "Die endlose Warteschlange",
+    "La cola infinita",
+    "La coda infinita"
+  ],
+  "Le CV à mots-clés": [
+    "The keyword CV",
+    "Der Schlagwort-Lebenslauf",
+    "El CV de palabras clave",
+    "Il CV a parole chiave"
+  ],
+  "Le Test de personnalité": [
+    "The personality test",
+    "Der Persönlichkeitstest",
+    "El test de personalidad",
+    "Il test della personalità"
+  ],
+  "Le Tampon de l’ORP": [
+    "The job centre stamp",
+    "Der RAV-Stempel",
+    "El sello de la oficina de empleo",
+    "Il timbro dell’URC"
+  ],
+  "Salaire selon expérience": [
+    "Salary based on experience",
+    "Gehalt je nach Erfahrung",
+    "Salario según experiencia",
+    "Stipendio in base all’esperienza"
+  ],
+  "Le pigeon à reculons": [
+    "The backwards pigeon",
+    "Die rückwärts fliegende Taube",
+    "La paloma marcha atrás",
+    "Il piccione in retromarcia"
+  ],
+  "Le Grand Prix des pigeons": [
+    "The pigeon Grand Prix",
+    "Der grosse Taubenpreis",
+    "El Gran Premio de las palomas",
+    "Il Gran Premio dei piccioni"
+  ],
+  "Paperasse Ninja": [
+    "Paperwork Ninja",
+    "Papierkram-Ninja",
+    "Papeleo Ninja",
+    "Scartoffie Ninja"
+  ],
+  "La tour des dossiers": [
+    "The tower of files",
+    "Der Aktenturm",
+    "La torre de expedientes",
+    "La torre dei fascicoli"
+  ],
+  "Le labyrinthe des recruteurs": [
+    "The recruiters’ maze",
+    "Das Labyrinth der Personalchefs",
+    "El laberinto de los reclutadores",
+    "Il labirinto dei selezionatori"
+  ],
+  "Renvoi à l’expéditeur": [
+    "Return to sender",
+    "Zurück an den Absender",
+    "Devolver al remitente",
+    "Restituire al mittente"
+  ],
+  "La part du dragon": [
+    "The dragon’s share",
+    "Der Anteil des Drachen",
+    "La parte del dragón",
+    "La parte del drago"
+  ],
+  "10 pas = 1 butin.": [
+    "10 steps = 1 treasure.",
+    "10 Schritte = 1 Schatz.",
+    "10 pasos = 1 tesoro.",
+    "10 passi = 1 tesoro."
+  ],
+  "ce personnage": [
+    "this character",
+    "diesen Charakter",
+    "este personaje",
+    "questo personaggio"
+  ],
+  "2 pas": [
+    "2 steps",
+    "2 Schritte",
+    "2 pasos",
+    "2 passi"
+  ],
+  "12 défis à découvrir →": [
+    "12 challenges to discover →",
+    "12 Herausforderungen entdecken →",
+    "12 desafíos por descubrir →",
+    "12 sfide da scoprire →"
+  ],
+  "Candidater": [
+    "Apply",
+    "Bewerben",
+    "Postularse",
+    "Candidati"
+  ],
+  "Rejet": [
+    "Rejection",
+    "Absage",
+    "Rechazo",
+    "Rifiuto"
+  ],
+  "Tes démarches font avancer": [
+    "Your applications move you forward",
+    "Deine Bewerbungen bringen dich weiter",
+    "Tus candidaturas te hacen avanzar",
+    "Le tue candidature ti fanno avanzare"
+  ],
+  "Découvrir les coffres →": [
+    "Discover the chests →",
+    "Die Schatztruhen entdecken →",
+    "Descubrir los cofres →",
+    "Scopri i forzieri →"
+  ],
+  "Ouvrir le coffre": [
+    "Open the chest",
+    "Truhe öffnen",
+    "Abrir el cofre",
+    "Apri il forziere"
+  ],
+  "Essayer le pouvoir": [
+    "Try the spell",
+    "Zauber ausprobieren",
+    "Probar el poder",
+    "Prova il potere"
+  ],
+  "Voyager ensemble →": [
+    "Travel together →",
+    "Gemeinsam reisen →",
+    "Viajar juntos →",
+    "Viaggia in compagnia →"
+  ],
+  "Commencer le voyage": [
+    "Start the journey",
+    "Reise beginnen",
+    "Comenzar el viaje",
+    "Inizia il viaggio"
+  ],
+  "Commencer l’entretien": [
+    "Start the interview",
+    "Vorstellungsgespräch beginnen",
+    "Comenzar la entrevista",
+    "Inizia il colloquio"
+  ],
+  "Réponds ci-dessus…": [
+    "Choose an answer above…",
+    "Wähle oben eine Antwort…",
+    "Elige una respuesta arriba…",
+    "Scegli una risposta qui sopra…"
+  ],
+  "Un coffre tous les 10 pas": [
+    "A chest every 10 steps",
+    "Alle 10 Schritte eine Truhe",
+    "Un cofre cada 10 pasos",
+    "Un forziere ogni 10 passi"
+  ],
+  "Les premiers pas": [
+    "Your first steps",
+    "Deine ersten Schritte",
+    "Tus primeros pasos",
+    "I tuoi primi passi"
+  ],
+  "Trois petits essais · environ 20 secondes": [
+    "Three quick trials · about 20 seconds",
+    "Drei kurze Übungen · etwa 20 Sekunden",
+    "Tres pruebas breves · unos 20 segundos",
+    "Tre brevi prove · circa 20 secondi"
+  ],
+  "Avancer": [
+    "Move forward",
+    "Vorankommen",
+    "Avanzar",
+    "Avanzare"
+  ],
+  "Les butins": [
+    "Treasures",
+    "Schätze",
+    "Tesoros",
+    "Tesori"
+  ],
+  "Ensemble": [
+    "Together",
+    "Gemeinsam",
+    "Juntos",
+    "Insieme"
+  ],
+  "Tu envoies un CV ? Déclare une candidature : ton héros avance de": [
+    "Sending a CV? Log an application: your hero moves forward by",
+    "Du verschickst einen Lebenslauf? Trage eine Bewerbung ein: Dein Held geht vor um",
+    "¿Has enviado un CV? Registra una candidatura: tu héroe avanza",
+    "Hai inviato un CV? Registra una candidatura: il tuo eroe avanza di"
+  ],
+  "Voilà ! Dans le jeu, déclare seulement tes vraies démarches.": [
+    "That’s it! Only log real job-search actions in the game.",
+    "Genau! Trage im Spiel nur echte Schritte deiner Stellensuche ein.",
+    "¡Eso es! En el juego, registra solo acciones reales de tu búsqueda de empleo.",
+    "Ecco fatto! Nel gioco, registra solo le azioni reali della tua ricerca di lavoro."
+  ],
+  "Touche le bouton pour voir ton héros avancer.": [
+    "Tap the button to see your hero move.",
+    "Tippe auf den Knopf und schau deinem Helden beim Gehen zu.",
+    "Toca el botón para ver avanzar a tu héroe.",
+    "Tocca il pulsante per vedere avanzare il tuo eroe."
+  ],
+  "Les coffres contiennent des pouvoirs à lancer sur tes compagnons. Ouvre celui-ci, puis essaie le sort du crapaud.": [
+    "Chests contain spells to cast on your companions. Open this one, then try the toad spell.",
+    "In Truhen findest du Zauber für deine Gefährten. Öffne diese Truhe und probiere den Krötenzauber aus.",
+    "Los cofres contienen poderes para lanzar a tus compañeros. Abre este y prueba el hechizo del sapo.",
+    "I forzieri contengono poteri da lanciare sui tuoi compagni. Apri questo e prova l’incantesimo del rospo."
+  ],
+  "Bien joué ! Tes vrais pouvoirs t’attendront dans ton carnet.": [
+    "Well done! Your real spells will be waiting in your journal.",
+    "Gut gemacht! Deine echten Zauber warten in deinem Tagebuch.",
+    "¡Bien hecho! Tus poderes reales te esperarán en el diario.",
+    "Ben fatto! I tuoi veri poteri ti aspetteranno nel diario."
+  ],
+  "Notre volontaire est prêt. Lance le pouvoir !": [
+    "Our volunteer is ready. Cast the spell!",
+    "Unser Freiwilliger ist bereit. Wirke den Zauber!",
+    "Nuestro voluntario está listo. ¡Lanza el poder!",
+    "Il nostro volontario è pronto. Lancia il potere!"
+  ],
+  "Tous les 10 pas, un nouveau pouvoir à découvrir.": [
+    "Discover a new spell every 10 steps.",
+    "Entdecke alle 10 Schritte einen neuen Zauber.",
+    "Descubre un poder nuevo cada 10 pasos.",
+    "Scopri un nuovo potere ogni 10 passi."
+  ],
+  "Un coffre t’attend": [
+    "A chest awaits",
+    "Eine Truhe wartet",
+    "Te espera un cofre",
+    "Ti aspetta un forziere"
+  ],
+  "Sort du crapaud": [
+    "Toad spell",
+    "Krötenzauber",
+    "Hechizo del sapo",
+    "Incantesimo del rospo"
+  ],
+  "Et hop, un crapaud !": [
+    "And there’s a toad!",
+    "Und schon eine Kröte!",
+    "¡Y listo, un sapo!",
+    "Ed ecco un rospo!"
+  ],
+  "Avance à ton rythme, retrouve tes amis et explore les défis du carnet quand tu en as envie.": [
+    "Go at your own pace, meet your friends and try the journal’s challenges whenever you like.",
+    "Reise in deinem Tempo, triff deine Freunde und probiere die Herausforderungen im Tagebuch aus, wann du möchtest.",
+    "Avanza a tu ritmo, reúnete con tus amigos y prueba los desafíos del diario cuando quieras.",
+    "Avanza al tuo ritmo, ritrova i tuoi amici e prova le sfide del diario quando vuoi."
+  ],
+  "Le joueur qui avance le plus dans le mois gagne un verre.": [
+    "Whoever takes the most steps this month wins a drink.",
+    "Wer im Monat die meisten Schritte macht, gewinnt ein Getränk.",
+    "Quien más avance durante el mes gana una bebida.",
+    "Chi avanza di più nel mese vince una bevanda."
+  ],
+  "Un emploi trouvé ? Ton héros y rejoint la fête.": [
+    "Found a job? Your hero joins the party there.",
+    "Stelle gefunden? Dein Held feiert dort mit.",
+    "¿Has encontrado trabajo? Tu héroe se une a la fiesta.",
+    "Hai trovato lavoro? Il tuo eroe si unisce alla festa."
+  ],
+  "Les rites d’initiation": [
+    "The initiation rites",
+    "Die Einführung",
+    "Los ritos de iniciación",
+    "I riti d’iniziazione"
+  ],
+  "Apprendre à jouer": [
+    "Learn to play",
+    "Spielen lernen",
+    "Aprender a jugar",
+    "Impara a giocare"
+  ],
+  "Voler le butin": [
+    "Steal the treasure",
+    "Schatz stehlen",
+    "Robar el tesoro",
+    "Ruba il tesoro"
+  ],
+  "Décoller !": [
+    "Take off!",
+    "Abheben!",
+    "¡Despegar!",
+    "Decolla!"
+  ],
+  "Battre des ailes": [
+    "Flap",
+    "Flügelschlag",
+    "Aletear",
+    "Sbatti le ali"
+  ],
+  "Lancer le robot": [
+    "Start the robot",
+    "Roboter starten",
+    "Activar el robot",
+    "Avvia il robot"
+  ],
+  "Lancer le tapis": [
+    "Start the conveyor",
+    "Förderband starten",
+    "Arrancar la cinta",
+    "Avvia il nastro"
+  ],
+  "Tamponner !": [
+    "Stamp!",
+    "Stempeln!",
+    "¡Sellar!",
+    "Timbra!"
+  ],
+  "Lancer les rouleaux": [
+    "Spin the reels",
+    "Walzen drehen",
+    "Girar los rodillos",
+    "Gira i rulli"
+  ],
+  "Refermer le coffre": [
+    "Close the chest",
+    "Truhe schliessen",
+    "Cerrar el cofre",
+    "Chiudi il forziere"
+  ],
+  "Barde du LinkedIn": [
+    "LinkedIn Bard",
+    "LinkedIn-Barde",
+    "Bardo de LinkedIn",
+    "Bardo di LinkedIn"
+  ],
+  "Sorcière des Motivations": [
+    "Cover-Letter Witch",
+    "Motivationshexe",
+    "Bruja de las cartas de motivación",
+    "Strega delle lettere motivazionali"
+  ],
+  "Chevalier de l'Intérim": [
+    "Temp-Work Knight",
+    "Zeitarbeitsritter",
+    "Caballero del trabajo temporal",
+    "Cavaliere del lavoro interinale"
+  ],
+  "Voleur de Stages": [
+    "Internship Rogue",
+    "Praktikumsdieb",
+    "Ladrón de prácticas",
+    "Ladro di stage"
+  ],
+  "Archimage du Tableur": [
+    "Spreadsheet Archmage",
+    "Tabellen-Erzmagier",
+    "Archimago de las hojas de cálculo",
+    "Arcimago dei fogli di calcolo"
+  ],
+  "Druidesse du Télétravail": [
+    "Remote-Work Druid",
+    "Homeoffice-Druidin",
+    "Druida del teletrabajo",
+    "Druida del telelavoro"
+  ],
+  "Paladin du CDI": [
+    "Permanent-Contract Paladin",
+    "Festanstellungs-Paladin",
+    "Paladín del contrato indefinido",
+    "Paladino del posto fisso"
+  ],
+  "Nécromancien des CV": [
+    "CV Necromancer",
+    "Lebenslauf-Nekromant",
+    "Nigromante de los currículos",
+    "Negromante dei CV"
+  ],
+  "Licorne du Licenciement": [
+    "Layoff Unicorn",
+    "Kündigungs-Einhorn",
+    "Unicornio del despido",
+    "Unicorno del licenziamento"
+  ],
+  "Squelette du Salaire": [
+    "Salary Skeleton",
+    "Gehalts-Skelett",
+    "Esqueleto del salario",
+    "Scheletro dello stipendio"
+  ],
+  "Fée du Feedback": [
+    "Feedback Fairy",
+    "Feedback-Fee",
+    "Hada del feedback",
+    "Fata del feedback"
+  ],
+  "Démon du Dossier": [
+    "Application Demon",
+    "Bewerbungsdämon",
+    "Demonio del expediente",
+    "Demone del fascicolo"
+  ],
+  "Vampire du Vendredi": [
+    "Friday Vampire",
+    "Freitagsvampir",
+    "Vampiro del viernes",
+    "Vampiro del venerdì"
+  ],
+  "Teddy Bear du Turnover": [
+    "Turnover Teddy",
+    "Fluktuations-Teddy",
+    "Osito de la rotación laboral",
+    "Orsetto del turnover"
+  ],
+  "Skateuse des Sans-suite": [
+    "Ghosted Skater",
+    "Funkstille-Skaterin",
+    "Skater de las candidaturas sin respuesta",
+    "Skater delle candidature senza risposta"
+  ],
+  "Chômage": [
+    "Chômage",
+    "Chômage",
+    "Chômage",
+    "Chômage"
+  ],
+  "Dragons": [
+    "Dragons",
+    "Dragons",
+    "Dragons",
+    "Dragons"
+  ],
+  "Pas": [
+    "Steps",
+    "Schritte",
+    "Pasos",
+    "Passi"
+  ],
+  "Plaine de la Poisse": [
+    "Plain of Bad Luck",
+    "Pech-Ebene",
+    "Llanura de la Mala Suerte",
+    "Pianura della Sfortuna"
+  ],
+  "Bois du Broyage": [
+    "Woods of the Grind",
+    "Zermürbungswald",
+    "Bosque del Desgaste",
+    "Bosco dello Sfinimento"
+  ],
+  "Marais du Malheur": [
+    "Marsh of Misfortune",
+    "Unglückssumpf",
+    "Pantano de la Desdicha",
+    "Palude della Disgrazia"
+  ],
+  "Pont de la Pitié": [
+    "Bridge of Pity",
+    "Brücke des Mitleids",
+    "Puente de la Piedad",
+    "Ponte della Pietà"
+  ],
+  "Les Larmes des Rejetés": [
+    "Tears of the Rejected",
+    "Tränen der Abgewiesenen",
+    "Lágrimas de los Rechazados",
+    "Lacrime dei Respinti"
+  ],
+  "Mont du Mépris": [
+    "Mount Disdain",
+    "Berg der Verachtung",
+    "Monte del Desprecio",
+    "Monte del Disprezzo"
+  ],
+  "Désert du Désespoir": [
+    "Desert of Despair",
+    "Wüste der Verzweiflung",
+    "Desierto de la Desesperación",
+    "Deserto della Disperazione"
+  ],
+  "Volcan de la Dernière Épreuve": [
+    "Volcano of the Final Trial",
+    "Vulkan der letzten Prüfung",
+    "Volcán de la Última Prueba",
+    "Vulcano dell’Ultima Prova"
+  ],
+  "Taverne du Triomphe": [
+    "Tavern of Triumph",
+    "Taverne des Triumphs",
+    "Taberna del Triunfo",
+    "Taverna del Trionfo"
+  ],
+  "Plaine": [
+    "Plain",
+    "Ebene",
+    "Llanura",
+    "Pianura"
+  ],
+  "Bois": [
+    "Woods",
+    "Wald",
+    "Bosque",
+    "Bosco"
+  ],
+  "Marais": [
+    "Marsh",
+    "Sumpf",
+    "Pantano",
+    "Palude"
+  ],
+  "Pont": [
+    "Bridge",
+    "Brücke",
+    "Puente",
+    "Ponte"
+  ],
+  "Les Larmes": [
+    "The Tears",
+    "Die Tränen",
+    "Las Lágrimas",
+    "Le Lacrime"
+  ],
+  "Mont": [
+    "Mountain",
+    "Berg",
+    "Monte",
+    "Monte"
+  ],
+  "Désert": [
+    "Desert",
+    "Wüste",
+    "Desierto",
+    "Deserto"
+  ],
+  "Volcan": [
+    "Volcano",
+    "Vulkan",
+    "Volcán",
+    "Vulcano"
+  ],
+  "Triomphe": [
+    "Triumph",
+    "Triumph",
+    "Triunfo",
+    "Trionfo"
+  ],
+  "L’annonce du recruteur": [
+    "The job ad",
+    "Die Stellenanzeige",
+    "La oferta de empleo",
+    "L’annuncio di lavoro"
+  ],
+  "Les 5 mots à récupérer": [
+    "5 words to catch",
+    "5 Wörter zum Einsammeln",
+    "5 palabras que atrapar",
+    "5 parole da raccogliere"
+  ],
+  "Récupère ces mots dans ton CV.": [
+    "Catch these words in your CV.",
+    "Sammle diese Wörter in deinem Lebenslauf.",
+    "Atrapa estas palabras en tu CV.",
+    "Raccogli queste parole nel tuo CV."
+  ]
+}

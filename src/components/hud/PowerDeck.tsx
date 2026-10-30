@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useState } from "react";
 import type { PlayerView } from "@/hooks/useGame";
@@ -20,7 +22,8 @@ export function PowerDeck({
   attentionToken,
   onCast,
 }: PowerDeckProps) {
-  const [open, setOpen] = useState(false);
+  const uiLocale = useLocale();
+    const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AvailablePower | null>(null);
   const targets = players.filter((player) => player.id !== me.id);
 
@@ -34,86 +37,51 @@ export function PowerDeck({
         onClick={() => setOpen((value) => !value)}
         className={`power-menu__trigger ${
           attentionToken > 0 ? "power-menu__trigger--earned" : ""
-        }`}
-        aria-expanded={open}
-      >
-        <ChestArtwork className="power-menu__chest-art" />
-        <span>Butins</span>
+        }`} aria-expanded={open}>
+        <ChestArtwork className="power-menu__chest-art"/>
+        <span>{tr("Butins", undefined, uiLocale)}</span>
         <strong>{me.availablePowers.length}</strong>
       </button>
 
-      {open ? (
-        <div className="power-menu__popover rise">
+      {open ? (<div className="power-menu__popover rise">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p className="font-display text-xl text-parchment-ink">Sac à malices</p>
-              <p className="text-sm text-parchment-ink/60">Un butin, puis une cible.</p>
+              <p className="font-display text-xl text-parchment-ink">{tr("Sac à malices", undefined, uiLocale)}</p>
+              <p className="text-sm text-parchment-ink/60">{tr("Un butin, puis une cible.", undefined, uiLocale)}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="text-xl text-parchment-ink/45 hover:text-parchment-ink"
-              aria-label="Fermer les butins"
-            >
+            <button type="button" onClick={() => setOpen(false)} className="text-xl text-parchment-ink/45 hover:text-parchment-ink" aria-label={tr("Fermer les butins", undefined, uiLocale)}>
               ×
             </button>
           </div>
 
           <div className="grid gap-2">
             {me.availablePowers.map((power) => {
-              const definition = POWERS[power.kind];
-              const active = selected?.slot === power.slot;
-              return (
-                <button
-                  key={power.slot}
-                  type="button"
-                  onClick={() => setSelected(active ? null : power)}
-                  className={`power-choice ${active ? "power-choice--active" : ""}`}
-                  aria-pressed={active}
-                >
+                const definition = POWERS[power.kind];
+                const active = selected?.slot === power.slot;
+                return (<button key={power.slot} type="button" onClick={() => setSelected(active ? null : power)} className={`power-choice ${active ? "power-choice--active" : ""}`} aria-pressed={active}>
                   <span className="power-sigil" aria-hidden>
-                    <PowerArtwork kind={power.kind} className="power-sigil__art" />
+                    <PowerArtwork kind={power.kind} className="power-sigil__art"/>
                   </span>
                   <span className="min-w-0 text-left">
-                    <strong>{definition.name}</strong>
-                    <small>{definition.description}</small>
+                    <strong>{tr(definition.name, undefined, uiLocale)}</strong>
+                    <small>{tr(definition.description, undefined, uiLocale)}</small>
                   </span>
-                </button>
-              );
+                </button>);
             })}
           </div>
 
-          {selected ? (
-            <div className="mt-3 border-t border-parchment-ink/15 pt-3">
-              <p className="text-xs font-bold tracking-[0.14em] text-parchment-ink/50 uppercase">
-                Lancer sur
-              </p>
-              {targets.length ? (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {targets.map((target) => (
-                    <button
-                      key={target.id}
-                      type="button"
-                      onClick={() => {
-                        onCast(selected, target.id);
-                        setSelected(null);
-                        setOpen(false);
-                      }}
-                      className="power-target"
-                    >
+          {selected ? (<div className="mt-3 border-t border-parchment-ink/15 pt-3">
+              <p className="text-xs font-bold tracking-[0.14em] text-parchment-ink/50 uppercase">{tr("Lancer sur ", undefined, uiLocale)}</p>
+              {targets.length ? (<div className="mt-2 flex flex-wrap gap-2">
+                  {targets.map((target) => (<button key={target.id} type="button" onClick={() => {
+                            onCast(selected, target.id);
+                            setSelected(null);
+                            setOpen(false);
+                        }} className="power-target">
                       {target.name}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-2 text-sm text-parchment-ink/55 italic">
-                  Invite un camarade.
-                </p>
-              )}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
+                    </button>))}
+                </div>) : (<p className="mt-2 text-sm text-parchment-ink/55 italic">{tr("Invite un camarade. ", undefined, uiLocale)}</p>)}
+            </div>) : null}
+        </div>) : null}
+    </div>);
 }

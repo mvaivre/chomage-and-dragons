@@ -8,7 +8,7 @@ test('the weeping monument stays behind the road, chests and hero with animated 
  for(const[name,width,height]of[['desktop',1280,800],['mobile',390,844],['wide',2400,900]])await t.test(name,async()=>{
   const context=await browser.newContext({viewport:{width,height}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
    const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
    localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:45},(_,i)=>({id:`a${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));
   });

@@ -44,7 +44,7 @@ test('resident dragons stand on the road and respond to visitors', { timeout: 90
     const context = await browser.newContext({ viewport }), page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(() => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
       const at = new Date().toISOString();
       localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
       localStorage.setItem('louchomage:moi:v1', 'test');

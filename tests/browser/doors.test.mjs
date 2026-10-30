@@ -9,7 +9,7 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
  async function fixture(steps,welcome=false){
   const context=await browser.newContext({viewport:{width:390,height:844}});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(({steps,welcome})=>{
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
    if(localStorage.getItem('louchomage:v2'))return;
    const at=new Date().toISOString();if(!welcome)localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
    localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at},{id:'lou',name:'Lou',characterId:'barde',joinedAt:at}],events:Array.from({length:steps/2},(_,i)=>({id:`s${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));

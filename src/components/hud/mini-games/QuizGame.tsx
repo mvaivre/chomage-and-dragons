@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
@@ -16,7 +18,8 @@ const SILENCE = "Le silence, c’est non.";
 
 /** Five questions, one corporate answer each, a few seconds to find it. */
 export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
-  const [questions] = useState(() => dealQuiz(seedFrom(seedId)));
+  const uiLocale = useLocale();
+    const [questions] = useState(() => dealQuiz(seedFrom(seedId)));
   const [status, setStatus] = useState<QuizStatus>("ready");
   const [index, setIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
@@ -77,63 +80,61 @@ export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: 
     const tick = () => {
       const left = Math.max(0, deadline.current - performance.now());
       if (timer.current) timer.current.style.width = `${left / (QUIZ.secondsPerQuestion * 1000) * 100}%`;
-      if (left <= 0) { answerRef.current(null); return; }
-      raf = requestAnimationFrame(tick);
+            if (left <= 0) {
+                answerRef.current(null);
+                return;
+            }
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [status, index]);
+    const leave = () => {
+        if (!resolved.current)
+            settle("skipped");
+        onDone();
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [status, index]);
-
-  const leave = () => {
-    if (!resolved.current) settle("skipped");
-    onDone();
-  };
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (status !== "question" || event.repeat) return;
-    const digit = Number(event.key);
-    if (digit >= 1 && digit <= 4) { event.preventDefault(); answer(digit - 1); }
-  };
-
-  const won = outcome === "won";
-  const finished = status === "won" || status === "lost";
-  const instructions = finished
-    ? won ? `${base + bonus} pas au lieu de ${base}` : punchlineFor(`quiz:${seedId}`)
-    : status === "ready"
-      ? "Choisis la réponse attendue par le recruteur"
-      : "Choisis une réponse avec les boutons ou les touches 1 à 4";
-
-  return <MiniGameShell kind="quiz" eyebrow={practice ? "Entraînement" : "Défi"} title="Le Test de personnalité"
-    instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={status}
-    hud={<>
-      <span className="mini-game__counter"><b>{Math.min(index + (finished ? 1 : 0), questions.length)}</b> / {questions.length} questions</span>
-      <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }} /></span>
-      <span className="mini-game__score"><b>{correct}</b> ✓ sur {QUIZ.needed} requises</span>
-    </>}
-    status={finished ? <><strong>{won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`}</strong><ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `${QUIZ.needed}/${QUIZ.questions} bonnes réponses · ${QUIZ.secondsPerQuestion} s par question` : status === "reveal" && aside ? `« ${aside} »` : "Choisis ta réponse."}</span>}
-    primary={{
-      inArena: status === "ready",
-      label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",
-      disabled: status === "question" || status === "reveal",
-      onClick: () => finished ? onDone() : setStatus("question"),
-    }}
-    skip={!finished ? { label: "Rester honnête (−3 pas)", onClick: leave } : null}>
+    const onKeyDown = (event: KeyboardEvent) => {
+        if (status !== "question" || event.repeat)
+            return;
+        const digit = Number(event.key);
+        if (digit >= 1 && digit <= 4) {
+            event.preventDefault();
+            answer(digit - 1);
+        }
+    };
+    const won = outcome === "won";
+    const finished = status === "won" || status === "lost";
+    const instructions = finished
+        ? won ? `${base + bonus} pas au lieu de ${base}` : punchlineFor(`quiz:${seedId}`)
+        : status === "ready"
+            ? "Choisis la réponse attendue par le recruteur"
+            : "Choisis une réponse avec les boutons ou les touches 1 à 4";
+    return <MiniGameShell kind="quiz" eyebrow={tr(practice ? "Entraînement" : "Défi", undefined, uiLocale)} title={tr("Le Test de personnalité", undefined, uiLocale)} instructions={tr(instructions, undefined, uiLocale)} onKeyDown={onKeyDown} onLeave={leave} focusKey={status} hud={<>
+      <span className="mini-game__counter"><b>{Math.min(index + (finished ? 1 : 0), questions.length)}</b> / {questions.length}{tr(" questions", undefined, uiLocale)}</span>
+      <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }}/></span>
+      <span className="mini-game__score"><b>{correct}</b>{tr(" ✓ sur ", undefined, uiLocale)}{QUIZ.needed}{tr(" requises", undefined, uiLocale)}</span>
+    </>} status={finished ? <><strong>{tr(won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`, undefined, uiLocale)}</strong><ScoreLine score={points} unit="" record={record} best={best} practice={practice}/></> :
+            <span>{tr(status === "ready" ? `${QUIZ.needed}/${QUIZ.questions} bonnes réponses · ${QUIZ.secondsPerQuestion} s par question` : status === "reveal" && aside ? `« ${aside} »` : "Choisis ta réponse.", undefined, uiLocale)}</span>} primary={{
+            inArena: status === "ready",
+            label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",
+            disabled: status === "question" || status === "reveal",
+            onClick: () => finished ? onDone() : setStatus("question"),
+        }} skip={!finished ? { label: "Rester honnête (−3 pas)", onClick: leave } : null}>
     <div className="mini-game__arena mini-game__arena--panel quiz" data-status={status} data-question={index}>
       <div className="quiz__scene">
-        <ActionArtwork kind="entretien" className="quiz__art" />
+        <ActionArtwork kind="entretien" className="quiz__art"/>
         <div className="quiz__bubble">
-          {status === "ready" ? <p>« Asseyez-vous. Ce ne sera pas long. Enfin, pour vous. »</p>
-            : finished ? <p>{won ? "« Vous êtes exactement ce que nous cherchons. Enfin, ce que vous avez dit. »" : "« Nous reviendrons vers vous. » (Non.)"}</p>
-            : <p>« {question.prompt} »</p>}
-          {status === "question" ? <span className="quiz__timer" aria-hidden><span ref={timer} /></span> : null}
+          {status === "ready" ? <p>{tr("« Asseyez-vous. Ce ne sera pas long. Enfin, pour vous. »", undefined, uiLocale)}</p>
+            : finished ? <p>{tr(won ? "« Vous êtes exactement ce que nous cherchons. Enfin, ce que vous avez dit. »" : "« Nous reviendrons vers vous. » (Non.)", undefined, uiLocale)}</p>
+                : <p>« {tr(question.prompt, undefined, uiLocale)} »</p>}
+          {status === "question" ? <span className="quiz__timer" aria-hidden><span ref={timer}/></span> : null}
         </div>
       </div>
       {status === "question" || status === "reveal" ? <div className="quiz__answers">
-        {question.answers.map((text, i) => <button key={text} type="button" className="quiz__answer" disabled={status !== "question"}
-          data-state={status === "reveal" ? (i === question.correct ? "correct" : i === chosen ? "wrong" : "dim") : undefined}
-          onClick={() => answer(i)}><b>{i + 1}</b> {text}</button>)}
+        {question.answers.map((text, i) => <button key={text} type="button" className="quiz__answer" disabled={status !== "question"} data-state={status === "reveal" ? (i === question.correct ? "correct" : i === chosen ? "wrong" : "dim") : undefined} onClick={() => answer(i)}><b>{i + 1}</b> {tr(text, undefined, uiLocale)}</button>)}
       </div> : null}
-      {finished ? <span className="mini-game__stamp" aria-hidden>{won ? "PROFIL RETENU… POUR L’INSTANT" : "TROP HONNÊTE"}</span> : null}
+      {finished ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "PROFIL RETENU… POUR L’INSTANT" : "TROP HONNÊTE", undefined, uiLocale)}</span> : null}
     </div>
   </MiniGameShell>;
 }

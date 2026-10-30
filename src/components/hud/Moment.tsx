@@ -1,122 +1,176 @@
 "use client";
-
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 import { useEffect, useRef, useState } from "react";
 import { scene } from "@/components/game/scene";
 import { sfx } from "@/lib/client/sound";
-
 /**
  * The DOM half of an action's moment, above the canvas and under the HUD: a
  * flash of light, cinema bars for the rare ones, and the banner of a newly reached land. Cues come through a tiny bus
  * so the choreography in Game can fire them on its own timeline.
  */
-
-export type MomentCue =
-  | { type: "flash"; color: string; strength?: number }
-  | { type: "letterbox"; ms: number }
-  | { type: "banner"; kicker: string; title: string }
-  /** The name of a rare or legendary variant, so the player knows it was special. */
-  | { type: "badge"; rarity: "rare" | "legendary"; name: string }
-  /** The sky darkens for a storm. */
-  | { type: "shade"; color: string; opacity: number; ms: number }
-  /** A narrative random event, told after the journey. */
-  | { type: "tale"; kind: "luck" | "boss" | "absurd"; label: string; title: string; text: string };
-
+export type MomentCue = {
+    type: "flash";
+    color: string;
+    strength?: number;
+} | {
+    type: "letterbox";
+    ms: number;
+} | {
+    type: "banner";
+    kicker: string;
+    title: string;
+}
+/** The name of a rare or legendary variant, so the player knows it was special. */
+ | {
+    type: "badge";
+    rarity: "rare" | "legendary";
+    name: string;
+}
+/** The sky darkens for a storm. */
+ | {
+    type: "shade";
+    color: string;
+    opacity: number;
+    ms: number;
+}
+/** A narrative random event, told after the journey. */
+ | {
+    type: "tale";
+    kind: "luck" | "boss" | "absurd";
+    label: string;
+    title: string;
+    text: string;
+};
 type Listener = (cue: MomentCue) => void;
 const listeners = new Set<Listener>();
 export const moment = {
-  cue(cue: MomentCue): void {
-    listeners.forEach((listener) => listener(cue));
-  },
+    cue(cue: MomentCue): void {
+        listeners.forEach((listener) => listener(cue));
+    },
 };
-
 interface Live {
-  id: number;
-  cue: MomentCue;
+    id: number;
+    cue: MomentCue;
 }
-
 let nextId = 0;
-
 function reducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
-
 export function MomentOverlay() {
-  const [live, setLive] = useState<Live[]>([]);
-  useEffect(() => {
-    const listener: Listener = (cue) => {
-      if (cue.type === "banner") sfx.chime();
-      if (cue.type === "tale") { if (cue.kind === "boss") sfx.boom(); else sfx.chime(); }
-      if (cue.type === "badge" && cue.rarity === "legendary") sfx.fanfare();
-      setLive((items) => [...items, { id: ++nextId, cue }]);
-    };
-    listeners.add(listener);
-    return () => { listeners.delete(listener); };
-  }, []);
-  const remove = (id: number) => setLive((items) => items.filter((item) => item.id !== id));
-
-  const tales = live.filter(({ cue }) => cue.type === "tale");
-  return <>
+    const uiLocale = useLocale();
+    const [live, setLive] = useState<Live[]>([]);
+    useEffect(() => {
+        const listener: Listener = (cue) => {
+            if (cue.type === "banner")
+                sfx.chime();
+            if (cue.type === "tale") {
+                if (cue.kind === "boss")
+                    sfx.boom();
+                else
+                    sfx.chime();
+            }
+            if (cue.type === "badge" && cue.rarity === "legendary")
+                sfx.fanfare();
+            setLive((items) => [...items, { id: ++nextId, cue }]);
+        };
+        listeners.add(listener);
+        return () => { listeners.delete(listener); };
+    }, []);
+    const remove = (id: number) => setLive((items) => items.filter((item) => item.id !== id));
+    const tales = live.filter(({ cue }) => cue.type === "tale");
+    return <>
   {/* Tales are read, not glanced at: above the HUD, like notices. */}
   <div className="moment-top" aria-live="polite">
-    {tales.map(({ id, cue }) => cue.type === "tale" ? <div key={id} className="moment-tale" data-kind={cue.kind} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
-      <small>{cue.label}</small>
-      <strong>{cue.title}</strong>
-      <p>{cue.text}</p>
+    {tales.map(({ id, cue }) => cue.type === "tale" ? <div key={id} className="moment-tale" data-kind={cue.kind} onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget)
+                    remove(id);
+            }}>
+      <small>{tr(cue.label, undefined, uiLocale)}</small>
+      <strong>{tr(cue.title, undefined, uiLocale)}</strong>
+      <p>{tr(cue.text, undefined, uiLocale)}</p>
     </div> : null)}
   </div>
   <div className="moment-layer" aria-hidden>
     {live.filter(({ cue }) => cue.type !== "tale").map(({ id, cue }) => {
-      if (cue.type === "flash") return <div key={id} className="moment-flash" style={{ "--flash": cue.color, "--strength": cue.strength ?? 0.55 } as React.CSSProperties} onAnimationEnd={() => remove(id)} />;
-      if (cue.type === "badge") return <div key={id} className="moment-badge" data-rarity={cue.rarity} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
-        <small>{cue.rarity === "legendary" ? "Légendaire" : "Variante rare"}</small>
+            if (cue.type === "flash")
+                return <div key={id} className="moment-flash" style={{ "--flash": cue.color, "--strength": cue.strength ?? 0.55 } as React.CSSProperties} onAnimationEnd={() => remove(id)}/>;
+            if (cue.type === "badge")
+                return <div key={id} className="moment-badge" data-rarity={cue.rarity} onAnimationEnd={(event) => {
+                        if (event.target === event.currentTarget)
+                            remove(id);
+                    }}>
+        <small>{tr(cue.rarity === "legendary" ? "Légendaire" : "Variante rare", undefined, uiLocale)}</small>
         <strong>{cue.name}</strong>
       </div>;
-      if (cue.type === "shade") return <div key={id} className="moment-shade" style={{ "--shade": cue.color, "--opacity": cue.opacity, "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={() => remove(id)} />;
-      if (cue.type === "letterbox") return <div key={id} className="moment-letterbox" style={{ "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}><i /><i /></div>;
-      if (cue.type !== "banner") return null;
-      return <div key={id} className="moment-banner" onAnimationEnd={(event) => { if (event.target === event.currentTarget) remove(id); }}>
-        <small>{cue.kicker}</small>
-        <strong>{cue.title}</strong>
+            if (cue.type === "shade")
+                return <div key={id} className="moment-shade" style={{ "--shade": cue.color, "--opacity": cue.opacity, "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={() => remove(id)}/>;
+            if (cue.type === "letterbox")
+                return <div key={id} className="moment-letterbox" style={{ "--hold": `${cue.ms}ms` } as React.CSSProperties} onAnimationEnd={(event) => {
+                        if (event.target === event.currentTarget)
+                            remove(id);
+                    }}><i /><i /></div>;
+            if (cue.type !== "banner")
+                return null;
+            return <div key={id} className="moment-banner" onAnimationEnd={(event) => {
+                    if (event.target === event.currentTarget)
+                        remove(id);
+                }}>
+        <small>{tr(cue.kicker, undefined, uiLocale)}</small>
+        <strong>{tr(cue.title, undefined, uiLocale)}</strong>
       </div>;
-    })}
+        })}
   </div>
   </>;
 }
-
 /**
  * A number that climbs to its new value after a delay, as its reward arrives.
  * Without timing it follows immediately.
  */
-export function useTween(value: number, timing: { delay: number; duration: number } | null, onStep?: () => void): { shown: number; bump: number } {
-  const [shown, setShown] = useState(value);
-  const [bump, setBump] = useState(0);
-  // What is on screen right now: an interrupted climb resumes from there.
-  const current = useRef(value);
-  const stepRef = useRef(onStep);
-  useEffect(() => { stepRef.current = onStep; });
-  useEffect(() => {
-    const start = current.current;
-    if (start === value) return;
-    let raf = 0;
-    const show = (next: number) => { current.current = next; setShown(next); };
-    const finish = () => { show(value); setBump((b) => b + 1); };
-    if (!timing || reducedMotion()) {
-      const timer = window.setTimeout(finish, timing ? timing.delay : 0);
-      return () => window.clearTimeout(timer);
-    }
-    const timer = window.setTimeout(() => {
-      let began = performance.now(), previous = began;
-      const frame = (now: number) => {
-        if (scene.doorTransition) began += now - previous;
-        previous = now;
-        const t = Math.min(1, (now - began) / Math.max(1, timing.duration));
-        const next = Math.round(start + (value - start) * t);
-        if (next !== current.current) { show(next); stepRef.current?.(); }
-        if (t < 1) raf = requestAnimationFrame(frame); else finish();
-      };
-      raf = requestAnimationFrame(frame);
-    }, timing.delay);
-    return () => { window.clearTimeout(timer); cancelAnimationFrame(raf); };
-  }, [value, timing]);
-  return { shown, bump };
+export function useTween(value: number, timing: {
+    delay: number;
+    duration: number;
+} | null, onStep?: () => void): {
+    shown: number;
+    bump: number;
+} {
+    const [shown, setShown] = useState(value);
+    const [bump, setBump] = useState(0);
+    // What is on screen right now: an interrupted climb resumes from there.
+    const current = useRef(value);
+    const stepRef = useRef(onStep);
+    useEffect(() => { stepRef.current = onStep; });
+    useEffect(() => {
+        const start = current.current;
+        if (start === value)
+            return;
+        let raf = 0;
+        const show = (next: number) => { current.current = next; setShown(next); };
+        const finish = () => { show(value); setBump((b) => b + 1); };
+        if (!timing || reducedMotion()) {
+            const timer = window.setTimeout(finish, timing ? timing.delay : 0);
+            return () => window.clearTimeout(timer);
+        }
+        const timer = window.setTimeout(() => {
+            let began = performance.now(), previous = began;
+            const frame = (now: number) => {
+                if (scene.doorTransition)
+                    began += now - previous;
+                previous = now;
+                const t = Math.min(1, (now - began) / Math.max(1, timing.duration));
+                const next = Math.round(start + (value - start) * t);
+                if (next !== current.current) {
+                    show(next);
+                    stepRef.current?.();
+                }
+                if (t < 1)
+                    raf = requestAnimationFrame(frame);
+                else
+                    finish();
+            };
+            raf = requestAnimationFrame(frame);
+        }, timing.delay);
+        return () => { window.clearTimeout(timer); cancelAnimationFrame(raf); };
+    }, [value, timing]);
+    return { shown, bump };
 }

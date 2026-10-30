@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useExperience } from "@/components/world/ExperienceContext";
 
 import type { MiniGameKind } from "@/lib/data/types";
 import { DragonGame } from "./DragonGame";
@@ -13,12 +15,16 @@ import { SlotsGame } from "./SlotsGame";
 import { StampGame } from "./StampGame";
 import { ArcadeGame } from "./ArcadeGame";
 
+const MiniGame3D = dynamic(() => import("../mini-games-3d/MiniGame").then(module => module.MiniGame), { ssr: false });
+
 /** One optional challenge per action; the reservation logic lives in lib/game/mini-games. */
 export function MiniGame({ kind, ...live }: MiniGameProps & { kind: MiniGameKind }) {
+  const experience = useExperience();
   // The record to beat is the one standing when the game opened: once your own
   // score is saved, it must not turn "new record" into "your best".
   const [standing] = useState(() => ({ record: live.record ?? null, best: live.best ?? null }));
   const props = { ...live, record: standing.record, best: standing.best };
+  if (experience === "3d") return <MiniGame3D kind={kind} {...props} />;
   switch (kind) {
     case "dragon": return <DragonGame {...props} />;
     case "pigeon": return <PigeonGame {...props} />;

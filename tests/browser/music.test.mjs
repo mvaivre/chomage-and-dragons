@@ -28,7 +28,7 @@ test('the supplied recordings decode and play through the game sound controls', 
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
     const at = new Date().toISOString();
     localStorage.setItem('chomage:welcome:steps-v1', 'seen');
     localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
@@ -99,7 +99,7 @@ test('the first mobile touch starts the intro; the same decks keep playing throu
   const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
     // Safari versions without this API still receive trusted click/touch gestures.
     Object.defineProperty(navigator,'userActivation',{configurable:true,value:undefined});
     window.__testMusicElements=[];

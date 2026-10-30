@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useEffect } from "react";
 import { JOURNEY_STEPS } from "@/lib/config";
@@ -65,7 +67,8 @@ export function ActionBar({
   feedback,
   feedbackKind,
 }: ActionBarProps) {
-  useEffect(() => {
+  const uiLocale = useLocale();
+    useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       // A dialog that handled the key (a quiz answer, a lane change) keeps it.
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -94,7 +97,7 @@ export function ActionBar({
     <div className="action-dock pointer-events-auto">
       <p className="action-dock__prompt" data-feedback={Boolean(feedback)} data-empty={!feedback && !hired} role="status" aria-live="polite">
         {feedback && feedbackKind ? <ActionArtwork kind={feedbackKind} className="action-dock__feedback-art" /> : null}
-        <span>{feedback ?? (hired ? "Quête accomplie. Place à la taverne !" : "")}</span>
+        <span>{tr(feedback ?? (hired ? "Quête accomplie. Place à la taverne !" : ""), undefined, uiLocale)}</span>
       </p>
 
       <div className="action-dock__bar">
@@ -104,35 +107,25 @@ export function ActionBar({
             type="button"
             onClick={() => onAction(kind)}
             disabled={hired || locked}
-            title={`${label} — ${hint}`}
-            aria-label={`${label} · ${JOURNEY_STEPS[kind] === 0 ? "Arrivée" : `${JOURNEY_STEPS[kind]} pas`}`}
-            className={`action-button action-button--${kind}`}
-          >
+            title={`${tr(label, undefined, uiLocale)} — ${tr(hint, undefined, uiLocale)}`} aria-label={`${tr(label, undefined, uiLocale)} · ${tr(JOURNEY_STEPS[kind] === 0 ? "Arrivée" : `${JOURNEY_STEPS[kind]} pas`, undefined, uiLocale)}`}
+            className={`action-button action-button--${kind}`}>
             <span className="keycap">{index + 1}</span>
-            <ActionArtwork kind={kind} className="action-button__icon" />
+            <ActionArtwork kind={kind} className="action-button__icon"/>
             <span className="action-button__label">
-              <span className="action-button__full-label">{label}</span><span className="action-button__short-label">{["Candidater", "Refus", "Entretien", "Rejet", "Embauche"][index]}</span>
+              <span className="action-button__full-label">{tr(label, undefined, uiLocale)}</span><span className="action-button__short-label">{tr(["Candidater", "Refus", "Entretien", "Rejet", "Embauche"][index], undefined, uiLocale)}</span>
             </span>
             <span className="action-button__reward">
-              {JOURNEY_STEPS[kind] === 0
+              {tr(JOURNEY_STEPS[kind] === 0
                 ? "Arrivée"
-                : `${JOURNEY_STEPS[kind] > 0 ? "+" : ""}${JOURNEY_STEPS[kind]} pas`}
+                : `${JOURNEY_STEPS[kind] > 0 ? "+" : ""}${JOURNEY_STEPS[kind]} pas`, undefined, uiLocale)}
             </span>
-          </button>
-        ))}
+          </button>))}
 
-        <button
-          type="button"
-          onClick={onUndo}
-          disabled={!canUndo || locked}
-          title="Annuler ma dernière action (Z)"
-          className="action-undo"
-        >
-          <span className="keycap">Z</span>
-          <UndoIcon className="h-5 w-5" />
-          <span>Annuler</span>
+        <button type="button" onClick={onUndo} disabled={!canUndo || locked} title={tr("Annuler ma dernière action (Z)", undefined, uiLocale)} className="action-undo">
+          <span className="keycap">{tr("Z", undefined, uiLocale)}</span>
+          <UndoIcon className="h-5 w-5"/>
+          <span>{tr("Annuler", undefined, uiLocale)}</span>
         </button>
       </div>
-    </div>
-  );
+    </div>);
 }

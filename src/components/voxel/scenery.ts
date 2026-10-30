@@ -1,3 +1,4 @@
+import { t as tr } from "@/lib/i18n/index";
 import * as THREE from "three";
 import type { ContactPatch } from "./contact-shadows";
 import { VoxelResources } from "./resources";
@@ -30,11 +31,12 @@ export function letterBoard(
   c.strokeRect(pad, pad, w - pad * 2, h - pad * 2);
   c.fillStyle = "#392a20"; c.textAlign = "center"; c.textBaseline = "middle";
   const maxWidth = w - pad * 4;
+  const displayText = tr(text);
   let fontSize = Math.min(largeText ? 180 : 64, h * (largeText ? .65 : .28)), lines: string[] = [];
   for (;;) {
     c.font = `bold ${fontSize}px Georgia`;
     lines = []; let line = "";
-    for (const word of text.split(" ")) {
+    for (const word of displayText.split(" ")) {
       const next = line ? `${line} ${word}` : word;
       if (c.measureText(next).width > maxWidth && line) { lines.push(line); line = word; }
       else line = next;

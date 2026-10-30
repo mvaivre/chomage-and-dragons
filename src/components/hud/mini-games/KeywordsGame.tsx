@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
@@ -44,7 +46,7 @@ function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) 
   ctx.fillStyle = INK;
   ctx.fillRect(rx + 9, ry + 19, 18, 3);
   ctx.font = "bold 8px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("ATS-3000", rx + 18, ry + 36);
+  ctx.fillText(tr("ATS-3000", undefined), rx + 18, ry + 36);
 
   // Falling tags. Every kind looks the same: reading is the skill.
   ctx.font = "bold 11px system-ui, sans-serif";
@@ -66,7 +68,7 @@ function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) 
     ctx.strokeStyle = INK; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.roundRect(-w / 2, -10, w, 20, 5); ctx.fill(); ctx.stroke();
     ctx.fillStyle = word.state === "caught" ? "#fff" : INK;
-    ctx.fillText(word.text, 0, 1);
+    ctx.fillText(tr(word.text, undefined), 0, 1, w - 10);
     ctx.restore();
   }
   ctx.textBaseline = "alphabetic";
@@ -83,7 +85,7 @@ function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) 
   ctx.fillRect(-RAIN.basketWidth / 2 + 4, -16, 22, 8);
   ctx.strokeRect(-RAIN.basketWidth / 2 + 4, -16, 22, 8);
   ctx.fillStyle = INK; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("CV", 0, 8);
+  ctx.fillText(tr("CV", undefined), 0, 8);
   if (sim.t - sim.lastCatchAt < 350) {
     ctx.strokeStyle = "#718744"; ctx.lineWidth = 3;
     ctx.strokeRect(-RAIN.basketWidth / 2 - 4, -16, RAIN.basketWidth + 8, 38);
@@ -97,7 +99,8 @@ function drawRain(ctx: CanvasRenderingContext2D, sim: RainSim, view: ArenaView) 
 
 /** The keyword rain: drag the CV under the words the ad asked for. */
 export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
-  const [sim] = useState<RainSim>(() => createRainSim(seedFrom(seedId)));
+  const uiLocale = useLocale();
+    const [sim] = useState<RainSim>(() => createRainSim(seedFrom(seedId)));
   const resolved = useRef<MiniGameResult | null>(null);
   const [phase, setPhase] = useState<"play" | "result">("play");
   const phaseRef = useRef(phase);
@@ -175,43 +178,34 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
   const remaining = RAIN.required - caught.length;
   const instructions = phase === "result"
     ? won ? "CV validé, pas doublés" : punchlineFor(`keywords:${seedId}`)
-    : status === "ready"
-      ? `Attrape uniquement les ${RAIN.required} mots de l’annonce`
-      : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}` : "Le robot réfléchit…";
-
-  return <MiniGameShell kind="keywords" eyebrow={practice ? "Entraînement" : "Défi"} title="Le CV à mots-clés"
-    launchContent={status === "ready" ? <section className="keyword-briefing" aria-labelledby="keyword-briefing-title">
-      <span className="keyword-briefing__eyebrow">L’annonce du recruteur</span>
-      <h3 id="keyword-briefing-title">Les 5 mots à récupérer</h3>
-      <ul>{sim.required.map(word => <li key={word}>{word}</li>)}</ul>
-      <p>Récupère ces mots dans ton CV.<br />Les autres sont des pièges !</p>
-    </section> : null}
-    instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
-    hud={status === "ready" ? null : <>
-      <span className="mini-game__counter"><b>{caught.length}</b> / {RAIN.required} mots</span>
+        : status === "ready"
+            ? `Attrape uniquement les ${RAIN.required} mots de l’annonce`
+            : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}` : "Le robot réfléchit…";
+    return <MiniGameShell kind="keywords" eyebrow={tr(practice ? "Entraînement" : "Défi", undefined, uiLocale)} title={tr("Le CV à mots-clés", undefined, uiLocale)} launchContent={status === "ready" ? <section className="keyword-briefing" aria-labelledby="keyword-briefing-title">
+      <span className="keyword-briefing__eyebrow">{tr("L’annonce du recruteur", undefined, uiLocale)}</span>
+      <h3 id="keyword-briefing-title">{tr("Les 5 mots à récupérer", undefined, uiLocale)}</h3>
+      <ul>{sim.required.map(word => <li key={word}>{tr(word, undefined, uiLocale)}</li>)}</ul>
+      <p>{tr("Récupère ces mots dans ton CV.", undefined, uiLocale)}<br />{tr("Les autres sont des pièges !", undefined, uiLocale)}</p>
+    </section> : null} instructions={tr(instructions, undefined, uiLocale)} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase} hud={status === "ready" ? null : <>
+      <span className="mini-game__counter"><b>{caught.length}</b> / {RAIN.required}{tr(" mots", undefined, uiLocale)}</span>
       <span className="mini-game__lives">
-        {Array.from({ length: RAIN.badAllowed + 1 }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < bad} />)}
+        {Array.from({ length: RAIN.badAllowed + 1 }, (_, i) => <i key={i} className="mini-game__cross" data-lost={i < bad}/>)}
       </span>
       <span className="mini-game__tags">
-        <span className="mini-game__tags-label">Annonce :</span>
-        {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{word}</span>)}
+        <span className="mini-game__tags-label">{tr("Annonce :", undefined, uiLocale)}</span>
+        {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{tr(word, undefined, uiLocale)}</span>)}
       </span>
-    </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Glisse ou ← → · ${RAIN.badAllowed} erreur permise` :
-        status === "running" ? (bad > 0 ? "Plus d’erreur permise." : "Glisse ou ← →") : won ? "Validé…" : "Rejeté…"}</span>}
-    primary={{
-      inArena: phase === "play" && status === "ready",
-      label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le robot" : status === "running" ? "Ça tombe !" : won ? "Validé…" : "Broyé…",
-      disabled: phase === "play" && status !== "ready",
-      onClick: () => phase === "play" ? start() : onDone(),
-    }}
-    skip={phase === "play" && (status === "ready" || status === "running") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
-    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena mini-game__arena--drag" data-phase={phase} data-won={won}
-      aria-label="Déplacer le CV" disabled={phase !== "play" || status === "ready"}
-      onPointerDown={event => { event.preventDefault(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
-      <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "CV VALIDÉ ×2" : "REJETÉ PAR LE ROBOT"}</span> : null}
+    </>} status={phase === "result" ? <><strong>{tr(won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`, undefined, uiLocale)}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice}/></> :
+            <span>{tr(status === "ready" ? `Glisse ou ← → · ${RAIN.badAllowed} erreur permise` :
+                    status === "running" ? (bad > 0 ? "Plus d’erreur permise." : "Glisse ou ← →") : won ? "Validé…" : "Rejeté…", undefined, uiLocale)}</span>} primary={{
+            inArena: phase === "play" && status === "ready",
+            label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le robot" : status === "running" ? "Ça tombe !" : won ? "Validé…" : "Broyé…",
+            disabled: phase === "play" && status !== "ready",
+            onClick: () => phase === "play" ? start() : onDone(),
+        }} skip={phase === "play" && (status === "ready" || status === "running") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
+    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena mini-game__arena--drag" data-phase={phase} data-won={won} aria-label={tr("Déplacer le CV", undefined, uiLocale)} disabled={phase !== "play" || status === "ready"} onPointerDown={event => { event.preventDefault(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
+      <canvas ref={canvas} className="mini-game__canvas" aria-hidden/>
+      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "CV VALIDÉ ×2" : "REJETÉ PAR LE ROBOT", undefined, uiLocale)}</span> : null}
     </button>
   </MiniGameShell>;
 }

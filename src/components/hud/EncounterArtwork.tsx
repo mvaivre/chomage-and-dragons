@@ -1,10 +1,18 @@
+"use client";
+import dynamic from "next/dynamic";
+import { useExperience } from "@/components/world/ExperienceContext";
 import type { EncounterModel } from "@/lib/game/encounter-models";
 import type { MiniGameKind } from "@/lib/data/types";
 import { GameArtwork } from "./Artwork";
+const VoxelEncounterArtwork = dynamic(() => import("./VoxelEncounterArtwork").then(module => module.VoxelEncounterArtwork));
 
 /** Flat ink-and-paper creatures for the 2D world, reveals and capture journal. */
-export function EncounterArtwork({ model, rare = false, className = "" }: { model: EncounterModel; rare?: boolean; className?: string }) {
-  const paper = rare ? "#f1ce76" : "#efe4c7", ink = "#293c38";
+export function EncounterArtwork({ model, rare = false, className = "" }: { model: EncounterModel; rare?: boolean; className?: string ;
+}) {
+  const experience = useExperience();
+    if (experience === "3d")
+        return <VoxelEncounterArtwork model={model} rare={rare} className={className}/>;
+    const paper = rare ? "#f1ce76" : "#efe4c7", ink = "#293c38";
   const eyes = <g fill={ink} stroke="none"><ellipse cx="51" cy="48" rx="3" ry="5" /><ellipse cx="77" cy="48" rx="3" ry="5" />{model !== "doubt" ? <path d="M56 64q8 6 16 0v3q-8 7-16 0z" /> : null}</g>;
   const feet = <g fill={ink}><path d="M41 97v12h-9q-7 8 3 8h21V97M73 97v20h21q9-9-7-8V97" /></g>;
   const figure = (() => {
@@ -19,6 +27,6 @@ export function EncounterArtwork({ model, rare = false, className = "" }: { mode
       default: return null;
     }
   })();
-  if (!figure) return <span className={`encounter-artwork ${className}`} data-encounter-model={model}><GameArtwork kind={model as MiniGameKind} /></span>;
-  return <svg viewBox="0 0 128 128" className={`encounter-artwork ${className}`} data-encounter-model={model} aria-hidden="true" focusable="false" stroke={ink} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">{figure}{rare ? <path d="m111 7 3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#f4d57a" strokeWidth="1" /> : null}</svg>;
+  if (!figure) return <span className={`encounter-artwork ${className}`} data-encounter-model={model}><GameArtwork kind={model as MiniGameKind}/></span>;
+    return <svg viewBox="0 0 128 128" className={`encounter-artwork ${className}`} data-encounter-model={model} aria-hidden="true" focusable="false" stroke={ink} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">{figure}{rare ? <path d="m111 7 3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#f4d57a" strokeWidth="1"/> : null}</svg>;
 }

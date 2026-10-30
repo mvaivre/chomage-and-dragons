@@ -555,3 +555,22 @@ coordonnées canoniques et les compteurs du dernier moteur libéré.
 la perte du contexte précédent, les compteurs libérés, la conservation intégrale
 de la sauvegarde et de l'exploration, la préférence au rechargement, les intérieurs
 et les tours supplémentaires, l'attente d'une action et le retour après un échec.
+
+## Une expérience 3D complète
+
+`ExperienceContext` suit la vue réellement affichée. En 3D, les portraits de
+sélection et du carnet sont les modèles Three.js interactifs de `PortraitStudio`.
+Un seul contexte hors écran dessine les vignettes visibles ; il est libéré à la
+sortie de la 3D. Les trois essais du tutoriel utilisent les dioramas 3D, avec leurs
+animations de déplacement, coffre et transformation.
+
+`mini-games/MiniGame` charge les présentations `mini-games-3d` à la demande.
+Les douze défis jouables dessinent leurs arènes en maillages avec `VoxelPainter` ;
+le questionnaire garde des réponses HTML accessibles devant une scène d’entretien
+3D. Les simulations, graines, commandes, scores, réservations et sauvegardes sont
+partagés avec la 2D. Chaque arène arrête son animation et libère ses ressources à
+sa fermeture. Les styles des portraits sont limités à `[data-experience="3d"]`.
+
+Le test navigateur `languages-3d.test.mjs` vérifie les portraits tournants,
+les trois dioramas, le contexte WebGL des douze défis, leur entrée au clavier,
+la conservation du journal en entraînement et la libération lors du retour en 2D.

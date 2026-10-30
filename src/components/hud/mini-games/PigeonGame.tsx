@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MiniGameResult } from "@/lib/data/types";
@@ -24,7 +26,8 @@ const FAR_LAYER = "/art/world-v3/runtime/plaine-far.webp";
  * simulation lives in pigeon-flight.ts and the drawing in pigeon-scene.ts.
  */
 export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
-  const arena = useRef<HTMLButtonElement>(null);
+  const uiLocale = useLocale();
+    const arena = useRef<HTMLButtonElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const progress = useRef<HTMLSpanElement>(null);
   const view = useRef<SceneView>({ width: 0, height: COURSE.height, pigeonX: COURSE.pigeonX, now: 0, reducedMotion: false });
@@ -164,75 +167,73 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       }
       updateParticles(fx.current, dt, current.status === "flying" ? pigeonSpeed(current) : 0);
       if (progress.current) progress.current.style.width = `${Math.min(100, current.distance / current.mailboxX * 100)}%`;
-      // The browser tests fly the course through the real input path using these.
-      arenaNode.dataset.status = current.status;
-      arenaNode.dataset.y = current.y.toFixed(1);
-      arenaNode.dataset.vy = current.vy.toFixed(1);
-      arenaNode.dataset.target = pigeonTargetY(current).toFixed(1);
-      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
-      drawPigeonScene(ctx, current, fx.current, scene, assets.current);
-      // Once the landing has played out, the picture no longer changes: stop drawing.
-      const finished = current.status === "delivered" || current.status === "crashed";
-      if (finished && now - fx.current.finishedAt > 2400 && fx.current.particles.length === 0) { stopped = true; return; }
-      frame = requestAnimationFrame(tick);
+            // The browser tests fly the course through the real input path using these.
+            arenaNode.dataset.status = current.status;
+            arenaNode.dataset.y = current.y.toFixed(1);
+            arenaNode.dataset.vy = current.vy.toFixed(1);
+            arenaNode.dataset.target = pigeonTargetY(current).toFixed(1);
+            ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+            drawPigeonScene(ctx, current, fx.current, scene, assets.current);
+            // Once the landing has played out, the picture no longer changes: stop drawing.
+            const finished = current.status === "delivered" || current.status === "crashed";
+            if (finished && now - fx.current.finishedAt > 2400 && fx.current.particles.length === 0) {
+                stopped = true;
+                return;
+            }
+            frame = requestAnimationFrame(tick);
+        };
+        frame = requestAnimationFrame(tick);
+        return () => {
+            cancelAnimationFrame(frame);
+            observer.disconnect();
+            document.removeEventListener("visibilitychange", syncVisibility);
+            timeouts.forEach(id => window.clearTimeout(id));
+        };
+    }, [sim]);
+    const flap = useCallback(() => {
+        if (phaseRef.current !== "play")
+            return;
+        const wasReady = sim.status === "ready";
+        if (!flapPigeon(sim).length)
+            return;
+        sfx.flap();
+        if (wasReady)
+            setStatus("flying");
+        if (!reduced.current)
+            spawnParticles(fx.current, "trail", view.current.pigeonX - 18, sim.y + 8, 2);
+    }, [sim]);
+    const onKeyDown = (event: KeyboardEvent) => {
+        if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key))
+            return;
+        if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close"))
+            return;
+        event.preventDefault();
+        flap();
     };
-    frame = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", syncVisibility);
-      timeouts.forEach(id => window.clearTimeout(id));
-    };
-  }, [sim]);
-
-  const flap = useCallback(() => {
-    if (phaseRef.current !== "play") return;
-    const wasReady = sim.status === "ready";
-    if (!flapPigeon(sim).length) return;
-    sfx.flap();
-    if (wasReady) setStatus("flying");
-    if (!reduced.current) spawnParticles(fx.current, "trail", view.current.pigeonX - 18, sim.y + 8, 2);
-  }, [sim]);
-
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (phase !== "play" || event.repeat || !ACTION_KEYS.has(event.key)) return;
-    if ((event.target as HTMLElement).closest(".mini-game__skip, .mini-game__close")) return;
-    event.preventDefault();
-    flap();
-  };
-
-  const won = outcome === "won";
-  const remaining = COURSE.towers - passed;
-  const instructions = phase === "result"
-    ? won ? "Livraison réussie, pas doublés" : punchlineFor(`pigeon:${seedId}`)
-    : status === "ready"
-      ? `Franchis les ${COURSE.towers} tours pour livrer le courrier`
-      : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}` : "Vise la fente dorée";
-
-  return <MiniGameShell kind="pigeon" eyebrow={practice ? "Entraînement" : "Défi"} title="Le pigeon à reculons"
-    instructions={instructions} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase}
-    hud={<>
-      <span className="mini-game__counter"><b>{passed}</b> / {COURSE.towers} tours</span>
-      <span className="mini-game__progress"><span ref={progress} /></span>
+    const won = outcome === "won";
+    const remaining = COURSE.towers - passed;
+    const instructions = phase === "result"
+        ? won ? "Livraison réussie, pas doublés" : punchlineFor(`pigeon:${seedId}`)
+        : status === "ready"
+            ? `Franchis les ${COURSE.towers} tours pour livrer le courrier`
+            : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}` : "Vise la fente dorée";
+    return <MiniGameShell kind="pigeon" eyebrow={tr(practice ? "Entraînement" : "Défi", undefined, uiLocale)} title={tr("Le pigeon à reculons", undefined, uiLocale)} instructions={tr(instructions, undefined, uiLocale)} onKeyDown={onKeyDown} onLeave={leave} focusKey={phase} hud={<>
+      <span className="mini-game__counter"><b>{passed}</b> / {COURSE.towers}{tr(" tours", undefined, uiLocale)}</span>
+      <span className="mini-game__progress"><span ref={progress}/></span>
       <span className="mini-game__lives">
-        {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers} />)}
+        {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers}/>)}
       </span>
-    </>}
-    status={phase === "result" ? <><strong>{won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`}</strong><ScoreLine score={score} unit="m" record={record} best={best} practice={practice} /></> :
-      <span>{status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
-        status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…"}</span>}
-    primary={{
-      inArena: phase === "play" && status === "ready",
-      label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Décoller !" : status === "flying" ? "Battre des ailes" : won ? "Livraison…" : "Aïe…",
-      disabled: phase === "play" && status !== "ready" && status !== "flying",
-      onClick: () => phase === "play" ? flap() : onDone(),
-    }}
-    skip={phase === "play" && (status === "ready" || status === "flying") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
-    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena" data-phase={phase} data-won={won} data-reduced={reducedMotion}
-      aria-label="Battre des ailes" disabled={phase !== "play"}
-      onPointerDown={event => { event.preventDefault(); flap(); }} onContextMenu={event => event.preventDefault()}>
-      <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "LIVRÉ ! ×2" : "ADRESSE INTROUVABLE"}</span> : null}
+    </>} status={phase === "result" ? <><strong>{tr(won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`, undefined, uiLocale)}</strong><ScoreLine score={score} unit="m" record={record} best={best} practice={practice}/></> :
+            <span>{tr(status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
+                    status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…", undefined, uiLocale)}</span>} primary={{
+            inArena: phase === "play" && status === "ready",
+            label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Décoller !" : status === "flying" ? "Battre des ailes" : won ? "Livraison…" : "Aïe…",
+            disabled: phase === "play" && status !== "ready" && status !== "flying",
+            onClick: () => phase === "play" ? flap() : onDone(),
+        }} skip={phase === "play" && (status === "ready" || status === "flying") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
+    <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena" data-phase={phase} data-won={won} data-reduced={reducedMotion} aria-label={tr("Battre des ailes", undefined, uiLocale)} disabled={phase !== "play"} onPointerDown={event => { event.preventDefault(); flap(); }} onContextMenu={event => event.preventDefault()}>
+      <canvas ref={canvas} className="mini-game__canvas" aria-hidden/>
+      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "LIVRÉ ! ×2" : "ADRESSE INTROUVABLE", undefined, uiLocale)}</span> : null}
     </button>
   </MiniGameShell>;
 }

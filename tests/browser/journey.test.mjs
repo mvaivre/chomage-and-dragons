@@ -45,7 +45,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 360_000
     const errors = [];
     page.on('pageerror', error => errors.push(error.stack ?? error.message));
     await page.addInitScript(({ kinds }) => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
       if (localStorage.getItem('louchomage:v2')) return;
       const at = new Date().toISOString();
       localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');localStorage.setItem('louchomage:moi:v1', 'test');
@@ -321,7 +321,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 360_000
   await t.test('a group is created, joined by invitation with the password, and played from two devices', async () => {
     const host = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     const guest = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    await Promise.all([host, guest].map(context => context.addInitScript(() => { if (location.protocol === 'http:' || location.protocol === 'https:') localStorage.setItem('louchomage:renderer-choice:v1', '1'); })));
+    await Promise.all([host, guest].map(context => context.addInitScript(() => { if (location.protocol === 'http:' || location.protocol === 'https:') { localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr'); } })));
     const errors = [];
     let releaseRegistration = () => {};
     try {
@@ -454,7 +454,7 @@ test('real game journeys, rewards, undo and mobile controls', { timeout: 360_000
   await t.test('friends see each other live, cheer from the news card, and get a recap after an absence', async () => {
     const host = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     const guest = await browser.newContext();
-    await Promise.all([host, guest].map(context => context.addInitScript(() => { if (location.protocol === 'http:' || location.protocol === 'https:') localStorage.setItem('louchomage:renderer-choice:v1', '1'); })));
+    await Promise.all([host, guest].map(context => context.addInitScript(() => { if (location.protocol === 'http:' || location.protocol === 'https:') { localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr'); } })));
     const errors = [];
     try {
       const alice = await host.newPage();

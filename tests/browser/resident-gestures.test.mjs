@@ -22,7 +22,7 @@ test('resident gestures alternate, blend briefly and keep their feet and unique 
     const context = await browser.newContext({ viewport }), page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(count => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
       const at = new Date().toISOString();
       localStorage.setItem('louchomage:moi:v1', 'test'); localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
       localStorage.setItem('louchomage:v2', JSON.stringify({ players: [{ id: 'test', name: 'Mika', characterId: 'skater', joinedAt: at }],

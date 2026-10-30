@@ -10,7 +10,7 @@ async function fixture(browser, steps = 4, viewport = { width: 1280, height: 800
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(steps => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
     if (localStorage.getItem('louchomage:v2')) return;
     const at = new Date().toISOString();
     localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
@@ -203,7 +203,7 @@ test('a new character can enter, finish onboarding and play in either initial re
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.addInitScript(mode => { localStorage.setItem('louchomage:renderer:v1', mode); localStorage.setItem('louchomage:renderer-choice:v1', '1'); }, mode);
+    await page.addInitScript(mode => { localStorage.setItem('louchomage:renderer:v1', mode); localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr'); }, mode);
     await page.goto(`${url}/local?debug&hour=12&variant=classic`);
     await page.getByPlaceholder('Mika').fill('Camille');
     await page.getByRole('button', { name: 'Entrer dans la partie', exact: true }).click();

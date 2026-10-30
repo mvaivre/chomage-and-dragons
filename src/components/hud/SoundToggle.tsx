@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { UiIcon } from "./UiIcon";
 import { useEffect, useState } from "react";
@@ -13,7 +15,8 @@ const STATES = {
 
 /** One button, three states: music and effects, effects only, silence. Remembered on this device. */
 export function SoundToggle() {
-  const [muted, setMutedState] = useState(isMuted);
+  const uiLocale = useLocale();
+    const [muted, setMutedState] = useState(isMuted);
   const [music, setMusicState] = useState(isMusicOn);
   useEffect(() => onMuteChange(setMutedState), []);
   useEffect(() => onMusicChange(setMusicState), []);
@@ -28,7 +31,7 @@ export function SoundToggle() {
     }
   };
   return <button type="button" className="sound-toggle pointer-events-auto" data-state={state}
-    aria-label={STATES[state].label} title={STATES[state].label} onClick={next}>
+    aria-label={tr(STATES[state].label, undefined, uiLocale)} title={tr(STATES[state].label, undefined, uiLocale)} onClick={next}>
     <UiIcon name={STATES[state].icon} />
   </button>;
 }

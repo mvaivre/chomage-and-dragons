@@ -7,7 +7,7 @@ const folder=process.env.VOLCANO_SCREENSHOTS;
 const CENTER=25250.4;
 const setup=async(page,count=84)=>{
  await page.addInitScript(count=>{
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
   const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');
   localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
   localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:count},(_,i)=>({id:`a${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));

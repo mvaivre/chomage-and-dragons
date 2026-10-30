@@ -1,4 +1,5 @@
 import { AudioSession } from "@/components/AudioSession";
+import { LanguageSession } from "@/lib/i18n/react";
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Pirata_One } from "next/font/google";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="h-full overflow-hidden bg-ink-deep text-parchment">
         <AudioSession />
+        <LanguageSession />
         {children}
       </body>
     </html>

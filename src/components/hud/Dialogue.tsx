@@ -1,11 +1,13 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { sfx } from "@/lib/client/sound";
 import { dialogueTokens, letterDelay } from "@/lib/game/dialogue-text";
 
 /** The full sentence is announced once; only the visual copy is typed letter by letter. */
 export function Dialogue({
-  text,
+  text: sourceText,
   speaker,
   paused,
   onClose,
@@ -17,7 +19,9 @@ export function Dialogue({
   onClose: () => void;
   children?: ReactNode;
 }) {
-  const [visible, setVisible] = useState(0);
+  const uiLocale = useLocale();
+  const text = tr(sourceText, undefined, uiLocale);
+    const [visible, setVisible] = useState(0);
   const tokens = useMemo(() => dialogueTokens(text), [text]);
   const done = visible >= text.length;
   useEffect(() => {
@@ -47,12 +51,12 @@ export function Dialogue({
   }, [text, paused, done]);
   return (
     <aside className="travel-speech" data-typing={!done} data-line={text}>
-      <small className="travel-speech__speaker">{speaker}</small>
+      <small className="travel-speech__speaker">{tr(speaker, undefined, uiLocale)}</small>
       <button
         className="travel-speech__close"
         type="button"
-        aria-label="Fermer le dialogue"
-        onClick={onClose}
+        aria-label={tr("Fermer le dialogue"
+        , undefined, uiLocale)} onClick={onClose}
       >
         ×
       </button>
@@ -92,7 +96,7 @@ export function Dialogue({
           className="travel-speech__continue"
           onClick={done ? onClose : () => setVisible(text.length)}
         >
-          {done ? "Continuer ▾" : "Tout afficher ▾"}
+          {tr(done ? "Continuer ▾" : "Tout afficher ▾", undefined, uiLocale)}
         </button>
       </div>
     </aside>

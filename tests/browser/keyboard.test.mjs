@@ -9,7 +9,11 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 const { MINI_GAMES } = await import('../../src/lib/game/mini-games.ts');
 const url = process.env.GAME_TEST_URL ?? 'http://localhost:3000';
 const kinds = ['pigeonRace', 'paperCut', 'snake', 'maze', 'stack', 'pong'];
-const control = page => page.locator('.arcade-arena').evaluate(node => JSON.parse(node.dataset.controlState));
+const control = async page => {
+  // React publishes the running status before the next canvas frame's diagnostics.
+  await page.waitForFunction(() => Boolean(document.querySelector('.arcade-arena')?.dataset.controlState));
+  return page.locator('.arcade-arena').evaluate(node => JSON.parse(node.dataset.controlState));
+};
 const journal = page => page.evaluate(() => {
   const state = JSON.parse(localStorage.getItem('louchomage:v2'));
   return { events: state.events, casts: state.casts, miniGames: state.miniGames ?? [], daily: state.daily ?? [] };
@@ -26,7 +30,7 @@ test('modal games take the first keyboard input without clicking a direction con
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(initiation => {
-    localStorage.setItem('louchomage:renderer-choice:v1', '1');
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');localStorage.setItem('louchomage:language:v1', 'fr');
       const at = new Date().toISOString();
       if (!initiation) localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
       localStorage.setItem('louchomage:moi:v1', 'test');

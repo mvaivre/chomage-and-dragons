@@ -1,0 +1,161 @@
+"use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { MiniGameResult } from "@/lib/data/types";
+import { sfx } from "@/lib/client/sound";
+import { JOURNEY_STEPS, MINI_GAME_BONUS } from "@/lib/config";
+import { seedFrom } from "@/lib/game/random";
+import { punchlineFor } from "@/lib/game/punchlines";
+import { QUIZ, dealQuiz, quizPassed } from "@/lib/game/personality-quiz";
+import { VoxelDisplay } from "@/components/voxel/Display";
+import type { VoxelPainter } from "@/components/voxel/arena";
+function drawInterview(painter: VoxelPainter) {
+  painter.background();
+  painter.person(90, 88, 1.1, 0x927e99);
+  painter.person(235, 88, 1.1, 0x809974);
+  painter.block(0x9d7957, 162, 120, 230, 28, 46, 16);
+  painter.block(0x725a43, 72, 150, 14, 60, 18);
+  painter.block(0x725a43, 252, 150, 14, 60, 18);
+  painter.paper(162, 105, 30, 39);
+  painter.block(0xe6d9b2, 205, 100, 16, 20, 15, 22);
+}
+import { MiniGameShell, ScoreLine, type MiniGameProps } from "../mini-games/MiniGameShell";
+import { quizScore } from "@/lib/game/scores";
+type QuizStatus = "ready" | "question" | "reveal" | "won" | "lost";
+const SILENCE = "Le silence, c’est non.";
+/** Five questions, one corporate answer each, a few seconds to find it. */
+export function QuizGame({ seedId, onResolve, onDone, practice, record, best }: MiniGameProps) {
+    const uiLocale = useLocale();
+    const [questions] = useState(() => dealQuiz(seedFrom(seedId)));
+    const [status, setStatus] = useState<QuizStatus>("ready");
+    const [index, setIndex] = useState(0);
+    const [correct, setCorrect] = useState(0);
+    const [chosen, setChosen] = useState<number | null>(null);
+    const [aside, setAside] = useState<string | null>(null);
+    const [outcome, setOutcome] = useState<MiniGameResult | null>(null);
+    const resolved = useRef<MiniGameResult | null>(null);
+    const timer = useRef<HTMLSpanElement>(null);
+    const deadline = useRef(0);
+    const timeouts = useRef<number[]>([]);
+    const base = JOURNEY_STEPS.entretien;
+    const bonus = MINI_GAME_BONUS.entretien;
+    const question = questions[Math.min(index, questions.length - 1)];
+    useEffect(() => () => { timeouts.current.forEach(id => window.clearTimeout(id)); }, []);
+    const later = (ms: number, run: () => void) => { timeouts.current.push(window.setTimeout(run, ms)); };
+    const [points, setPoints] = useState<number | null>(null);
+    const spare = useRef(0);
+    const settle = useCallback((result: MiniGameResult, score?: number) => {
+        if (resolved.current)
+            return;
+        resolved.current = result;
+        setOutcome(result);
+        if (score !== undefined)
+            setPoints(score);
+        onResolve(result, score);
+    }, [onResolve]);
+    const finish = useCallback((score: number) => {
+        const passed = quizPassed(score);
+        if (passed)
+            sfx.win();
+        else
+            sfx.sad();
+        setStatus(passed ? "won" : "lost");
+        settle(passed ? "won" : "lost", quizScore(score, spare.current));
+    }, [settle]);
+    const answer = useCallback((choice: number | null) => {
+        if (status !== "question")
+            return;
+        const good = choice === question.correct;
+        const score = correct + (good ? 1 : 0);
+        if (good)
+            spare.current += Math.max(0, (deadline.current - performance.now()) / 1000);
+        setChosen(choice);
+        if (good)
+            sfx.pass();
+        else
+            sfx.hit();
+        setCorrect(score);
+        setAside(choice === null ? SILENCE : good ? question.aside : "Hmm. Honnête. Dommage.");
+        setStatus("reveal");
+        later(1400, () => {
+            if (index + 1 >= questions.length)
+                finish(score);
+            else {
+                setIndex(index + 1);
+                setChosen(null);
+                setAside(null);
+                setStatus("question");
+            }
+        });
+    }, [status, question, correct, index, questions.length, finish]);
+    const answerRef = useRef(answer);
+    useEffect(() => { answerRef.current = answer; }, [answer]);
+    // The countdown bar and its deadline, per question.
+    useEffect(() => {
+        if (status !== "question")
+            return;
+        deadline.current = performance.now() + QUIZ.secondsPerQuestion * 1000;
+        let raf = 0;
+        const tick = () => {
+            const left = Math.max(0, deadline.current - performance.now());
+            if (timer.current)
+                timer.current.style.width = `${left / (QUIZ.secondsPerQuestion * 1000) * 100}%`;
+            if (left <= 0) {
+                answerRef.current(null);
+                return;
+            }
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [status, index]);
+    const leave = () => {
+        if (!resolved.current)
+            settle("skipped");
+        onDone();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+        if (status !== "question" || event.repeat)
+            return;
+        const digit = Number(event.key);
+        if (digit >= 1 && digit <= 4) {
+            event.preventDefault();
+            answer(digit - 1);
+        }
+    };
+    const won = outcome === "won";
+    const finished = status === "won" || status === "lost";
+    const instructions = finished
+        ? won ? `${base + bonus} pas au lieu de ${base}` : punchlineFor(`quiz:${seedId}`)
+        : status === "ready"
+            ? "Choisis la réponse attendue par le recruteur"
+            : "Choisis une réponse avec les boutons ou les touches 1 à 4";
+    return <MiniGameShell kind="quiz" eyebrow={tr(practice ? "Entraînement" : "Défi", undefined, uiLocale)} title={tr("Le Test de personnalité", undefined, uiLocale)} instructions={tr(instructions, undefined, uiLocale)} onKeyDown={onKeyDown} onLeave={leave} focusKey={status} hud={<>
+      <span className="mini-game__counter"><b>{Math.min(index + (finished ? 1 : 0), questions.length)}</b> / {questions.length}{tr(" questions", undefined, uiLocale)}</span>
+      <span className="mini-game__progress"><span style={{ width: `${(index + (finished || status === "reveal" ? 1 : 0)) / questions.length * 100}%` }}/></span>
+      <span className="mini-game__score"><b>{correct}</b>{tr(" ✓ sur ", undefined, uiLocale)}{QUIZ.needed}{tr(" requises", undefined, uiLocale)}</span>
+    </>} status={finished ? <><strong>{tr(won ? `${base + bonus} pas au lieu de ${base}` : `${base} pas`, undefined, uiLocale)}</strong><ScoreLine score={points} unit="" record={record} best={best} practice={practice}/></> :
+            <span>{tr(status === "ready" ? `${QUIZ.needed}/${QUIZ.questions} bonnes réponses · ${QUIZ.secondsPerQuestion} s par question` : status === "reveal" && aside ? `« ${aside} »` : "Choisis ta réponse.", undefined, uiLocale)}</span>} primary={{
+            inArena: status === "ready",
+            label: finished ? "Continuer le voyage" : status === "ready" ? "Commencer l’entretien" : "Réponds ci-dessus…",
+            disabled: status === "question" || status === "reveal",
+            onClick: () => finished ? onDone() : setStatus("question"),
+        }} skip={!finished ? { label: "Rester honnête (−3 pas)", onClick: leave } : null}>
+    <div className="mini-game__arena mini-game__arena--panel quiz" data-status={status} data-question={index}>
+      <div className="quiz__scene">
+        <VoxelDisplay className="quiz__diorama" width={320} height={180} draw={drawInterview}/>
+        <div className="quiz__bubble">
+          {status === "ready" ? <p>{tr("« Asseyez-vous. Ce ne sera pas long. Enfin, pour vous. »", undefined, uiLocale)}</p>
+            : finished ? <p>{tr(won ? "« Vous êtes exactement ce que nous cherchons. Enfin, ce que vous avez dit. »" : "« Nous reviendrons vers vous. » (Non.)", undefined, uiLocale)}</p>
+                : <p>« {tr(question.prompt, undefined, uiLocale)} »</p>}
+          {status === "question" ? <span className="quiz__timer" aria-hidden><span ref={timer}/></span> : null}
+        </div>
+      </div>
+      {status === "question" || status === "reveal" ? <div className="quiz__answers">
+        {question.answers.map((text, i) => <button key={text} type="button" className="quiz__answer" disabled={status !== "question"} data-state={status === "reveal" ? (i === question.correct ? "correct" : i === chosen ? "wrong" : "dim") : undefined} onClick={() => answer(i)}><b>{i + 1}</b> {tr(text, undefined, uiLocale)}</button>)}
+      </div> : null}
+      {finished ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "PROFIL RETENU… POUR L’INSTANT" : "TROP HONNÊTE", undefined, uiLocale)}</span> : null}
+    </div>
+  </MiniGameShell>;
+}

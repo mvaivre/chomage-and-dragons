@@ -1,3 +1,4 @@
+import { localeTag } from "@/lib/i18n/index";
 import { SEASON } from "@/lib/config";
 
 /**
@@ -12,7 +13,7 @@ const KEY_FORMAT = new Intl.DateTimeFormat("fr-CH", {
   month: "2-digit",
 });
 
-const LABEL_FORMAT = new Intl.DateTimeFormat("fr-CH", {
+const labelFormat = () => new Intl.DateTimeFormat(localeTag(), {
   timeZone: SEASON.timeZone,
   year: "numeric",
   month: "long",
@@ -33,7 +34,7 @@ export function currentMonthKey(): string {
 export function monthLabel(key: string): string {
   const [year, month] = key.split("-").map(Number);
   // Milieu de mois en UTC : évite qu'un décalage de fuseau ne fasse basculer le libellé.
-  return LABEL_FORMAT.format(new Date(Date.UTC(year, month - 1, 15, 12)));
+  return labelFormat().format(new Date(Date.UTC(year, month - 1, 15, 12)));
 }
 
 /**

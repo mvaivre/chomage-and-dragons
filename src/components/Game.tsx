@@ -1,9 +1,13 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chestXForStep } from "@/components/game/projection";
 import type { Effect, EffectKind } from "@/components/game/Effects";
 import { WorldView } from "@/components/world/WorldView";
+import { ExperienceContext } from "@/components/world/ExperienceContext";
+import "@/components/hud/voxel-ui.css";
 import { readWorldMode, type WorldMode } from "@/lib/client/world-mode";
 import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
@@ -128,556 +132,545 @@ const DEV_BUILD = process.env.NODE_ENV === "development";
 const DEV_ENCOUNTERS = DEV_BUILD ? [...environmentSites(0, WORLD_LENGTH, 1), ...environmentSites(0, WORLD_LENGTH, 0.76)].filter((site, index, sites) => sites.findIndex(other => other.kind === site.kind) === index) : [];
 const DEV_VIEWPOINTS = [...BIOMES.slice(0, -1).map((biome, index) => ({
   id: `${biome.id}-${BIOMES[index + 1].id}`,
-  label: `${biome.short}→${BIOMES[index + 1].short}`,
-  progress: biome.to,
-})), { id: "forest-clearing", label: "Clairière", progress: 0.22 }, { id: "dragon-nest", label: "Nid du dragon", progress: 0.13 }];
-
+        label: `${biome.short}→${BIOMES[index + 1].short}`,
+        progress: biome.to,
+    })), { id: "forest-clearing", label: "Clairière", progress: 0.22 }, { id: "dragon-nest", label: "Nid du dragon", progress: 0.13 }];
 interface MiniGameOffer {
-  attemptId: string;
-  eventId: string;
-  kind: MiniGameKind;
-  action: ActionKind | "chest";
-  /** The player chose to play: the invitation card gives way to the game. */
-  accepted?: boolean;
-  resolved?: boolean;
+    attemptId: string;
+    eventId: string;
+    kind: MiniGameKind;
+    action: ActionKind | "chest";
+    /** The player chose to play: the invitation card gives way to the game. */
+    accepted?: boolean;
+    resolved?: boolean;
 }
-
 /** The light that fills the screen at the instant of impact. */
-const FLASH: Record<ActionKind, { color: string; strength: number }> = {
-  candidature: { color: "#fff6dc", strength: 0.22 },
-  refus: { color: "#d8ecff", strength: 0.75 },
-  entretien: { color: "#ffe7a8", strength: 0.35 },
-  rejetApresEntretien: { color: "#ffd76c", strength: 0.85 },
-  embauche: { color: "#fff1bd", strength: 0.6 },
+const FLASH: Record<ActionKind, {
+    color: string;
+    strength: number;
+}> = {
+    candidature: { color: "#fff6dc", strength: 0.22 },
+    refus: { color: "#d8ecff", strength: 0.75 },
+    entretien: { color: "#ffe7a8", strength: 0.35 },
+    rejetApresEntretien: { color: "#ffd76c", strength: 0.85 },
+    embauche: { color: "#fff1bd", strength: 0.6 },
 };
-
 interface Notice {
-  title: string;
-  body: string;
-  powerKind?: PowerKind;
+    title: string;
+    body: string;
+    powerKind?: PowerKind;
 }
-
-export function Game({ slug = null, initialWorldMode }: { slug?: string | null; initialWorldMode?: WorldMode }) {
-  // A group's game lives on the server; without a slug this device plays alone.
-  const store = useMemo(() => (slug ? new RemoteStore(slug) : null), [slug]);
-  const mode = useMemo<GameMode>(() => (store ? { kind: "remote", store } : { kind: "local" }), [store]);
-  const scope = slug ?? "local";
-  const {
-    loaded,
-    groupName,
-    remoteMe,
-    syncError,
-    clearSyncError,
-    claim,
-    players,
-    events,
-    casts,
-    cheers,
-    cheer,
-    miniGames,
-    daily,
-    monthKeyNow,
-    seasonStandings,
-    monthStandings,
-    totals,
-    crowns,
-    freeCharacters,
-    addEvent,
-    finishMiniGame,
-    castPower,
-    markCastSeen,
-    settleShots,
-    undoLast,
-    addPlayer,
-    removePlayer,
-    monthlyMeetups,
-    scheduleMeetup,
-    discoveries,
-    findHidden,
-    encounters,
-    encounterMove,
-  } = useGame(mode);
-
-  // Historical daily records still contribute to the group’s personalised scenery.
-  const today = zurichDay();
-  const decor = useMemo(() => groupDecor({ players, events, daily, day: today, month: monthKeyNow }), [players, events, daily, today, monthKeyNow]);
-
-  const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
-  const [claiming, setClaiming] = useState<string | null>(null);
-  // This component never renders on the server, so the origin is known at once.
-  const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
-  const [registerOpen, setRegisterOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
-  const [adventureOpen, setAdventureOpen] = useState(false);
-  const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt" | "captures">("games");
-  const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
-  const [meetupOpen, setMeetupOpen] = useState(false);
-  const [effects, setEffects] = useState<Effect[]>([]);
-  const dragonMealId = useRef<string | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
-  const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
-  const [shownEncounterId, setShownEncounterId] = useState<string | null>(null);
-  const [roadsideChest, setRoadsideChest] = useState<{ attemptId: string } | null>(null);
-  const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
-  const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string; source?: "arcade" } | null>(null);
-  const [powerAttention, setPowerAttention] = useState(0);
-  const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; kind?: ActionKind } | null>(null);
-  /** An action's moment is playing: the camera leans in and the HUD steps back. */
-  const [momentActive, setMomentActive] = useState(false);
-  const [hudTiming, setHudTiming] = useState<HudTiming | null>(null);
-  const momentTimers = useRef<number[]>([]);
-  const pendingBanner = useRef<{ kicker: string; title: string } | null>(null);
-  const pendingTale = useRef<ReturnType<typeof taleFor>>(null);
-  const lastAction = useRef<ActionKind | null>(null);
-  const schedule = useCallback((ms: number, run: () => void) => {
-    const timer = window.setTimeout(() => {
-      momentTimers.current = momentTimers.current.filter((id) => id !== timer);
-      run();
-    }, ms);
-    momentTimers.current.push(timer);
-  }, []);
-  useEffect(() => () => { momentTimers.current.forEach((timer) => window.clearTimeout(timer)); }, []);
-  const pendingChestEffect = useRef<Effect | null>(null);
-  const chestAnimationId = useRef<string | null>(null);
-  const chestDuringTravel = useRef(false);
-  const actionInFlight = useRef(false);
-  const [awaitingTravel, setAwaitingTravel] = useState(false);
-  // A safety net: whatever happens to the walk, the action bar never stays locked.
-  useEffect(() => {
-    if (!awaitingTravel) return;
-    const timer = window.setTimeout(() => {
-      if (dragonMealId.current || chestAnimationId.current || pendingChestEffect.current) return;
-      setAwaitingTravel(false);
-      actionInFlight.current = false;
-      leanOut();
-      setMomentActive(false);
-    }, 15000);
-    return () => window.clearTimeout(timer);
-  }, [awaitingTravel]);
-  const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
-  const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
-  const [worldMode, setWorldMode] = useState<WorldMode>(() => initialWorldMode ?? readWorldMode());
-  const [worldLoading, setWorldLoading] = useState(true);
-  const [activeWorldMode, setActiveWorldMode] = useState<WorldMode>(worldMode);
-  const reactionTiming = activeWorldMode === "3d" ? timing3D : timing2D;
-  const [sceneReady, setSceneReady] = useState(false);
-  const handleSceneReady = useCallback(() => setSceneReady(true), []);
-
-  // Once the world is up, warm what the next action will need: its reaction art,
-  // the loot art, the mini-games' code and images. Actions are rare, so otherwise
-  // every one of them would be a cold first display.
-  useEffect(() => {
-    if (!sceneReady) return;
-    return whenIdle(() => {
-      primeAudio();
-      void loadMiniGames();
-    });
-  }, [sceneReady]);
-  const [devExplore, setDevExplore] = useState(false);
-  const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
-  const [devHero, setDevHero] = useState<{ characterId: string; motion: HeroMotion }>({ characterId: "voleur", motion: "idle" });
-  const [devCameraTarget, setDevCameraTarget] = useState<{
-    worldX: number;
-    revision: number;
-  } | null>(null);
-  const [devAtmosphere, setDevAtmosphere] = useState(true);
-  const shownCasts = useRef(new Set<string>());
-  // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
-  // The selection theme gives way to the adventure, then follows the hero's land.
-  const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
-  const focusTimeout = useRef<number | null>(null);
-
-  // The server's word on who this device plays wins: a character claimed elsewhere drops out here.
-  const identityRevoked = Boolean(store && loaded && meId && remoteMe !== meId);
-  const sessionLost = syncError?.status === 401;
-  const shownNotice: Notice | null = notice ?? (syncError && !sessionLost
-    ? { title: syncError.status === 403 ? "Appareil non reconnu" : syncError.status === 0 ? "Hors ligne" : "Synchronisation", body: syncError.message }
-    : null);
-  const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
-  const me = meIndex === -1 ? null : players[meIndex];
-
-  // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
-  // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
-  const identity = me ? meId : null;
-  const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
-  const myEncounters = useMemo(() => encounters.filter(e => e.playerId === identity), [encounters, identity]);
-  const wildEncounter = myEncounters.find(e => e.id === shownEncounterId && events.some(event => event.id === e.eventId)) ?? myEncounters.findLast(e => activeEncounter(e) && events.some(event => event.id === e.eventId)) ?? null;
-  const firstFindVisible = Boolean(identity && firstFind?.playerId === identity);
-  const handleFindHidden = useCallback((itemId: string) => {
-    if (!identity || hiddenFoundIds.includes(itemId)) return;
-    const item = hiddenItemForId(itemId);
-    if (!item) return;
-    const result = findHidden(identity, itemId);
-    if (result.rejected) return;
-    sfx.chime();
-    if (hiddenFoundIds.length === 0) setFirstFind({ playerId: identity, item });
-    else setNotice({ title: item.name, body: `${hiddenFoundIds.length + 1} objets retrouvés sur ${HIDDEN_ITEMS.length}` });
-  }, [findHidden, identity, hiddenFoundIds]);
-  // One condition renders the welcome, pauses the world and locks the actions.
-  const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
-  useEffect(() => {
-    if (loaded) setMusicPhase(identity ? "adventure" : "intro");
-  }, [loaded, identity]);
-  const queuedRewardMoment = rewardMoments[0] ?? null;
-  const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
-  const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && !momentActive && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
-  // First an invitation card, then the game itself once the player accepts.
-  const wildVisible = Boolean(sceneReady && wildEncounter && !awaitingTravel && !momentActive && rewardMoments.length === 0 && !miniGameOffer && !practiceMiniGame && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible);
-  const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
-  const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
-  useEffect(() => {
-    setMusicDucked(miniGameVisible || wildVisible || inviteVisible || welcomeVisible);
-    return () => setMusicDucked(false);
-  }, [miniGameVisible, wildVisible, inviteVisible, welcomeVisible]);
-  useEffect(() => {
-    scene.momentActive = momentActive || miniGameVisible || wildVisible || inviteVisible;
-    return () => { scene.momentActive = false; };
-  }, [momentActive, miniGameVisible, wildVisible, inviteVisible]);
-  const handleRewardDone = useCallback(() => {
-    if (rewardMoments[0]?.type === "chest") {
-      setPowerAttention(value => value + 1);
-      setRoadsideChest(null);
-      // The chest's double bottom opens once the loot is put away and no other game waits.
-      if (!miniGameOffer && pendingChestGame.current) {
-        setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
-        pendingChestGame.current = null;
-      }
-    }
-    setRewardMoments(moments => moments.slice(1));
-    actionInFlight.current = false;
-  }, [rewardMoments, miniGameOffer]);
-
-  useEffect(() => {
-    if (!actionFeedback) return;
-    const timeout = window.setTimeout(() => setActionFeedback(null), 4000);
-    return () => window.clearTimeout(timeout);
-  }, [actionFeedback]);
-
-  const handleChestReached = useCallback((playerId: string) => {
-    const effect = pendingChestEffect.current;
-    if (playerId !== identity || !effect) return false;
-    pendingChestEffect.current = null;
-    chestDuringTravel.current = true;
-    chestAnimationId.current = effect.id;
-    leanIn(1.5);
-    sfx.coin();
-    setActionFeedback({ id: effect.id, text: "Coffre trouvé ! Récupération du butin…" });
-    setEffects(previous => [...previous, { ...effect, playerId, loud: true }]);
-    return true;
-  }, [identity]);
-
-  const handleTravelDone = useCallback(
-    (playerId: string) => {
-      if (playerId !== identity) return;
-      // The hero has arrived: the camera steps back, the HUD returns, a new land is announced.
-      schedule(350, () => { leanOut(); setMomentActive(false); });
-      const banner = pendingBanner.current;
-      if (banner) { pendingBanner.current = null; moment.cue({ type: "banner", ...banner }); }
-      const tale = pendingTale.current;
-      if (tale) {
-        pendingTale.current = null;
-        schedule(banner ? 2600 : 500, () => moment.cue({ type: "tale", kind: tale.kind, label: TALE_LABELS[tale.kind], title: tale.title, text: tale.text }));
-      }
-      if (lastAction.current === "embauche") {
-        lastAction.current = null;
-        const hero = scene.heroes.get(playerId);
-        if (hero) {
-          [[-180, -250, 0, 0xffd76c], [160, -280, 0.35, 0x9fd4ff], [0, -320, 0.7, 0xff9a8a], [-60, -230, 1.05, 0xb8e08a]].forEach(([dx, dy, delay, color]) => {
-            fx.burst({ preset: "firework", x: hero.x + dx, y: hero.y + dy, count: 50, colors: [color, 0xffffff], delay });
-            schedule(delay * 1000, sfx.firework);
-          });
-          fx.burst({ preset: "confetti", x: hero.x, y: hero.y - 180, count: 90 });
-        }
-        // Let the fireworks play before the reward card covers the world.
-        schedule(2300, () => { setAwaitingTravel(false); actionInFlight.current = false; });
-        return;
-      }
-      const chestEffect = pendingChestEffect.current;
-      if (chestEffect) {
-        pendingChestEffect.current = null;
-        chestAnimationId.current = chestEffect.id;
-        setEffects((previous) => [...previous, { ...chestEffect, playerId, loud: true }]);
-        return;
-      }
-      setAwaitingTravel(false);
-      actionInFlight.current = false;
-    },
-    [identity, schedule],
-  );
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      // The native mini-game dialog owns Escape, Space, Enter and focus.
-      // The invitation owns Escape too. Preventing it here would keep a dialog open.
-      if (wildVisible || miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        if (shotInbox) {
-          setShotInbox(null);
-          return;
-        }
-        if (rewardMoment) {
-          handleRewardDone();
-          return;
-        }
-        if (registerOpen) {
-          setRegisterOpen(false);
-          return;
-        }
-        if (awaitingTravel) return;
-        if (notice) {
-          setNotice(null);
-          return;
-        }
-        setRegisterOpen((open) => !open);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, wildVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
-
-  useEffect(
-    () => () => {
-      if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
-    },
-    [],
-  );
-
-  // Les butins reçus restent en attente dans la sauvegarde jusqu'à ce que leur
-  // cible ouvre sa session. Les shots demandent une confirmation explicite ; les
-  // farces visuelles, elles, sont acquittées après leur première animation.
-  useEffect(() => {
-    if (!me) return;
-
-    const pending = casts.filter(
-      (cast) => cast.targetPlayerId === me.id && !cast.seenAt,
-    );
-    if (pending.length === 0) return;
-
-    const origin = heroOrigin(me, meIndex);
-    const fresh = pending.filter((cast) => !shownCasts.current.has(cast.id));
-    if (fresh.length === 0) return;
-
-    for (const cast of fresh) {
-      shownCasts.current.add(cast.id);
-    }
-
-    // Différé d'une frame : l'ouverture de session termine son rendu avant que la
-    // file d'animations et la persistance des accusés de réception ne soient modifiées.
-    const timeout = window.setTimeout(() => {
-      const shots = fresh.filter((cast) => cast.kind === "shot");
-      const pranks = fresh.filter((cast) => cast.kind !== "shot");
-
-      setEffects((previous) => [
-        ...previous,
-        ...fresh.map((cast) => ({
-          id: cast.id,
-          kind: POWER_EFFECT_FOR[cast.kind],
-          origin,
-          playerId: me.id,
-          loud: true,
-        })),
-      ]);
-      for (const cast of pranks) markCastSeen(cast.id);
-
-      if (shots.length > 0) {
-        setShotInbox((current) => [...(current ?? []), ...shots]);
-      }
-
-      const latestPrank = pranks[pranks.length - 1];
-      if (latestPrank) {
-        const attacker = players.find(
-          (player) => player.id === latestPrank.playerId,
-        );
-        setNotice({
-          title: POWERS[latestPrank.kind].name,
-          body: `${attacker?.name ?? "Une âme lâche"} t’a lancé cette farce pendant ton absence.`,
-          powerKind: latestPrank.kind,
+export function Game({ slug = null, initialWorldMode }: {
+    slug?: string | null;
+    initialWorldMode?: WorldMode;
+}) {
+    const uiLocale = useLocale();
+    // A group's game lives on the server; without a slug this device plays alone.
+    const store = useMemo(() => (slug ? new RemoteStore(slug) : null), [slug]);
+    const mode = useMemo<GameMode>(() => (store ? { kind: "remote", store } : { kind: "local" }), [store]);
+    const scope = slug ?? "local";
+    const { loaded, groupName, remoteMe, syncError, clearSyncError, claim, players, events, casts, cheers, cheer, miniGames, daily, monthKeyNow, seasonStandings, monthStandings, totals, crowns, freeCharacters, addEvent, finishMiniGame, castPower, markCastSeen, settleShots, undoLast, addPlayer, removePlayer, monthlyMeetups, scheduleMeetup, discoveries, findHidden, encounters, encounterMove, } = useGame(mode);
+    // Historical daily records still contribute to the group’s personalised scenery.
+    const today = zurichDay();
+    const decor = useMemo(() => groupDecor({ players, events, daily, day: today, month: monthKeyNow }), [players, events, daily, today, monthKeyNow]);
+    const [meId, setMeId] = useState<string | null>(() => loadSession(scope));
+    const [claiming, setClaiming] = useState<string | null>(null);
+    // This component never renders on the server, so the origin is known at once.
+    const inviteUrl = useMemo(() => (slug ? `${window.location.origin}/g/${slug}/rejoindre` : null), [slug]);
+    const [registerOpen, setRegisterOpen] = useState(false);
+    const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
+    const [adventureOpen, setAdventureOpen] = useState(false);
+    const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt" | "captures">("games");
+    const [firstFind, setFirstFind] = useState<{
+        playerId: string;
+        item: HiddenItem;
+    } | null>(null);
+    const [meetupOpen, setMeetupOpen] = useState(false);
+    const [effects, setEffects] = useState<Effect[]>([]);
+    const dragonMealId = useRef<string | null>(null);
+    const [notice, setNotice] = useState<Notice | null>(null);
+    const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
+    const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
+    const [shownEncounterId, setShownEncounterId] = useState<string | null>(null);
+    const [roadsideChest, setRoadsideChest] = useState<{
+        attemptId: string;
+    } | null>(null);
+    const pendingChestGame = useRef<{
+        attemptId: string;
+        eventId: string;
+    } | null>(null);
+    const [practiceMiniGame, setPracticeMiniGame] = useState<{
+        kind: MiniGameKind;
+        seed: string;
+        source?: "arcade";
+    } | null>(null);
+    const [powerAttention, setPowerAttention] = useState(0);
+    const [shotInbox, setShotInbox] = useState<PowerCast[] | null>(null);
+    const [actionFeedback, setActionFeedback] = useState<{
+        id: string;
+        text: string;
+        kind?: ActionKind;
+    } | null>(null);
+    /** An action's moment is playing: the camera leans in and the HUD steps back. */
+    const [momentActive, setMomentActive] = useState(false);
+    const [hudTiming, setHudTiming] = useState<HudTiming | null>(null);
+    const momentTimers = useRef<number[]>([]);
+    const pendingBanner = useRef<{
+        kicker: string;
+        title: string;
+    } | null>(null);
+    const pendingTale = useRef<ReturnType<typeof taleFor>>(null);
+    const lastAction = useRef<ActionKind | null>(null);
+    const schedule = useCallback((ms: number, run: () => void) => {
+        const timer = window.setTimeout(() => {
+            momentTimers.current = momentTimers.current.filter((id) => id !== timer);
+            run();
+        }, ms);
+        momentTimers.current.push(timer);
+    }, []);
+    useEffect(() => () => { momentTimers.current.forEach((timer) => window.clearTimeout(timer)); }, []);
+    const pendingChestEffect = useRef<Effect | null>(null);
+    const chestAnimationId = useRef<string | null>(null);
+    const chestDuringTravel = useRef(false);
+    const actionInFlight = useRef(false);
+    const [awaitingTravel, setAwaitingTravel] = useState(false);
+    // A safety net: whatever happens to the walk, the action bar never stays locked.
+    useEffect(() => {
+        if (!awaitingTravel)
+            return;
+        const timer = window.setTimeout(() => {
+            if (dragonMealId.current || chestAnimationId.current || pendingChestEffect.current)
+                return;
+            setAwaitingTravel(false);
+            actionInFlight.current = false;
+            leanOut();
+            setMomentActive(false);
+        }, 15000);
+        return () => window.clearTimeout(timer);
+    }, [awaitingTravel]);
+    const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
+    const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
+    const [worldMode, setWorldMode] = useState<WorldMode>(() => initialWorldMode ?? readWorldMode());
+    const [worldLoading, setWorldLoading] = useState(true);
+    const [activeWorldMode, setActiveWorldMode] = useState<WorldMode>(worldMode);
+    const reactionTiming = activeWorldMode === "3d" ? timing3D : timing2D;
+    const [sceneReady, setSceneReady] = useState(false);
+    const handleSceneReady = useCallback(() => setSceneReady(true), []);
+    // Once the world is up, warm what the next action will need: its reaction art,
+    // the loot art, the mini-games' code and images. Actions are rare, so otherwise
+    // every one of them would be a cold first display.
+    useEffect(() => {
+        if (!sceneReady)
+            return;
+        return whenIdle(() => {
+            primeAudio();
+            void loadMiniGames();
         });
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
-  }, [casts, me, meIndex, players, markCastSeen]);
-
-  // News of the others. The first look after arriving is compared with what this
-  // device saw last time: the difference is a recap. Afterwards, anything new is live.
-  useEffect(() => {
-    if (!me || !loaded) return;
-    const others = events.filter((e) => e.playerId !== me.id);
-    const received = cheers.filter((c) => events.some((e) => e.id === c.eventId && e.playerId === me.id) && c.playerId !== me.id);
-    if (!seenRef.current) {
-      const stored = loadSeen(`${scope}:${me.id}`);
-      const older = (at: string) => Boolean(stored?.before) && at < stored!.before;
-      const seenEvents = new Set(stored ? [...stored.events, ...others.filter((e) => older(e.at)).map((e) => e.id)] : others.map((e) => e.id));
-      const seenCheers = new Set(stored ? [...stored.cheers, ...received.filter((c) => older(c.at)).map((c) => c.id)] : received.map((c) => c.id));
-      seenRef.current = { events: seenEvents, cheers: seenCheers };
-      const missedEvents = others.filter((e) => !seenEvents.has(e.id));
-      const missedCheers = received.filter((c) => !seenCheers.has(c.id));
-      // Shown after this commit: the effect only reads what this device remembers.
-      if (stored && (missedEvents.length || missedCheers.length)) queueMicrotask(() => setRecap({ events: missedEvents, cheers: missedCheers }));
-    } else {
-      const fresh: NewsItem[] = [
-        ...others.filter((e) => !seenRef.current!.events.has(e.id)).map((event) => ({ id: event.id, kind: "event" as const, event })),
-        ...received.filter((c) => !seenRef.current!.cheers.has(c.id)).map((c) => ({ id: c.id, kind: "cheer" as const, cheer: c })),
-      ];
-      if (fresh.length) {
-        queueMicrotask(() => setNews((items) => [...items, ...fresh].slice(-3)));
-        const liveEvent = fresh.find((item) => item.kind === "event")?.event;
-        if (liveEvent) {
-          // A friend's action plays in the world too, quietly, on their own hero.
-          const index = players.findIndex((p) => p.id === liveEvent.playerId);
-          const player = players[index];
-          if (player) {
-            const variant = variantFor(liveEvent.id, liveEvent.kind);
-            const kind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[liveEvent.kind]) as EffectKind;
-            const effect = { id: `news-${liveEvent.id}`, kind, origin: heroOrigin(player, index), playerId: player.id, loud: false };
-            queueMicrotask(() => {
-              setEffects((previous) => [...previous, effect]);
-              // A glance at the friend who acted, unless you are busy with your own moment.
-              if (actionInFlight.current) return;
-              if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
-              setEffectFocusId(player.id);
-              focusTimeout.current = window.setTimeout(() => { setEffectFocusId(null); focusTimeout.current = null; }, 3400);
-            });
-          }
-          sfx.chime();
-        } else sfx.coin();
-      }
-    }
-    for (const e of others) seenRef.current.events.add(e.id);
-    for (const c of received) seenRef.current.cheers.add(c.id);
-    saveSeen(`${scope}:${me.id}`, { events: others, cheers: received });
-  }, [events, cheers, me, loaded, scope, players]);
-
-  useEffect(() => {
-    if (!news.length) return;
-    const timer = window.setTimeout(() => setNews((items) => items.slice(1)), 5200);
-    return () => window.clearTimeout(timer);
-  }, [news]);
-
-  /** The group's record for a game, named, to show what to beat. */
-  const recordFor = useCallback((kind: MiniGameKind) => {
-    const best = groupRecord(miniGames, kind);
-    if (!best || best.score === undefined) return null;
-    return { score: best.score, holder: players.find((p) => p.id === best.playerId)?.name ?? "?" };
-  }, [miniGames, players]);
-
-  const handleCheer = useCallback((eventId: string, emoji: CheerEmoji) => {
-    if (!me) return;
-    cheer(me.id, eventId, emoji);
-    sfx.press();
-  }, [me, cheer]);
-
-  const streak = useMemo(() => (me ? weeklyStreak(events.filter((e) => e.playerId === me.id)) : 0), [events, me]);
-
-  const seasonRank = useMemo(() => {
-    const index = seasonStandings.findIndex((s) => s.playerId === identity);
-    return index === -1 ? null : index + 1;
-  }, [seasonStandings, identity]);
-
-  const handleAction = useCallback(
-    (kind: ActionKind) => {
-      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
-      actionInFlight.current = true;
-      setAwaitingTravel(true);
-      setObservedPlayerId(null);
-      recenterCamera();
-
-      const { event, offer, chestGame } = addEvent(me.id, kind);
-      if (!event) {
-        // Refused by the rules (unknown or hired player): nothing to animate.
+    }, [sceneReady]);
+    const [devExplore, setDevExplore] = useState(false);
+    const [devEffect, setDevEffect] = useState<EffectKind>("pigeon");
+    const [devHero, setDevHero] = useState<{
+        characterId: string;
+        motion: HeroMotion;
+    }>({ characterId: "voleur", motion: "idle" });
+    const [devCameraTarget, setDevCameraTarget] = useState<{
+        worldX: number;
+        revision: number;
+    } | null>(null);
+    const [devAtmosphere, setDevAtmosphere] = useState(true);
+    const shownCasts = useRef(new Set<string>());
+    // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
+    const [news, setNews] = useState<NewsItem[]>([]);
+    const [recap, setRecap] = useState<{
+        events: GameEvent[];
+        cheers: Cheer[];
+    } | null>(null);
+    // The selection theme gives way to the adventure, then follows the hero's land.
+    const seenRef = useRef<{
+        events: Set<string>;
+        cheers: Set<string>;
+    } | null>(null);
+    const focusTimeout = useRef<number | null>(null);
+    // The server's word on who this device plays wins: a character claimed elsewhere drops out here.
+    const identityRevoked = Boolean(store && loaded && meId && remoteMe !== meId);
+    const sessionLost = syncError?.status === 401;
+    const shownNotice: Notice | null = notice ?? (syncError && !sessionLost
+        ? { title: syncError.status === 403 ? "Appareil non reconnu" : syncError.status === 0 ? "Hors ligne" : "Synchronisation", body: syncError.message }
+        : null);
+    const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
+    const me = meIndex === -1 ? null : players[meIndex];
+    // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
+    // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
+    const identity = me ? meId : null;
+    const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
+    const myEncounters = useMemo(() => encounters.filter(e => e.playerId === identity), [encounters, identity]);
+    const wildEncounter = myEncounters.find(e => e.id === shownEncounterId && events.some(event => event.id === e.eventId)) ?? myEncounters.findLast(e => activeEncounter(e) && events.some(event => event.id === e.eventId)) ?? null;
+    const firstFindVisible = Boolean(identity && firstFind?.playerId === identity);
+    const handleFindHidden = useCallback((itemId: string) => {
+        if (!identity || hiddenFoundIds.includes(itemId))
+            return;
+        const item = hiddenItemForId(itemId);
+        if (!item)
+            return;
+        const result = findHidden(identity, itemId);
+        if (result.rejected)
+            return;
+        sfx.chime();
+        if (hiddenFoundIds.length === 0)
+            setFirstFind({ playerId: identity, item });
+        else
+            setNotice({ title: item.name, body: `${hiddenFoundIds.length + 1} objets retrouvés sur ${HIDDEN_ITEMS.length}` });
+    }, [findHidden, identity, hiddenFoundIds]);
+    // One condition renders the welcome, pauses the world and locks the actions.
+    const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
+    useEffect(() => {
+        if (loaded)
+            setMusicPhase(identity ? "adventure" : "intro");
+    }, [loaded, identity]);
+    const queuedRewardMoment = rewardMoments[0] ?? null;
+    const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
+    const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
+        (!awaitingTravel && !momentActive && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
+    // First an invitation card, then the game itself once the player accepts.
+    const wildVisible = Boolean(sceneReady && wildEncounter && !awaitingTravel && !momentActive && rewardMoments.length === 0 && !miniGameOffer && !practiceMiniGame && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible);
+    const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
+    const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
+    useEffect(() => {
+        setMusicDucked(miniGameVisible || wildVisible || inviteVisible || welcomeVisible);
+        return () => setMusicDucked(false);
+    }, [miniGameVisible, wildVisible, inviteVisible, welcomeVisible]);
+    useEffect(() => {
+        scene.momentActive = momentActive || miniGameVisible || wildVisible || inviteVisible;
+        return () => { scene.momentActive = false; };
+    }, [momentActive, miniGameVisible, wildVisible, inviteVisible]);
+    const handleRewardDone = useCallback(() => {
+        if (rewardMoments[0]?.type === "chest") {
+            setPowerAttention(value => value + 1);
+            setRoadsideChest(null);
+            // The chest's double bottom opens once the loot is put away and no other game waits.
+            if (!miniGameOffer && pendingChestGame.current) {
+                setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
+                pendingChestGame.current = null;
+            }
+        }
+        setRewardMoments(moments => moments.slice(1));
         actionInFlight.current = false;
+    }, [rewardMoments, miniGameOffer]);
+    useEffect(() => {
+        if (!actionFeedback)
+            return;
+        const timeout = window.setTimeout(() => setActionFeedback(null), 4000);
+        return () => window.clearTimeout(timeout);
+    }, [actionFeedback]);
+    const handleChestReached = useCallback((playerId: string) => {
+        const effect = pendingChestEffect.current;
+        if (playerId !== identity || !effect)
+            return false;
+        pendingChestEffect.current = null;
+        chestDuringTravel.current = true;
+        chestAnimationId.current = effect.id;
+        leanIn(1.5);
+        sfx.coin();
+        setActionFeedback({ id: effect.id, text: tr("Coffre trouvé ! Récupération du butin…", undefined, uiLocale) });
+        setEffects(previous => [...previous, { ...effect, playerId, loud: true }]);
+        return true;
+    }, [identity, uiLocale]);
+    const handleTravelDone = useCallback((playerId: string) => {
+        if (playerId !== identity)
+            return;
+        // The hero has arrived: the camera steps back, the HUD returns, a new land is announced.
+        schedule(350, () => { leanOut(); setMomentActive(false); });
+        const banner = pendingBanner.current;
+        if (banner) {
+            pendingBanner.current = null;
+            moment.cue({ type: "banner", ...banner });
+        }
+        const tale = pendingTale.current;
+        if (tale) {
+            pendingTale.current = null;
+            schedule(banner ? 2600 : 500, () => moment.cue({ type: "tale", kind: tale.kind, label: TALE_LABELS[tale.kind], title: tale.title, text: tr(tale.text, undefined, uiLocale) }));
+        }
+        if (lastAction.current === "embauche") {
+            lastAction.current = null;
+            const hero = scene.heroes.get(playerId);
+            if (hero) {
+                [[-180, -250, 0, 0xffd76c], [160, -280, 0.35, 0x9fd4ff], [0, -320, 0.7, 0xff9a8a], [-60, -230, 1.05, 0xb8e08a]].forEach(([dx, dy, delay, color]) => {
+                    fx.burst({ preset: "firework", x: hero.x + dx, y: hero.y + dy, count: 50, colors: [color, 0xffffff], delay });
+                    schedule(delay * 1000, sfx.firework);
+                });
+                fx.burst({ preset: "confetti", x: hero.x, y: hero.y - 180, count: 90 });
+            }
+            // Let the fireworks play before the reward card covers the world.
+            schedule(2300, () => { setAwaitingTravel(false); actionInFlight.current = false; });
+            return;
+        }
+        const chestEffect = pendingChestEffect.current;
+        if (chestEffect) {
+            pendingChestEffect.current = null;
+            chestAnimationId.current = chestEffect.id;
+            setEffects((previous) => [...previous, { ...chestEffect, playerId, loud: true }]);
+            return;
+        }
         setAwaitingTravel(false);
-        return;
-      }
-      if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
-      pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
-      setRoadsideChest(chestGame?.offer ? { attemptId: chestGame.attemptId } : null);
-      const origin = heroOrigin(me, meIndex);
-
-      // The staging is drawn from the event id: every friend sees the same variant.
-      const variant = forcedVariant(kind) ?? variantFor(event.id, kind);
-      const reactionKind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[kind]) as EffectKind;
-      const queued: Effect[] = [
-        { id: event.id, kind: reactionKind, origin, playerId: me.id, loud: true },
-      ];
-      pendingChestEffect.current = null;
-
-      const beforeChest = me.earnedChests;
-      const afterSteps = Math.max(0, me.journeySteps + stepsForEvent(event));
-      const afterChest = Math.max(beforeChest, Math.floor(afterSteps / STEPS_PER_LEVEL));
-      const beforeZone = biomeAt(worldXFor(me.position));
-      const afterPosition = kind === "embauche" ? hiredPosition(afterSteps) : racePosition(afterSteps);
-      const afterZone = biomeAt(worldXFor(afterPosition));
-
-      const moments: RewardMoment[] = kind === "embauche" ? [
-        {
-          id: event.id,
-          type: "action",
-          kind,
-          steps: stepsFor(kind),
-          progress:
-            kind === "embauche" ? 1 : (afterSteps > 0 ? ((afterSteps - 1) % JOURNEY_TARGET + 1) / JOURNEY_TARGET : 0),
-          place: afterZone.name,
-          discoveredPlace: beforeZone.id !== afterZone.id,
-        },
-      ] : [];
-
-      if (afterChest > beforeChest) {
-        const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
-        pendingChestEffect.current = {
-          id: `${event.id}-chest`,
-          kind: "chest",
-          origin: { x: markerX, y: surfaceAt(markerX) + 8 },
+        actionInFlight.current = false;
+    }, [identity, schedule, uiLocale]);
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            // The native mini-game dialog owns Escape, Space, Enter and focus.
+            // The invitation owns Escape too. Preventing it here would keep a dialog open.
+            if (wildVisible || miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented)
+                return;
+            if (event.key === "Escape") {
+                event.preventDefault();
+                if (shotInbox) {
+                    setShotInbox(null);
+                    return;
+                }
+                if (rewardMoment) {
+                    handleRewardDone();
+                    return;
+                }
+                if (registerOpen) {
+                    setRegisterOpen(false);
+                    return;
+                }
+                if (awaitingTravel)
+                    return;
+                if (notice) {
+                    setNotice(null);
+                    return;
+                }
+                setRegisterOpen((open) => !open);
+            }
         };
-        const unlocked = powerForSlot(afterChest - 1);
-        moments.push({
-          id: `${event.id}-chest-reward`,
-          type: "chest",
-          powerKind: unlocked,
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, wildVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
+    useEffect(() => () => {
+        if (focusTimeout.current !== null)
+            window.clearTimeout(focusTimeout.current);
+    }, []);
+    // Les butins reçus restent en attente dans la sauvegarde jusqu'à ce que leur
+    // cible ouvre sa session. Les shots demandent une confirmation explicite ; les
+    // farces visuelles, elles, sont acquittées après leur première animation.
+    useEffect(() => {
+        if (!me)
+            return;
+        const pending = casts.filter((cast) => cast.targetPlayerId === me.id && !cast.seenAt);
+        if (pending.length === 0)
+            return;
+        const origin = heroOrigin(me, meIndex);
+        const fresh = pending.filter((cast) => !shownCasts.current.has(cast.id));
+        if (fresh.length === 0)
+            return;
+        for (const cast of fresh) {
+            shownCasts.current.add(cast.id);
+        }
+        // Différé d'une frame : l'ouverture de session termine son rendu avant que la
+        // file d'animations et la persistance des accusés de réception ne soient modifiées.
+        const timeout = window.setTimeout(() => {
+            const shots = fresh.filter((cast) => cast.kind === "shot");
+            const pranks = fresh.filter((cast) => cast.kind !== "shot");
+            setEffects((previous) => [
+                ...previous,
+                ...fresh.map((cast) => ({
+                    id: cast.id,
+                    kind: POWER_EFFECT_FOR[cast.kind],
+                    origin,
+                    playerId: me.id,
+                    loud: true,
+                })),
+            ]);
+            for (const cast of pranks)
+                markCastSeen(cast.id);
+            if (shots.length > 0) {
+                setShotInbox((current) => [...(current ?? []), ...shots]);
+            }
+            const latestPrank = pranks[pranks.length - 1];
+            if (latestPrank) {
+                const attacker = players.find((player) => player.id === latestPrank.playerId);
+                setNotice({
+                    title: POWERS[latestPrank.kind].name,
+                    body: `${attacker?.name ?? "Une âme lâche"} t’a lancé cette farce pendant ton absence.`,
+                    powerKind: latestPrank.kind,
+                });
+            }
+        }, 0);
+        return () => window.clearTimeout(timeout);
+    }, [casts, me, meIndex, players, markCastSeen]);
+    // News of the others. The first look after arriving is compared with what this
+    // device saw last time: the difference is a recap. Afterwards, anything new is live.
+    useEffect(() => {
+        if (!me || !loaded)
+            return;
+        const others = events.filter((e) => e.playerId !== me.id);
+        const received = cheers.filter((c) => events.some((e) => e.id === c.eventId && e.playerId === me.id) && c.playerId !== me.id);
+        if (!seenRef.current) {
+            const stored = loadSeen(`${scope}:${me.id}`);
+            const older = (at: string) => Boolean(stored?.before) && at < stored!.before;
+            const seenEvents = new Set(stored ? [...stored.events, ...others.filter((e) => older(e.at)).map((e) => e.id)] : others.map((e) => e.id));
+            const seenCheers = new Set(stored ? [...stored.cheers, ...received.filter((c) => older(c.at)).map((c) => c.id)] : received.map((c) => c.id));
+            seenRef.current = { events: seenEvents, cheers: seenCheers };
+            const missedEvents = others.filter((e) => !seenEvents.has(e.id));
+            const missedCheers = received.filter((c) => !seenCheers.has(c.id));
+            // Shown after this commit: the effect only reads what this device remembers.
+            if (stored && (missedEvents.length || missedCheers.length))
+                queueMicrotask(() => setRecap({ events: missedEvents, cheers: missedCheers }));
+        }
+        else {
+            const fresh: NewsItem[] = [
+                ...others.filter((e) => !seenRef.current!.events.has(e.id)).map((event) => ({ id: event.id, kind: "event" as const, event })),
+                ...received.filter((c) => !seenRef.current!.cheers.has(c.id)).map((c) => ({ id: c.id, kind: "cheer" as const, cheer: c })),
+            ];
+            if (fresh.length) {
+                queueMicrotask(() => setNews((items) => [...items, ...fresh].slice(-3)));
+                const liveEvent = fresh.find((item) => item.kind === "event")?.event;
+                if (liveEvent) {
+                    // A friend's action plays in the world too, quietly, on their own hero.
+                    const index = players.findIndex((p) => p.id === liveEvent.playerId);
+                    const player = players[index];
+                    if (player) {
+                        const variant = variantFor(liveEvent.id, liveEvent.kind);
+                        const kind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[liveEvent.kind]) as EffectKind;
+                        const effect = { id: `news-${liveEvent.id}`, kind, origin: heroOrigin(player, index), playerId: player.id, loud: false };
+                        queueMicrotask(() => {
+                            setEffects((previous) => [...previous, effect]);
+                            // A glance at the friend who acted, unless you are busy with your own moment.
+                            if (actionInFlight.current)
+                                return;
+                            if (focusTimeout.current !== null)
+                                window.clearTimeout(focusTimeout.current);
+                            setEffectFocusId(player.id);
+                            focusTimeout.current = window.setTimeout(() => { setEffectFocusId(null); focusTimeout.current = null; }, 3400);
+                        });
+                    }
+                    sfx.chime();
+                }
+                else
+                    sfx.coin();
+            }
+        }
+        for (const e of others)
+            seenRef.current.events.add(e.id);
+        for (const c of received)
+            seenRef.current.cheers.add(c.id);
+        saveSeen(`${scope}:${me.id}`, { events: others, cheers: received });
+    }, [events, cheers, me, loaded, scope, players]);
+    useEffect(() => {
+        if (!news.length)
+            return;
+        const timer = window.setTimeout(() => setNews((items) => items.slice(1)), 5200);
+        return () => window.clearTimeout(timer);
+    }, [news]);
+    /** The group's record for a game, named, to show what to beat. */
+    const recordFor = useCallback((kind: MiniGameKind) => {
+        const best = groupRecord(miniGames, kind);
+        if (!best || best.score === undefined)
+            return null;
+        return { score: best.score, holder: players.find((p) => p.id === best.playerId)?.name ?? "?" };
+    }, [miniGames, players]);
+    const handleCheer = useCallback((eventId: string, emoji: CheerEmoji) => {
+        if (!me)
+            return;
+        cheer(me.id, eventId, emoji);
+        sfx.press();
+    }, [me, cheer]);
+    const streak = useMemo(() => (me ? weeklyStreak(events.filter((e) => e.playerId === me.id)) : 0), [events, me]);
+    const seasonRank = useMemo(() => {
+        const index = seasonStandings.findIndex((s) => s.playerId === identity);
+        return index === -1 ? null : index + 1;
+    }, [seasonStandings, identity]);
+    const handleAction = useCallback((kind: ActionKind) => {
+        if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter)
+            return;
+        actionInFlight.current = true;
+        setAwaitingTravel(true);
+        setObservedPlayerId(null);
+        recenterCamera();
+        const { event, offer, chestGame } = addEvent(me.id, kind);
+        if (!event) {
+            // Refused by the rules (unknown or hired player): nothing to animate.
+            actionInFlight.current = false;
+            setAwaitingTravel(false);
+            return;
+        }
+        if (offer)
+            setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
+        pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
+        setRoadsideChest(chestGame?.offer ? { attemptId: chestGame.attemptId } : null);
+        const origin = heroOrigin(me, meIndex);
+        // The staging is drawn from the event id: every friend sees the same variant.
+        const variant = forcedVariant(kind) ?? variantFor(event.id, kind);
+        const reactionKind = (variant.id in REACTION_KINDS ? variant.id : EFFECT_FOR[kind]) as EffectKind;
+        const queued: Effect[] = [
+            { id: event.id, kind: reactionKind, origin, playerId: me.id, loud: true },
+        ];
+        pendingChestEffect.current = null;
+        const beforeChest = me.earnedChests;
+        const afterSteps = Math.max(0, me.journeySteps + stepsForEvent(event));
+        const afterChest = Math.max(beforeChest, Math.floor(afterSteps / STEPS_PER_LEVEL));
+        const beforeZone = biomeAt(worldXFor(me.position));
+        const afterPosition = kind === "embauche" ? hiredPosition(afterSteps) : racePosition(afterSteps);
+        const afterZone = biomeAt(worldXFor(afterPosition));
+        const moments: RewardMoment[] = kind === "embauche" ? [
+            {
+                id: event.id,
+                type: "action",
+                kind,
+                steps: stepsFor(kind),
+                progress: kind === "embauche" ? 1 : (afterSteps > 0 ? ((afterSteps - 1) % JOURNEY_TARGET + 1) / JOURNEY_TARGET : 0),
+                place: afterZone.name,
+                discoveredPlace: beforeZone.id !== afterZone.id,
+            },
+        ] : [];
+        if (afterChest > beforeChest) {
+            const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
+            pendingChestEffect.current = {
+                id: `${event.id}-chest`,
+                kind: "chest",
+                origin: { x: markerX, y: surfaceAt(markerX) + 8 },
+            };
+            const unlocked = powerForSlot(afterChest - 1);
+            moments.push({
+                id: `${event.id}-chest-reward`,
+                type: "chest",
+                powerKind: unlocked,
+            });
+        }
+        setEffects(previous => [...previous, ...queued]);
+        // The moment: lean in, impact, then the walk.
+        sfx.press();
+        const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
+        const { impact, duration } = reactionTiming(reactionKind);
+        if (variant.rarity !== "common")
+            schedule(impact + 250, () => moment.cue({ type: "badge", rarity: variant.rarity as "rare" | "legendary", name: variant.name }));
+        if (reactionKind === "storm" || reactionKind === "refusalAvalanche")
+            moment.cue({ type: "shade", color: "#0b1526", opacity: 0.42, ms: duration });
+        const hold = REACTION_HOLD[kind] * 1000;
+        const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
+        leanIn(kind === "rejetApresEntretien" ? 1.35 : legendary ? 1.14 : 1.08, 0.42);
+        setMomentActive(true);
+        setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
+        if (legendary)
+            moment.cue({ type: "letterbox", ms: duration });
+        schedule(impact, () => {
+            moment.cue({ type: "flash", ...FLASH[kind] });
         });
-      }
-
-      setEffects(previous => [...previous, ...queued]);
-
-      // The moment: lean in, impact, then the walk.
-      sfx.press();
-      const legendary = kind === "rejetApresEntretien" || kind === "embauche" || variant.rarity === "legendary";
-      const { impact, duration } = reactionTiming(reactionKind);
-      if (variant.rarity !== "common") schedule(impact + 250, () => moment.cue({ type: "badge", rarity: variant.rarity as "rare" | "legendary", name: variant.name }));
-      if (reactionKind === "storm" || reactionKind === "refusalAvalanche") moment.cue({ type: "shade", color: "#0b1526", opacity: 0.42, ms: duration });
-      const hold = REACTION_HOLD[kind] * 1000;
-      const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
-      leanIn(kind === "rejetApresEntretien" ? 1.35 : legendary ? 1.14 : 1.08, 0.42);
-      setMomentActive(true);
-      setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
-      if (legendary) moment.cue({ type: "letterbox", ms: duration });
-      schedule(impact, () => {
-        moment.cue({ type: "flash", ...FLASH[kind] });
-      });
-      pendingTale.current = forcedTale() ?? taleFor(event);
-      const beforeRoom = interiorAt(worldXFor(me.position));
-      const afterRoom = interiorAt(worldXFor(afterPosition));
-      pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
-        ? { kicker: "Vous entrez", title: afterRoom.name }
-        : beforeZone.id !== afterZone.id
-        ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
-        : beforeRoom && !afterRoom ? { kicker: "De retour dehors", title: afterZone.name }
-        : null;
-      lastAction.current = kind;
-
-      const steps = stepsForEvent(event);
-      setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
+        pendingTale.current = forcedTale() ?? taleFor(event);
+        const beforeRoom = interiorAt(worldXFor(me.position));
+        const afterRoom = interiorAt(worldXFor(afterPosition));
+        pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
+            ? { kicker: "Vous entrez", title: afterRoom.name }
+            : beforeZone.id !== afterZone.id
+                ? { kicker: afterSteps < me.journeySteps ? "De retour" : "Nouvelle contrée", title: afterZone.name }
+                : beforeRoom && !afterRoom ? { kicker: "De retour dehors", title: afterZone.name }
+                    : null;
+        lastAction.current = kind;
+        const steps = stepsForEvent(event);
+        setActionFeedback({ id: event.id, kind, text: tr(kind === "embauche" ? "En route pour la taverne !" : `${tr(ACTION_LABELS_ONE[kind], undefined, uiLocale)}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${tr(afterZone.short, undefined, uiLocale)}` : ""}` , undefined, uiLocale) });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, wildEncounter, schedule, reactionTiming, activeWorldMode],
+    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, wildEncounter, schedule, reactionTiming, activeWorldMode, uiLocale]
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
@@ -689,498 +682,358 @@ export function Game({ slug = null, initialWorldMode }: { slug?: string | null; 
     const copy = MINI_GAMES[miniGameOffer.kind];
     if (miniGameOffer.action === "chest") {
       setPowerAttention(value => value + 1);
-      setActionFeedback({ id: `${miniGameOffer.attemptId}-bonus`, text: copy.winFeedback });
-      return;
-    }
-    // Only a bonus that moves the hero waits for the walk; otherwise nothing would end it.
-    if (moved) {
-      actionInFlight.current = true;
-      setAwaitingTravel(true);
-    }
-    const bonus = miniGameBonus(miniGameOffer.action);
-    if (chestGame) {
-      const afterChest = me.earnedChests + 1;
-      const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
-      pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
-      setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
-      pendingChestGame.current = null;
-    }
-    setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: `${copy.winFeedback} · +${bonus} pas bonus` });
-  }, [miniGameOffer, me, finishMiniGame, activeWorldMode]);
-
-  const handleMiniGameDone = useCallback(() => {
-    setMiniGameOffer(null);
-    if (pendingChestGame.current) {
-      setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
-      pendingChestGame.current = null;
-    }
-  }, []);
-
-  // Passing on the invitation records a skip, exactly like closing the game.
-  const handlePassMiniGame = useCallback(() => {
-    handleMiniGameResult("skipped");
-    handleMiniGameDone();
-  }, [handleMiniGameResult, handleMiniGameDone]);
-
-  const handleCast = useCallback(
-    (power: AvailablePower, targetId: string) => {
-      if (!me) return;
-      setObservedPlayerId(null);
-      recenterCamera();
-      const targetIndex = players.findIndex((player) => player.id === targetId);
-      const target = players[targetIndex];
-      if (!target) return;
-
-      const cast = castPower(me.id, targetId, power.kind, power.slot);
-      // A word in the dock's live region: the effect alone says nothing to a screen reader.
-      setActionFeedback({ id: cast.id, text: `${POWERS[power.kind].name} → ${target.name}` });
-      if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
-      setEffectFocusId(targetId);
-      focusTimeout.current = window.setTimeout(() => {
-        setEffectFocusId(null);
+      setActionFeedback({ id: `${miniGameOffer.attemptId}-bonus`, text: tr(copy.winFeedback, undefined, uiLocale) });
+            return;
+        }
+        // Only a bonus that moves the hero waits for the walk; otherwise nothing would end it.
+        if (moved) {
+            actionInFlight.current = true;
+            setAwaitingTravel(true);
+        }
+        const bonus = miniGameBonus(miniGameOffer.action);
+        if (chestGame) {
+            const afterChest = me.earnedChests + 1;
+            const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
+            pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
+            setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
+            pendingChestGame.current = null;
+        }
+        setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: tr("{0} · +{1} pas bonus", [tr(copy.winFeedback, undefined, uiLocale), bonus], uiLocale) });
+    }, [miniGameOffer, me, finishMiniGame, activeWorldMode, uiLocale]);
+    const handleMiniGameDone = useCallback(() => {
+        setMiniGameOffer(null);
+        if (pendingChestGame.current) {
+            setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
+            pendingChestGame.current = null;
+        }
+    }, []);
+    // Passing on the invitation records a skip, exactly like closing the game.
+    const handlePassMiniGame = useCallback(() => {
+        handleMiniGameResult("skipped");
+        handleMiniGameDone();
+    }, [handleMiniGameResult, handleMiniGameDone]);
+    const handleCast = useCallback((power: AvailablePower, targetId: string) => {
+        if (!me)
+            return;
+        setObservedPlayerId(null);
+        recenterCamera();
+        const targetIndex = players.findIndex((player) => player.id === targetId);
+        const target = players[targetIndex];
+        if (!target)
+            return;
+        const cast = castPower(me.id, targetId, power.kind, power.slot);
+        // A word in the dock's live region: the effect alone says nothing to a screen reader.
+        setActionFeedback({ id: cast.id, text: tr(`${tr(POWERS[power.kind].name, undefined, uiLocale)} → ${target.name}`, undefined, uiLocale) });
+        if (focusTimeout.current !== null)
+            window.clearTimeout(focusTimeout.current);
+        setEffectFocusId(targetId);
+        focusTimeout.current = window.setTimeout(() => {
+            setEffectFocusId(null);
+            focusTimeout.current = null;
+        }, power.kind === "fienteDragon" ? 7000 : 4000);
+        setEffects((previous) => [
+            ...previous,
+            {
+                id: `${cast.id}-preview`,
+                kind: POWER_EFFECT_FOR[power.kind],
+                origin: heroOrigin(target, targetIndex),
+                playerId: target.id,
+                loud: true,
+            },
+        ]);
+    }, [castPower, me, players, uiLocale]);
+    const handleUndo = useCallback(() => {
+        if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter)
+            return;
+        actionInFlight.current = true;
+        setAwaitingTravel(true);
+        setObservedPlayerId(null);
+        recenterCamera();
+        setEffects([]);
+        setActionFeedback({ id: crypto.randomUUID(), text: tr("Dernière action annulée", undefined, uiLocale) });
+        undoLast(me.id);
+    }, [me, undoLast, rewardMoments.length, miniGameOffer, wildEncounter, uiLocale]);
+    const handleEffectDone = useCallback((id: string) => {
+        setEffects((prev) => prev.filter((effect) => effect.id !== id));
+        if (dragonMealId.current === id) {
+            dragonMealId.current = null;
+            setAwaitingTravel(false);
+            actionInFlight.current = false;
+        }
+        if (chestAnimationId.current === id) {
+            chestAnimationId.current = null;
+            if (!chestDuringTravel.current) {
+                setAwaitingTravel(false);
+                actionInFlight.current = false;
+            }
+            chestDuringTravel.current = false;
+        }
+    }, []);
+    const handleDevExplore = useCallback(() => {
+        setDevExplore((active) => !active);
+    }, []);
+    const releaseFocus = useCallback(() => {
+        if (focusTimeout.current !== null)
+            window.clearTimeout(focusTimeout.current);
         focusTimeout.current = null;
-      }, power.kind === "fienteDragon" ? 7000 : 4000);
-      setEffects((previous) => [
-        ...previous,
-        {
-          id: `${cast.id}-preview`,
-          kind: POWER_EFFECT_FOR[power.kind],
-          origin: heroOrigin(target, targetIndex),
-          playerId: target.id,
-          loud: true,
-        },
-      ]);
-
-    },
-    [castPower, me, players],
-  );
-
-  const handleUndo = useCallback(() => {
-    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
-    actionInFlight.current = true;
-    setAwaitingTravel(true);
-    setObservedPlayerId(null);
-    recenterCamera();
-    setEffects([]);
-    setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
-    undoLast(me.id);
-  }, [me, undoLast, rewardMoments.length, miniGameOffer, wildEncounter]);
-
-  const handleEffectDone = useCallback((id: string) => {
-    setEffects((prev) => prev.filter((effect) => effect.id !== id));
-    if (dragonMealId.current === id) {
-      dragonMealId.current = null;
-      setAwaitingTravel(false);
-      actionInFlight.current = false;
-    }
-    if (chestAnimationId.current === id) {
-      chestAnimationId.current = null;
-      if (!chestDuringTravel.current) {
-        setAwaitingTravel(false);
+        setEffectFocusId(null);
+    }, []);
+    const handleLocatePlayer = useCallback((id: string) => {
+        // Your own action's moment, banner and chest play where your hero is.
+        if (actionInFlight.current || !players.some(player => player.id === id))
+            return;
+        releaseFocus();
+        setObservedPlayerId(id);
+        setRegisterOpen(false);
+        recenterCamera();
+        markMotion();
+    }, [players, releaseFocus]);
+    // Stable callbacks: the memoised canvas must not re-render with every HUD update.
+    const handleReturnToMe = useCallback(() => {
+        releaseFocus();
+        setObservedPlayerId(null);
+    }, [releaseFocus]);
+    const dragonChallengeOpen = useRef(false);
+    useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !wildEncounter && !rewardMoments.length); });
+    const handleDragonChallenge = useCallback(() => {
+        if (dragonChallengeOpen.current)
+            setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
+    }, []);
+    const handleDragonSwallow = useCallback((nest: number) => {
+        if (!me || actionInFlight.current || !dragonChallengeOpen.current || effects.length)
+            return false;
+        const id = crypto.randomUUID();
+        dragonMealId.current = id;
+        actionInFlight.current = true;
+        setAwaitingTravel(true);
+        setEffects(previous => [...previous, { id, kind: "dragonMeal", origin: { x: nest, y: surfaceAt(nest) }, playerId: me.id, loud: true }]);
+        return true;
+    }, [me, effects.length]);
+    const handleDevBiome = useCallback((from: number, to: number) => {
+        setDevExplore(true);
+        setDevCameraTarget((current) => ({
+            worldX: ((from + to) * 0.5) * WORLD_LENGTH,
+            revision: (current?.revision ?? 0) + 1,
+        }));
+    }, []);
+    const resetPresentation = useCallback(() => {
+        momentTimers.current.forEach((timer) => window.clearTimeout(timer));
+        momentTimers.current = [];
+        leanOut();
+        setMomentActive(false);
+        setHudTiming(null);
+        pendingBanner.current = null;
+        pendingTale.current = null;
         actionInFlight.current = false;
-      }
-      chestDuringTravel.current = false;
+        pendingChestEffect.current = null;
+        chestAnimationId.current = null;
+        chestDuringTravel.current = false;
+        setAwaitingTravel(false);
+        setRewardMoments([]);
+        setMiniGameOffer(null);
+        setShownEncounterId(null);
+        setRoadsideChest(null);
+        pendingChestGame.current = null;
+        setFirstFind(null);
+        setEffects([]);
+        dragonMealId.current = null;
+        setActionFeedback(null);
+        setEffectFocusId(null);
+        setObservedPlayerId(null);
+    }, []);
+    const enter = useCallback((playerId: string) => {
+        seenRef.current = null;
+        resetPresentation();
+        shownCasts.current.clear();
+        setShotInbox(null);
+        setSceneReady(false);
+        saveSession(playerId, scope);
+        setMeId(playerId);
+        setWelcomeOpen(!hasSeenWelcome(`${scope}:${playerId}`));
+    }, [resetPresentation, scope]);
+    // In a group, a character belongs to one device: any other one has to show its PIN first.
+    const handlePick = useCallback((playerId: string) => {
+        if (store && remoteMe !== playerId) {
+            setClaiming(playerId);
+            return;
+        }
+        enter(playerId);
+    }, [store, remoteMe, enter]);
+    const handleClaim = useCallback(async (playerId: string, pin: string) => {
+        await claim(playerId, pin);
+        setClaiming(null);
+        enter(playerId);
+    }, [claim, enter]);
+    const handleCreate = useCallback((name: string, characterId: string, pin?: string) => {
+        const id = addPlayer(name, characterId, pin);
+        if (!id) {
+            setNotice({ title: "Personnage refusé", body: "Ce nom ou cette classe ne passe pas. Essaie autre chose." });
+            return;
+        }
+        enter(id);
+    }, [addPlayer, enter]);
+    const handleChangeIdentity = useCallback(() => {
+        resetPresentation();
+        shownCasts.current.clear();
+        setShotInbox(null);
+        clearSession(scope);
+        setMeId(null);
+        setRegisterOpen(false);
+    }, [resetPresentation, scope]);
+    const canUndo = Boolean(me && events.some((event) => event.playerId === me.id));
+    if (!loaded) {
+        return (<main className="flex h-full w-full items-center justify-center bg-ink-deep">
+        <p className="engrave animate-pulse text-sm">{tr("Chargement de la partie…", undefined, uiLocale)}</p>
+      </main>);
     }
-  }, []);
+    return (<ExperienceContext.Provider value={activeWorldMode}><main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-experience={activeWorldMode} data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
+      <WorldView mode={worldMode} onModeChange={setWorldMode} onActiveModeChange={setActiveWorldMode} canSwitch={!awaitingTravel && !momentActive && effects.length === 0 && !rewardMoments.length && !miniGameOffer && !practiceMiniGame && !wildEncounter && !shotInbox && !welcomeVisible && !firstFindVisible && !registerOpen && !adventureOpen && !meetupOpen} onLoadingChange={loading => {
+            setWorldLoading(loading);
+            if (loading)
+                setSceneReady(false);
+        }} journeyRevision={events.filter(event => event.playerId === identity).map(event => event.id).join(":")} encounter={me && (wildEncounter || miniGameOffer || roadsideChest) ? { id: wildEncounter?.id ?? miniGameOffer?.attemptId ?? roadsideChest!.attemptId, model: wildEncounter?.monster ?? miniGameOffer?.kind ?? "slots", rare: wildEncounter?.rare ?? false, worldX: worldXFor(me.position) } : null} hiddenFoundIds={hiddenFoundIds} onFindHidden={handleFindHidden} atmosphere={DEV_BUILD ? devAtmosphere : true} onDragonChallenge={handleDragonChallenge} onDragonSwallow={handleDragonSwallow} onSceneReady={handleSceneReady} paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible || inviteVisible || wildVisible} actionDockVisible={Boolean(me)} devHero={devHero} pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null} players={players} decor={decor} meId={identity} focusPlayerId={effectFocusId ?? observedPlayerId} onReturnToMe={handleReturnToMe} effects={effects} onEffectDone={handleEffectDone} onTravelDone={handleTravelDone} onChestReached={handleChestReached} freeCamera={true} devCameraTarget={devCameraTarget}/>
 
-  const handleDevExplore = useCallback(() => {
-    setDevExplore((active) => !active);
-  }, []);
-
-  const releaseFocus = useCallback(() => {
-    if (focusTimeout.current !== null) window.clearTimeout(focusTimeout.current);
-    focusTimeout.current = null;
-    setEffectFocusId(null);
-  }, []);
-
-  const handleLocatePlayer = useCallback((id: string) => {
-    // Your own action's moment, banner and chest play where your hero is.
-    if (actionInFlight.current || !players.some(player => player.id === id)) return;
-    releaseFocus();
-    setObservedPlayerId(id);
-    setRegisterOpen(false);
-    recenterCamera();
-    markMotion();
-  }, [players, releaseFocus]);
-
-  // Stable callbacks: the memoised canvas must not re-render with every HUD update.
-  const handleReturnToMe = useCallback(() => {
-    releaseFocus();
-    setObservedPlayerId(null);
-  }, [releaseFocus]);
-  const dragonChallengeOpen = useRef(false);
-  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !wildEncounter && !rewardMoments.length); });
-  const handleDragonChallenge = useCallback(() => {
-    if (dragonChallengeOpen.current) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
-  }, []);
-  const handleDragonSwallow = useCallback((nest: number) => {
-    if (!me || actionInFlight.current || !dragonChallengeOpen.current || effects.length) return false;
-    const id = crypto.randomUUID();
-    dragonMealId.current = id;
-    actionInFlight.current = true;
-    setAwaitingTravel(true);
-    setEffects(previous => [...previous, { id, kind: "dragonMeal", origin: { x: nest, y: surfaceAt(nest) }, playerId: me.id, loud: true }]);
-    return true;
-  }, [me, effects.length]);
-
-  const handleDevBiome = useCallback((from: number, to: number) => {
-    setDevExplore(true);
-    setDevCameraTarget((current) => ({
-      worldX: ((from + to) * 0.5) * WORLD_LENGTH,
-      revision: (current?.revision ?? 0) + 1,
-    }));
-  }, []);
-
-  const resetPresentation = useCallback(() => {
-    momentTimers.current.forEach((timer) => window.clearTimeout(timer));
-    momentTimers.current = [];
-    leanOut();
-    setMomentActive(false);
-    setHudTiming(null);
-    pendingBanner.current = null;
-    pendingTale.current = null;
-    actionInFlight.current = false;
-    pendingChestEffect.current = null;
-    chestAnimationId.current = null;
-    chestDuringTravel.current = false;
-    setAwaitingTravel(false);
-    setRewardMoments([]);
-    setMiniGameOffer(null);
-    setShownEncounterId(null);
-    setRoadsideChest(null);
-    pendingChestGame.current = null;
-    setFirstFind(null);
-    setEffects([]);
-    dragonMealId.current = null;
-    setActionFeedback(null);
-    setEffectFocusId(null);
-    setObservedPlayerId(null);
-  }, []);
-
-  const enter = useCallback((playerId: string) => {
-    seenRef.current = null;
-    resetPresentation();
-    shownCasts.current.clear();
-    setShotInbox(null);
-    setSceneReady(false);
-    saveSession(playerId, scope);
-    setMeId(playerId);
-    setWelcomeOpen(!hasSeenWelcome(`${scope}:${playerId}`));
-  }, [resetPresentation, scope]);
-
-  // In a group, a character belongs to one device: any other one has to show its PIN first.
-  const handlePick = useCallback((playerId: string) => {
-    if (store && remoteMe !== playerId) { setClaiming(playerId); return; }
-    enter(playerId);
-  }, [store, remoteMe, enter]);
-
-  const handleClaim = useCallback(async (playerId: string, pin: string) => {
-    await claim(playerId, pin);
-    setClaiming(null);
-    enter(playerId);
-  }, [claim, enter]);
-
-  const handleCreate = useCallback(
-    (name: string, characterId: string, pin?: string) => {
-      const id = addPlayer(name, characterId, pin);
-      if (!id) {
-        setNotice({ title: "Personnage refusé", body: "Ce nom ou cette classe ne passe pas. Essaie autre chose." });
-        return;
-      }
-      enter(id);
-    },
-    [addPlayer, enter],
-  );
-
-  const handleChangeIdentity = useCallback(() => {
-    resetPresentation();
-    shownCasts.current.clear();
-    setShotInbox(null);
-    clearSession(scope);
-    setMeId(null);
-    setRegisterOpen(false);
-  }, [resetPresentation, scope]);
-
-
-  const canUndo = Boolean(
-    me && events.some((event) => event.playerId === me.id),
-  );
-  if (!loaded) {
-    return (
-      <main className="flex h-full w-full items-center justify-center bg-ink-deep">
-        <p className="engrave animate-pulse text-sm">Chargement de la partie…</p>
-      </main>
-    );
-  }
-
-  return (
-    <main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
-      <WorldView
-        mode={worldMode}
-        onModeChange={setWorldMode}
-        onActiveModeChange={setActiveWorldMode}
-        canSwitch={!awaitingTravel && !momentActive && effects.length === 0 && !rewardMoments.length && !miniGameOffer && !practiceMiniGame && !wildEncounter && !shotInbox && !welcomeVisible && !firstFindVisible && !registerOpen && !adventureOpen && !meetupOpen}
-        onLoadingChange={loading => { setWorldLoading(loading); if (loading) setSceneReady(false); }}
-        journeyRevision={events.filter(event => event.playerId === identity).map(event => event.id).join(":")}
-        encounter={me && (wildEncounter || miniGameOffer || roadsideChest) ? { id: wildEncounter?.id ?? miniGameOffer?.attemptId ?? roadsideChest!.attemptId, model: wildEncounter?.monster ?? miniGameOffer?.kind ?? "slots", rare: wildEncounter?.rare ?? false, worldX: worldXFor(me.position) } : null}
-        hiddenFoundIds={hiddenFoundIds}
-        onFindHidden={handleFindHidden}
-        atmosphere={DEV_BUILD ? devAtmosphere : true}
-        onDragonChallenge={handleDragonChallenge}
-        onDragonSwallow={handleDragonSwallow}
-        onSceneReady={handleSceneReady}
-        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible || inviteVisible || wildVisible}
-        actionDockVisible={Boolean(me)}
-        devHero={devHero}
-        pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
-        players={players}
-        decor={decor}
-        meId={identity}
-        focusPlayerId={effectFocusId ?? observedPlayerId}
-        onReturnToMe={handleReturnToMe}
-        effects={effects}
-        onEffectDone={handleEffectDone}
-        onTravelDone={handleTravelDone}
-        onChestReached={handleChestReached}
-        freeCamera={true}
-        devCameraTarget={devCameraTarget}
-      />
-
-      <div className="world-mode-switch" role="group" aria-label="Affichage du monde">
-        {(["2d", "3d"] as const).map(mode => <button key={mode} type="button" aria-pressed={worldMode === mode} disabled={worldLoading} onClick={() => setWorldMode(mode)}>{mode.toUpperCase()}</button>)}
+      <div className="world-mode-switch" role="group" aria-label={tr("Affichage du monde", undefined, uiLocale)}>
+        {(["2d", "3d"] as const).map(mode => <button key={mode} type="button" aria-pressed={worldMode === mode} disabled={worldLoading} onClick={() => setWorldMode(mode)}>{tr(mode.toUpperCase(), undefined, uiLocale)}</button>)}
       </div>
-      <div className="vignette absolute inset-0 z-[3]" />
-      <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
+      <div className="vignette absolute inset-0 z-[3]"/>
+      <div className="world-glaze pointer-events-none absolute inset-0 z-[3]"/>
       <DaylightVeil />
       <MomentOverlay />
 
-      {DEV_BUILD ? (
-        <aside className="dev-explorer" data-open={devExplore}>
-          <button
-            type="button"
-            className="dev-explorer__toggle"
-            aria-pressed={devExplore}
-            onClick={handleDevExplore}
-          >
-            <span>DEV</span>
-            {devExplore ? "Caméra libre" : "Explorer le monde"}
+      {DEV_BUILD ? (<aside className="dev-explorer" data-open={devExplore}>
+          <button type="button" className="dev-explorer__toggle" aria-pressed={devExplore} onClick={handleDevExplore}>
+            <span>{tr("DEV", undefined, uiLocale)}</span>
+            {tr(devExplore ? "Caméra libre" : "Explorer le monde", undefined, uiLocale)}
           </button>
-          {devExplore ? (
-            <nav className="dev-explorer__biomes" aria-label="Biomes de test">
-              <select aria-label="Rencontre de test" value="" onChange={event => { if (event.target.value) { const progress = Number(event.target.value) / WORLD_LENGTH; handleDevBiome(progress, progress); } }}>
-                <option value="">Rencontre de décor…</option>
-                {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
+          {devExplore ? (<nav className="dev-explorer__biomes" aria-label={tr("Biomes de test", undefined, uiLocale)}>
+              <select aria-label={tr("Rencontre de test", undefined, uiLocale)} value="" onChange={event => {
+                    if (event.target.value) {
+                        const progress = Number(event.target.value) / WORLD_LENGTH;
+                        handleDevBiome(progress, progress);
+                    }
+                }}>
+                <option value="">{tr("Rencontre de décor…", undefined, uiLocale)}</option>
+                {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{tr(ENVIRONMENT_LABELS[site.kind], undefined, uiLocale)} · {tr(site.biome, undefined, uiLocale)}</option>)}
               </select>
-              <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
-              <label>Position <input aria-label="Position de test" type="number" min="0" step="50" value={devCameraTarget?.worldX ?? 0} onChange={event=>{const x=Number(event.target.value);if(Number.isFinite(x)&&x>=0)handleDevBiome(x/WORLD_LENGTH,x/WORLD_LENGTH);}} /></label>
-              <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>Lumière et brume</button>
-              <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
-                {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
+              <output id="scene-stats" className="dev-explorer__stats" aria-label={tr("Performances de la scène", undefined, uiLocale)}/>
+              <label>{tr("Position ", undefined, uiLocale)}<input aria-label={tr("Position de test", undefined, uiLocale)} type="number" min="0" step="50" value={devCameraTarget?.worldX ?? 0} onChange={event => {
+                    const x = Number(event.target.value);
+                    if (Number.isFinite(x) && x >= 0)
+                        handleDevBiome(x / WORLD_LENGTH, x / WORLD_LENGTH);
+                }}/></label>
+              <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>{tr("Lumière et brume", undefined, uiLocale)}</button>
+              <select aria-label={tr("Personnage de test", undefined, uiLocale)} value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
+                {CHARACTERS.map(character => <option key={character.id} value={character.id}>{tr(character.name, undefined, uiLocale)}</option>)}
               </select>
-              <select aria-label="Animation de test" value={devHero.motion} onChange={event => setDevHero(value => ({ ...value, motion: event.target.value as HeroMotion }))}>
-                <option value="idle">Repos</option><option value="walk">Marche</option><option value="send">Lettre</option><option value="hurt">Réaction</option><option value="celebrate">Victoire</option>
+              <select aria-label={tr("Animation de test", undefined, uiLocale)} value={devHero.motion} onChange={event => setDevHero(value => ({ ...value, motion: event.target.value as HeroMotion }))}>
+                <option value="idle">{tr("Repos", undefined, uiLocale)}</option><option value="walk">{tr("Marche", undefined, uiLocale)}</option><option value="send">{tr("Lettre", undefined, uiLocale)}</option><option value="hurt">{tr("Réaction", undefined, uiLocale)}</option><option value="celebrate">{tr("Victoire", undefined, uiLocale)}</option>
               </select>
-              <select aria-label="Effet de test" value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
-                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["shotVolley", "Gage"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              <select aria-label={tr("Effet de test", undefined, uiLocale)} value={devEffect} onChange={event => setDevEffect(event.target.value as EffectKind)}>
+                {[...Object.values(VARIANTS).flat().map((variant) => [variant.id, `${variant.name} (${variant.rarity})`]), ["chest", "Coffre"], ["shotVolley", "Gage"], ["fireCurse", "Feu"], ["dragonDrop", "Dragon"], ["paperStorm", "Paperasse"], ["frogCurse", "Crapaud"]].map(([id, label]) => <option key={id} value={id}>{tr(label, undefined, uiLocale)}</option>)}
               </select>
-              <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
-                <option value="">Mini-jeu (entraînement)…</option>
-                {PLAYABLE_MINI_GAMES.map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
+              <select aria-label={tr("Tester un mini-jeu", undefined, uiLocale)} value="" onChange={event => {
+                    if (event.target.value)
+                        setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` });
+                }}>
+                <option value="">{tr("Mini-jeu (entraînement)…", undefined, uiLocale)}</option>
+                {PLAYABLE_MINI_GAMES.map(game => <option key={game.kind} value={game.kind}>{tr(game.title, undefined, uiLocale)}</option>)}
               </select>
               <button type="button" onClick={() => {
-                const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
-                const x = devEffect === "chest" ? at + 110 : at;
-                setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
-              }}>Tester l’effet</button>
-              {BIOMES.map((biome) => (
-                <button
-                  key={biome.id}
-                  type="button"
-                  onClick={() => handleDevBiome(biome.from, biome.to)}
-                >
-                  {biome.short}
-                </button>
-              ))}
-              {DEV_VIEWPOINTS.map((viewpoint) => (
-                <button
-                  key={viewpoint.id}
-                  type="button"
-                  onClick={() =>
-                    handleDevBiome(viewpoint.progress, viewpoint.progress)
-                  }
-                >
-                  {viewpoint.label}
-                </button>
-              ))}
-            </nav>
-          ) : null}
-        </aside>
-      ) : null}
+                    const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
+                    const x = devEffect === "chest" ? at + 110 : at;
+                    setEffects(previous => [...previous, { id: `preview-${Date.now()}`, kind: devEffect, playerId: devCameraTarget ? "visual-preview" : me?.id, loud: true, origin: { x, y: surfaceAt(x) + (devEffect === "chest" ? 8 : 48) } }]);
+                }}>{tr("Tester l’effet", undefined, uiLocale)}</button>
+              {BIOMES.map((biome) => (<button key={biome.id} type="button" onClick={() => handleDevBiome(biome.from, biome.to)}>
+                  {tr(biome.short, undefined, uiLocale)}
+                </button>))}
+              {DEV_VIEWPOINTS.map((viewpoint) => (<button key={viewpoint.id} type="button" onClick={() => handleDevBiome(viewpoint.progress, viewpoint.progress)}>
+                  {tr(viewpoint.label, undefined, uiLocale)}
+                </button>))}
+            </nav>) : null}
+        </aside>) : null}
 
-      {me ? (
-        <div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
+      {me ? (<div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
-                menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || wildEncounter !== null || rewardMoments.length > 0}
-                onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }} />
+              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || wildEncounter !== null || rewardMoments.length > 0} onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }}/>
             </div>
-            <CompactLeaderboard
-              players={players}
-              monthStandings={monthStandings}
-              monthKeyNow={monthKeyNow}
-              meId={identity}
-              observedId={observedPlayerId}
-              onLocate={handleLocatePlayer}
-              onOpen={() => setRegisterOpen(true)}
-            />
+            <CompactLeaderboard players={players} monthStandings={monthStandings} monthKeyNow={monthKeyNow} meId={identity} observedId={observedPlayerId} onLocate={handleLocatePlayer} onOpen={() => setRegisterOpen(true)}/>
           </header>
 
           <div className="hud-bottom">
-            <ActionBar
-              onAction={handleAction}
-              onUndo={handleUndo}
-              canUndo={canUndo}
-              hired={Boolean(me.hiredAt)}
-              locked={
-                // Dialog shortcuts must never declare actions in the shared journal.
-                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) ||
+            <ActionBar onAction={handleAction} onUndo={handleUndo} canUndo={canUndo} hired={Boolean(me.hiredAt)} locked={
+            // Dialog shortcuts must never declare actions in the shared journal.
+            welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) ||
                 !sceneReady || worldLoading ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
                 wildEncounter !== null ||
                 practiceMiniGame !== null ||
                 awaitingTravel ||
-                shotInbox !== null
-              }
-              feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null}
-              feedbackKind={actionFeedback?.kind}
-            />
+                shotInbox !== null} feedback={!sceneReady ? "Préparation du voyage…" : actionFeedback?.text ?? null} feedbackKind={actionFeedback?.kind}/>
           </div>
-        </div>
-      ) : null}
+        </div>) : null}
 
       {news.length ? <div className="news-stack" aria-live="polite">
-        {news.map((item) => <NewsToast key={item.id} item={item} players={players} onCheer={handleCheer} />)}
+        {news.map((item) => <NewsToast key={item.id} item={item} players={players} onCheer={handleCheer}/>)}
       </div> : null}
-      {recap && me ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
-        onClose={() => setRecap(null)} /> : null}
+      {recap && me ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players} onClose={() => setRecap(null)}/> : null}
 
-      {welcomeVisible ? <Welcome characterId={me?.characterId} key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
-      {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
-        onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
-      {adventureOpen && me ? <AdventureMenu encounters={myEncounters} characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
-        onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
-        onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
-        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} >
-          <p className="adventure-menu__intro">Niveau {me.level} · {me.journeySteps} pas · {seasonRank ? `Rang ${seasonRank}` : "Le voyage commence"}</p>
-          <p>Les petits détours font les grandes aventures.</p>
-          <button className="adventure-menu__profile-link" type="button" onClick={() => { setAdventureOpen(false); setRegisterOpen(true); }}>Compagnons & carte <span>Classement, personnages et journal →</span></button>
-          <PowerDeck me={me} players={players} attentionToken={powerAttention} onCast={(power, target) => { setAdventureOpen(false); handleCast(power, target); }} />
-          <div className="adventure-menu__sound"><span>Ambiance sonore</span><SoundToggle /></div>
-          <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} />
+      {welcomeVisible ? <Welcome characterId={me?.characterId} key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }}/> : null}
+      {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)} onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }}/> : null}
+      {adventureOpen && me ? <AdventureMenu encounters={myEncounters} characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)} onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }} onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }} onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }}>
+          <p className="adventure-menu__intro">{tr("Niveau ", undefined, uiLocale)}{me.level} · {me.journeySteps}{tr(" pas · ", undefined, uiLocale)}{tr(seasonRank ? `Rang ${seasonRank}` : "Le voyage commence", undefined, uiLocale)}</p>
+          <p>{tr("Les petits détours font les grandes aventures.", undefined, uiLocale)}</p>
+          <button className="adventure-menu__profile-link" type="button" onClick={() => { setAdventureOpen(false); setRegisterOpen(true); }}>{tr("Compagnons & carte ", undefined, uiLocale)}<span>{tr("Classement, personnages et journal →", undefined, uiLocale)}</span></button>
+          <PowerDeck me={me} players={players} attentionToken={powerAttention} onCast={(power, target) => { setAdventureOpen(false); handleCast(power, target); }}/>
+          <div className="adventure-menu__sound"><span>{tr("Ambiance sonore", undefined, uiLocale)}</span><SoundToggle /></div>
+          <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen}/>
         </AdventureMenu> : null}
 
-      {registerOpen ? (
-        <LeaderboardOverlay
-          players={players}
-          seasonStandings={seasonStandings}
-          monthStandings={monthStandings}
-          monthKeyNow={monthKeyNow}
-          crowns={crowns}
-          totals={totals}
-          freeCharacters={freeCharacters}
-          meId={identity}
-          groupName={groupName}
-          inviteUrl={inviteUrl}
-          map={<JourneyMap players={players} meId={identity} onLocate={handleLocatePlayer} />}
-          onLocate={handleLocatePlayer}
-          onAddPlayer={store ? null : addPlayer}
-          onRemovePlayer={removePlayer}
-          onChangeIdentity={handleChangeIdentity}
-          onClose={() => setRegisterOpen(false)}
-        />
-      ) : null}
+      {registerOpen ? (<LeaderboardOverlay players={players} seasonStandings={seasonStandings} monthStandings={monthStandings} monthKeyNow={monthKeyNow} crowns={crowns} totals={totals} freeCharacters={freeCharacters} meId={identity} groupName={groupName} inviteUrl={inviteUrl} map={<JourneyMap players={players} meId={identity} onLocate={handleLocatePlayer}/>} onLocate={handleLocatePlayer} onAddPlayer={store ? null : addPlayer} onRemovePlayer={removePlayer} onChangeIdentity={handleChangeIdentity} onClose={() => setRegisterOpen(false)}/>) : null}
 
-      {rewardMoment ? (
-        <ActionReward
-          key={rewardMoment.id}
-          moment={rewardMoment}
-          onDone={handleRewardDone}
-        />
-      ) : null}
+      {rewardMoment ? (<ActionReward key={rewardMoment.id} moment={rewardMoment} onDone={handleRewardDone}/>) : null}
 
-      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => {}} onDone={() => { const reopen = practiceMiniGame.source === "arcade"; setPracticeMiniGame(null); if (reopen) setAdventureOpen(true); }} /> :
-        inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)}
-          onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)}
-          onPass={handlePassMiniGame} /> :
-        miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
-          record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
+      {practiceMiniGame ? <MiniGame characterId={me?.characterId} key={practiceMiniGame.seed} kind={practiceMiniGame.kind} seedId={practiceMiniGame.seed} practice onResolve={() => { }} onDone={() => {
+                const reopen = practiceMiniGame.source === "arcade";
+                setPracticeMiniGame(null);
+                if (reopen)
+                    setAdventureOpen(true);
+            }}/> :
+            inviteVisible && miniGameOffer ? <MiniGameInvite key={`invite-${miniGameOffer.attemptId}`} kind={miniGameOffer.kind} action={miniGameOffer.action} record={recordFor(miniGameOffer.kind)} onPlay={() => setMiniGameOffer((offer) => offer ? { ...offer, accepted: true } : null)} onPass={handlePassMiniGame}/> :
+                miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone} record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null}/> : null}
 
-      {wildVisible && wildEncounter && me ? <WildEncounter key={wildEncounter.id} encounter={wildEncounter} name={me.name} characterId={me.characterId}
-        onMove={move => {
-          if (move !== "leave") setShownEncounterId(wildEncounter.id);
-          return encounterMove(wildEncounter.id, wildEncounter.turn, move).encounter;
-        }}
-        onDone={() => setShownEncounterId(null)}
-        onCollection={() => { setShownEncounterId(null); setAdventureTab("captures"); setAdventureOpen(true); }} /> : null}
+      {wildVisible && wildEncounter && me ? <WildEncounter key={wildEncounter.id} encounter={wildEncounter} name={me.name} characterId={me.characterId} onMove={move => {
+                if (move !== "leave")
+                    setShownEncounterId(wildEncounter.id);
+                return encounterMove(wildEncounter.id, wildEncounter.turn, move).encounter;
+            }} onDone={() => setShownEncounterId(null)} onCollection={() => { setShownEncounterId(null); setAdventureTab("captures"); setAdventureOpen(true); }}/> : null}
 
-      {shotInbox ? (
-        <ShotInbox
-          casts={shotInbox}
-          players={players}
-          onLater={() => setShotInbox(null)}
-          onSettle={() => {
-            settleShots(shotInbox.map((cast) => cast.id));
-            setShotInbox(null);
-          }}
-        />
-      ) : null}
+      {shotInbox ? (<ShotInbox casts={shotInbox} players={players} onLater={() => setShotInbox(null)} onSettle={() => {
+                settleShots(shotInbox.map((cast) => cast.id));
+                setShotInbox(null);
+            }}/>) : null}
 
-      {shownNotice ? (
-        <div className="toast-notice rise absolute left-1/2 z-[25] w-[min(92vw,38rem)] -translate-x-1/2">
+      {shownNotice ? (<div className="toast-notice rise absolute left-1/2 z-[25] w-[min(92vw,38rem)] -translate-x-1/2">
           <div className="hud-panel toast-notice__panel">
-            {shownNotice.powerKind ? (
-              <PowerArtwork kind={shownNotice.powerKind} className="toast-notice__art" />
-            ) : null}
+            {shownNotice.powerKind ? (<PowerArtwork kind={shownNotice.powerKind} className="toast-notice__art"/>) : null}
             <div>
-              <p className="font-display text-2xl text-gold-light">{shownNotice.title}</p>
-              <p className="mt-1 text-base text-parchment/75">{shownNotice.body}</p>
+              <p className="font-display text-2xl text-gold-light">{tr(shownNotice.title, undefined, uiLocale)}</p>
+              <p className="mt-1 text-base text-parchment/75">{tr(shownNotice.body, undefined, uiLocale)}</p>
             </div>
-            <button type="button" onClick={() => { setNotice(null); clearSyncError(); }}>
-              J’ai compris
-            </button>
+            <button type="button" onClick={() => { setNotice(null); clearSyncError(); }}>{tr("J’ai compris ", undefined, uiLocale)}</button>
           </div>
-        </div>
-      ) : null}
+        </div>) : null}
 
-      {sessionLost && slug ? (
-        <div className="absolute inset-0 z-[45] flex items-center justify-center bg-black/80 px-4">
+      {sessionLost && slug ? (<div className="absolute inset-0 z-[45] flex items-center justify-center bg-black/80 px-4">
           <div className="session-card frame grid w-full max-w-sm gap-3 p-5 text-center">
-            <p className="engrave text-sm">Session expirée</p>
-            <Link href={`/g/${slug}/rejoindre`} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light">Entrer le mot de passe</Link>
+            <p className="engrave text-sm">{tr("Session expirée", undefined, uiLocale)}</p>
+            <Link href={`/g/${slug}/rejoindre`} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light">{tr("Entrer le mot de passe", undefined, uiLocale)}</Link>
           </div>
-        </div>
-      ) : null}
+        </div>) : null}
 
-      {me ? null : (
-        <TitleScreen
-          players={players}
-          freeCharacters={freeCharacters}
-          groupName={groupName}
-          requirePin={Boolean(store)}
-          message={identityRevoked ? "Ton personnage a été repris sur un autre appareil." : null}
-          onPick={handlePick}
-          onCreate={handleCreate}
-        />
-      )}
-      {claiming ? (
-        <ClaimDialog
-          player={players.find((player) => player.id === claiming) ?? null}
-          onSubmit={(pin) => handleClaim(claiming, pin)}
-          onCancel={() => setClaiming(null)}
-        />
-      ) : null}
-    </main>
-  );
+      {me ? null : (<TitleScreen players={players} freeCharacters={freeCharacters} groupName={groupName} requirePin={Boolean(store)} message={tr(identityRevoked ? "Ton personnage a été repris sur un autre appareil." : null, undefined, uiLocale)} onPick={handlePick} onCreate={handleCreate}/>)}
+      {claiming ? (<ClaimDialog player={players.find((player) => player.id === claiming) ?? null} onSubmit={(pin) => handleClaim(claiming, pin)} onCancel={() => setClaiming(null)}/>) : null}
+    </main></ExperienceContext.Provider>);
 }

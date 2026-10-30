@@ -1,4 +1,6 @@
 "use client";
+import { t as tr } from "@/lib/i18n/index";
+import { useLocale } from "@/lib/i18n/react";
 
 import type { PlayerView } from "@/hooks/useGame";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -13,8 +15,10 @@ function mapRouteY(progress: number): number {
 }
 
 /** The painted itinerary with a pin per member of the company, at the top of the standings. */
-export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[]; meId: string | null; onLocate: (id: string) => void }) {
-  const root = useRef<HTMLDivElement>(null);
+export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[]; meId: string | null; onLocate: (id: string) => void ;
+}) {
+  const uiLocale = useLocale();
+    const root = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 400 });
   // Measured before the first paint: pins never jump from a default size on small screens.
   useLayoutEffect(() => {
@@ -28,7 +32,8 @@ export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[];
   }, []);
   // Nearby travellers must each retain a visible, finger-sized target.
   const pins = useMemo(() => {
-    const placed: { x: number; y: number; routeX: number; routeY: number }[] = [];
+    const placed: { x: number; y: number; routeX: number; routeY: number ;
+        }[] = [];
     const offsets = Array.from({ length: 225 }, (_, i) => ({ x: (i % 15 - 7) * 48, y: (Math.floor(i / 15) - 7) * 48 }))
       .sort((a, b) => a.x * a.x + a.y * a.y - b.x * b.x - b.y * b.y);
     return players.map(player => {
@@ -42,29 +47,25 @@ export function JourneyMap({ players, meId, onLocate }: { players: PlayerView[];
     });
   }, [players, size]);
   return <div ref={root} className="journey-map">
-    <div className="journey-map__painting" role="img" aria-label="Carte médiévale du voyage de la compagnie" />
+    <div className="journey-map__painting" role="img" aria-label={tr("Carte médiévale du voyage de la compagnie" , undefined, uiLocale)}/>
     <svg className="journey-map__connections" aria-hidden="true" width="100%" height="100%">
       {pins.map((pin, index) => <line key={players[index].id} x1={pin.routeX} y1={pin.routeY} x2={pin.x} y2={pin.y} />)}
     </svg>
-    <div className="journey-map__pins" role="group" aria-label="Position des joueurs">
+    <div className="journey-map__pins" role="group" aria-label={tr("Position des joueurs", undefined, uiLocale)}>
       {players.map((player, index) => {
         // The visible label only shows on hover: the accessible name carries the same facts.
         return <button type="button"
           key={player.id}
           onClick={() => onLocate(player.id)}
-          aria-label={`${player.name} · ${player.journeySteps} pas · voyage ${Math.max(1, Math.ceil(player.position))}, voir dans le monde`}
-          title={`Voir ${player.name} dans le monde`}
-          className={`company-map-pin ${player.id === meId ? "is-me" : ""}`}
-          style={{
-            left: pins[index].x,
-            top: pins[index].y,
-            zIndex: player.id === meId ? 20 : index + 1,
-          }}
-        >
+          aria-label={tr("{0} · {1} pas · voyage {2}, voir dans le monde", [player.name,player.journeySteps,Math.max(1, Math.ceil(player.position))], uiLocale)}title={tr("Voir {0} dans le monde", [player.name], uiLocale)} className={`company-map-pin ${player.id === meId ? "is-me" : ""}`} style={{
+                    left: pins[index].x,
+                    top: pins[index].y,
+                    zIndex: player.id === meId ? 20 : index + 1,
+                }}>
           <span>{player.name.slice(0, 1).toUpperCase()}</span>
-          <strong>{player.name} · {player.journeySteps} pas<small>Voyage {Math.max(1, Math.ceil(player.position))}</small></strong>
+          <strong>{player.name} · {player.journeySteps}{tr(" pas", undefined, uiLocale)}<small>{tr("Voyage ", undefined, uiLocale)}{Math.max(1, Math.ceil(player.position))}</small></strong>
         </button>;
-      })}
+        })}
     </div>
   </div>;
 }

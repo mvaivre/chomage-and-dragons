@@ -10,6 +10,7 @@ import "../voxel/voxel.css";
 import { clearTerrainCaches, worldCacheSize } from "../voxel/world";
 import { clearSiteCaches, sitesCacheSize } from "../voxel/sites";
 import { clearLayoutCaches, layoutCacheSize } from "../voxel/layout";
+import { releasePortraitStudio, portraitResources } from "../voxel/PortraitStudio";
 export default function ThreeDimensionalWorld(props: WorldProps) {
   useLayoutEffect(() => {
     setEffectSink(value => bursts.push({ ...value }));
@@ -18,6 +19,6 @@ export default function ThreeDimensionalWorld(props: WorldProps) {
   return <VoxelCanvas {...props} />;
 }
 export async function releaseWorld() {
-  releaseVoxelWorlds(); releaseDecodedImages(); clearTerrainCaches(); clearSiteCaches(); clearLayoutCaches(); bursts.length = 0; residentReactions.clear(); setEffectSink(null);
+  releaseVoxelWorlds(); releasePortraitStudio(); releaseDecodedImages(); clearTerrainCaches(); clearSiteCaches(); clearLayoutCaches(); bursts.length = 0; residentReactions.clear(); setEffectSink(null);
 }
-export const worldResources = () => ({ canvases: activeVoxelWorlds(), bursts: bursts.length, residents: residentReactions.size, terrainCaches: worldCacheSize() + sitesCacheSize() + layoutCacheSize() });
+export const worldResources = () => ({ canvases: activeVoxelWorlds(), ...portraitResources(), bursts: bursts.length, residents: residentReactions.size, terrainCaches: worldCacheSize() + sitesCacheSize() + layoutCacheSize() });
