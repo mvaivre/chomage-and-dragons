@@ -81,7 +81,7 @@ function moveBubble(node: HTMLDivElement, id: string) {
   const target = environmentTargets.get(id);
   if (!target || !project(target, box)) { place(node, null, false); return; }
   const { camera } = scene;
-  const bubble = environmentBubble(box, Math.round(camera.viewW * camera.scale), Math.round(scene.topInset + 12));
+  const bubble = environmentBubble(box, Math.round(camera.viewW * camera.scale), Math.round(scene.topInset + 12), node.offsetWidth);
   if (node.dataset.side !== bubble.side) node.dataset.side = bubble.side;
   place(node, { x: bubble.left, y: bubble.top, width: 0, height: 0 }, false);
 }

@@ -24,11 +24,11 @@
 .initiation-scene[data-cast=true] .initiation-scene__friend { height: 35%; animation: initiation-reveal 500ms ease-out both; }
 .roadside-object { position: absolute; top: 0; left: 0; z-index: 2; width: 72px; height: 72px; pointer-events: none; filter: drop-shadow(0 4px 2px #15251b66); transform-origin: 50% 100%; }
 .roadside-object::after { content: ''; position: absolute; bottom: -2px; left: 15%; width: 70%; height: 9px; border-radius: 50%; background: #19291f44; z-index: -1; }
-.game-adventure .environment-speech { display: block; width: min(300px, calc(100vw - 24px)); max-width: min(300px, calc(100vw - 24px)); padding: 14px; border: 1px solid #c8bc8277; border-radius: 6px; background: #19382ff5; color: #eee8cc; box-shadow: 0 8px 24px #10261c55; font-weight: 400; }
+.game-adventure .environment-speech { display: block; width: max-content; max-width: min(420px, calc(100vw - 24px)); padding: 14px; border: 1px solid #c8bc8277; border-radius: 6px; background: #19382ff5; color: #eee8cc; box-shadow: 0 8px 24px #10261c55; font-weight: 400; }
 .game-adventure .environment-speech::after { background: #19382f; border-width: 1px; border-color: #c8bc8277; }
 .travel-speech { position: relative; }
 .travel-speech__speaker { display: block; min-height: 24px; margin: 0 0 8px; padding-right: 36px; color: #c4b77d; font-size: 11px; letter-spacing: .06em; }
-.travel-speech p { margin: 0; font-size: 17px; line-height: 1.3; }
+.travel-speech p { margin: 0; font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
 .travel-speech mark { color: #f1d681; background: none; font-weight: 600; }
 .game-adventure .environment-speech .travel-speech__close { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; width: 32px; height: 32px; margin: 0; color: #e5d6a1; line-height: 1; }
 .game-adventure .environment-speech > button { position: absolute; top: 10px; right: 10px; margin: 0; }
