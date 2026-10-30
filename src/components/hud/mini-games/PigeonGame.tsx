@@ -222,6 +222,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       <span>{status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
         status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Décoller !" : status === "flying" ? "Battre des ailes" : won ? "Livraison…" : "Aïe…",
       disabled: phase === "play" && status !== "ready" && status !== "flying",
       onClick: () => phase === "play" ? flap() : onDone(),
@@ -231,7 +232,6 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       aria-label="Battre des ailes" disabled={phase !== "play"}
       onPointerDown={event => { event.preventDefault(); flap(); }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour décoller !<small>Espace ou Entrée au clavier</small></span> : null}
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "LIVRÉ ! ×2" : "ADRESSE INTROUVABLE"}</span> : null}
     </button>
   </MiniGameShell>;

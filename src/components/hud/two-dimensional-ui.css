@@ -1,0 +1,43 @@
+/* Keep the illustrated world and share its cut-paper art with the new journal. */
+.character-portrait img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.character-portrait[data-framing=bust] img { width: 100%; height: 170%; object-fit: cover; object-position: 50% 0; }
+.character-portrait[data-animated=true] img { animation: portrait-breathe 3.2s ease-in-out infinite alternate; }
+.game-adventure .journey-card__portrait img { object-position: 50% 0; }
+.character-screen .hero-roster .character-portrait { height: calc(100% - 6px); }
+.encounter-artwork > .bitmap-art { width: 100%; height: 100%; object-fit: contain; }
+.game-adventure .action-button .action-button__icon { max-width: none; transform: scale(1.5); }
+.cheer-art { display: inline-grid; place-items: center; font-size: 23px; line-height: 1; }
+.initiation-scene { position: relative; height: 100%; isolation: isolate; overflow: hidden; background: linear-gradient(#9bb5a4, #dde3bb 65%, #96a06e); }
+.initiation-scene__landscape { position: absolute; inset: 0; background: url('/art/world-v3/runtime/plaine-far.webp') center 55% / cover no-repeat; }
+.initiation-scene[data-scene=treasure] .initiation-scene__landscape { background-image: url('/art/world-v3/runtime/foret-back.webp'); }
+.initiation-scene[data-scene=company] .initiation-scene__landscape { background-image: url('/art/world-v3/runtime/taverne-back.webp'); }
+.initiation-scene__path { position: absolute; left: -5%; bottom: -18%; width: 110%; height: 40%; border-radius: 50%; background: #b49d76; box-shadow: 0 -5px 0 #718355; }
+.initiation-scene__hero { position: absolute; bottom: 8%; left: 12%; height: 76%; width: 29%; object-fit: contain; object-position: center bottom; filter: drop-shadow(2px 5px 2px #293c3844); transition: left 750ms ease-in-out; }
+.initiation-scene[data-walked=true] .initiation-scene__hero { left: 45%; }
+.initiation-scene__milestone { position: absolute; right: 9%; bottom: 15%; display: grid; justify-items: center; font: 32px var(--font-pirata), Georgia, serif; color: #293c38; background: #e5d6b1; border: 2px solid #52634d; border-radius: 5px; padding: 3px 12px; transform: rotate(4deg); }
+.initiation-scene__milestone small { font: 14px var(--font-garamond), Georgia, serif; }
+.initiation-scene__chest { position: absolute; bottom: 7%; left: 42%; width: 23%; height: 40%; object-fit: contain; transition: filter 350ms, transform 350ms; }
+.initiation-scene[data-open=true] .initiation-scene__chest { filter: drop-shadow(0 0 14px #ffe3a5); transform: scale(1.06); }
+.initiation-scene__power { position: absolute; width: 16%; height: 28%; left: 45%; bottom: 39%; object-fit: contain; animation: initiation-reveal 500ms ease-out both; }
+.initiation-scene__friend { position: absolute; right: 5%; bottom: 8%; width: 27%; height: 70%; }
+.initiation-scene__friend img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.initiation-scene[data-cast=true] .initiation-scene__friend { height: 35%; animation: initiation-reveal 500ms ease-out both; }
+.roadside-object { position: absolute; top: 0; left: 0; z-index: 2; width: 72px; height: 72px; pointer-events: none; filter: drop-shadow(0 4px 2px #15251b66); transform-origin: 50% 100%; }
+.roadside-object::after { content: ''; position: absolute; bottom: -2px; left: 15%; width: 70%; height: 9px; border-radius: 50%; background: #19291f44; z-index: -1; }
+.game-adventure .environment-speech { display: block; width: min(300px, calc(100vw - 24px)); max-width: min(300px, calc(100vw - 24px)); padding: 14px; border: 1px solid #c8bc8277; border-radius: 6px; background: #19382ff5; color: #eee8cc; box-shadow: 0 8px 24px #10261c55; font-weight: 400; }
+.game-adventure .environment-speech::after { background: #19382f; border-width: 1px; border-color: #c8bc8277; }
+.travel-speech { position: relative; }
+.travel-speech__speaker { display: block; min-height: 24px; margin: 0 0 8px; padding-right: 36px; color: #c4b77d; font-size: 11px; letter-spacing: .06em; }
+.travel-speech p { margin: 0; font-size: 17px; line-height: 1.3; }
+.travel-speech mark { color: #f1d681; background: none; font-weight: 600; }
+.game-adventure .environment-speech .travel-speech__close { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; width: 32px; height: 32px; margin: 0; color: #e5d6a1; line-height: 1; }
+.game-adventure .environment-speech > button { position: absolute; top: 10px; right: 10px; margin: 0; }
+.game-adventure .environment-speech > p { padding-right: 28px; }
+.travel-speech__footer { display: flex; justify-content: flex-end; margin-top: 10px; }
+.game-adventure .environment-speech .travel-speech__continue { width: auto; height: auto; min-height: 32px; margin: 0; padding: 4px 0; font-size: 13px; line-height: 1.3; color: #dfd2a5; }
+@keyframes portrait-breathe { to { transform: translateY(-3px) rotate(.5deg); } }
+@keyframes initiation-reveal { from { opacity: 0; transform: translateY(20px) scale(.5); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .character-portrait[data-animated=true] img, .initiation-scene__power, .initiation-scene[data-cast=true] .initiation-scene__friend { animation: none; }
+  .initiation-scene__hero, .initiation-scene__chest { transition: none; }
+}

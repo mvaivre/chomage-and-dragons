@@ -1,5 +1,7 @@
 "use client";
 
+import { Dialogue } from "../hud/Dialogue";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { canExploreTarget, environmentLine, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { sfx } from "@/lib/client/sound";
@@ -152,7 +154,7 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
     return () => { sceneFrameListeners.delete(follow); };
   }, [places, speech]);
 
-  useEffect(() => { if (!speech) return; const timer = window.setTimeout(() => setSpeech(null), 4500); return () => window.clearTimeout(timer); }, [speech]);
+
 
   // Placed as soon as it mounts, so a new button never shows a frame at the corner.
   const register = useCallback((id: string, node: HTMLButtonElement | null) => {
@@ -189,8 +191,8 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
   const anchored = speech && places.some(item => item.id === speech.id);
   return <div className="environment-overlay">
     {places.map(item => <TargetButton key={item.id} place={item} onActivate={activate} register={register} />)}
-    {speech && anchored && !paused ? <div ref={registerBubble} className="environment-speech" role="status" data-target={speech.id}>
-      <p>{speech.line}</p><button type="button" aria-label="Fermer le dialogue" onPointerDown={event => event.stopPropagation()} onClick={() => setSpeech(null)}>×</button>
+    {speech && anchored && !paused ? <div ref={registerBubble} className="environment-speech" data-target={speech.id} onPointerDown={event => event.stopPropagation()}>
+      <Dialogue key={`${speech.id}:${speech.line}`} text={speech.line} speaker={places.find(item => item.id === speech.id)?.label ?? "Un compagnon"} paused={paused} onClose={() => setSpeech(null)} />
     </div> : null}
   </div>;
 }

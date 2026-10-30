@@ -18,7 +18,8 @@ export interface MusicTrack {
   loopEnd: number;
 }
 
-export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny", MusicTrack> = {
+export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny" | "peaceful", MusicTrack> = {
+  peaceful: { id: "peaceful", src: "/audio/music/peaceful-medieval.mp3", title: "Medieval Music", artist: "kiravale", gain: 0.307, loopStart: 0, loopEnd: 182.8 },
   firelit: { id: "firelit", src: "/audio/music/firelit-tavern.mp3", title: "Fantasy Worlds — Firelit Tavern", artist: "vadim_makes_sound", gain: 0.481, loopStart: 0.54, loopEnd: 134.88 },
   medieval: { id: "medieval", src: "/audio/music/medieval.mp3", title: "Medieval", artist: "SigmaMusicArt", gain: 0.689, loopStart: 0.45, loopEnd: 110.97 },
   ambient: { id: "ambient", src: "/audio/music/city-tavern-ambient.mp3", title: "Medieval City / Tavern Ambient", artist: "DEUSLOWER", gain: 1.39, loopStart: 6.95, loopEnd: 161.97 },
@@ -30,9 +31,9 @@ export type MusicPhase = "intro" | "adventure";
 export function trackForPlace(where: string, phase: MusicPhase = "adventure"): MusicTrack {
   if (phase === "intro" || where === "taverne" || where === "tavern") return TRACKS.firelit;
   if (where === "volcan") return TRACKS.medieval;
-  if (where === "foret") return TRACKS.firelit;
+  if (where === "plaine" || where === "foret" || where === "lac") return TRACKS.peaceful;
   if (where === "orp" || where === "factory") return TRACKS.funny;
-  if (where === "marais" || where === "lac" || where === "cascade" || where === "desert") return TRACKS.ambient;
+  if (where === "marais" || where === "cascade" || where === "desert") return TRACKS.ambient;
   return TRACKS.medieval;
 }
 
@@ -53,6 +54,7 @@ interface Voice {
   audio: HTMLAudioElement;
   gain: GainNode;
   starting: boolean;
+  attempt: number;
   blocked: boolean;
   releaseAt: number | null;
   onMetadata: () => void;
@@ -131,7 +133,7 @@ export class MusicPlayer {
       } catch { /* Safari may wait for metadata before allowing a seek. */ }
     };
     const voice: Voice = {
-      track, deck, token: deck.token, offset, audio, gain, starting: false, blocked: false, releaseAt: null,
+      track, deck, token: deck.token, offset, audio, gain, starting: false, attempt: 0, blocked: false, releaseAt: null,
       onMetadata,
       onError: () => { voice.blocked = true; },
     };
@@ -144,10 +146,11 @@ export class MusicPlayer {
   }
 
   private play(voice: Voice, retryBlocked = false) {
-    if (this.paused || this.disposed || voice.starting || (voice.blocked && !retryBlocked)) return;
+    if (this.paused || this.disposed || (voice.starting && !retryBlocked) || (voice.blocked && !retryBlocked)) return;
     if (voice !== this.incoming && !voice.audio.paused && !voice.audio.error) return;
     voice.starting = true;
     voice.blocked = false;
+    const attempt = ++voice.attempt;
     if (retryBlocked && voice.audio.error) {
       voice.offset = Math.max(voice.track.loopStart, voice.audio.currentTime);
       voice.audio.load(); // Recover a transient download/decode failure before retrying.
@@ -157,10 +160,10 @@ export class MusicPlayer {
     try { started = voice.audio.play(); }
     catch { voice.starting = false; voice.blocked = true; return; }
     void started.then(() => {
+      // A blocked pre-gesture promise must not undo a later successful click.
+      if (voice.token !== voice.deck.token || attempt !== voice.attempt) return;
       voice.deck.unlocked = true;
       voice.starting = false;
-      // An earlier play promise must never pause a deck that has been reassigned.
-      if (voice.token !== voice.deck.token) return;
       if (this.paused || this.disposed) { voice.audio.pause(); return; }
       if (voice !== this.incoming) return;
       const previous = this.current;
@@ -172,7 +175,7 @@ export class MusicPlayer {
         previous.releaseAt = this.ctx.currentTime + FADE + 0.1;
       }
     }).catch(() => {
-      if (voice.token !== voice.deck.token) return;
+      if (voice.token !== voice.deck.token || attempt !== voice.attempt) return;
       voice.starting = false;
       voice.blocked = true;
       // Wait for a real gesture; polling a rejected play() would flood the browser.
@@ -278,8 +281,8 @@ export class MusicPlayer {
     return {
       track: this.current?.track.id ?? null,
       pending: this.incoming?.track.id ?? null,
-      voices: [...this.voices].map(({ track, audio, blocked }) => ({
-        id: track.id, src: track.src, time: audio.currentTime, paused: audio.paused, blocked,
+      voices: [...this.voices].map(({ track, audio, gain, blocked }) => ({
+        id: track.id, src: track.src, time: audio.currentTime, paused: audio.paused, blocked, gain: gain.gain.value,
       })),
     };
   }
@@ -328,7 +331,8 @@ export function setMusicOn(value: boolean): void {
   try { window.localStorage.setItem(MUSIC_KEY, value ? "1" : "0"); }
   catch { /* Keep the preference for this visit when storage is unavailable. */ }
   listeners.forEach((listener) => listener(value));
-  tick();
+  if (value) primeAudio(true);
+  tick(value);
 }
 
 function tick(retryBlocked = false) {
@@ -345,21 +349,21 @@ function tick(retryBlocked = false) {
   player.update();
 }
 
-/** Start after a gesture; title, hero location and existing sound preferences drive playback. */
+/** App-lifetime playback: attempt on arrival, unlock synchronously on any gesture. */
 export function startMusic(): () => void {
   if (typeof window === "undefined") return () => {};
-  const gesture = () => { primeAudio(); tick(true); };
-  const visibility = () => tick();
-  const gestures = ["pointerdown", "keydown", "touchend"] as const;
+  const gesture = () => { primeAudio(true); tick(true); };
+  const visibility = () => { if (!document.hidden) primeAudio(); tick(); };
+  const gestures = ["pointerdown", "keydown", "touchend", "click"] as const;
   gestures.forEach((name) => window.addEventListener(name, gesture, { capture: true, passive: true }));
   document.addEventListener("visibilitychange", visibility);
-  const offMute = onMuteChange(() => tick());
+  const offMute = onMuteChange(muted => { if (!muted) primeAudio(true); tick(!muted); });
   timer = window.setInterval(tick, 250);
-  primeAudio();
+  primeAudio(true);
   tick();
   if (new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __musicState?: () => unknown }).__musicState = () => ({
-      ...(player?.snapshot() ?? { track: null, pending: null, voices: [] }), enabled, ducked,
+      ...(player?.snapshot() ?? { track: null, pending: null, voices: [] }), enabled, ducked, context: audioOutput()?.ctx.state,
     });
   }
   return () => {

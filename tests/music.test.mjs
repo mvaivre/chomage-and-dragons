@@ -156,11 +156,12 @@ function finishFade({ env, ctx, player }) {
 
 test('recorded tracks follow the menu and the landscape', () => {
   for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.firelit);
-  for (const place of ['taverne', 'tavern', 'foret']) assert.equal(trackForPlace(place), TRACKS.firelit);
+  for (const place of ['taverne', 'tavern']) assert.equal(trackForPlace(place), TRACKS.firelit);
+  for (const place of ['plaine', 'foret', 'lac']) assert.equal(trackForPlace(place), TRACKS.peaceful);
   for (const place of ['orp', 'factory']) assert.equal(trackForPlace(place), TRACKS.funny);
-  for (const place of ['marais', 'desert', 'lac', 'cascade']) assert.equal(trackForPlace(place), TRACKS.ambient);
-  for (const place of ['plaine', 'volcan', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
-  assert.equal(new Set(Object.values(TRACKS).map(track => track.src)).size, 4);
+  for (const place of ['marais', 'desert', 'cascade']) assert.equal(trackForPlace(place), TRACKS.ambient);
+  for (const place of ['volcan', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
+  assert.equal(new Set(Object.values(TRACKS).map(track => track.src)).size, 5);
   for (const track of Object.values(TRACKS)) assert.match(track.src, /^\/.*\.mp3$/);
 });
 
@@ -332,11 +333,11 @@ test('the game honours phase, sound settings, page visibility and cleanup', asyn
     assert.equal(intro.paused, false);
     setMusicPlace('plaine');
     setMusicPhase('adventure'); env.tick(); await settle();
-    const adventure = Media.instances.find(media => media.src === TRACKS.medieval.src && !media.paused);
-    assert.equal(adventure.src, TRACKS.medieval.src);
+    const adventure = Media.instances.find(media => media.src === TRACKS.peaceful.src && !media.paused);
+    assert.equal(adventure.src, TRACKS.peaceful.src);
     const count = Media.instances.length;
     adventure.currentTime = 24;
-    setMusicPlace('montagne'); setMusicPhase('adventure'); env.tick(); await settle();
+    setMusicPlace('foret'); setMusicPhase('adventure'); env.tick(); await settle();
     assert.equal(Media.instances.length, count);
     assert.equal(adventure.currentTime, 24);
     setMusicDucked(true); setMusicDucked(false);
@@ -373,4 +374,29 @@ test('the game honours phase, sound settings, page visibility and cleanup', asyn
     setMuted(false);
     env.flushTimeouts(); env.restore();
   }
+});
+
+test('a gesture retries an unresolved autoplay request; its late rejection cannot silence the new play', async t => {
+  const {player}=fixture(t);
+  let reject;
+  Media.nextPlay.push(()=>new Promise((_,no)=>{reject=no;}));
+  player.select(TRACKS.firelit);
+  Media.inGesture=true;player.resume(true);Media.inGesture=false;
+  await settle();assert.equal(player.snapshot().track,'firelit');
+  reject(new DOMException('Autoplay blocked','NotAllowedError'));await settle();
+  assert.ok(player.snapshot().voices.every(v=>!v.blocked&&!v.paused));
+});
+
+test('the first click unlocks music without userActivation and resumes an interrupted phone context', async()=>{
+  const env=environment();let stop;
+  try {
+    delete navigator.userActivation;Media.requiresGesture=true;
+    setMuted(false);setMusicOn(true);stop=startMusic();await settle();
+    assert.equal(window.__musicState().track,null);
+    const ctx=audioOutput().ctx;ctx.state='interrupted';
+    assert.equal(audioOutput().ctx.state,'interrupted','polling the output never retries a blocked resume');
+    Media.inGesture=true;env.dispatch('click');Media.inGesture=false;await settle();
+    assert.equal(ctx.state,'running');assert.equal(window.__musicState().track,'firelit');
+    assert.ok(Media.instances.every(m=>m.unlocked));
+  } finally {stop?.();env.restore();}
 });

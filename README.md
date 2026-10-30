@@ -111,9 +111,9 @@ entretien −3, rejet après entretien +6. Les bonus comptent aussi. La couronne
 récompense la progression nette du mois (Europe/Zurich), sans reporter les pas antérieurs.
 Les sauvegardes existantes sont recalculées depuis leur journal, sans migration destructive.
 
-Deux panneaux accueillent le personnage au départ. Trois rites jouables présentent le jeu
-au premier lancement : piloter un dragon, déclarer des démarches dans un camp d’essai,
-puis ouvrir un coffre et viser la couronne du mois. « Quêtes » permet de les rejouer.
+Deux panneaux accueillent le personnage au départ. Une initiation courte présente le jeu au premier lancement : essayer une candidature,
+ouvrir un coffre et lancer un pouvoir, puis découvrir la compagnie et la couronne du mois.
+Les six gestes de démonstration ne modifient pas les vraies démarches. « Quêtes » permet de les rejouer.
 La progression de l’initiation se reprend sur cet appareil, par personnage et par groupe,
 sans toucher aux vraies actions. Les lettres suivent les surfaces inclinées.
 L’ORP et l’usine sont des scènes séparées : porte extérieure, fondu, salle entière,
@@ -121,6 +121,13 @@ puis sortie vers le paysage avec le bâtiment à gauche. Les pas restants contin
 automatiquement. Détails et vérifications : [SCENE_DOORS.md](docs/SCENE_DOORS.md).
 
 ## État actuel
+
+La branche `codex/2d-avec-ameliorations` conserve Pixi, les paysages, les sprites et les mini-jeux 2D.
+Elle reprend l’initiation courte, le carnet du personnage, les captures et les corrections audio
+de la version 3D. Le portrait ouvre les quêtes, les butins, la collection et les réglages.
+Les cinq mots de l’annonce se lisent avant de lancer le jeu des mots-clés ; les dialogues
+des habitants se déroulent lettre par lettre, avec « Tout afficher » et réduction des mouvements.
+
 
 Jouable en groupe d'ami·es, en ligne. Fonctionne :
 
@@ -134,8 +141,9 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
   pendant la marche, une bannière annonce
   chaque nouvelle contrée ; les effets sonores sont synthétisés, avec un bouton à trois états
   (musique et effets, effets seuls, silence)
-- quatre **musiques enregistrées** avec fondus : « Medieval » au volcan,
-  « Firelit Tavern » en forêt et « City/Tavern Ambient » dans les mondes d’eau.
+- cinq **musiques enregistrées** avec fondus : une piste paisible en plaine, forêt et lac,
+  « Medieval » au volcan, « Firelit Tavern » à l’accueil et à la taverne,
+  « City/Tavern Ambient » dans les marais, cascades et dunes et une musique dédiée aux intérieurs.
   La musique suit le personnage et baisse pendant les mini-jeux
 - un **volcan avant la taverne**, avec caldeira, coulées animées, braises et
   lumières de lave sur le sol. [Décors et rendu](docs/VOLCANO.md)
@@ -165,14 +173,17 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
     sous l'œil du gnome, +1 pas ;
   - entretien : **le Test de personnalité**, cinq questions, la bonne réponse est
     celle du recruteur, le recul passe de −3 à −2 pas ;
-  - rejet après entretien : **Ne relance pas**, quatorze jours de silence, réponds
-    au vrai message et jamais aux points de suspension, +2 pas ;
+  - rejet après entretien : **Snake** et **Labyrinthe des recruteurs**, +2 pas ;
   - coffre : **Salaire selon expérience**, la machine à sous du double fond,
     trois CHF pour un butin de plus.
 
-  Chaque défi arrive en carte d'invitation une fois le moment joué. Chaque partie
-  garde un score, le groupe un record par jeu, et un **défi du jour** propose le même
-  parcours à toute la compagnie, une fois par jour, avec son classement.
+  Chaque défi apparaît comme un petit objet illustré au bord du chemin, puis en
+  invitation animée. Une seule halte est proposée par démarche. Chaque partie
+  garde un score et le groupe un record par jeu.
+- des **rencontres sauvages**, toutes les trois démarches : sept espèces,
+  chômageballs, variantes rares et captures conservées dans le carnet. Le combat
+  se reprend après rechargement, en solo comme en groupe.
+  [Mécaniques et sauvegardes](docs/ENCOUNTERS.md).
 - l'**annulation** de la dernière action, pour le clic de trop
 - les **coffres** 🧰 aux paliers de 10 pas
 - les **classements** : Saison (Légende du Chômage), Mois (Couronne du mois,
@@ -183,18 +194,18 @@ Jouable en groupe d'ami·es, en ligne. Fonctionne :
 - la **vie du groupe** : les actions des ami·es jouées en direct sur leur héros,
   annoncées par une carte où on les salue en un emoji (👏 🍺 🔥 😂 🫂), et au
   retour un récapitulatif de ce qui s'est passé pendant ton absence
-- le **défi du jour** toujours visible dans le HUD : un tap pour jouer, puis le
-  classement du jour
+- le **carnet du personnage**, ouvert depuis le portrait : quêtes, butins,
+  captures, objets retrouvés, son et verre du mois. Les anciens défis quotidiens
+  restent lisibles dans les sauvegardes
 - le **verre du mois** : compte à rebours jusqu’à la clôture à minuit à Zurich,
   date/heure et lieu modifiables par chaque membre, sauvegardés avec le groupe.
   Le rendez-vous peut se tenir jusqu’au 14 du mois suivant sans déplacer la couronne
-- une **salle des défis** dans « Quêtes », pour jouer librement aux treize mini-jeux,
+- une **salle des défis** dans « Quêtes », pour jouer librement aux douze mini-jeux,
   dont six nouveaux : Grand Prix des pigeons à l’envers, découpe de dossiers,
   serpent administratif, labyrinthe des recruteurs, pile de dossiers et renvoi à
   l’expéditeur. Clavier, glisser et boutons tactiles ; les entraînements restent
   sans effet sur la course. Les nouveautés alternent avec les anciens jeux sur
-  les actions et entrent dans les défis quotidiens à partir du 9 octobre 2026,
-  pour conserver le parcours déjà joué le jour de leur ajout
+  les actions, sans modifier les graines des parties historiques
 - **neuf objets cachés**, un par contrée, à toucher dans le décor. Exploration
   libre, indices et collection dans « Quêtes » ; les trouvailles se conservent
   par personnage, y compris après un changement d’appareil dans un groupe.

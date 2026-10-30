@@ -131,6 +131,7 @@ export function GhostingGame({ seedId, onResolve, onDone, practice, record, best
     status={finished ? <><strong>{won ? `+${base + bonus} pas` : `+${base} pas conservés`}</strong>{!won ? <span>{loss === "early" ? "Trop tôt." : "Trop tard."}</span> : null}<ScoreLine score={points} unit="" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? "Bouton Répondre ou Espace" : hot ? "MAINTENANT !" : "Patiente…"}</span>}
     primary={{
+      inArena: status === "ready",
       label: finished ? "Continuer le voyage" : status === "ready" ? "Attendre (14 jours)" : "Réponds dans le chat ↑",
       disabled: waiting,
       onClick: () => finished ? onDone() : setStatus("waiting"),

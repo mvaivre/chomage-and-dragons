@@ -129,6 +129,28 @@ export interface Discovery {
   at: string;
 }
 
+export type MonsterKind = "cv" | "orp" | "chair" | "coffee" | "refusal" | "doubt" | "ai";
+export type EncounterMove = "challenge" | "argue" | "polite" | "rest" | "capture" | "leave";
+export interface WildEncounter {
+  id: string;
+  playerId: string;
+  eventId: string;
+  /** One reservation per journey ordinal, retained after undo. */
+  slot: number;
+  monster: MonsterKind;
+  rare: boolean;
+  place: string;
+  at: string;
+  capturedAt?: string;
+  status: "offered" | "battle" | "captured" | "fled" | "lost";
+  hp: number;
+  energy: number;
+  turn: number;
+  balls: number;
+  braced: boolean;
+  message: string;
+}
+
 export interface GameState {
   players: Player[];
   events: GameEvent[];
@@ -138,6 +160,7 @@ export interface GameState {
   miniGames?: MiniGameAttempt[];
   monthlyMeetups?: MonthlyMeetup[];
   discoveries?: Discovery[];
+  encounters?: WildEncounter[];
   /** Legacy, converted into miniGames when a save is loaded. */
   pigeonFlights?: PigeonFlight[];
 }

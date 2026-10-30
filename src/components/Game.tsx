@@ -10,10 +10,11 @@ import { CHARACTERS } from "@/lib/game/characters";
 import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
+import { decodedImage, whenIdle } from "@/lib/client/preload";
 import { loadFirst, retainTextures } from "@/components/game/textures";
 import { CHARACTER_ANIMATIONS } from "@/components/game/animation";
-import { decodedImage, whenIdle } from "@/lib/client/preload";
 import { ACTION_ART, MINI_GAME_IMAGES, POWER_ART } from "@/lib/game/art";
+import { DaylightVeil } from "@/components/hud/DaylightVeil";
 
 /** Mini-games load on their own, fetched ahead of need once the world is up. */
 const loadMiniGames = () => import("@/components/hud/mini-games/MiniGame");
@@ -35,15 +36,15 @@ import { HIDDEN_ITEMS, hiddenItemForId, type HiddenItem } from "@/lib/game/hidde
 import { PowerDeck } from "@/components/hud/PowerDeck";
 import { ShotInbox } from "@/components/hud/ShotInbox";
 import { ClaimDialog, TitleScreen } from "@/components/hud/TitleScreen";
+import { WildEncounter } from "@/components/hud/WildEncounter";
+import { activeEncounter } from "@/lib/game/encounters";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { startMusic, setMusicDucked, setMusicPhase } from "@/lib/client/music";
+import { setMusicDucked, setMusicPhase } from "@/lib/client/music";
 import { groupDecor, interiorAt } from "@/lib/game/decor";
-import { DaylightVeil } from "@/components/hud/DaylightVeil";
-import { DailyButton, DailySheet } from "@/components/hud/DailyChallenge";
 import { JourneyMap } from "@/components/hud/JourneyMap";
-import { dailyChallenge, dailyRanking, zurichDay } from "@/lib/game/daily";
+import { zurichDay } from "@/lib/game/daily";
 import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
 import type { CheerEmoji, Cheer, GameEvent } from "@/lib/data/types";
@@ -53,7 +54,7 @@ import { CHOREOGRAPHIES } from "@/components/game/reactions";
 import { REACTION_HOLD } from "@/components/game/Hero";
 import { fx } from "@/components/game/fx";
 import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/game/scene";
-import { primeAudio, sfx, warmUpAudio } from "@/lib/client/sound";
+import { primeAudio, sfx } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
 import { groupRecord, personalBest } from "@/lib/game/scores";
 import { TALES, taleFor, TALE_LABELS } from "@/lib/game/tales";
@@ -70,7 +71,7 @@ import {
   type AvailablePower,
 } from "@/lib/game/powers";
 import { stepsFor, stepsForEvent } from "@/lib/game/scoring";
-import { MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
+import { MINI_GAMES, PLAYABLE_MINI_GAMES, miniGameBonus } from "@/lib/game/mini-games";
 import { ACTION_LABELS_ONE } from "@/lib/game/standings";
 import { JOURNEY_TARGET, STEPS_PER_LEVEL } from "@/lib/config";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
@@ -177,8 +178,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     cheer,
     miniGames,
     daily,
-    recordDaily,
-    startDaily,
     monthKeyNow,
     seasonStandings,
     monthStandings,
@@ -197,9 +196,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
     scheduleMeetup,
     discoveries,
     findHidden,
+    encounters,
+    encounterMove,
   } = useGame(mode);
 
-  // One Zurich day for the whole render: today's challenge and the decor's daily sign.
+  // Historical daily records still contribute to the group’s personalised scenery.
   const today = zurichDay();
   const decor = useMemo(() => groupDecor({ players, events, daily, day: today, month: monthKeyNow }), [players, events, daily, today, monthKeyNow]);
 
@@ -210,7 +211,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(() => !hasSeenWelcome(`${scope}:${loadSession(scope) ?? "new"}`));
   const [adventureOpen, setAdventureOpen] = useState(false);
-  const [adventureTab, setAdventureTab] = useState<"games" | "hunt">("games");
+  const [adventureTab, setAdventureTab] = useState<"journey" | "games" | "hunt" | "captures">("games");
   const [firstFind, setFirstFind] = useState<{ playerId: string; item: HiddenItem } | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [effects, setEffects] = useState<Effect[]>([]);
@@ -218,6 +219,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [rewardMoments, setRewardMoments] = useState<RewardMoment[]>([]);
   const [miniGameOffer, setMiniGameOffer] = useState<MiniGameOffer | null>(null);
+  const [shownEncounterId, setShownEncounterId] = useState<string | null>(null);
+  const [roadsideChest, setRoadsideChest] = useState<{ attemptId: string } | null>(null);
   const pendingChestGame = useRef<{ attemptId: string; eventId: string } | null>(null);
   const [practiceMiniGame, setPracticeMiniGame] = useState<{ kind: MiniGameKind; seed: string; source?: "arcade" } | null>(null);
   const [powerAttention, setPowerAttention] = useState(0);
@@ -238,13 +241,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
     momentTimers.current.push(timer);
   }, []);
   useEffect(() => () => { momentTimers.current.forEach((timer) => window.clearTimeout(timer)); }, []);
+  const pendingChestEffect = useRef<Effect | null>(null);
+  const chestAnimationId = useRef<string | null>(null);
+  const chestDuringTravel = useRef(false);
   const actionInFlight = useRef(false);
   const [awaitingTravel, setAwaitingTravel] = useState(false);
   // A safety net: whatever happens to the walk, the action bar never stays locked.
   useEffect(() => {
     if (!awaitingTravel) return;
     const timer = window.setTimeout(() => {
-      if (dragonMealId.current) return;
+      if (dragonMealId.current || chestAnimationId.current || pendingChestEffect.current) return;
       setAwaitingTravel(false);
       actionInFlight.current = false;
       leanOut();
@@ -256,7 +262,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
-  useEffect(() => warmUpAudio(), []);
 
   // Once the world is up, warm what the next action will need: its reaction art,
   // the loot art, the mini-games' code and images. Actions are rare, so otherwise
@@ -280,18 +285,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const [devAtmosphere, setDevAtmosphere] = useState(true);
   const shownCasts = useRef(new Set<string>());
   // The group's life: live news of friends, cheered in one tap, and a recap after an absence.
-  const [dailySheetOpen, setDailySheetOpen] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [recap, setRecap] = useState<{ events: GameEvent[]; cheers: Cheer[] } | null>(null);
-  // Today's challenge: the same game and course for everyone in the group.
-  const todayGame = useMemo(() => dailyChallenge(today), [today]);
-  const [dailyOpen, setDailyOpen] = useState(false);
-  const todayRuns = useMemo(() => dailyRanking(daily, today), [daily, today]);
   // The selection theme gives way to the adventure, then follows the hero's land.
-  useEffect(() => startMusic(), []);
   const seenRef = useRef<{ events: Set<string>; cheers: Set<string> } | null>(null);
-  const pendingChestEffect = useRef<Effect | null>(null);
-  const chestAnimationId = useRef<string | null>(null);
   const focusTimeout = useRef<number | null>(null);
 
   // The server's word on who this device plays wins: a character claimed elsewhere drops out here.
@@ -302,7 +299,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     : null);
   const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
   const me = meIndex === -1 ? null : players[meIndex];
-  // Your own hero gates the action bar: request its atlas before the scenery.
   const myAtlas = me ? CHARACTER_ANIMATIONS[me.characterId]?.url : undefined;
   useEffect(() => { if (myAtlas) loadFirst([myAtlas]); }, [myAtlas]);
 
@@ -310,6 +306,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
   const identity = me ? meId : null;
   const hiddenFoundIds = useMemo(() => discoveries.filter(item => item.playerId === identity).map(item => item.itemId), [discoveries, identity]);
+  const myEncounters = useMemo(() => encounters.filter(e => e.playerId === identity), [encounters, identity]);
+  const wildEncounter = myEncounters.find(e => e.id === shownEncounterId && events.some(event => event.id === e.eventId)) ?? myEncounters.findLast(e => activeEncounter(e) && events.some(event => event.id === e.eventId)) ?? null;
   const firstFindVisible = Boolean(identity && firstFind?.playerId === identity);
   const handleFindHidden = useCallback((itemId: string) => {
     if (!identity || hiddenFoundIds.includes(itemId)) return;
@@ -329,18 +327,23 @@ export function Game({ slug = null }: { slug?: string | null }) {
   const queuedRewardMoment = rewardMoments[0] ?? null;
   const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
   const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||
-    (!awaitingTravel && rewardMoments.length === 0 && !shotInbox && !registerOpen && !dailySheetOpen && !dailyOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
+    (!awaitingTravel && !momentActive && rewardMoments.length === 0 && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible)));
   // First an invitation card, then the game itself once the player accepts.
+  const wildVisible = Boolean(sceneReady && wildEncounter && !awaitingTravel && !momentActive && rewardMoments.length === 0 && !miniGameOffer && !practiceMiniGame && !shotInbox && !registerOpen && !recap && !adventureOpen && !meetupOpen && !welcomeVisible && !firstFindVisible);
   const inviteVisible = Boolean(!practiceMiniGame && miniGameReady && miniGameOffer && !miniGameOffer.accepted && !miniGameOffer.resolved);
   const miniGameVisible = Boolean(practiceMiniGame) || (miniGameReady && !inviteVisible);
-  useEffect(() => setMusicDucked(miniGameVisible || dailyOpen || welcomeVisible), [miniGameVisible, dailyOpen, welcomeVisible]);
   useEffect(() => {
-    scene.momentActive = momentActive || miniGameVisible || dailyOpen;
+    setMusicDucked(miniGameVisible || wildVisible || inviteVisible || welcomeVisible);
+    return () => setMusicDucked(false);
+  }, [miniGameVisible, wildVisible, inviteVisible, welcomeVisible]);
+  useEffect(() => {
+    scene.momentActive = momentActive || miniGameVisible || wildVisible || inviteVisible;
     return () => { scene.momentActive = false; };
-  }, [momentActive, miniGameVisible, dailyOpen]);
+  }, [momentActive, miniGameVisible, wildVisible, inviteVisible]);
   const handleRewardDone = useCallback(() => {
     if (rewardMoments[0]?.type === "chest") {
       setPowerAttention(value => value + 1);
+      setRoadsideChest(null);
       // The chest's double bottom opens once the loot is put away and no other game waits.
       if (!miniGameOffer && pendingChestGame.current) {
         setMiniGameOffer({ ...pendingChestGame.current, kind: "slots", action: "chest" });
@@ -356,6 +359,19 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const timeout = window.setTimeout(() => setActionFeedback(null), 4000);
     return () => window.clearTimeout(timeout);
   }, [actionFeedback]);
+
+  const handleChestReached = useCallback((playerId: string) => {
+    const effect = pendingChestEffect.current;
+    if (playerId !== identity || !effect) return false;
+    pendingChestEffect.current = null;
+    chestDuringTravel.current = true;
+    chestAnimationId.current = effect.id;
+    leanIn(1.5);
+    sfx.coin();
+    setActionFeedback({ id: effect.id, text: "Coffre trouvé ! Récupération du butin…" });
+    setEffects(previous => [...previous, { ...effect, playerId, loud: true }]);
+    return true;
+  }, [identity]);
 
   const handleTravelDone = useCallback(
     (playerId: string) => {
@@ -387,7 +403,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (chestEffect) {
         pendingChestEffect.current = null;
         chestAnimationId.current = chestEffect.id;
-        setEffects((previous) => [...previous, chestEffect]);
+        setEffects((previous) => [...previous, { ...chestEffect, playerId, loud: true }]);
         return;
       }
       setAwaitingTravel(false);
@@ -398,9 +414,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      // The native mini-game dialog owns Escape, Space, Enter and focus, the daily one
-      // included; the invitation owns Escape. Preventing Escape here would keep a dialog open.
-      if (miniGameVisible || inviteVisible || dailyOpen || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
+      // The native mini-game dialog owns Escape, Space, Enter and focus.
+      // The invitation owns Escape too. Preventing it here would keep a dialog open.
+      if (wildVisible || miniGameVisible || inviteVisible || adventureOpen || meetupOpen || welcomeVisible || firstFindVisible || event.defaultPrevented) return;
       if (event.key === "Escape") {
         event.preventDefault();
         if (shotInbox) {
@@ -426,7 +442,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, dailyOpen, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
+  }, [awaitingTravel, handleRewardDone, notice, registerOpen, rewardMoment, shotInbox, miniGameVisible, inviteVisible, wildVisible, adventureOpen, meetupOpen, welcomeVisible, firstFindVisible]);
 
   useEffect(
     () => () => {
@@ -570,7 +586,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   const handleAction = useCallback(
     (kind: ActionKind) => {
-      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
+      if (!me || me.hiredAt || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
       actionInFlight.current = true;
       setAwaitingTravel(true);
       setObservedPlayerId(null);
@@ -585,6 +601,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       }
       if (offer) setMiniGameOffer({ attemptId: event.id, eventId: event.id, kind: offer, action: kind });
       pendingChestGame.current = chestGame?.offer ? { attemptId: chestGame.attemptId, eventId: event.id } : null;
+      setRoadsideChest(chestGame?.offer ? { attemptId: chestGame.attemptId } : null);
       const origin = heroOrigin(me, meIndex);
 
       // The staging is drawn from the event id: every friend sees the same variant.
@@ -640,7 +657,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       if (reactionKind === "storm" || reactionKind === "refusalAvalanche") moment.cue({ type: "shade", color: "#0b1526", opacity: 0.42, ms: duration });
       const hold = REACTION_HOLD[kind] * 1000;
       const travelSteps = kind === "embauche" ? 12 : Math.max(1, Math.abs(afterSteps - me.journeySteps));
-      leanIn(legendary ? 1.14 : 1.08, 0.42);
+      leanIn(kind === "rejetApresEntretien" ? 1.35 : legendary ? 1.14 : 1.08, 0.42);
       setMomentActive(true);
       setHudTiming({ steps: { delay: hold, duration: travelSteps * 320 } });
       if (legendary) moment.cue({ type: "letterbox", ms: duration });
@@ -663,7 +680,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, schedule],
+    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, wildEncounter, schedule],
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
@@ -689,7 +706,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
       pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
       setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
-      pendingChestGame.current = chestGame.offer ? { attemptId: chestGame.attemptId, eventId: miniGameOffer.eventId } : null;
+      pendingChestGame.current = null;
     }
     setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: `${copy.winFeedback} · +${bonus} pas bonus` });
   }, [miniGameOffer, me, finishMiniGame]);
@@ -742,7 +759,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   );
 
   const handleUndo = useCallback(() => {
-    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer) return;
+    if (!me || actionInFlight.current || rewardMoments.length > 0 || miniGameOffer || wildEncounter) return;
     actionInFlight.current = true;
     setAwaitingTravel(true);
     setObservedPlayerId(null);
@@ -750,7 +767,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setEffects([]);
     setActionFeedback({ id: crypto.randomUUID(), text: "Dernière action annulée" });
     undoLast(me.id);
-  }, [me, undoLast, rewardMoments.length, miniGameOffer]);
+  }, [me, undoLast, rewardMoments.length, miniGameOffer, wildEncounter]);
 
   const handleEffectDone = useCallback((id: string) => {
     setEffects((prev) => prev.filter((effect) => effect.id !== id));
@@ -761,8 +778,11 @@ export function Game({ slug = null }: { slug?: string | null }) {
     }
     if (chestAnimationId.current === id) {
       chestAnimationId.current = null;
-      setAwaitingTravel(false);
-      actionInFlight.current = false;
+      if (!chestDuringTravel.current) {
+        setAwaitingTravel(false);
+        actionInFlight.current = false;
+      }
+      chestDuringTravel.current = false;
     }
   }, []);
 
@@ -792,7 +812,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
     setObservedPlayerId(null);
   }, [releaseFocus]);
   const dragonChallengeOpen = useRef(false);
-  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !rewardMoments.length); });
+  useEffect(() => { dragonChallengeOpen.current = Boolean(me && !awaitingTravel && !miniGameOffer && !wildEncounter && !rewardMoments.length); });
   const handleDragonChallenge = useCallback(() => {
     if (dragonChallengeOpen.current) setPracticeMiniGame({ kind: "dragon", seed: `nest-${Date.now()}` });
   }, []);
@@ -825,9 +845,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
     actionInFlight.current = false;
     pendingChestEffect.current = null;
     chestAnimationId.current = null;
+    chestDuringTravel.current = false;
     setAwaitingTravel(false);
     setRewardMoments([]);
     setMiniGameOffer(null);
+    setShownEncounterId(null);
+    setRoadsideChest(null);
     pendingChestGame.current = null;
     setFirstFind(null);
     setEffects([]);
@@ -894,15 +917,16 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
+    <main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
       <GameCanvas
+        encounter={me && (wildEncounter || miniGameOffer || roadsideChest) ? { id: wildEncounter?.id ?? miniGameOffer?.attemptId ?? roadsideChest!.attemptId, model: wildEncounter?.monster ?? miniGameOffer?.kind ?? "slots", rare: wildEncounter?.rare ?? false, worldX: worldXFor(me.position) } : null}
         hiddenFoundIds={hiddenFoundIds}
         onFindHidden={handleFindHidden}
         atmosphere={DEV_BUILD ? devAtmosphere : true}
         onDragonChallenge={handleDragonChallenge}
         onDragonSwallow={handleDragonSwallow}
         onSceneReady={handleSceneReady}
-        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailySheetOpen || dailyOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible}
+        paused={welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) || Boolean(rewardMoment) || Boolean(shotInbox) || miniGameVisible || inviteVisible || wildVisible}
         actionDockVisible={Boolean(me)}
         devHero={devHero}
         pendingChestStep={me && rewardMoments.some(moment => moment.type === "chest") ? Math.floor(me.journeySteps / STEPS_PER_LEVEL) * STEPS_PER_LEVEL : null}
@@ -914,6 +938,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         effects={effects}
         onEffectDone={handleEffectDone}
         onTravelDone={handleTravelDone}
+        onChestReached={handleChestReached}
         freeCamera={true}
         devCameraTarget={devCameraTarget}
       />
@@ -941,6 +966,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
                 {DEV_ENCOUNTERS.map(site => <option key={site.id} value={site.x}>{ENVIRONMENT_LABELS[site.kind]} · {site.biome}</option>)}
               </select>
               <output id="scene-stats" className="dev-explorer__stats" aria-label="Performances de la scène" />
+              <label>Position <input aria-label="Position de test" type="number" min="0" step="50" value={devCameraTarget?.worldX ?? 0} onChange={event=>{const x=Number(event.target.value);if(Number.isFinite(x)&&x>=0)handleDevBiome(x/WORLD_LENGTH,x/WORLD_LENGTH);}} /></label>
               <button type="button" aria-pressed={devAtmosphere} onClick={() => setDevAtmosphere(value => !value)}>Lumière et brume</button>
               <select aria-label="Personnage de test" value={devHero.characterId} onChange={event => setDevHero(value => ({ ...value, characterId: event.target.value }))}>
                 {CHARACTERS.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
@@ -953,7 +979,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               </select>
               <select aria-label="Tester un mini-jeu" value="" onChange={event => { if (event.target.value) setPracticeMiniGame({ kind: event.target.value as MiniGameKind, seed: `dev-${event.target.value}-${Date.now()}` }); }}>
                 <option value="">Mini-jeu (entraînement)…</option>
-                {Object.values(MINI_GAMES).map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
+                {PLAYABLE_MINI_GAMES.map(game => <option key={game.kind} value={game.kind}>{game.title}</option>)}
               </select>
               <button type="button" onClick={() => {
                 const at = devCameraTarget?.worldX ?? (me ? worldXFor(me.position) : 0);
@@ -989,21 +1015,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak} />
-              <div className="hud-controls">
-                <DailyButton kind={todayGame.kind} runs={todayRuns} meId={identity}
-                  onPlay={() => { if (!me || awaitingTravel || miniGameOffer || rewardMoments.length) return; startDaily(me.id, today, todayGame.kind); setDailyOpen(true); }}
-                  onOpen={() => setDailySheetOpen(true)} />
-                <PowerDeck
-                  me={me}
-                  players={players}
-                  attentionToken={powerAttention}
-                  onCast={handleCast}
-                />
-                <SoundToggle />
-                <button type="button" className="welcome-help" disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} onClick={() => { setAdventureTab("games"); setAdventureOpen(true); }}>Quêtes</button>
-              </div>
-              <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} disabled={awaitingTravel || miniGameOffer !== null || rewardMoments.length > 0} />
+              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
+                menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || wildEncounter !== null || rewardMoments.length > 0}
+                onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }} />
             </div>
             <CompactLeaderboard
               players={players}
@@ -1023,12 +1037,12 @@ export function Game({ slug = null }: { slug?: string | null }) {
               canUndo={canUndo}
               hired={Boolean(me.hiredAt)}
               locked={
-                // Every dialog over the world, the daily game and its sheet included: their
-                // digits and letters must never declare an action in the shared journal.
-                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || dailyOpen || dailySheetOpen || Boolean(recap) ||
+                // Dialog shortcuts must never declare actions in the shared journal.
+                welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) ||
                 !sceneReady ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
+                wildEncounter !== null ||
                 practiceMiniGame !== null ||
                 awaitingTravel ||
                 shotInbox !== null
@@ -1040,24 +1054,26 @@ export function Game({ slug = null }: { slug?: string | null }) {
         </div>
       ) : null}
 
-      {news.length && !dailySheetOpen ? <div className="news-stack" aria-live="polite">
+      {news.length ? <div className="news-stack" aria-live="polite">
         {news.map((item) => <NewsToast key={item.id} item={item} players={players} onCheer={handleCheer} />)}
       </div> : null}
-      {dailySheetOpen ? <DailySheet kind={todayGame.kind} runs={todayRuns} players={players} meId={identity} onClose={() => setDailySheetOpen(false)} /> : null}
-      {dailyOpen && me ? <MiniGame key={todayGame.seedId} kind={todayGame.kind} seedId={todayGame.seedId}
-        record={(() => { const top = todayRuns.find((run) => !run.pending); return top ? { score: top.score, holder: players.find((p) => p.id === top.playerId)?.name ?? "?" } : null; })()}
-        onResolve={(result, score) => { recordDaily(me.id, today, todayGame.kind, result === "skipped" ? 0 : score ?? 0); }}
-        onDone={() => { setDailyOpen(false); setDailySheetOpen(true); }} /> : null}
-      {recap && me && !dailySheetOpen ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
+      {recap && me ? <AwayRecap events={recap.events} cheers={recap.cheers} players={players}
         onClose={() => setRecap(null)} /> : null}
 
-      {welcomeVisible ? <Welcome key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
+      {welcomeVisible ? <Welcome characterId={me?.characterId} key={`${scope}:${identity}`} scope={`${scope}:${identity}`} onClose={() => { rememberWelcome(`${scope}:${identity}`); setWelcomeOpen(false); }} /> : null}
       {firstFindVisible && firstFind ? <HiddenObjectDiscovery item={firstFind.item} onClose={() => setFirstFind(null)}
         onCollection={() => { setFirstFind(null); setAdventureTab("hunt"); setAdventureOpen(true); }} /> : null}
-      {adventureOpen ? <AdventureMenu foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
+      {adventureOpen && me ? <AdventureMenu encounters={myEncounters} characterId={me.characterId} name={me.name} foundIds={hiddenFoundIds} initialTab={adventureTab} onClose={() => setAdventureOpen(false)}
         onInitiation={() => { setAdventureOpen(false); setWelcomeOpen(true); }}
         onPlay={kind => { setAdventureOpen(false); setAdventureTab("games"); setPracticeMiniGame({ kind, seed: `practice-${kind}-${crypto.randomUUID()}`, source: "arcade" }); }}
-        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} /> : null}
+        onExplore={worldX => { setAdventureOpen(false); scene.exploreCenter = worldX; scene.pan = 0; markMotion(); }} >
+          <p className="adventure-menu__intro">Niveau {me.level} · {me.journeySteps} pas · {seasonRank ? `Rang ${seasonRank}` : "Le voyage commence"}</p>
+          <p>Les petits détours font les grandes aventures.</p>
+          <button className="adventure-menu__profile-link" type="button" onClick={() => { setAdventureOpen(false); setRegisterOpen(true); }}>Compagnons & carte <span>Classement, personnages et journal →</span></button>
+          <PowerDeck me={me} players={players} attentionToken={powerAttention} onCast={(power, target) => { setAdventureOpen(false); handleCast(power, target); }} />
+          <div className="adventure-menu__sound"><span>Ambiance sonore</span><SoundToggle /></div>
+          <MonthlyMeetup meetups={monthlyMeetups} playerId={identity} onSchedule={scheduleMeetup} onOpenChange={setMeetupOpen} />
+        </AdventureMenu> : null}
 
       {registerOpen ? (
         <LeaderboardOverlay
@@ -1095,6 +1111,14 @@ export function Game({ slug = null }: { slug?: string | null }) {
         miniGameVisible && miniGameOffer ? <MiniGame characterId={me?.characterId} key={miniGameOffer.attemptId} kind={miniGameOffer.kind} seedId={miniGameOffer.attemptId} onResolve={handleMiniGameResult} onDone={handleMiniGameDone}
           record={recordFor(miniGameOffer.kind)} best={me ? personalBest(miniGames, miniGameOffer.kind, me.id) : null} /> : null}
 
+      {wildVisible && wildEncounter && me ? <WildEncounter key={wildEncounter.id} encounter={wildEncounter} name={me.name} characterId={me.characterId}
+        onMove={move => {
+          if (move !== "leave") setShownEncounterId(wildEncounter.id);
+          return encounterMove(wildEncounter.id, wildEncounter.turn, move).encounter;
+        }}
+        onDone={() => setShownEncounterId(null)}
+        onCollection={() => { setShownEncounterId(null); setAdventureTab("captures"); setAdventureOpen(true); }} /> : null}
+
       {shotInbox ? (
         <ShotInbox
           casts={shotInbox}
@@ -1126,7 +1150,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
       {sessionLost && slug ? (
         <div className="absolute inset-0 z-[45] flex items-center justify-center bg-black/80 px-4">
-          <div className="frame riveted rise grid w-full max-w-sm gap-3 p-5 text-center">
+          <div className="session-card frame grid w-full max-w-sm gap-3 p-5 text-center">
             <p className="engrave text-sm">Session expirée</p>
             <Link href={`/g/${slug}/rejoindre`} className="slot px-4 py-2.5 font-display text-sm tracking-widest text-gold-light">Entrer le mot de passe</Link>
           </div>

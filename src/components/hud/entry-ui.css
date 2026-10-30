@@ -1,0 +1,66 @@
+/* A restrained field journal: deep greens, warm ivory, fine brass rules. */
+.character-screen.curtain { background: radial-gradient(ellipse at 30% 40%, #34594c, transparent 60%), #142e29; color: #f4edd3; }
+.character-screen.curtain::before, .character-screen.curtain::after { display: none; }
+.character-screen > div { padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.character-screen header h1 { font-size: clamp(2.2rem, 6vw, 3.7rem); text-shadow: none; }
+.character-screen header > p:last-child { margin-top: 10px; }
+.character-screen .hero-panel { max-width: 780px; background: #142e29e8; border: 1px solid #cbbb7966; border-radius: 3px; box-shadow: 0 20px 70px #081d2155; }
+.character-screen .hero-panel > h2 { color: #d7c78e; font-size: 11px; letter-spacing: .16em; font-weight: 400; }
+.hero-forge { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 28px; }
+.hero-preview { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; min-width: 0; }
+.hero-preview__stage { height: 300px; background: radial-gradient(ellipse at 50% 55%, #aec99c35, transparent 68%); }
+.character-screen .character-portrait { width: 100%; height: 100%; margin: 0; border: 0; background: none; box-shadow: none; }
+.character-screen .slot { background: #203e35; border: 1px solid #c7bc8359; border-radius: 3px; box-shadow: none; color: #f3e9c6; text-shadow: none; min-height: 44px; }
+.character-screen .slot::before, .character-screen .slot::after { display: none; }
+.character-screen .slot:hover { background: #385a46; }
+.character-screen .hero-confirm { background: #d6c48c; color: #20372b; font-size: 16px; letter-spacing: .03em; }
+.character-screen .hero-confirm:disabled { opacity: .45; }
+.character-screen input { border-radius: 3px; border-color: #c7bc8366; background: #0c252280; min-height: 46px; }
+.character-screen button:focus-visible, .character-screen input:focus-visible { outline: 2px solid #f2d586; outline-offset: 4px; }
+.hero-roster { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 7px; border-top: 1px solid #b7aa7640; padding-top: 18px; margin-top: 24px; }
+.hero-roster > button { height: 88px; min-width: 0; position: relative; padding-bottom: 20px; border: 1px solid transparent; background: #8daa7920; border-radius: 3px; color: #e9e1c7; }
+.hero-roster > button[aria-pressed=true] { border-color: #ddc878; background: #adc08a35; }
+.hero-roster > button:hover { background: #adc08a35; }
+.hero-roster > button > span { position: absolute; left: 0; right: 0; bottom: 5px; font-size: 11px; }
+.character-screen .roster-portrait { flex: 0 0 50px; height: 64px; }
+.game-adventure .journey-card .character-portrait.journey-card__portrait { width: 100%; height: 100%; border-radius: 50%; background: #809570; overflow: hidden; }
+@media (max-width: 600px) {
+  .character-screen > div { gap: 18px; padding-left: 14px; padding-right: 14px; }
+  .character-screen .hero-panel { padding: 18px 16px; }
+  .character-screen header .gold-rule, .character-screen header .engrave:first-child { display: none; }
+  .hero-forge { grid-template-columns: 1fr; gap: 12px; }
+  .hero-preview { max-width: 310px; width: 100%; margin: auto; }
+  .hero-preview__stage { height: 230px; }
+  .hero-forge > div:last-child { gap: 12px; }
+  .hero-roster { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; padding-top: 12px; margin-top: 18px; }
+  .hero-roster > button { height: 76px; }
+  .hero-roster > button > span { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .character-screen * { animation: none !important; transition: none !important; } }
+/* These selectors retire the old deliberately janky parchment colour overrides. */
+.character-screen.curtain h1 { color: #f3edd2; }
+.character-screen.curtain h1 span { color: #dcc88c; }
+.character-screen.curtain p { color: #e2dfc7 !important; }
+.character-screen.curtain input { color: #f3edd2; }
+.character-screen.curtain input::placeholder { color: #aaa98f; }
+.character-screen.curtain .gold-rule { height: 1px; background: linear-gradient(90deg, transparent, #d5c285, transparent); border: 0; transform: none; box-shadow: none; }
+.character-screen.curtain .hero-confirm { color: #19372c; }
+.journal-hero { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #d5c28544; margin-bottom: 16px; }
+.journal-hero > .character-portrait { width: 150px; height: 220px; background: radial-gradient(ellipse, #9fb77933, transparent 70%); border: 0; box-shadow: none; }
+.journal-hero small { color: #cbbb89; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.journal-hero h3 { font-family: var(--font-pirata), serif; color: #f3edd2; font-size: 26px; margin: 6px 0; }
+.journal-hero p { color: #d7dcc5; font-size: 15px; }
+.adventure-landing { background: radial-gradient(ellipse at 40% 15%, #34594c, transparent 65%), #142e29; }
+.adventure-landing .frame { color: #e9e2c6; background: #19382f; border: 1px solid #c8bc8266; border-radius: 3px; box-shadow: none; transform: none; }
+.adventure-landing .frame::before, .adventure-landing .frame::after { display: none; }
+.adventure-landing .slot { background: #365343; color: #f3edd2; border: 1px solid #c8bc8266; box-shadow: none; transform: none; text-shadow: none; }
+.adventure-landing .slot::before, .adventure-landing .slot::after { display: none; }
+.adventure-landing input { color: #f3edd2; border-radius: 3px; }
+.adventure-landing .gold-rule { height: 1px; background: #c8bc8266; transform: none; }
+.landing-company { display: flex; height: 140px; width: min(360px, 90vw); flex-shrink: 0; margin-top: -10px; }
+.landing-company .character-portrait { width: 33%; height: 100%; background: none; border: 0; box-shadow: none; }
+.character-screen.curtain h1 { transform: none; }
+.character-screen .engrave, .adventure-landing .engrave { color: #dac993; text-shadow: none; }
+.character-screen.curtain .slot [class*="text-parchment"], .character-screen.curtain .slot [class*="text-gold"] { color: #eee4c5 !important; }
+
+@media (max-width: 600px) { .character-screen header { padding-top: 24px; } }

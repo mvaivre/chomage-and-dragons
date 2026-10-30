@@ -12,6 +12,7 @@ import { EnvironmentOverlay } from "./EnvironmentOverlay";
 import { ViewportResidents } from "./ViewportResidents";
 import { viewportResidents } from "./resident-visibility";
 import { HiddenObjects, HiddenObjectOverlay } from "./HiddenObjects";
+import { RoadsideObject, type RoadsideEncounter } from "./RoadsideObject";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
 import { interiorAt, type GroupDecor } from "@/lib/game/decor";
@@ -313,6 +314,7 @@ function RenderLifecycle({ paused }: { paused: boolean }) {
 /* ------------------------------------------------------------------ scène */
 
 interface SceneProps {
+  onChestReached: (playerId: string) => boolean;
   hiddenFoundIds: readonly string[];
   atmosphere: boolean;
   onSceneReady: () => void;
@@ -332,6 +334,7 @@ interface SceneProps {
 }
 
 function WorldScene({
+  onChestReached,
   hiddenFoundIds,
   atmosphere,
   onSceneReady,
@@ -453,6 +456,8 @@ function WorldScene({
             isFocused={player.id === focusPlayerId}
             lane={lane}
             onTravelDone={onTravelDone}
+            onChestReached={onChestReached}
+            pendingChestStep={player.id === meId ? pendingChestStep : null}
             onReady={player.id === meId ? onSceneReady : undefined}
           />
         ))}
@@ -484,6 +489,8 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  encounter: RoadsideEncounter | null;
+  onChestReached: (playerId: string) => boolean;
   hiddenFoundIds: readonly string[];
   onFindHidden: (itemId: string) => void;
   atmosphere?: boolean;
@@ -508,6 +515,8 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  encounter,
+  onChestReached,
   hiddenFoundIds,
   onFindHidden,
   atmosphere = true,
@@ -630,6 +639,7 @@ function GameCanvas({
       <DragonEncounter meId={meId} paused={paused || dragonBusy} onChallenge={onDragonChallenge} />
       <EnvironmentOverlay key={meId} meId={meId} paused={paused} busy={dragonBusy} onDragonSwallow={onDragonSwallow} />
       <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused || dragonBusy} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
+      {encounter ? <RoadsideObject encounter={encounter} /> : null}
       <Application
         onInit={configureRenderer}
         backgroundAlpha={1}
@@ -639,6 +649,7 @@ function GameCanvas({
         resolution={1}
       >
         <WorldScene
+          onChestReached={onChestReached}
           hiddenFoundIds={hiddenFoundIds}
           atmosphere={atmosphere}
           onSceneReady={onSceneReady}

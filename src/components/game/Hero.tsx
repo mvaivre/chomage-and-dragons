@@ -6,6 +6,7 @@ import { reactionProgress, showEnvironmentTarget, updateEnvironmentTarget, updat
 import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
+import { JOURNEY_TARGET } from "@/lib/config";
 import { inRoom, nextDoor, sameRoom, type RoomLocation } from "@/lib/game/doors";
 import { seededRandom } from "@/lib/rng";
 import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
@@ -169,11 +170,13 @@ export interface HeroProps {
   /** Décalage en profondeur, pour que deux personnages au même endroit se distinguent. */
   lane: { dx: number; dy: number; scale: number };
   onTravelDone?: (playerId: string) => void;
+  onChestReached?: (playerId: string) => boolean;
+  pendingChestStep?: number | null;
   onReady?: () => void;
   previewMotion?: HeroMotion;
 }
 
-export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, previewMotion }: HeroProps) {
+export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReached, pendingChestStep = null, onReady, previewMotion }: HeroProps) {
   const character = useMemo(() => characterById(player.characterId), [player.characterId]);
 
   const root = useRef<Container>(null);
@@ -200,6 +203,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
   const travel = useRef<TravelLeg | null>(null);
+  const chestPause = useRef(0);
+  const handledChest = useRef<number | null>(null);
+  useEffect(() => { if (pendingChestStep === null) handledChest.current = null; }, [pendingChestStep]);
   const lastDirection = useRef<1 | -1>(1);
   // Déphasage tiré de l'identifiant : les personnages ne respirent pas à l'unisson,
   // et le tirage reste le même d'un rendu à l'autre.
@@ -277,6 +283,11 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
     const dt = worldDelta(ticker.elapsedMS);
+    if (chestPause.current > 0) {
+      chestPause.current = Math.max(0, chestPause.current - dt);
+      markMotion();
+      return;
+    }
     elapsed.current += dt;
 
     if (movementDelay.current > 0) {
@@ -353,7 +364,15 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onReady, pre
         break;
       }
 
-      if (threshold) {
+      // Open the earned chest where it is reached, then resume this same leg.
+      const chestX = pendingChestStep === null ? null : pendingChestStep / JOURNEY_TARGET * WORLD_LENGTH + lane.dx;
+      const chestProgress = chestX === null ? -1 : (chestX - activeTravel.from) / (activeTravel.to - activeTravel.from) * activeTravel.steps;
+      if (!threshold && isMe && pendingChestStep !== null && handledChest.current !== pendingChestStep && chestProgress >= 0 && chestProgress <= activeTravel.steps && legProgress(activeTravel) >= chestProgress && onChestReached?.(player.id)) {
+        handledChest.current = pendingChestStep;
+        rewindLeg(activeTravel, chestProgress);
+        at.current = chestX!;
+        chestPause.current = scene.reducedMotion ? .3 : 1.35;
+      } else if (threshold) {
         at.current = threshold.x;
         strideProgress = activeTravel.elapsed / strideFor(activeTravel);
         scene.doorTransition ??= { elapsed: 0, destination: threshold.destination, switched: false };

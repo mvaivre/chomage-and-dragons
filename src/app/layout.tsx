@@ -1,6 +1,13 @@
+import { AudioSession } from "@/components/AudioSession";
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, Pirata_One } from "next/font/google";
 import "./globals.css";
+import "../components/hud/adventure-ui.css";
+import "../components/hud/entry-ui.css";
+import "../components/hud/event-ui.css";
+import "../components/hud/ui-icons.css";
+import "../components/hud/encounters.css";
+import "../components/hud/two-dimensional-ui.css";
 
 const pirata = Pirata_One({
   variable: "--font-pirata",
@@ -20,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#120c07",
+  themeColor: "#193b32",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -30,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${pirata.variable} ${garamond.variable} h-full antialiased`}
     >
       <body className="h-full overflow-hidden bg-ink-deep text-parchment">
+        <AudioSession />
         {children}
       </body>
     </html>

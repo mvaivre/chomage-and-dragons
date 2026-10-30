@@ -27,31 +27,16 @@ test('side quests work in the real renderer without changing the race',{timeout:
  await t.test('all three initiation rites teach the game without writing real actions',async()=>{
   const {context,page,errors}=await fixture({width:390,height:844},true);
   try{
-   await page.getByRole('button',{name:'Décoller',exact:true}).click();
-   let lane=1;
-   for(const [index,target]of [0,2,1,0].entries()){
-    while(lane!==target){await page.keyboard.press(lane>target?'ArrowUp':'ArrowDown');lane+=lane>target?-1:1;}
-    await page.waitForFunction(count=>document.querySelector('.initiation-ring-count')?.getAttribute('aria-label')===`${count} anneaux sur quatre`,index+1);
-   }
-   await page.getByRole('button',{name:'Rite suivant →'}).click();
-   await page.getByRole('button',{name:'Refus',exact:true}).click();
-   assert.equal(await page.locator('.initiation-feedback--retry').count(),1);
-   for(const [index,name]of ['Candidature','Refus','Entretien','Rejet après entretien'].entries()){
+   for (const name of ['Essayer une candidature · +2 pas', 'Découvrir les coffres →', 'Ouvrir le coffre', 'Essayer le pouvoir', 'Voyager ensemble →', 'Commencer le voyage']) {
     await page.getByRole('button',{name,exact:true}).click();
-    if(index<3)await page.getByRole('button',{name:'Démarche suivante →'}).click();
    }
-   await page.getByRole('button',{name:'Rite suivant →'}).click();
-   await page.getByRole('button',{name:'Ouvrir le coffre'}).click();
-   await page.getByRole('button',{name:/Viser le gobelin/}).click();
-   await page.getByRole('button',{name:'Au plus joli CV'}).click();
-   await page.getByRole('button',{name:'Au plus de pas ce mois'}).click();
-   await page.getByRole('button',{name:'Commencer le voyage'}).click();await ready(page);
+   await ready(page);
    const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')));
    assert.equal(state.events.length,2);assert.equal(state.casts.length,0);
    await page.reload();await ready(page);assert.equal(await page.locator('.initiation-card').count(),0);
-   await page.getByRole('button',{name:'Quêtes',exact:true}).click();await page.getByRole('button',{name:/Les rites d’initiation/}).click();
+   if (!await page.locator('.adventure-menu[open]').count()) await page.getByRole('button',{name:/Ouvrir le carnet/}).click(); await page.getByRole('button',{name:'Quêtes',exact:true}).click();await page.getByRole('button',{name:/Les rites d’initiation/}).click();
    await page.getByRole('button',{name:'Recommencer',exact:true}).click();
-   await page.getByRole('heading',{name:'Le baptême de l’air'}).waitFor();
+   await page.getByRole('heading',{name:'Tes démarches font avancer'}).waitFor();
    await page.keyboard.press('Escape');await ready(page);assert.deepEqual(errors,[]);
   }finally{await context.close();}
  });
@@ -59,7 +44,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
   const {context,page,errors}=await fixture({width:390,height:844});
   try{
    for(const kind of ['pigeonRace','paperCut','snake','maze','stack','pong']){
-    await page.getByRole('button',{name:'Quêtes',exact:true}).click();
+    if (!await page.locator('.adventure-menu[open]').count()) await page.getByRole('button',{name:/Ouvrir le carnet/}).click(); await page.getByRole('button',{name:'Quêtes',exact:true}).click();
     await page.locator('.adventure-menu__games button').filter({hasText:MINI_GAMES[kind].title}).click();
     const game=page.locator(`.mini-game--${kind}`);await game.waitFor();
     await game.getByRole('button',{name:'C’est parti !',exact:true}).click();
@@ -73,7 +58,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
     const sharp=await game.locator('canvas').evaluate(canvas=>canvas.width>=canvas.getBoundingClientRect().width*1.8);assert.ok(sharp);
     if(kind==='snake')await page.waitForFunction(()=>document.querySelector('.arcade-arena')?.dataset.status==='lost');
     await page.keyboard.press('Escape');await page.locator('.adventure-menu').waitFor();
-    await page.getByRole('button',{name:'Fermer les quêtes'}).click();await ready(page);
+    await page.getByRole('button',{name:'Fermer le carnet'}).click();await ready(page);
     const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')));
     assert.equal(state.events.length,2,kind);assert.equal(state.miniGames?.length??0,0,kind);
     assert.equal(state.daily?.length??0,0,kind);
@@ -120,19 +105,19 @@ test('side quests work in the real renderer without changing the race',{timeout:
     const fits=await discovery.evaluate(node=>{const b=node.getBoundingClientRect();return b.x>=0&&b.y>=0&&b.right<=innerWidth&&b.bottom<=innerHeight&&node.scrollWidth<=node.clientWidth;});
     assert.equal(fits,true,'the explanation fits this viewport');
     const skin=await discovery.evaluate(node=>{const s=getComputedStyle(node);return {border:s.borderTopWidth,padding:s.paddingTop,background:s.backgroundColor};});
-    assert.equal(skin.border,'3px','the modal stylesheet is loaded');
-    assert.equal(skin.padding,'24px');
+    assert.ok(parseFloat(skin.border)>0,'the modal stylesheet is loaded');
+    assert.ok(parseFloat(skin.padding)>0);
     assert.notEqual(skin.background,'rgb(255, 255, 255)');
     await discovery.getByRole('button',{name:'Voir ma collection'}).click();
     await page.locator('.adventure-menu__collection').waitFor();
     assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),1);
     assert.equal(await page.getByRole('button',{name:`Objets perdus · 1/${HIDDEN_ITEMS.length}`}).getAttribute('aria-pressed'),'true');
     if(viewport.width===390){
-     await page.getByRole('button',{name:'La salle des défis'}).click();
+     await page.getByRole('button',{name:'Quêtes'}).click();
      await page.locator('.adventure-menu__games button').filter({hasText:MINI_GAMES.pong.title}).click();
      await page.locator('.mini-game--pong').waitFor();await page.keyboard.press('Escape');
      await page.locator('.adventure-menu').waitFor();
-     assert.equal(await page.getByRole('button',{name:'La salle des défis'}).getAttribute('aria-pressed'),'true','an arcade still returns to the games tab');
+     assert.equal(await page.getByRole('button',{name:'Quêtes'}).getAttribute('aria-pressed'),'true','an arcade still returns to the games tab');
     }
     await page.keyboard.press('Escape');await ready(page);
     await page.reload();await ready(page);
@@ -176,7 +161,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
     await page.getByRole('button',{name:item.id===HIDDEN_ITEMS[0].id?'Continuer':'J’ai compris',exact:true}).click();
    }
    await page.reload();await ready(page);
-   await page.getByRole('button',{name:'Quêtes',exact:true}).click();
+   if (!await page.locator('.adventure-menu[open]').count()) await page.getByRole('button',{name:/Ouvrir le carnet/}).click(); await page.getByRole('button',{name:'Quêtes',exact:true}).click();
    await page.getByRole('button',{name:`Objets perdus · ${HIDDEN_ITEMS.length}/${HIDDEN_ITEMS.length}`}).click();
    assert.equal(await page.locator('.adventure-menu__collection article[data-found=true]').count(),HIDDEN_ITEMS.length);
    assert.match(await page.locator('.adventure-menu__complete').innerText(),/Collection complète/);

@@ -7,7 +7,7 @@ export function parallaxX(worldX: number, cameraX: number, viewWidth: number, fa
 export function environmentBubble(anchor: { x: number; y: number; height: number }, width: number, top: number) {
   const bottom = anchor.y - anchor.height / 2 - 14, floor = top + 70;
   const side = width >= 760 && bottom < floor ? anchor.x > width / 2 ? "left" : "right" : "above";
-  const margin = Math.min(140, width / 2);
+  const margin = Math.min(300 / 2 + 12, width / 2);
   return { left: Math.max(margin, Math.min(width - margin, anchor.x + (side === "left" ? -200 : side === "right" ? 200 : 0))), top: Math.max(floor, bottom), side };
 }
 

@@ -58,7 +58,7 @@ export function DragonGame({ seedId, onResolve, onDone, practice, record, best, 
     }}
     hud={<><span>Butin <b>{view.gold}/{DRAGON_GAME.required}</b></span><span>Armure <b>{"◆".repeat(Math.max(0, view.lives))}{"◇".repeat(DRAGON_GAME.lives - Math.max(0, view.lives))}</b></span><span><b>{Math.max(0, Math.ceil(DRAGON_GAME.duration - view.t))} s</b></span></>}
     status={finished ? <><strong>{won ? practice ? "Dragon battu" : "+2 pas bonus" : "Raté."}</strong><ScoreLine score={dragonScore(view)} unit="" record={record} best={best} practice={practice} /></> : <span>↑ ↓ ou boutons : changer de hauteur</span>}
-    primary={{ label: finished ? "Continuer le voyage" : started ? "Le dragon attaque…" : "Voler le butin", disabled: started && !finished, onClick: () => finished ? onDone() : setStarted(true) }}
+    primary={{ inArena: !started && !finished, hidden: started && !finished, label: finished ? "Continuer le voyage" : started ? "Le dragon attaque…" : "Voler le butin", disabled: started && !finished, onClick: () => finished ? onDone() : setStarted(true) }}
     skip={!finished ? { label: "Passer", onClick: leave } : null}>
     <div className="mini-game__arena dragon-arena" data-running={started && !finished}>
       {[0, 1, 2].map(lane => <div key={lane} className="dragon-arena__lane" style={{ top: `${lane * 27 + 15}%` }} />)}

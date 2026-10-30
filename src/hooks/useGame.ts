@@ -5,6 +5,7 @@ import { localStore } from "@/lib/data/local-store";
 import { RemoteError, type RemoteStore } from "@/lib/data/remote-store";
 import type {
   ActionKind,
+  EncounterMove,
   GameState,
   CheerEmoji,
   MiniGameKind,
@@ -227,6 +228,10 @@ export function useGame(mode: GameMode = LOCAL) {
     return commit(state, { type: "findHidden", playerId, itemId }, freshContext()).result;
   }, [state, commit]);
 
+  const encounterMove = useCallback((encounterId: string, turn: number, move: EncounterMove) => {
+    return commit(state, { type: "encounterMove", encounterId, turn, move }, freshContext()).result;
+  }, [state, commit]);
+
   /** Retire le joueur et tout son journal : utile pour corriger une erreur de saisie. */
   const removePlayer = useCallback((playerId: string) => {
     commit(state, { type: "removePlayer", playerId }, freshContext());
@@ -321,6 +326,8 @@ export function useGame(mode: GameMode = LOCAL) {
     daily: state.daily ?? NONE,
     monthlyMeetups: state.monthlyMeetups ?? NONE,
     discoveries: state.discoveries ?? NONE,
+    encounters: state.encounters ?? NONE,
+    encounterMove,
     scheduleMeetup,
     findHidden,
     startDaily,

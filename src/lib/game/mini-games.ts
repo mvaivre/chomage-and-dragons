@@ -32,13 +32,15 @@ export const MINI_GAMES: Record<MiniGameKind, MiniGameCopy> = {
   pong: { kind: "pong", misery: "Jeu de raquette", title: "Renvoi à l’expéditeur", winFeedback: "Dossier renvoyé avec panache" },
 };
 
+export const PLAYABLE_MINI_GAMES = Object.values(MINI_GAMES).filter(game => game.kind !== "ghosting");
+
 /** Keep the first familiar attempts, then rotate in the arcade challenges. */
 export function miniGameForAction(action: ActionKind, slot: number): MiniGameKind | null {
   switch (action) {
     case "candidature": return (["pigeon", "keywords", "dragon", "pigeonRace", "paperCut"] as const)[slot % 5];
     case "refus": return (["stamp", "stack"] as const)[slot % 2];
     case "entretien": return (["quiz", "pong"] as const)[slot % 2];
-    case "rejetApresEntretien": return (["ghosting", "snake", "maze"] as const)[slot % 3];
+    case "rejetApresEntretien": return (["snake", "maze"] as const)[slot % 2];
     default: return null;
   }
 }

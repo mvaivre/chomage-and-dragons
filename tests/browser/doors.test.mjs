@@ -28,13 +28,13 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
  }
  await t.test('playable initiation isolates keys, persists dismissal and reopens from quests',async()=>{
   const{page,context,errors}=await fixture(0,true);
-  const dialog=page.getByRole('dialog',{name:'Le baptême de l’air'});await dialog.waitFor();
+  const dialog=page.getByRole('dialog',{name:'Tes démarches font avancer'});await dialog.waitFor();
   await page.keyboard.press('2');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).events.length),0);
-  assert.match(await dialog.innerText(),/Rite 1 sur 3/i);
+  assert.match(await dialog.innerText(),/Trois petits essais/i);
   await dialog.getByRole('button',{name:'Passer l’initiation'}).click();await page.reload();
   await page.waitForFunction(()=>!document.querySelector('.action-button--refus')?.disabled);
   assert.equal(await page.locator('.initiation-card').count(),0);
-  await page.getByRole('button',{name:'Quêtes',exact:true}).click();await page.getByRole('button',{name:/Les rites d’initiation/}).click();await dialog.waitFor();await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
+  await page.getByRole('button',{name:/Ouvrir le carnet/}).click();await page.getByRole('button',{name:'Quêtes',exact:true}).click();await page.getByRole('button',{name:/Les rites d’initiation/}).click();await dialog.waitFor();await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('an action crosses the entrance, pauses for the fade and completes all steps; undo returns outside',async()=>{
@@ -44,6 +44,7 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   const faded=samples.filter(s=>s.fade);assert.ok(faded.length>3,'fade spans several frames');
   assert.ok(faded.some(s=>!s.fade.switched)&&faded.some(s=>s.fade.switched),'both scenes rendered under fade');
   assert.ok(Math.max(...faded.map(s=>s.x))-Math.min(...faded.map(s=>s.x))<.5,'feet wait at threshold');
+  await page.locator('.wild-encounter[open], .roadside-invite[open]').waitFor();await page.keyboard.press('Escape');
   await page.reload();await assertArrival(page,13,'orp');
   await page.locator('.action-undo').click();await assertArrival(page,10,null);
   assert.deepEqual(errors,[]);await context.close();
@@ -53,7 +54,7 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   await page.evaluate(()=>{const state=JSON.parse(localStorage.getItem('louchomage:v2'));const at=new Date().toISOString();state.events.push(...Array.from({length:17},(_,i)=>({id:`lou-${i}`,playerId:'lou',kind:'candidature',at})));localStorage.setItem('louchomage:v2',JSON.stringify(state));});
   await page.reload();await assertArrival(page,12,'orp');
   await page.locator('.recap__close').click();
-  await page.locator('.power-menu__trigger').click();await page.locator('.power-choice').first().click();await page.locator('.power-target').filter({hasText:'Lou'}).click();
+  await page.getByRole('button',{name:/Ouvrir le carnet/}).click();await page.locator('.power-menu__trigger').click();await page.locator('.power-choice').first().click();await page.locator('.power-target').filter({hasText:'Lou'}).click();
   await page.waitForFunction(()=>window.__decorScene.room?.id==='factory'&&!window.__decorScene.doorTransition);
   await page.waitForFunction(()=>window.__decorScene.room?.id==='orp'&&!window.__decorScene.doorTransition,null,{timeout:10000});
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('louchomage:v2')).events.length),23);
@@ -64,6 +65,7 @@ test('welcome and room travel work with the saved game',{timeout:150000},async t
   await page.locator('.action-button--candidature').click();await assertArrival(page,24,null);
   const exit=await page.evaluate(()=>{let found;const walk=n=>{if(n.label==='building:orp:exit')found=n;n.children?.forEach(walk);};walk(window.__pixiApp.stage);return found?{x:found.x,visible:found.visible}:null;});
   assert.ok(exit?.visible&&exit.x<24*30240/200-80);
+  await page.locator('.wild-encounter[open], .roadside-invite[open]').waitFor();await page.keyboard.press('Escape');
   await page.reload();await page.emulateMedia({reducedMotion:'reduce'});
   await page.locator('.action-button--entretien').click();await assertArrival(page,21,'orp');
   assert.deepEqual(errors,[]);await context.close();

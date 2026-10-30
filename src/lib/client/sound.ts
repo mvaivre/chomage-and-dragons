@@ -63,7 +63,7 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
     limiter.ratio.value = 8;
     master.connect(limiter).connect(context.destination);
   }
-  if (context.state === "suspended") void context.resume().catch(() => {});
+  if (context.state !== "running" && context.state !== "closed") void context.resume().catch(() => {});
   return context && master ? { ctx: context, out: master } : null;
 }
 
@@ -72,7 +72,7 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
  * context: the music never pays for that creation itself.
  */
 export function audioOutput(): { ctx: AudioContext; out: GainNode } | null {
-  return context ? audio() : null;
+  return context && master && !muted ? { ctx: context, out: master } : null;
 }
 
 function whiteNoise(ctx: AudioContext): AudioBuffer {
@@ -158,42 +158,14 @@ function hiss(opts: NoiseOptions): void {
 
 const NOTE = (semitones: number) => 523.25 * Math.pow(2, semitones / 12);
 
-/**
- * Creating an AudioContext costs a couple of hundred milliseconds on some
- * systems. Browsers allow it on the first user gesture anywhere on the page,
- * so do it then, when nothing is animating, instead of on the first action.
- */
-export function warmUpAudio(): () => void {
-  if (typeof window === "undefined") return () => {};
-  const warm = () => {
-    if (context) {
-      // A context made before any gesture waits; Safari only lets it start inside the gesture itself.
-      if (context.state === "suspended") void context.resume().catch(() => {});
-      else remove();
-      return;
-    }
-    remove();
-    // Let the gesture's own work finish first.
-    window.setTimeout(() => {
-      const a = audio();
-      if (a) whiteNoise(a.ctx);
-    }, 0);
-  };
-  const events = ["pointerdown", "keydown", "touchstart"] as const;
-  const remove = () => events.forEach((name) => window.removeEventListener(name, warm, true));
-  events.forEach((name) => window.addEventListener(name, warm, { capture: true, passive: true }));
-  return remove;
-}
-
-/**
- * Arriving from a click (the title screen, an invitation link followed in the
- * app), the page may already make sound: start the context now, so the music
- * plays on arrival instead of waiting for the first action.
- */
-export function primeAudio(): void {
-  if (typeof navigator === "undefined" || context || muted) return;
+/** Prepare on arrival when playback is allowed, and resume synchronously during
+ * every real gesture. Safari can interrupt an existing context after a phone lock. */
+export function primeAudio(prepare = false): void {
+  if (typeof navigator === "undefined" || muted) return;
   const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
-  if (!activation?.hasBeenActive) return;
+  if (!context && !prepare && !activation?.hasBeenActive) return;
+  // Creation/resume happens synchronously inside real gestures too: no timer and
+  // no dependency on navigator.userActivation being implemented by the browser.
   const a = audio();
   if (a) whiteNoise(a.ctx);
 }
@@ -202,6 +174,11 @@ let lastTick = 0;
 
 /** The game's sound palette. Each call is fire-and-forget and silent when muted. */
 export const sfx = {
+  /** A soft, short syllable for each spoken letter. Shares the global mute setting. */
+  dialogue(letter: string) {
+    const freq = 480 + (letter.codePointAt(0)! % 7) * 45;
+    tone({ freq, to: freq * 0.72, dur: 0.027, type: "triangle", gain: 0.075, attack: 0.002 });
+  },
   /** A tap on an action button. */
   press() { tone({ freq: 660, to: 880, dur: 0.07, type: "triangle", gain: 0.18 }); },
   whoosh() { hiss({ dur: 0.32, filter: "bandpass", freq: 500, to: 2400, q: 1.2, gain: 0.35, attack: 0.08 }); },
@@ -290,6 +267,39 @@ export const sfx = {
   boing() {
     tone({ freq: 180, to: 520, dur: 0.22, type: "triangle", gain: 0.22, vibrato: 18, attack: 0.005 });
     tone({ at: 0.18, freq: 480, to: 260, dur: 0.2, type: "triangle", gain: 0.14, vibrato: 14 });
+  },
+  /** A short rising arcade sting, followed by the object's landing. */
+  encounterAppear(wild = false, quick = false) {
+    const speed = quick ? .22 : 1;
+    hiss({ dur: .38 * speed, filter: "bandpass", freq: 350, to: 2600, gain: .2, attack: .04 });
+    [0, 3, 7, 12, 15].forEach((note, i) => tone({ at: (.1 + i * .075) * speed, freq: NOTE(note + (wild ? -12 : 0)), dur: .1 * speed, type: "square", gain: .11 }));
+    tone({ at: .5 * speed, freq: 140, to: 55, dur: .16 * speed, type: "sine", gain: .35 });
+    tone({ at: .63 * speed, freq: NOTE(19), dur: .35 * speed, type: "triangle", gain: .12 });
+  },
+  /** The choices have arrived: a tactile pop and a two-note question. */
+  encounterPrompt() {
+    tone({ freq: 400, to: 900, dur: .07, type: "triangle", gain: .24 });
+    tone({ at: .07, freq: NOTE(12), dur: .09, type: "square", gain: .1 });
+    tone({ at: .16, freq: NOTE(19), dur: .2, type: "triangle", gain: .14 });
+  },
+  battleStart() {
+    [0, 7, 3, 10].forEach((note, i) => tone({ at: i * .08, freq: NOTE(note), dur: .12, type: "square", gain: .12 }));
+  },
+  enemyAttack(heavy = false) {
+    hiss({ dur: .3, filter: "bandpass", freq: 2400, to: 350, gain: heavy ? .32 : .22 });
+    tone({ freq: heavy ? 110 : 180, to: 65, dur: .26, type: "sawtooth", gain: heavy ? .2 : .14 });
+  },
+  battleMove(move: "argue" | "polite" | "rest" | "capture") {
+    if (move === "capture") {
+      hiss({ dur: .22, filter: "bandpass", freq: 400, to: 2400, gain: .2 });
+      tone({ at: .25, freq: 880, to: 440, dur: .12, type: "triangle", gain: .18 });
+      for (const at of [.5, .75, 1]) tone({ at, freq: 320, to: 450, dur: .055, type: "square", gain: .1 });
+    } else if (move === "rest") {
+      [0, 4, 7].forEach((note, i) => tone({ at: i * .1, freq: NOTE(note + 12), dur: .22, type: "sine", gain: .13 }));
+    } else {
+      tone({ freq: move === "argue" ? 260 : 620, to: move === "argue" ? 90 : 880, dur: .16, type: move === "argue" ? "square" : "triangle", gain: .18 });
+      hiss({ at: .12, dur: .08, filter: "bandpass", freq: 1600, gain: .2 });
+    }
   },
   /** The mini-game invitation: two bright notes. */
   invite() {

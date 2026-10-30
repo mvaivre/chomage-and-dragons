@@ -78,7 +78,7 @@ test('a won application game doubles application travel and can unlock a chest',
 
 test('every action but hiring has a game; each ordinal is offered once', () => {
   const state = {players: [], casts: [], events: []};
-  for (const [kind, expected] of [['refus', 'stamp'], ['entretien', 'quiz'], ['rejetApresEntretien', 'ghosting'], ['embauche', null]]) {
+  for (const [kind, expected] of [['refus', 'stamp'], ['entretien', 'quiz'], ['rejetApresEntretien', 'snake'], ['embauche', null]]) {
     const first = enter(state, {id: `${kind}-1`, playerId: 'me', kind, at: '2026-09-08T12:00:00Z'});
     assert.equal(first.offer, expected, kind);
     if (!expected) continue;

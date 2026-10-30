@@ -160,6 +160,7 @@ export function SlotsGame({ seedId, onResolve, onDone, practice, record, best }:
     status={phase === "result" ? <><strong>{won ? "Jackpot · +1 butin" : "Butin conservé"}</strong><ScoreLine score={score} unit="CHF" record={record} best={best} practice={practice} /></> :
       <span>{status === "ready" ? "Touche ou Espace : lancer, puis arrêter" : "Touche ou Espace : arrêter"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer les rouleaux" : status === "spinning" ? "Stop !" : won ? "Jackpot…" : "Bof…",
       disabled: phase === "play" && status !== "ready" && status !== "spinning",
       onClick: () => phase === "play" ? tap() : onDone(),

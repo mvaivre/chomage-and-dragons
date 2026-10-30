@@ -236,6 +236,7 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
       <span>{status === "ready" ? `Touche ou Espace · ${DESK.missesAllowed} ratés = perdu` :
         status === "running" ? "Touche ou Espace : tamponner" : won ? "Conforme…" : "Suspension…"}</span>}
     primary={{
+      inArena: phase === "play" && status === "ready",
       label: phase === "result" ? "Continuer le voyage" : status === "ready" ? "Lancer le tapis" : status === "running" ? "Tamponner !" : won ? "Conforme…" : "Aïe…",
       disabled: phase === "play" && status !== "ready" && status !== "running",
       onClick: () => phase === "play" ? slam() : onDone(),
@@ -245,7 +246,6 @@ export function StampGame({ seedId, onResolve, onDone, practice, record, best }:
       aria-label="Tamponner" disabled={phase !== "play"}
       onPointerDown={event => { event.preventDefault(); slam(); }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden />
-      {phase === "play" && status === "ready" ? <span className="mini-game__prompt" aria-hidden>Touche pour lancer le tapis<small>puis tape sous le tampon</small></span> : null}
       {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{won ? "CONFORME · +1 PAS" : "SUSPENSION 5 JOURS"}</span> : null}
     </button>
   </MiniGameShell>;
