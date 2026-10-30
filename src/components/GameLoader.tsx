@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
  * du joueur vient du stockage local. Le charger sans rendu serveur évite un premier
  * rendu vide suivi d'un remplacement, et supprime toute question d'hydratation.
  */
-const Game = dynamic(() => import("./Game").then((m) => m.Game), {
+const GameEntry = dynamic(() => import("./world/WorldEntry").then((m) => m.WorldEntry), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-ink-deep">
@@ -18,5 +18,5 @@ const Game = dynamic(() => import("./Game").then((m) => m.Game), {
 
 /** `slug` names the group whose game lives on the server; without it, the device plays alone. */
 export function GameLoader({ slug = null }: { slug?: string | null }) {
-  return <Game slug={slug} />;
+  return <GameEntry slug={slug} />;
 }

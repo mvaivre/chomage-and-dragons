@@ -513,6 +513,14 @@ identité, actions, inventaire, captures, quêtes, mini-jeux et synchronisation 
 groupe ont une seule source de vérité. Le choix d'affichage est une préférence
 locale (`louchomage:renderer:v1`), indépendante de la partie et de ses amis.
 
+À la première entrée, `WorldEntry` présente un dialogue de choix avec des captures
+des deux univers. Aucun moteur ni magasin de partie n'est monté avant ce choix.
+`louchomage:renderer-choice:v1` mémorise sa confirmation explicite, séparément de
+l'ancien choix automatique. Les visites suivantes reprennent la dernière vue ;
+le toggle reste disponible. Si le stockage est bloqué, le choix s'applique en
+mémoire pour cette visite. `?renderer=2d` ou `?renderer=3d` permet un aperçu direct.
+Les deux images d'entrée sont des captures du vrai jeu, sans régénération des décors.
+
 La coordonnée canonique est `worldXFor(player.position)` : un tour mesure 30 240
 unités et 200 pas. La 3D divise cette distance par 50 pour sa géométrie. Les biomes,
 intérieurs, portes, objets cachés et éléments narratifs viennent des mêmes données.

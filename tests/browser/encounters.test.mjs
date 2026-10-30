@@ -18,6 +18,7 @@ test('wild encounters, captures, reloads and roadside games on desktop and mobil
     const context=await browser.newContext({viewport,reducedMotion:motion}),page=await context.newPage(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.addInitScript(state=>{
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
       if(localStorage.getItem('louchomage:v2'))return;
       localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
       localStorage.setItem('louchomage:moi:v1','test');

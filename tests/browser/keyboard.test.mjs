@@ -26,6 +26,7 @@ test('modal games take the first keyboard input without clicking a direction con
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(initiation => {
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
       const at = new Date().toISOString();
       if (!initiation) localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
       localStorage.setItem('louchomage:moi:v1', 'test');

@@ -15,6 +15,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
   const context=await browser.newContext({viewport,deviceScaleFactor:2}),page=await context.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(({initiation,fresh})=>{
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
    if(localStorage.getItem('louchomage:v2'))return;
    const at=new Date().toISOString();
    if(!initiation)localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');localStorage.setItem('louchomage:moi:v1','test');

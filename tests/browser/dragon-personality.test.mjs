@@ -34,6 +34,7 @@ test('the resident eats on the fourth click and restores the hero without changi
     page.on('pageerror', error => errors.push(error.message));
     try {
       await page.addInitScript(({ nest, distant, world, target }) => {
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
         const at = new Date().toISOString();
         const count = distant ? 0 : Math.round((nest + 80) / world * target / 2);
         localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');

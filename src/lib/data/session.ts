@@ -72,7 +72,24 @@ export function forgetGroup(slug: string): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(GROUPS_KEY, JSON.stringify(loadKnownGroups().filter((g) => g.slug !== slug)));
+    window.localStorage.removeItem(`louchomage:jeton:${slug}`);
+    const identityKey = `louchomage:moi:${slug}`;
+    if (identityKey !== LEGACY_KEY) window.localStorage.removeItem(identityKey);
   } catch {
     // Rien à faire.
   }
+}
+
+/** Only an authoritative 404 means a saved group is obsolete. Keep it offline or signed out. */
+export async function pruneMissingGroups(signal?: AbortSignal): Promise<string[]> {
+  const missing = await Promise.all(loadKnownGroups().map(async ({ slug }) => {
+    try {
+      const response = await fetch(`/api/groups/${encodeURIComponent(slug)}`, { cache: "no-store", signal });
+      return response.status === 404 ? slug : null;
+    } catch { return null; }
+  }));
+  if (signal?.aborted) return [];
+  const slugs = missing.filter((slug): slug is string => slug !== null);
+  slugs.forEach(forgetGroup);
+  return slugs;
 }

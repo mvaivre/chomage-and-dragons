@@ -157,7 +157,7 @@ interface Notice {
   powerKind?: PowerKind;
 }
 
-export function Game({ slug = null }: { slug?: string | null }) {
+export function Game({ slug = null, initialWorldMode }: { slug?: string | null; initialWorldMode?: WorldMode }) {
   // A group's game lives on the server; without a slug this device plays alone.
   const store = useMemo(() => (slug ? new RemoteStore(slug) : null), [slug]);
   const mode = useMemo<GameMode>(() => (store ? { kind: "remote", store } : { kind: "local" }), [store]);
@@ -258,7 +258,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
-  const [worldMode, setWorldMode] = useState<WorldMode>(readWorldMode);
+  const [worldMode, setWorldMode] = useState<WorldMode>(() => initialWorldMode ?? readWorldMode());
   const [worldLoading, setWorldLoading] = useState(true);
   const [activeWorldMode, setActiveWorldMode] = useState<WorldMode>(worldMode);
   const reactionTiming = activeWorldMode === "3d" ? timing3D : timing2D;

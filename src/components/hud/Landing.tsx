@@ -5,15 +5,22 @@ import { SoundToggle } from "./SoundToggle";
 import { CharacterPortrait } from "./CharacterPortrait";
 import { characterById } from "@/lib/game/characters";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createGroup } from "@/lib/data/remote-store";
-import { loadKnownGroups, rememberGroup, type KnownGroup } from "@/lib/data/session";
+import { loadKnownGroups, pruneMissingGroups, rememberGroup, type KnownGroup } from "@/lib/data/session";
 
 /** The front door: create a group of friends, or open the one you were invited to. */
 export function Landing() {
   const router = useRouter();
   // Rendered only in the browser (see page.tsx), so local storage is readable at once.
-  const [known] = useState<KnownGroup[]>(loadKnownGroups);
+  const [known, setKnown] = useState<KnownGroup[]>(loadKnownGroups);
+  useEffect(() => {
+    const controller = new AbortController();
+    void pruneMissingGroups(controller.signal).then(missing => {
+      if (missing.length) setKnown(groups => groups.filter(group => !missing.includes(group.slug)));
+    });
+    return () => controller.abort();
+  }, []);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -58,7 +65,7 @@ export function Landing() {
           <ul className="mt-3 grid gap-2">
             {known.map((group) => (
               <li key={group.slug}>
-                <button type="button" onClick={() => router.push(`/g/${group.slug}`)} className="slot w-full px-4 py-2.5 text-left font-display text-lg tracking-wide text-gold-light">
+                <button type="button" onClick={() => router.push(`/g/${encodeURIComponent(group.slug)}`)} className="slot w-full px-4 py-2.5 text-left font-display text-lg tracking-wide text-gold-light">
                   {group.name}
                 </button>
               </li>

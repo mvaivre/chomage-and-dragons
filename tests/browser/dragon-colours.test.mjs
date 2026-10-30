@@ -25,7 +25,8 @@ test('five dragon coats breathe registered fire and keep their identity through 
   for(const[name,width,height]of[['desktop',1280,800],['mobile',390,844],['wide',2400,900]]){
    const context=await browser.newContext({viewport:{width,height}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    try{
-    await page.addInitScript(count=>{const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:count},(_,i)=>({id:`a${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));},Math.round((x+80)/WORLD_LENGTH*100));
+    await page.addInitScript(count=>{
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at}],events:Array.from({length:count},(_,i)=>({id:`a${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));},Math.round((x+80)/WORLD_LENGTH*100));
     await page.goto(`${url}/local?debug&hour=12`);await page.waitForFunction(()=>window.__pixiApp&&document.querySelector('.action-button--refus')&&!document.querySelector('.action-button--refus').disabled);
     await page.evaluate(x=>{window.__decorScene.exploreCenter=x;window.__decorScene.pan=0;},x);await page.waitForFunction(x=>Math.abs(window.__decorScene.camera.x+window.__decorScene.camera.viewW/2-x)<2,x);
     const saved=await page.evaluate(()=>localStorage.getItem('louchomage:v2'));

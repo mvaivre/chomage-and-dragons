@@ -14,6 +14,7 @@ test('lava and fire respect their geometry budget while flames and light stay sm
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
     const at = new Date().toISOString();
     localStorage.setItem('louchomage:moi:v1', 'test');
     localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');

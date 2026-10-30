@@ -15,6 +15,7 @@ test('2D residents type their dialogue and accept reveal/close without dragging 
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
     const at = new Date().toISOString();
     localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');
     localStorage.setItem('louchomage:moi:v1', 'test');

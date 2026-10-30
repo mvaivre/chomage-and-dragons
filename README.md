@@ -228,6 +228,11 @@ l'appareil qui l'a créé par un jeton secret : on ne joue que pour soi. Un code
 appareil, ce qui le retire du précédent. Un même appareil peut appartenir à plusieurs
 groupes.
 
+L'accueil vérifie les groupes mémorisés sur l'appareil et retire uniquement ceux
+que le serveur confirme inexistants. Un ancien lien de partie ou d'invitation
+revient à l'accueil. Les sauvegardes solo et les autres groupes restent conservés ;
+une session expirée ou une panne réseau ne provoque aucun nettoyage local.
+
 L'état d'un groupe vit sur le serveur, en une seule valeur JSON versionnée, plus un
 journal des actions. Chaque appareil applique une action localement pour répondre tout
 de suite, l'envoie avec les mêmes identifiants, et adopte la réponse du serveur. Un

@@ -47,6 +47,7 @@ test('each NPC appearance is unique in the rendered viewport, across layers and 
     const context = await browser.newContext({ viewport }), page = await context.newPage(), errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.addInitScript(count => {
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
       const at = new Date().toISOString();
       localStorage.setItem('louchomage:moi:v1', 'test');
       localStorage.setItem('chomage:welcome:rites-v2:local%3Atest', 'seen');

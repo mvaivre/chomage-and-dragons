@@ -10,6 +10,7 @@ test('the final tavern renders, responds and respects motion preferences',{timeo
   const context=await browser.newContext({viewport:{width,height}}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(({steps,hired})=>{
+    localStorage.setItem('louchomage:renderer-choice:v1', '1');
    if(localStorage.getItem('louchomage:v2'))return;
    const at=new Date().toISOString();localStorage.setItem('louchomage:moi:v1','test');localStorage.setItem('chomage:welcome:rites-v2:local%3Atest','seen');
    localStorage.setItem('louchomage:v2',JSON.stringify({players:[{id:'test',name:'Mika',characterId:'skater',joinedAt:at,...(hired?{hiredAt:at}:{})}],events:Array.from({length:steps/2},(_,i)=>({id:`a${i}`,playerId:'test',kind:'candidature',at})),casts:[]}));
