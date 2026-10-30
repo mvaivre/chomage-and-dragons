@@ -53,3 +53,5 @@ export function atmosphereTextures(): AtmosphereTextures {
   };
   return cached;
 }
+
+export function disposeAtmosphereTextures() { if (cached) for (const texture of Object.values(cached)) texture.destroy(true); cached = null; }

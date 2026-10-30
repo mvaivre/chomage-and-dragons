@@ -183,13 +183,6 @@ export interface BoltRequest {
 }
 
 /** Requests are queued here and consumed by FxLayer on its next frame. */
-export const fxQueue = { bursts: [] as BurstRequest[], bolts: [] as BoltRequest[] };
+export { fxQueue, fx } from "./fx-queue";
 
-export const fx = {
-  burst(request: BurstRequest): void {
-    fxQueue.bursts.push(request);
-  },
-  bolt(request: BoltRequest): void {
-    fxQueue.bolts.push(request);
-  },
-};
+export function disposeFxTextures() { for (const texture of textures.values()) if (texture !== Texture.WHITE) texture.destroy(true); textures.clear(); }

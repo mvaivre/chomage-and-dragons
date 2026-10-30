@@ -3,17 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chestXForStep } from "@/components/game/projection";
 import type { Effect, EffectKind } from "@/components/game/Effects";
-import GameCanvas from "@/components/game/GameCanvas";
-import { heroOrigin, laneFor } from "@/components/game/lanes";
+import { WorldView } from "@/components/world/WorldView";
+import { readWorldMode, type WorldMode } from "@/lib/client/world-mode";
+import { heroOrigin } from "@/components/game/lanes";
 import type { HeroMotion } from "@/components/game/animation";
 import { CHARACTERS } from "@/lib/game/characters";
 import { environmentSites, ENVIRONMENT_LABELS } from "@/lib/game/environment";
 import { ActionBar } from "@/components/hud/ActionBar";
 import dynamic from "next/dynamic";
-import { decodedImage, whenIdle } from "@/lib/client/preload";
-import { loadFirst, retainTextures } from "@/components/game/textures";
-import { CHARACTER_ANIMATIONS } from "@/components/game/animation";
-import { ACTION_ART, MINI_GAME_IMAGES, POWER_ART } from "@/lib/game/art";
+import { whenIdle } from "@/lib/client/preload";
 import { DaylightVeil } from "@/components/hud/DaylightVeil";
 
 /** Mini-games load on their own, fetched ahead of need once the world is up. */
@@ -49,10 +47,10 @@ import { AwayRecap, NewsToast, type NewsItem } from "@/components/hud/News";
 import { loadSeen, saveSeen } from "@/lib/client/seen";
 import type { CheerEmoji, Cheer, GameEvent } from "@/lib/data/types";
 import type { HudTiming } from "@/components/hud/QuestHud";
-import { reactionTiming } from "@/components/game/Effects";
+import { reactionTiming as timing2D } from "@/components/game/reactions";
+import { reactionTiming as timing3D, REACTION_HOLD } from "@/components/voxel/reactions";
 import { CHOREOGRAPHIES } from "@/components/game/reactions";
-import { REACTION_HOLD } from "@/components/game/Hero";
-import { fx } from "@/components/game/fx";
+import { fx } from "@/components/game/fx-queue";
 import { leanIn, leanOut, markMotion, recenterCamera, scene } from "@/components/game/scene";
 import { primeAudio, sfx } from "@/lib/client/sound";
 import { VARIANTS, variantFor } from "@/lib/game/variants";
@@ -260,6 +258,10 @@ export function Game({ slug = null }: { slug?: string | null }) {
   }, [awaitingTravel]);
   const [effectFocusId, setEffectFocusId] = useState<string | null>(null);
   const [observedPlayerId, setObservedPlayerId] = useState<string | null>(null);
+  const [worldMode, setWorldMode] = useState<WorldMode>(readWorldMode);
+  const [worldLoading, setWorldLoading] = useState(true);
+  const [activeWorldMode, setActiveWorldMode] = useState<WorldMode>(worldMode);
+  const reactionTiming = activeWorldMode === "3d" ? timing3D : timing2D;
   const [sceneReady, setSceneReady] = useState(false);
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
 
@@ -270,8 +272,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     if (!sceneReady) return;
     return whenIdle(() => {
       primeAudio();
-      retainTextures([...Object.values(ACTION_ART), ...Object.values(POWER_ART)]);
-      for (const url of MINI_GAME_IMAGES) void decodedImage(url).catch(() => {});
       void loadMiniGames();
     });
   }, [sceneReady]);
@@ -299,8 +299,6 @@ export function Game({ slug = null }: { slug?: string | null }) {
     : null);
   const meIndex = identityRevoked ? -1 : players.findIndex((p) => p.id === meId);
   const me = meIndex === -1 ? null : players[meIndex];
-  const myAtlas = me ? CHARACTER_ANIMATIONS[me.characterId]?.url : undefined;
-  useEffect(() => { if (myAtlas) loadFirst([myAtlas]); }, [myAtlas]);
 
   // Une session qui désigne quelqu'un de retiré de la partie ne vaut rien : on
   // repart de l'écran de titre, et le prochain choix écrasera la valeur périmée.
@@ -633,7 +631,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       ] : [];
 
       if (afterChest > beforeChest) {
-        const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
+        const markerX = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
         pendingChestEffect.current = {
           id: `${event.id}-chest`,
           kind: "chest",
@@ -665,9 +663,8 @@ export function Game({ slug = null }: { slug?: string | null }) {
         moment.cue({ type: "flash", ...FLASH[kind] });
       });
       pendingTale.current = forcedTale() ?? taleFor(event);
-      const laneDx = laneFor(meIndex).dx;
-      const beforeRoom = interiorAt(worldXFor(me.position) + laneDx);
-      const afterRoom = interiorAt(worldXFor(afterPosition) + laneDx);
+      const beforeRoom = interiorAt(worldXFor(me.position));
+      const afterRoom = interiorAt(worldXFor(afterPosition));
       pendingBanner.current = afterRoom && beforeRoom?.id !== afterRoom.id
         ? { kicker: "Vous entrez", title: afterRoom.name }
         : beforeZone.id !== afterZone.id
@@ -680,7 +677,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
       setActionFeedback({ id: event.id, kind, text: kind === "embauche" ? "En route pour la taverne !" : `${ACTION_LABELS_ONE[kind]}${event.journeyBonus ? " + bonus" : ""} · ${steps > 0 ? "+" : ""}${steps} pas${beforeZone.id !== afterZone.id ? ` · ${afterZone.short}` : ""}` });
       setRewardMoments(moments);
     },
-    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, wildEncounter, schedule],
+    [addEvent, me, meIndex, rewardMoments.length, miniGameOffer, wildEncounter, schedule, reactionTiming, activeWorldMode],
   );
 
   const handleMiniGameResult = useCallback((result: MiniGameResult, score?: number) => {
@@ -703,13 +700,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
     const bonus = miniGameBonus(miniGameOffer.action);
     if (chestGame) {
       const afterChest = me.earnedChests + 1;
-      const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET);
+      const x = chestXForStep(afterChest * STEPS_PER_LEVEL, WORLD_LENGTH, JOURNEY_TARGET, activeWorldMode === "2d" ? 110 : 0);
       pendingChestEffect.current = { id: `${miniGameOffer.eventId}-bonus-chest`, kind: "chest", origin: { x, y: surfaceAt(x) + 8 } };
       setRewardMoments([{ id: `${miniGameOffer.eventId}-bonus-reward`, type: "chest", powerKind: powerForSlot(afterChest - 1) }]);
       pendingChestGame.current = null;
     }
     setActionFeedback({ id: `${miniGameOffer.eventId}-bonus`, kind: miniGameOffer.action, text: `${copy.winFeedback} · +${bonus} pas bonus` });
-  }, [miniGameOffer, me, finishMiniGame]);
+  }, [miniGameOffer, me, finishMiniGame, activeWorldMode]);
 
   const handleMiniGameDone = useCallback(() => {
     setMiniGameOffer(null);
@@ -918,7 +915,13 @@ export function Game({ slug = null }: { slug?: string | null }) {
 
   return (
     <main className="game-adventure relative h-full w-full overflow-hidden bg-ink-deep" data-moment={momentActive ? "on" : undefined} data-invite={inviteVisible ? "on" : undefined}>
-      <GameCanvas
+      <WorldView
+        mode={worldMode}
+        onModeChange={setWorldMode}
+        onActiveModeChange={setActiveWorldMode}
+        canSwitch={!awaitingTravel && !momentActive && effects.length === 0 && !rewardMoments.length && !miniGameOffer && !practiceMiniGame && !wildEncounter && !shotInbox && !welcomeVisible && !firstFindVisible && !registerOpen && !adventureOpen && !meetupOpen}
+        onLoadingChange={loading => { setWorldLoading(loading); if (loading) setSceneReady(false); }}
+        journeyRevision={events.filter(event => event.playerId === identity).map(event => event.id).join(":")}
         encounter={me && (wildEncounter || miniGameOffer || roadsideChest) ? { id: wildEncounter?.id ?? miniGameOffer?.attemptId ?? roadsideChest!.attemptId, model: wildEncounter?.monster ?? miniGameOffer?.kind ?? "slots", rare: wildEncounter?.rare ?? false, worldX: worldXFor(me.position) } : null}
         hiddenFoundIds={hiddenFoundIds}
         onFindHidden={handleFindHidden}
@@ -943,6 +946,9 @@ export function Game({ slug = null }: { slug?: string | null }) {
         devCameraTarget={devCameraTarget}
       />
 
+      <div className="world-mode-switch" role="group" aria-label="Affichage du monde">
+        {(["2d", "3d"] as const).map(mode => <button key={mode} type="button" aria-pressed={worldMode === mode} disabled={worldLoading} onClick={() => setWorldMode(mode)}>{mode.toUpperCase()}</button>)}
+      </div>
       <div className="vignette absolute inset-0 z-[3]" />
       <div className="world-glaze pointer-events-none absolute inset-0 z-[3]" />
       <DaylightVeil />
@@ -1015,7 +1021,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
         <div hidden={registerOpen} inert={welcomeOpen || !sceneReady} className="hud-layer pointer-events-none absolute inset-0 z-10">
           <header className="hud-top">
             <div className="hud-journey">
-              <QuestHud laneOffset={laneFor(meIndex).dx} me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
+              <QuestHud me={me} seasonRank={seasonRank} timing={hudTiming} streak={streak}
                 menuOpen={adventureOpen} menuDisabled={awaitingTravel || miniGameOffer !== null || wildEncounter !== null || rewardMoments.length > 0}
                 onOpenMenu={() => { setAdventureTab("journey"); setAdventureOpen(true); }} />
             </div>
@@ -1039,7 +1045,7 @@ export function Game({ slug = null }: { slug?: string | null }) {
               locked={
                 // Dialog shortcuts must never declare actions in the shared journal.
                 welcomeVisible || firstFindVisible || registerOpen || adventureOpen || meetupOpen || Boolean(recap) ||
-                !sceneReady ||
+                !sceneReady || worldLoading ||
                 rewardMoments.length > 0 ||
                 miniGameOffer !== null ||
                 wildEncounter !== null ||

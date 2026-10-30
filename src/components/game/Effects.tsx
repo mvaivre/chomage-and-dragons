@@ -320,10 +320,4 @@ export function EffectView({ kind, ...props }: EffectProps & { kind: EffectKind 
   return <Reaction {...props} kind={kind} />;
 }
 
-/** How long each reaction lasts, for the moment's timeline in Game. */
-export function reactionTiming(kind: EffectKind): { impact: number; duration: number } {
-  if (kind === "dragonMeal") return { impact: 900, duration: 5400 };
-  if (kind === "chest") return { impact: 520, duration: 1300 };
-  const { impact, duration } = CHOREOGRAPHIES[kind];
-  return { impact, duration };
-}
+export { reactionTiming } from "./reactions";

@@ -27,8 +27,8 @@ export function renderResolution(width: number, height: number, deviceRatio: num
 }
 
 /** Every chest uses this position, including rewards earned after the finish. */
-export function chestXForStep(step: number, worldLength: number, journeyTarget: number): number {
-  return Math.max(0, step) / journeyTarget * worldLength + 110;
+export function chestXForStep(step: number, worldLength: number, journeyTarget: number, visualOffset = 110): number {
+  return Math.max(0, step) / journeyTarget * worldLength + visualOffset;
 }
 
 /** Keep the hero inside the clear window between the HUD and the action dock. */

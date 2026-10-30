@@ -40,3 +40,5 @@ export function whenIdle(run: () => void, timeout = 3000): () => void {
   const handle = window.setTimeout(run, 1200);
   return () => window.clearTimeout(handle);
 }
+
+export function releaseDecodedImages() { images.clear(); }

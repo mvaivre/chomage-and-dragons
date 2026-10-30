@@ -7,7 +7,7 @@ import signs from "../../../public/art/world-v3/decor/signs.json";
 
 interface Painted { texture: Texture; canvas: HTMLCanvasElement; users: number; timer?: ReturnType<typeof setTimeout> }
 /** A bake waits for idle time; nobody waiting any more by then cancels it. */
-interface Job { key: string; pending: Promise<Painted | null>; waiting: number }
+interface Job { retired?: boolean; key: string; pending: Promise<Painted | null>; waiting: number }
 let fonts: Promise<{ title: string; body: string }> | undefined;
 let signImage: Promise<HTMLImageElement | null> | undefined;
 let treeBoardImage: Promise<HTMLImageElement | null> | undefined;
@@ -198,9 +198,10 @@ export function useSignTexture(text: string | null, kind: DecorKind, textOnly: b
     job.waiting++;
     let owned: Painted | undefined;
     const release = (entry: Painted) => {
+      if (job.retired || entry.texture.destroyed) return;
       entry.users--;
       if (entry.users === 0) entry.timer = setTimeout(() => {
-        if (entry.users > 0) return;
+        if (entry.users > 0 || entry.texture.destroyed) return;
         entry.texture.destroy(true);
         // Safari keeps canvas memory until the element shrinks.
         entry.canvas.width = 0; entry.canvas.height = 0;
@@ -210,7 +211,7 @@ export function useSignTexture(text: string | null, kind: DecorKind, textOnly: b
     void job.pending.then(entry => {
       settled = true;
       if (alive) job.waiting--;
-      if (!entry) return;
+      if (!entry || job.retired) return;
       clearTimeout(entry.timer); entry.users++;
       if (!alive) { release(entry); return; }
       owned = entry; setValue({ key: job.key, texture: entry.texture });
@@ -218,4 +219,21 @@ export function useSignTexture(text: string | null, kind: DecorKind, textOnly: b
     return () => { alive = false; if (!settled) job.waiting--; if (owned) release(owned); };
   }, [text, kind, textOnly, width, height, ink]);
   return value?.key === key && !value.texture.destroyed ? value.texture : null;
+}
+
+export const signResources = () => jobs.size;
+export async function releaseSignTextures() {
+  const current = [...jobs.values()];
+  for (const job of current) { job.waiting = 0; job.retired = true; }
+  const drained = Promise.all(current.map(async job => {
+    const entry = await job.pending;
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    if (!entry.texture.destroyed) entry.texture.destroy(true);
+    entry.canvas.width = 0; entry.canvas.height = 0;
+  }));
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([drained, new Promise<void>(resolve => { timeout = setTimeout(resolve, 3000); })]);
+  clearTimeout(timeout);
+  jobs.clear(); signImage = undefined; treeBoardImage = undefined;
 }

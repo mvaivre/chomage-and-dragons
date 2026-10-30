@@ -1,6 +1,7 @@
 import { ACTION_ART, POWER_ART } from "@/lib/game/art";
 import { sfx } from "@/lib/client/sound";
-import { fx, type PresetName } from "./fx";
+import { fx } from "./fx-queue";
+import type { PresetName } from "./fx";
 import { hitStop, scene, slowMotion } from "./scene";
 
 /**
@@ -461,3 +462,11 @@ export const CHOREOGRAPHIES = {
 } satisfies Record<string, Choreography>;
 
 export type ReactionKind = keyof typeof CHOREOGRAPHIES;
+
+/** How long each reaction lasts, for the moment's timeline in Game. */
+export function reactionTiming(kind: ReactionKind | "chest" | "dragonMeal"): { impact: number; duration: number } {
+  if (kind === "dragonMeal") return { impact: 900, duration: 5400 };
+  if (kind === "chest") return { impact: 520, duration: 1300 };
+  const { impact, duration } = CHOREOGRAPHIES[kind];
+  return { impact, duration };
+}

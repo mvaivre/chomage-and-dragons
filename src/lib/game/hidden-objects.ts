@@ -6,6 +6,7 @@ export interface HiddenItem {
   name: string;
   clue: string;
   art: string;
+  model: string;
   x: number;
   y: number;
   size: number;
@@ -25,7 +26,7 @@ const ITEMS = [
 ] as const;
 
 export const HIDDEN_ITEMS: readonly HiddenItem[] = ITEMS.map(item => ({
-  ...item, id: `hidden:0:${item.biome}`,
+  ...item, model: item.art, id: `hidden:0:${item.biome}`,
   art: `/art/world-v3/collectibles/${item.art}.webp`,
 }));
 

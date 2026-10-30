@@ -53,6 +53,7 @@ import { FxLayer } from "./FxLayer";
 import type { HeroMotion } from "./animation";
 import { frameComposition, parallaxX, renderResolution } from "./projection";
 import "./extendPixi";
+import { trackApplication } from "./lifecycle";
 
 /** Altitude de référence du sol, pour mesurer les écarts de relief. */
 const REST_SURFACE = JOURNEY_SURFACE_Y;
@@ -65,9 +66,9 @@ const MIDGROUND_FACTOR = 0.76;
  * The music follows the player's own hero: glancing at a friend or browsing never
  * retunes it. While the camera follows that hero, the room changes under the fade.
  */
-function MusicPosition({ meId, followingMe }: { meId: string | null; followingMe: boolean }) {
+function MusicPosition({ meX, followingMe }: { meX: number | null; followingMe: boolean }) {
   useTick(() => {
-    const x = (meId ? scene.heroes.get(meId)?.x : undefined) ?? scene.focus;
+    const x = meX ?? scene.focus;
     setMusicPlace((followingMe ? scene.room?.id : interiorAt(x)?.id) ?? biomeAt(x).id);
   });
   return null;
@@ -81,10 +82,14 @@ function MusicPosition({ meId, followingMe }: { meId: string | null; followingMe
  */
 function CameraRig({
   initialFocus,
+  visualOffset,
+  initialExploreCenter,
   freeCamera,
   children,
 }: {
   initialFocus: number;
+  visualOffset: number;
+  initialExploreCenter?: number | null;
   freeCamera: boolean;
   children: React.ReactNode;
 }) {
@@ -100,6 +105,7 @@ function CameraRig({
     const firstFrame = !ready.current;
     if (firstFrame) {
       resetScene();
+      scene.exploreCenter = initialExploreCenter ?? null;
       scene.focus = initialFocus;
       scene.targetFocus = initialFocus;
       scene.room = roomAt(initialFocus);
@@ -137,7 +143,7 @@ function CameraRig({
 
     let wanted = scene.dragonMeal ? scene.dragonMeal.nest - camera.viewW * 0.55 : (freeCamera && scene.exploreCenter !== null
       ? scene.exploreCenter - camera.viewW * 0.5
-      : scene.focus - camera.viewW * scene.anchor) + scene.pan;
+      : scene.focus + visualOffset - camera.viewW * scene.anchor) + scene.pan;
     if (!scene.dragonMeal && scene.room?.id === "tavern" && scene.exploreCenter === null && scene.pan === 0) {
       wanted = Math.min(wanted, scene.room.to - camera.viewW + 120);
       if (camera.viewW < 700) {
@@ -222,7 +228,8 @@ function Layer({
 const ACTIVE_FPS = 60;
 const CALM_FPS = 30;
 
-function configureRenderer(app: PixiApplication) {
+function configureRenderer(app: PixiApplication, onError?: (error: unknown) => void) {
+  trackApplication(app, onError);
   // Diagnostics only: `?debug` exposes the Pixi application to the console and the tests.
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug")) {
     (window as unknown as { __pixiApp?: PixiApplication }).__pixiApp = app;
@@ -324,6 +331,8 @@ interface SceneProps {
   meId: string | null;
   focusPlayerId: string | null;
   initialFocus: number;
+  visualOffset: number;
+  initialExploreCenter?: number | null;
   effects: Effect[];
   onEffectDone: (id: string) => void;
   onTravelDone: (playerId: string) => void;
@@ -344,6 +353,8 @@ function WorldScene({
   meId,
   focusPlayerId,
   initialFocus,
+  visualOffset,
+  initialExploreCenter,
   effects,
   onEffectDone,
   onTravelDone,
@@ -354,6 +365,8 @@ function WorldScene({
 }: SceneProps) {
   // Les plus en avant dans la profondeur sont dessinés en dernier, et toujours soi
   // devant : dans une foule au même pas, on ne perd jamais son personnage.
+  useEffect(() => { if (!players.some(p => p.id === meId)) onSceneReady(); }, [players, meId, onSceneReady]);
+  const ownPlayer = players.find(player => player.id === meId);
   const ordered = players
     .map((player, index) => ({ player, lane: laneFor(index) }))
     .sort((a, b) => (a.player.id === meId ? 1 : 0) - (b.player.id === meId ? 1 : 0) || a.lane.dy - b.lane.dy);
@@ -362,8 +375,8 @@ function WorldScene({
     <RenderLifecycle paused={paused} />
     <ViewportResidents />
     <DaylightClock />
-    <CameraRig initialFocus={initialFocus} freeCamera={freeCamera}>
-      <MusicPosition meId={meId} followingMe={!focusPlayerId || focusPlayerId === meId} />
+    <CameraRig visualOffset={visualOffset} initialFocus={initialFocus} initialExploreCenter={initialExploreCenter} freeCamera={freeCamera}>
+      <MusicPosition meX={ownPlayer ? worldXFor(ownPlayer.position) : null} followingMe={!focusPlayerId || focusPlayerId === meId} />
       <AtmosphereClock enabled={atmosphere} />
       <Outdoors>
       <Sky />
@@ -489,6 +502,8 @@ function WorldScene({
 /* ------------------------------------------------------------------ hôte */
 
 export interface GameCanvasProps {
+  onError?: (error: unknown) => void;
+  initialExploreCenter?: number | null;
   encounter: RoadsideEncounter | null;
   onChestReached: (playerId: string) => boolean;
   hiddenFoundIds: readonly string[];
@@ -515,6 +530,8 @@ export interface GameCanvasProps {
 }
 
 function GameCanvas({
+  onError,
+  initialExploreCenter,
   encounter,
   onChestReached,
   hiddenFoundIds,
@@ -539,12 +556,13 @@ function GameCanvas({
   devCameraTarget = null,
 }: GameCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
+  const handleInit = useCallback((app: PixiApplication) => configureRenderer(app, onError), [onError]);
   const dragonBusy = effects.some(effect => effect.kind === "dragonMeal");
 
   const me = players.find((p) => p.id === meId) ?? players[0] ?? null;
   const focusPlayer =
     players.find((player) => player.id === focusPlayerId) ?? me;
-  const focus = focusPlayer ? worldXFor(focusPlayer.position) + laneFor(players.findIndex(p => p.id === focusPlayer.id)).dx : 0;
+  const focus = focusPlayer ? worldXFor(focusPlayer.position) : 0;
 
   useEffect(() => {
     if (!focusPlayer) return;
@@ -567,8 +585,8 @@ function GameCanvas({
   useEffect(() => {
     const root = host.current;
     if (!root) return;
-    const dock = actionDockVisible ? root.parentElement?.querySelector<HTMLElement>(".hud-bottom") : null;
-    const top = root.parentElement?.querySelector<HTMLElement>(".hud-journey");
+    const dock = actionDockVisible ? root.closest(".game-adventure")?.querySelector<HTMLElement>(".hud-bottom") : null;
+    const top = root.closest(".game-adventure")?.querySelector<HTMLElement>(".hud-journey");
     const measure = () => {
       scene.bottomInset = dock ? Math.max(0, root.getBoundingClientRect().bottom - dock.getBoundingClientRect().top) : 80;
       scene.topInset = top ? Math.max(0, top.getBoundingClientRect().bottom - root.getBoundingClientRect().top) : 0;
@@ -641,7 +659,7 @@ function GameCanvas({
       <HiddenObjectOverlay playerId={meId} foundIds={hiddenFoundIds} paused={paused || dragonBusy} factor={BACKGROUND_FACTOR} onFind={onFindHidden} />
       {encounter ? <RoadsideObject encounter={encounter} /> : null}
       <Application
-        onInit={configureRenderer}
+        onInit={handleInit}
         backgroundAlpha={1}
         backgroundColor={0x292b2c}
         antialias={false}
@@ -659,6 +677,8 @@ function GameCanvas({
           meId={meId}
           focusPlayerId={focusPlayer?.id ?? null}
           initialFocus={focus}
+          visualOffset={focusPlayer ? laneFor(players.findIndex(p => p.id === focusPlayer.id)).dx : 0}
+          initialExploreCenter={initialExploreCenter}
           effects={effects}
           onEffectDone={onEffectDone}
           onTravelDone={onTravelDone}

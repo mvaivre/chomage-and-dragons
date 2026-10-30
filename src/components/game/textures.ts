@@ -14,17 +14,19 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>();
  */
 const MAX_LOADS = 6;
 let active = 0;
+let epoch = 0;
+const pinned = new Set<string>();
 const waiting: Array<() => void> = [];
 const loads = new Map<string, Promise<Texture>>();
 let priority: Promise<unknown> = Promise.resolve();
 
-function queued(url: string): Promise<Texture> {
+function queued(url: string, version: number): Promise<Texture> {
   return new Promise<Texture>((resolve, reject) => {
     const start = () => {
+      if (version !== epoch) { reject(new Error("Renderer retired")); waiting.shift()?.(); return; }
       active += 1;
       Assets.load<Texture>(url).then(resolve, reject).finally(() => {
-        active -= 1;
-        waiting.shift()?.();
+        if (version === epoch) { active -= 1; waiting.shift()?.(); }
       });
     };
     if (active < MAX_LOADS) start(); else waiting.push(start);
@@ -36,9 +38,14 @@ function load(url: string): Promise<Texture> {
   if (Assets.cache.has(url)) return Promise.resolve(Assets.get<Texture>(url));
   let pending = loads.get(url);
   if (!pending) {
-    pending = priority.then(() => Assets.cache.has(url) ? Assets.get<Texture>(url) : queued(url));
+    const version = epoch;
+    pending = priority.then(() => {
+      if (version !== epoch) throw new Error("Renderer retired");
+      return Assets.cache.has(url) ? Assets.get<Texture>(url) : queued(url, version);
+    });
     loads.set(url, pending);
-    pending.catch(() => loads.delete(url));
+    const current = pending;
+    pending.catch(() => { if (loads.get(url) === current) loads.delete(url); });
   }
   return pending;
 }
@@ -55,14 +62,16 @@ export function useDirectTexture(url: string): Texture | null {
 
   useEffect(() => {
     let alive = true;
+    const version = epoch;
     retain(url);
     const pending = load(url);
     void pending.then((texture) => {
       if (alive) setResult({ url, texture });
-    }).catch((error: unknown) => console.error(`Unable to load ${url}`, error));
+    }).catch((error: unknown) => { if (alive && version === epoch) console.error(`Unable to load ${url}`, error); });
 
     return () => {
       alive = false;
+      if (version !== epoch) return;
       const count = (references.get(url) ?? 1) - 1;
       references.set(url, count);
       if (count > 0) return;
@@ -88,7 +97,8 @@ export function useDirectTexture(url: string): Texture | null {
  */
 export function retainTextures(urls: readonly string[]): void {
   for (const url of urls) {
-    retain(url);
+    if (pinned.has(url)) continue;
+    pinned.add(url); retain(url);
     void load(url).catch(() => {});
   }
 }
@@ -99,8 +109,10 @@ export function retainTextures(urls: readonly string[]): void {
  */
 export function loadFirst(urls: readonly string[]): void {
   const first = Promise.all(urls.map((url) => {
-    retain(url);
-    return Assets.load<Texture>(url).catch(() => null);
+    if (!pinned.has(url)) { pinned.add(url); retain(url); }
+    let promise = loads.get(url);
+    if (!promise) { promise = Assets.load<Texture>(url); loads.set(url, promise); }
+    return promise.catch(() => null);
   }));
   priority = Promise.race([first, new Promise((resolve) => setTimeout(resolve, 3000))]);
 }
@@ -123,4 +135,24 @@ export function atlasFrames(base: Texture, columns: number, rows: number): Textu
     layouts.set(key, result);
   }
   return result;
+}
+
+export const textureResources = () => ({ textures: loads.size, textureReferences: references.size, textureTimers: timers.size });
+export async function releaseWorldTextures() {
+  epoch++;
+  // Reject queued work now. In-flight downloads cannot be aborted by Pixi, but
+  // their completion releases the asset unless the next 2D session needs it.
+  active = 0;
+  waiting.shift()?.();
+  for (const timer of timers.values()) clearTimeout(timer);
+  timers.clear(); references.clear(); pinned.clear();
+  const pending = [...loads.entries()];
+  const drained = Promise.allSettled(pending.map(async ([url, promise]) => {
+    await promise.catch(() => null);
+    if (!(references.get(url) ?? 0) && Assets.cache.has(url)) await Assets.unload(url);
+  }));
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([drained, new Promise<void>(resolve => { timeout = setTimeout(resolve, 3000); })]);
+  clearTimeout(timeout);
+  loads.clear(); priority = Promise.resolve();
 }

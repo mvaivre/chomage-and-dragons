@@ -1,6 +1,6 @@
 # Rendu du monde — septembre 2026
 
-La scène active utilise `GameCanvas.tsx`, `FlatWorld.tsx`, `Backdrop.tsx`, `Hero.tsx`
+La vue 2D utilise `GameCanvas.tsx`, `FlatWorld.tsx`, `Backdrop.tsx`, `Hero.tsx`
 et `textures.ts`. Le chargement Pixi reste exclusivement côté navigateur, via
 `GameLoader.tsx`. Les anciennes expériences graphiques (`world-v2`, `ParallaxWorld`, sprites procéduraux)
 ont été retirées en septembre 2026 ; elles restent dans l'historique git, commit `70f3210`.
@@ -504,3 +504,46 @@ dédupliqué par atlas. Il ne place plus de dessins `Graphics` ou de textes viva
 dans la file asynchrone Pixi : une annulation peut démonter leur salle avant le
 traitement, ce qui provoquait une erreur de contexte détruit. Un test couvre le
 démontage et le parcours navigateur vérifie l’embauche suivie de son annulation.
+
+## Deux vues pour une partie — octobre 2026
+
+`WorldView` charge à la demande `TwoDimensionalWorld` (Pixi) ou
+`ThreeDimensionalWorld` (Three.js). `Game` et `useGame` restent montés : sauvegarde,
+identité, actions, inventaire, captures, quêtes, mini-jeux et synchronisation de
+groupe ont une seule source de vérité. Le choix d'affichage est une préférence
+locale (`louchomage:renderer:v1`), indépendante de la partie et de ses amis.
+
+La coordonnée canonique est `worldXFor(player.position)` : un tour mesure 30 240
+unités et 200 pas. La 3D divise cette distance par 50 pour sa géométrie. Les biomes,
+intérieurs, portes, objets cachés et éléments narratifs viennent des mêmes données.
+Les décalages des personnages en 2D servent uniquement au dessin et au cadrage ;
+ils ne changent ni les seuils de portes, ni le lieu, ni les pas sauvegardés.
+
+À chaque changement : afficher le loader, démonter le canvas, attendre la fin du
+démontage, libérer le moteur précédent, importer le suivant, reconstruire la vue
+avec les joueurs courants, puis révéler sa première image prête. La racine React
+de Pixi a un cycle de vie isolé : le rejeu des effets de StrictMode ne détruit pas
+son application lors d’un second chargement. Un nouveau personnage reçoit aussi
+une première image complète avant la pause de son onboarding. Un changement
+demandé pendant une action, un coffre, une rencontre ou un mini-jeu attend sa fin.
+L'exploration de la carte est transmise sans changer la position des joueurs.
+
+La sortie de la 2D détruit l'application Pixi et son contexte, vide les chargements
+et textures d'Assets, les rétentions d'illustrations, les textures de panneaux et
+les masques procéduraux. Les chargements en attente sont invalidés ; ceux déjà en
+cours sont libérés à leur arrivée. L’attente est bornée à trois secondes pour
+ne pas bloquer le changement si une image ne répond plus. La sortie de la 3D arrête le RAF et les
+écouteurs, détruit les chunks, géométries, matériaux, textures, passes et cibles de
+rendu, perd explicitement le contexte WebGL et vide les caches de terrain. Aucun
+canvas masqué ne reste actif. Le navigateur garde les modules JavaScript importés
+et son cache réseau ; la récupération de la mémoire JS appartient à son GC.
+
+Un échec de chargement, une perte de contexte ou un délai de 45 secondes propose
+une nouvelle tentative et un retour en 2D. La sauvegarde n'est pas réécrite par le
+changement de vue. `?debug` expose `window.__worldView()` pour inspecter l'état, les
+coordonnées canoniques et les compteurs du dernier moteur libéré.
+
+`tests/browser/world-toggle.test.mjs` vérifie les aller-retours répétés,
+la perte du contexte précédent, les compteurs libérés, la conservation intégrale
+de la sauvegarde et de l'exploration, la préférence au rechargement, les intérieurs
+et les tours supplémentaires, l'attente d'une action et le retour après un échec.

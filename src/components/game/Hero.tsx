@@ -194,7 +194,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
   const selfGlow = useRef<Graphics>(null);
   const lantern = useRef<Sprite>(null);
 
-  const target = worldXFor(player.position) + lane.dx;
+  const target = worldXFor(player.position);
   const interactionId = `hero:${player.id}`;
   const interaction = useEnvironmentTarget(interactionId, "traveller", target);
   // Registered by the hook's own layout effect just above; the label changes with the name only.
@@ -317,13 +317,13 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         travel.current = leg;
         lastDirection.current = direction;
         if (!scene.reducedMotion && root.current?.visible) {
-          const feet = surfaceAt(at.current) + 4 + lane.dy;
+          const feet = surfaceAt(at.current + lane.dx) + 4 + lane.dy;
           if (gait === "knockback") {
-            fx.burst({ preset: "stars", x: at.current, y: feet - HERO_HEIGHT, count: 7, power: 0.8 });
+            fx.burst({ preset: "stars", x: at.current + lane.dx, y: feet - HERO_HEIGHT, count: 7, power: 0.8 });
             if (isMe) sfx.boing();
           } else {
-            fx.burst({ preset: "dust", x: at.current, y: feet, count: gait === "dash" ? 20 : 10, spreadX: 22, power: 0.7 });
-            footfall(at.current, feet, 6, direction);
+            fx.burst({ preset: "dust", x: at.current + lane.dx, y: feet, count: gait === "dash" ? 20 : 10, spreadX: 22, power: 0.7 });
+            footfall(at.current + lane.dx, feet, 6, direction);
             if (isMe && gait === "dash") sfx.whoosh();
           }
         }
@@ -335,7 +335,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
     const activeTravel = travel.current;
     const gait = activeTravel?.gait ?? null;
     const legIndex = activeTravel?.index ?? 0;
-    const feetY = surfaceAt(at.current) + 4 + lane.dy;
+    const feetY = surfaceAt(at.current + lane.dx) + 4 + lane.dy;
     const juicy = !scene.reducedMotion && Boolean(root.current?.visible);
     if (activeTravel) {
       activeTravel.elapsed += scene.reducedMotion ? dt * activeTravel.steps * 3 : dt;
@@ -349,7 +349,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
           activeTravel.from +
           ((activeTravel.to - activeTravel.from) * activeTravel.index) /
             activeTravel.steps;
-        if (juicy) footfall(at.current, feetY, activeTravel.gait === "dash" ? 7 : isMe ? 5 : 3, lastDirection.current);
+        if (juicy) footfall(at.current + lane.dx, feetY, activeTravel.gait === "dash" ? 7 : isMe ? 5 : 3, lastDirection.current);
       }
 
       // The followed hero waits on each threshold while the room changes under the fade.
@@ -365,7 +365,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       }
 
       // Open the earned chest where it is reached, then resume this same leg.
-      const chestX = pendingChestStep === null ? null : pendingChestStep / JOURNEY_TARGET * WORLD_LENGTH + lane.dx;
+      const chestX = pendingChestStep === null ? null : pendingChestStep / JOURNEY_TARGET * WORLD_LENGTH;
       const chestProgress = chestX === null ? -1 : (chestX - activeTravel.from) / (activeTravel.to - activeTravel.from) * activeTravel.steps;
       if (!threshold && isMe && pendingChestStep !== null && handledChest.current !== pendingChestStep && chestProgress >= 0 && chestProgress <= activeTravel.steps && legProgress(activeTravel) >= chestProgress && onChestReached?.(player.id)) {
         handledChest.current = pendingChestStep;
@@ -383,9 +383,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         landing.current = 1;
         if (juicy) {
           const heavy = activeTravel.gait !== "trot";
-          fx.burst({ preset: "puff", x: at.current, y: feetY, count: heavy ? 10 : 5, spreadX: 22 });
+          fx.burst({ preset: "puff", x: at.current + lane.dx, y: feetY, count: heavy ? 10 : 5, spreadX: 22 });
           if (heavy) {
-            fx.burst({ preset: "shockwave", x: at.current, y: feetY - 6, count: 1, power: 0.28 });
+            fx.burst({ preset: "shockwave", x: at.current + lane.dx, y: feetY - 6, count: 1, power: 0.28 });
             if (isFocused) scene.shake = Math.max(scene.shake, 0.18);
             if (isMe) sfx.land();
           }
@@ -419,14 +419,14 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
     if (actionTimer.current > 0) actionTimer.current = Math.max(0, actionTimer.current - dt);
     if (moving || actionTimer.current > 0 || stun.current > 0) markMotion();
     if (isFocused && moving) scene.walkingUntil = performance.now() + 300;
-    if (!previewMotion) scene.heroes.set(player.id, { x: at.current, y: surfaceAt(at.current) + 4 + lane.dy });
+    if (!previewMotion) scene.heroes.set(player.id, { x: at.current + lane.dx, y: surfaceAt(at.current + lane.dx) + 4 + lane.dy });
 
     // Speed lines stream behind a sprinter.
     if (activeTravel && gait === "dash" && legIndex > 0 && juicy) {
       activeTravel.streak += dt;
       if (activeTravel.streak > 0.05) {
         activeTravel.streak = 0;
-        fx.burst({ preset: "streak", x: at.current - lastDirection.current * 40, y: feetY - 30 - Math.random() * HERO_HEIGHT * 0.8, count: 1, angle: lastDirection.current > 0 ? Math.PI : 0 });
+        fx.burst({ preset: "streak", x: at.current + lane.dx - lastDirection.current * 40, y: feetY - 30 - Math.random() * HERO_HEIGHT * 0.8, count: 1, angle: lastDirection.current > 0 ? Math.PI : 0 });
       }
     }
     if (landing.current > 0) landing.current = Math.max(0, landing.current - dt / 0.22);
@@ -450,9 +450,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       node.alpha = effect?.alpha ?? 1;
       node.scale.set(lane.scale * (effect?.scale ?? 1));
       node.rotation = effect?.rotation ?? 0;
-      node.x = at.current + (effect?.x ?? 0);
-      node.y = surfaceAt(at.current) + 4 + lane.dy + (effect?.y ?? 0);
-      node.visible = (isFocused || inRoom(node.x, scene.viewedRoom)) && node.x > scene.camera.x - 200 && node.x < scene.camera.x + scene.camera.viewW + 200;
+      node.x = at.current + lane.dx + (effect?.x ?? 0);
+      node.y = surfaceAt(at.current + lane.dx) + 4 + lane.dy + (effect?.y ?? 0);
+      node.visible = (isFocused || inRoom(at.current, scene.viewedRoom)) && node.x > scene.camera.x - 200 && node.x < scene.camera.x + scene.camera.viewW + 200;
       if (!node.visible) {
         // No greeting badge where nobody is drawn.
         showEnvironmentTarget(interactionId, false);
@@ -502,7 +502,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         character.id === "skater" ? lean * 0.6 :
         stun.current > 0 && !moving
           ? Math.sin(stun.current * 24) * 0.08 * stun.current
-          : slopeAt(at.current) * 0.5 + lean + (!moving ? Math.sin(phase.current * 0.7) * 0.015 : 0) +
+          : slopeAt(at.current + lane.dx) * 0.5 + lean + (!moving ? Math.sin(phase.current * 0.7) * 0.015 : 0) +
             (moving && gait === "trot" ? Math.sin(phase.current) * 0.03 : 0) +
             (actionKind.current === "candidature" ? Math.sin(actionTimer.current / actionDuration.current * Math.PI) * -0.08 : 0);
       body.scale.y = 1 - squash + breath;
@@ -521,7 +521,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
   );
 
   return (
-    <pixiContainer ref={root} x={target} scale={lane.scale}>
+    <pixiContainer ref={root} x={target + lane.dx} scale={lane.scale}>
       <pixiSprite ref={lantern} texture={fxTexture("dot")} anchor={0.5} y={-60} blendMode="add" tint={0xffc98a} alpha={0} visible={false} />
       {isMe ? <pixiGraphics ref={selfGlow} draw={drawSelfGlow} /> : null}
       <pixiGraphics draw={drawShadow} />
