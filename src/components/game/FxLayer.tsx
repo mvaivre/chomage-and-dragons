@@ -67,6 +67,7 @@ function FxLayerImpl() {
     for (let i = 0; i < count && particles.current.length < MAX_PARTICLES; i++) {
       if (request.ambient) ambient.current += 1;
       const sprite = pool.current.pop() ?? new Sprite();
+      sprite.label = `fx:${request.preset}`;
       sprite.texture = fxTexture(preset.texture);
       sprite.anchor.set(0.5);
       sprite.blendMode = preset.additive ? "add" : "normal";

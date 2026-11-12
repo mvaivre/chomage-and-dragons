@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import type { Container, Sprite } from "pixi.js";
 import { WALKABLE_GROUND_Y } from "@/lib/game/world";
 import { scene } from "./scene";
@@ -8,6 +8,7 @@ import { useSceneTick } from "./useSceneTick";
 import { useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
 import { NightOfficeLabel } from "./NightOfficeLabel";
+import { updateSignTarget, useSignTarget } from "./environment-targets";
 import plaine from "../../../public/art/world-v3/decor/setpiece-plaine-scarecrow.json";
 import foret from "../../../public/art/world-v3/decor/setpiece-foret-shredder.json";
 import marais from "../../../public/art/world-v3/decor/setpiece-marais-bottles.json";
@@ -29,7 +30,11 @@ export type DecorLand = keyof typeof art;
 export function DecorLabel({text, rect, tint = 0xffffff, angle = 0}: {text:string;rect:number[];tint?:number;angle?:number}) {
   const [x,y,w,h] = rect;
   const texture = useSignTexture(text,"setpiece",true,Math.ceil(w),Math.ceil(h));
-  return texture ? <pixiSprite texture={texture} x={x} y={y} rotation={angle} scale={0.5} tint={tint} /> : null;
+  const sprite = useRef<Sprite>(null);
+  const id = `sign:caption:${useId()}`;
+  useSignTarget(id, text);
+  useSceneTick(() => updateSignTarget(id, sprite.current));
+  return texture ? <pixiSprite ref={sprite} texture={texture} x={x} y={y} rotation={angle} scale={0.5} tint={tint} /> : null;
 }
 
 function Crank() {

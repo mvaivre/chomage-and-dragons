@@ -1,5 +1,6 @@
 import type { RoomLocation } from "@/lib/game/doors";
 import { VIEW } from "@/lib/game/world";
+import type { HeroContact } from "./hero-collision";
 
 /**
  * L'état de scène, réécrit à chaque image.
@@ -64,6 +65,7 @@ export interface Scene {
   lowPower: boolean;
   /** Live feet position of every hero, so effects can follow the one they celebrate. */
   heroes: Map<string, { x: number; y: number }>;
+  heroContacts: Map<string, HeroContact>;
   heroEffects: Map<string, { owner: symbol; x: number; y: number; scale: number; alpha: number; rotation: number }>;
   /** A resident's cosmetic meal holds the camera without moving the saved hero. */
   dragonMeal: { nest: number; playerId: string; scale: number } | null;
@@ -186,6 +188,7 @@ export const scene: Scene = {
   lastMotion: 0,
   lowPower: false,
   heroes: new Map(),
+  heroContacts: new Map(),
   heroEffects: new Map(),
   dragonMeal: null,
   zoom: 1,
@@ -224,6 +227,7 @@ export function resetScene(): void {
   scene.dragging = false;
   scene.lastMotion = 0;
   scene.heroes.clear();
+  scene.heroContacts.clear();
   scene.heroEffects.clear();
   scene.dragonMeal = null;
   scene.zoom = 1;

@@ -155,6 +155,10 @@ test('live language, shared drinks and persistent pranks on both renderers', { t
   await page.waitForFunction(() => document.querySelector('.cage-banner'));
   await page.getByRole('button', { name: 'J’ai compris' }).click();
   assert.ok((await readSave(page)).casts.every(cast => cast.seenAt));
+  await page.waitForFunction(() => {
+    const hero = window.__pixiApp.stage.getChildByLabel('hero-rig:lou', true);
+    return hero?.getChildByLabel('backpack-troll')?.visible && hero?.getChildByLabel('hero-flame')?.visible;
+  });
   await page.waitForTimeout(3800);
   await capture('2d-mobile');
   await page.setViewportSize({ width: 1280, height: 800 });

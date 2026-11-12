@@ -87,7 +87,7 @@ class Media {
   load() { this.loadCalls += 1; this.error = null; this.currentTime = 0; this.paused = true; }
 }
 
-const { MusicPlayer, TRACKS, trackForPlace, startMusic, setMusicPlace, setMusicPhase, setMusicDucked, setMusicOn, isMusicOn, onMusicChange } = await import('../src/lib/client/music.ts');
+const { MusicPlayer, TRACKS, startMusic, setMusicDucked, setMusicOn, isMusicOn, onMusicChange } = await import('../src/lib/client/music.ts');
 const { primeAudio, audioOutput, setMuted } = await import('../src/lib/client/sound.ts');
 const settle = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
@@ -154,13 +154,7 @@ function finishFade({ env, ctx, player }) {
   env.flushTimeouts();
 }
 
-test('recorded tracks follow the menu and the landscape', () => {
-  for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.peaceful);
-  for (const place of ['taverne', 'tavern']) assert.equal(trackForPlace(place), TRACKS.firelit);
-  for (const place of ['plaine', 'foret', 'lac']) assert.equal(trackForPlace(place), TRACKS.firelit);
-  for (const place of ['orp', 'factory']) assert.equal(trackForPlace(place), TRACKS.funny);
-  for (const place of ['marais', 'desert', 'cascade']) assert.equal(trackForPlace(place), TRACKS.ambient);
-  for (const place of ['volcan', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
+test('recordings have unique local media files', () => {
   assert.equal(new Set(Object.values(TRACKS).map(track => track.src)).size, 5);
   for (const track of Object.values(TRACKS)) assert.match(track.src, /^\/.*\.mp3$/);
 });
@@ -319,25 +313,19 @@ test('late play promises cannot resurrect an abandoned or disposed track', async
   assert.ok(f.ctx.nodes.filter(node => node.kind === 'media').every(node => node.disconnected));
 });
 
-test('the game honours phase, sound settings, page visibility and cleanup', async () => {
+test('the selection soundtrack honours sound settings, page visibility and cleanup', async () => {
   const env = environment();
   let stop;
   try {
     setMuted(false);
     setMusicOn(true);
-    setMusicPlace('factory');
     stop = startMusic();
     primeAudio(); env.dispatch('pointerdown'); env.tick(); await settle();
-    const intro = Media.instances.find(media => media.src === TRACKS.peaceful.src && !media.paused);
-    assert.equal(intro?.src, TRACKS.peaceful.src, 'scenery does not override the selection theme');
-    assert.equal(intro.paused, false);
-    setMusicPlace('plaine');
-    setMusicPhase('adventure'); env.tick(); await settle();
-    const adventure = Media.instances.find(media => media.src === TRACKS.firelit.src && !media.paused);
-    assert.equal(adventure.src, TRACKS.firelit.src);
+    const adventure = Media.instances.find(media => media.src === TRACKS.peaceful.src && !media.paused);
+    assert.equal(adventure?.src, TRACKS.peaceful.src);
     const count = Media.instances.length;
     adventure.currentTime = 24;
-    setMusicPlace('foret'); setMusicPhase('adventure'); env.tick(); await settle();
+    env.tick(); await settle();
     assert.equal(Media.instances.length, count);
     assert.equal(adventure.currentTime, 24);
     setMusicDucked(true); setMusicDucked(false);

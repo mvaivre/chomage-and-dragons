@@ -23,5 +23,5 @@ export const POWER_ART: Record<PowerKind, string> = {
   paperasse: "/art/world-v3/ui/power-paper.webp",
   crapaud: "/art/world-v3/ui/power-frog.webp",
   cage: "/art/world-v3/collectibles/key.webp",
-  miniTroll: "/art/world-v3/animations/environment-troll.webp",
+  miniTroll: "/art/world-v3/animations/backpack-troll.webp",
 };

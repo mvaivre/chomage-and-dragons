@@ -12,7 +12,7 @@ import { atlasFrames, useDirectTexture } from "./textures";
 import { ForestTree } from "./Forest";
 import { DecorNpc } from "./DecorNpc";
 import { DecorSetpiece, type DecorLand } from "./DecorSetpiece";
-import { reactionProgress, updateSpriteTarget, useEnvironmentTarget } from "./environment-targets";
+import { reactionProgress, updateSignTarget, updateSpriteTarget, useEnvironmentTarget, useSignTarget } from "./environment-targets";
 import { useViewportResident } from "./resident-visibility";
 
 const CHANGED_TEXT = "Finalement, le poste exige un dragon";
@@ -57,13 +57,16 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
   const changed = useSignTexture(boarded && site.reaction === "change" ? CHANGED_TEXT : null, site.kind);
   const root = useRef<Container>(null);
   const sign = useRef<Sprite>(null);
+  const signId = `sign:${site.id}`;
+  const interaction = useSignTarget(signId, site.text);
+  const lastClick = useRef(-Infinity);
   const react = useRef(0);
   const active = useRef(false);
   useSceneTick(ticker => {
     const node = root.current;
     if (!node) return;
     node.visible = site.x > scene.camera.x - 400 && site.x < scene.camera.x + scene.camera.viewW + 400;
-    if (!node.visible || !sign.current) return;
+    if (!node.visible || !sign.current) { updateSignTarget(signId, null); return; }
     const safeTop = (scene.topInset + 12 - scene.camera.screenOffsetY) / scene.camera.scale + scene.camera.y;
     const baseScale = (site.kind === "welcome" ? 0.25 : 0.22) * Math.min(1, scene.camera.viewW * 0.8 / 320, Math.max(0.55, (WALKABLE_GROUND_Y + 10 - safeTop) / 272));
     sign.current.scale.y = baseScale;
@@ -71,12 +74,23 @@ function Sign({ site, group }: { site: DecorSite; group: GroupDecor }) {
     const passing = performance.now() < scene.walkingUntil && heroPassing(site.x);
     if (passing && !active.current) react.current = 1;
     active.current = passing;
-    if (scene.reducedMotion) { react.current = 0; sign.current.rotation = 0; sign.current.scale.x = baseScale; sign.current.texture = texture ?? sign.current.texture; return; }
+    const clicked = interaction.current.startedAt > lastClick.current;
+    if (clicked) {
+      react.current = 1;
+      lastClick.current = interaction.current.startedAt;
+    }
+    if (scene.reducedMotion) {
+      react.current = 0; sign.current.rotation = 0; sign.current.scale.x = baseScale; sign.current.texture = texture ?? sign.current.texture;
+      updateSignTarget(signId, sign.current, .55);
+      return;
+    }
     react.current = Math.max(0, react.current - ticker.elapsedMS / 2200);
     const amount = Math.sin(react.current * Math.PI);
-    sign.current.rotation = site.reaction === "fall" ? amount * 0.38 : 0;
+    const tap = Math.max(0, 1 - (performance.now() - lastClick.current) / 520);
+    sign.current.rotation = (site.reaction === "fall" ? amount * 0.38 : 0) + Math.sin(tap * 14) * tap * .095;
     sign.current.scale.x = baseScale * (site.reaction === "turn" ? 1 - amount * 0.65 : 1);
     if (site.reaction === "change") sign.current.texture = react.current > 0.1 && changed ? changed : texture ?? sign.current.texture;
+    updateSignTarget(signId, sign.current, .55);
   });
   return <pixiContainer ref={root} x={site.x} y={WALKABLE_GROUND_Y + 10} label={`decor:${site.id}:${site.kind}`}>
     {!carved ? <pixiGraphics draw={shadow} /> : null}

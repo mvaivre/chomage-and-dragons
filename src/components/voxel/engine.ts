@@ -30,7 +30,6 @@ import {
 import { environmentSites } from "@/lib/game/environment";
 import { biomeAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
 import { currentDaylight } from "@/lib/client/daylight";
-import { setMusicPlace } from "@/lib/client/music";
 import { sfx } from "@/lib/client/sound";
 import { JOURNEY_TARGET } from "@/lib/config";
 import { scene, resetScene, residentReactions } from "./state";
@@ -38,6 +37,7 @@ import { VoxelResources } from "./resources";
 import { makeChunk } from "./chunks";
 import { characterModel, dragonModel, propModel } from "./objects";
 import { updateHeroPranks, type HeroPrankAttachments } from "./hero-pranks";
+import { signBurst } from "./sign-burst";
 import {
   CHUNK_SIZE,
   FOREGROUND_DEPTH,
@@ -316,6 +316,19 @@ export function createVoxelWorld(
   function inspect(id: string) {
     const target = targets.get(id);
     if (!target || !visible(target.root) || getProps().paused) return;
+    if (target.label.kind === "sign" && time - (target.root.userData.lastSignReaction ?? -Infinity) > .85) {
+      target.root.userData.lastSignReaction = time;
+      const burst = signBurst(resources, target.label.text, scene.reducedMotion);
+      target.root.getWorldPosition(burst.root.position);
+      burst.root.position.y += target.height;
+      burst.root.userData.interiorFrom = scene.viewedRoom?.from;
+      burst.root.userData.burstUntil = time + 1.35;
+      const started = time;
+      burst.root.userData.updateBurst = (now: number) => burst.animate(now - started);
+      world.add(burst.root);
+      objects.set(`sign-effect:${id}:${time}`, burst.root);
+      sfx.pop();
+    }
     inspection = {
       id,
       until: time + INSPECTION_SECONDS,
@@ -1121,10 +1134,6 @@ export function createVoxelWorld(
       sun.intensity = scene.viewedRoom ? 0.25 : 3.2 - light.night * 2.85;
       rim.intensity = scene.viewedRoom ? 0.15 : 1 - light.night * 0.7;
       sun.color.set(light.night > 0.5 ? 0xa7c4df : 0xffd9a1);
-      const musicX =
-        (props.meId ? actors.get(props.meId)?.x : undefined) ??
-        focusX * WORLD_SCALE;
-      setMusicPlace(interiorAt(musicX)?.id ?? biomeAt(musicX).id);
     }
     if (Math.abs(shadowFocusX - focus.x) > 2) {
       shadowFocusX = focus.x;
@@ -1659,8 +1668,11 @@ export function createVoxelWorld(
     }
     for (const [id, obj] of objects)
       if (obj.userData.burstUntil) {
-        obj.rotation.y += props.paused ? 0 : dt;
-        obj.position.y += props.paused ? 0 : dt * 0.5;
+        if (obj.userData.updateBurst) obj.userData.updateBurst(time);
+        else {
+          obj.rotation.y += props.paused ? 0 : dt;
+          obj.position.y += props.paused ? 0 : dt * 0.5;
+        }
         if (time > obj.userData.burstUntil) {
           resources.release(obj);
           objects.delete(id);
@@ -1737,7 +1749,7 @@ export function createVoxelWorld(
           label(
             player.id,
             "player",
-            labelPoint.set(0, a.height + (player.pranks?.smoke ? 1.15 : player.pranks?.troll ? .65 : .25), 0).applyMatrix4(a.root.matrixWorld),
+            labelPoint.set(0, a.height + (player.pranks?.smoke ? 1.65 : player.pranks?.troll ? .65 : .25), 0).applyMatrix4(a.root.matrixWorld),
             player.name,
             a.x,
           );
@@ -1889,6 +1901,7 @@ export function createVoxelWorld(
       objects: objects.size,
       geometries: renderer.info.memory.geometries,
       effects: stagings.size,
+      get signEffects() { return [...objects.values()].filter(object => object.name.startsWith("sign-burst:") && object.visible).map(object => object.name); },
       azimuth,
       get landscapes() { return [...objects].filter(([id]) => id.startsWith("landscape:") || id.startsWith("foreground:") || id.startsWith("sky:")).map(([id, o]) => ({ id, ...o.userData.landscape, position: o.position.toArray() })); },
       occlusion: { enabled: resources.cutout.enabled.value, windows: resources.cutout.windows.slice(0, resources.cutout.count).map(w => w.toArray()), backPlantingVisible: [...chunks.values()].every(c => c.userData.backPlanting.visible) },

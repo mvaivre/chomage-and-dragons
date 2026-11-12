@@ -50,7 +50,7 @@
   color: #34271c;
   font: 700 10px/1.2 system-ui, sans-serif;
 }
-.troll-art { display: inline-block; aspect-ratio: 1; background-size: 400% 200%; background-repeat: no-repeat; }
+.troll-art { display: inline-block; aspect-ratio: 1; background-size: 200% 200%; background-repeat: no-repeat; }
 .game-adventure .adventure-menu .power-menu__trigger { scroll-margin-top: 10px; }
 .game-adventure .journey-card {
   display: grid;

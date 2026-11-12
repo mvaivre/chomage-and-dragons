@@ -45,7 +45,7 @@ import { activeEncounter } from "@/lib/game/encounters";
 import { MiniGameInvite } from "@/components/hud/MiniGameInvite";
 import { moment, MomentOverlay } from "@/components/hud/Moment";
 import { SoundToggle } from "@/components/hud/SoundToggle";
-import { setMusicDucked, setMusicPhase } from "@/lib/client/music";
+import { setMusicDucked } from "@/lib/client/music";
 import { groupDecor, interiorAt } from "@/lib/game/decor";
 import { JourneyMap } from "@/components/hud/JourneyMap";
 import { zurichDay } from "@/lib/game/daily";
@@ -329,10 +329,6 @@ export function Game({ slug = null, initialWorldMode }: {
     }, [findHidden, identity, hiddenFoundIds]);
     // One condition renders the welcome, pauses the world and locks the actions.
     const welcomeVisible = Boolean(me && sceneReady && welcomeOpen);
-    useEffect(() => {
-        if (loaded)
-            setMusicPhase(identity ? "adventure" : "intro");
-    }, [loaded, identity]);
     const queuedRewardMoment = rewardMoments[0] ?? null;
     const rewardMoment = awaitingTravel ? null : queuedRewardMoment;
     const miniGameReady = Boolean(miniGameOffer && (miniGameOffer.resolved ||

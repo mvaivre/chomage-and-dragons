@@ -7,7 +7,7 @@ import type { Container, Graphics, Sprite } from "pixi.js";
 import type { PlayerView } from "@/hooks/useGame";
 import { characterArt, characterById, staticCharacterFacing } from "@/lib/game/characters";
 import { JOURNEY_TARGET } from "@/lib/config";
-import { inRoom, nextDoor, sameRoom, type RoomLocation } from "@/lib/game/doors";
+import { nextDoor, roomAt, sameRoom, type RoomLocation } from "@/lib/game/doors";
 import { seededRandom } from "@/lib/rng";
 import { biomeAt, slopeAt, surfaceAt, WORLD_LENGTH, worldXFor } from "@/lib/game/world";
 import { sfx } from "@/lib/client/sound";
@@ -16,7 +16,8 @@ import { fx, fxTexture } from "./fx";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
-import { HeroMiniTroll, HeroSmoke, paintCage } from "./HeroPranks";
+import { HeroMiniTroll, HeroFire, paintCage } from "./HeroPranks";
+import { crossedHero, heroBumpPose, HERO_BUMP_DURATION, HERO_BUMP_FLIGHT, type HeroContact } from "./hero-collision";
 
 /** Somme de contrôle d'une chaîne, pour amorcer un tirage reproductible. */
 function hash(text: string): number {
@@ -201,6 +202,11 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
   // Registered by the hook's own layout effect just above; the label changes with the name only.
   useLayoutEffect(() => { updateEnvironmentTarget(interactionId, { label: `Saluer ${player.name}` }); }, [interactionId, player.name]);
   const at = useRef(target);
+  const contact = useRef<HeroContact>({ x: target + lane.dx, room: undefined, ready: false, bump: null });
+  useEffect(() => {
+    const data = contact.current;
+    return () => { if (scene.heroContacts.get(player.id) === data) scene.heroContacts.delete(player.id); };
+  }, [player.id]);
   const movementDelay = useRef(0);
   const travelQueue = useRef<Array<{ target: number; steps: number }>>([]);
   const travel = useRef<TravelLeg | null>(null);
@@ -284,8 +290,11 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
     // Capping deltaMS stretches a two-second journey into minutes at low FPS.
     // Pixi resets elapsedMS on restart, so modal/hidden-tab pauses do not count.
     const dt = worldDelta(ticker.elapsedMS);
+    const previousX = at.current + lane.dx;
+    const collider = contact.current;
     if (chestPause.current > 0) {
       chestPause.current = Math.max(0, chestPause.current - dt);
+      collider.ready = false;
       markMotion();
       return;
     }
@@ -414,6 +423,32 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       if (!scene.dragging) scene.focusSpeed = moving || Math.abs(scene.focus - at.current) > 20 ? 10 : 1.35;
     }
 
+    const x = at.current + lane.dx;
+    const room = roomAt(at.current);
+    const bump = collider.bump;
+    if (bump) {
+      const age = bump.age;
+      bump.age += dt;
+      if (scene.reducedMotion ? bump.age >= .38 : bump.age >= HERO_BUMP_DURATION) collider.bump = null;
+      if (age < HERO_BUMP_FLIGHT && bump.age >= HERO_BUMP_FLIGHT && !scene.reducedMotion && root.current?.visible) {
+        fx.burst({ preset: "puff", x: x + bump.direction * 78, y: feetY, count: 7, spreadX: 17 });
+      }
+      markMotion();
+    }
+    collider.x = x;
+    collider.room = room?.from;
+    collider.ready = !moving && !activeTravel && !player.pranks?.cage && !collider.bump && !scene.heroEffects.has(player.id) && sameRoom(room, scene.viewedRoom);
+    if (!previewMotion) scene.heroContacts.set(player.id, collider);
+    if (!previewMotion && isMe && activeTravel && !scene.doorTransition && sameRoom(room, scene.viewedRoom) && Math.abs(x - previousX) > .01) {
+      for (const [id, other] of scene.heroContacts) {
+        if (id === player.id || !other.ready || other.bump || other.room !== collider.room || !crossedHero(previousX, x, other.x)) continue;
+        other.bump = { age: 0, direction: x > previousX ? 1 : -1 };
+        fx.burst({ preset: "stars", x: other.x, y: feetY - 90, count: scene.reducedMotion ? 3 : 9, power: .7 });
+        if (!scene.reducedMotion) sfx.boing();
+        markMotion();
+      }
+    }
+
     phase.current += dt * (moving ? 7.5 : 2.2);
 
     if (stun.current > 0) stun.current = Math.max(0, stun.current - dt / 1.25);
@@ -453,7 +488,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       node.rotation = effect?.rotation ?? 0;
       node.x = at.current + lane.dx + (effect?.x ?? 0);
       node.y = surfaceAt(at.current + lane.dx) + 4 + lane.dy + (effect?.y ?? 0);
-      node.visible = (isFocused || inRoom(at.current, scene.viewedRoom)) && node.x > scene.camera.x - 200 && node.x < scene.camera.x + scene.camera.viewW + 200;
+      node.visible = (isFocused || sameRoom(room, scene.viewedRoom)) && node.x > scene.camera.x - 200 && node.x < scene.camera.x + scene.camera.viewW + 200;
       if (!node.visible) {
         // No greeting badge where nobody is drawn.
         showEnvironmentTarget(interactionId, false);
@@ -484,17 +519,19 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
     const greetingProgress = reactionProgress(interaction.current);
     const greeting = !moving && actionTimer.current <= 0 && greetingProgress < 1;
     const knocked = moving && gait === "knockback" && legIndex === 0;
-    const motion: HeroMotion = previewMotion ?? (scene.reducedMotion ? "idle" : knocked ? "hurt" : moving ? "walk" : actionTimer.current > 0
+    const motion: HeroMotion = previewMotion ?? (collider.bump ? "hurt" : scene.reducedMotion ? "idle" : knocked ? "hurt" : moving ? "walk" : actionTimer.current > 0
       ? actionKind.current === "candidature" ? "send" : actionKind.current === "embauche" ? "celebrate" : "hurt"
       : greeting ? "celebrate" : "idle");
-    const progress = previewMotion ? (elapsed.current % 2) / 2 : knocked ? strideProgress : greeting ? greetingProgress : 1 - actionTimer.current / actionDuration.current;
+    const progress = previewMotion ? (elapsed.current % 2) / 2 : collider.bump ? Math.min(1, collider.bump.age / HERO_BUMP_FLIGHT) : knocked ? strideProgress : greeting ? greetingProgress : 1 - actionTimer.current / actionDuration.current;
     const frame = characterFrame(character.id, motion, scene.reducedMotion ? 0 : elapsed.current, progress);
     if (art.current && poses) art.current.texture = poses[frame];
 
     const body = rig.current;
     if (body) {
       const breath = !moving && !scene.reducedMotion ? Math.sin(phase.current * 1.4) * 0.012 : 0;
-      body.y = -hop - speciesLift;
+      const bumpPose = collider.bump && !scene.reducedMotion ? heroBumpPose(collider.bump) : null;
+      body.x = bumpPose?.x ?? 0;
+      body.y = -hop - speciesLift - (bumpPose?.lift ?? 0);
       // Électrocuté : le personnage part en arrière et tremble.
       // A knocked-back hero tilts away from the blow; a sprinter leans into the run.
       const lean = !moving ? 0
@@ -507,6 +544,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
           : slopeAt(at.current + lane.dx) * 0.5 + lean + (!moving ? Math.sin(phase.current * 0.7) * 0.015 : 0) +
             (moving && gait === "trot" ? Math.sin(phase.current) * 0.03 : 0) +
             (actionKind.current === "candidature" ? Math.sin(actionTimer.current / actionDuration.current * Math.PI) * -0.08 : 0);
+      body.rotation += bumpPose?.tilt ?? 0;
       body.scale.y = 1 - squash + breath;
       // Animated sheets face right; static fallbacks declare their native direction.
       // Pushed back, a hero keeps facing the road ahead.
@@ -528,7 +566,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       {isMe ? <pixiGraphics ref={selfGlow} draw={drawSelfGlow} /> : null}
       <pixiGraphics draw={drawShadow} />
 
-      <pixiContainer ref={rig}>
+      <pixiContainer ref={rig} label={`hero-rig:${player.id}`}>
         {player.pranks?.troll ? <HeroMiniTroll /> : null}
         {texture ? <pixiSprite
           ref={art}
@@ -538,7 +576,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         /> : null}
 
         {player.hiredAt ? <HiredCrown /> : null}
-        {player.pranks?.smoke ? <HeroSmoke /> : null}
+        {player.pranks?.smoke ? <HeroFire /> : null}
       </pixiContainer>
       {player.pranks?.cage ? <pixiGraphics draw={paintCage} /> : null}
 

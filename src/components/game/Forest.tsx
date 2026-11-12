@@ -10,7 +10,7 @@ import { markMotion, scene } from "./scene";
 import { useSceneTick } from "./useSceneTick";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { useSignTexture } from "./decor-textures";
-import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, updateSpriteTarget, useEnvironmentTarget, type EnvironmentTarget } from "./environment-targets";
+import { isDrawn, moveEnvironmentTarget, reactionProgress, showEnvironmentTarget, updateSignTarget, updateSpriteTarget, useEnvironmentTarget, useSignTarget, type EnvironmentTarget } from "./environment-targets";
 import { useViewportResident } from "./resident-visibility";
 
 function TreeResidents({ height, target }: { height: number; target: RefObject<EnvironmentTarget> }) {
@@ -72,9 +72,17 @@ const CANOPY = (() => {
   return { u, v, weights, arc };
 })();
 
+function ForestInscription({ worldX, height, text }: { worldX: number; height: number; text: string }) {
+  const inscription = useSignTexture(text, "refusal", "tree", 190, 96, "#302318");
+  const sprite = useRef<Sprite>(null);
+  const id = `sign:oak:${worldX}`;
+  useSignTarget(id, text);
+  useSceneTick(() => updateSignTarget(id, sprite.current));
+  return inscription ? <pixiSprite ref={sprite} texture={inscription} x={height * 0.11} y={-height * 0.31} anchor={0.5} width={94} height={48} rotation={-0.035} /> : null;
+}
+
 export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; worldX: number; height?: number; text?: string }) {
   const texture = useDirectTexture("/art/world-v3/runtime/forest-oak.webp");
-  const inscription = useSignTexture(text ?? null, "refusal", "tree", 190, 96, "#302318");
   const root = useRef<Container>(null), crown = useRef<MeshPlane>(null);
   const resting = useRef(false);
   const targetId = `tree:${worldX}`;
@@ -108,7 +116,7 @@ export function ForestTree({ x = 0, worldX, height = 620, text }: { x?: number; 
     {texture ? scene.lowPower
       ? <pixiSprite texture={texture} anchor={{ x: 0.5, y: 1130 / 1152 }} height={height} width={height * 2 / 3} tint={text ? 0xe3dfc5 : 0xc1c6a5} />
       : <pixiMeshPlane ref={crown} texture={texture} verticesX={7} verticesY={13} pivot={{ x: texture.width / 2, y: texture.height * 1130 / 1152 }} scale={{ x: height * 2 / 3 / texture.width, y: height / texture.height }} tint={text ? 0xe3dfc5 : 0xc1c6a5} /> : null}
-    {text && inscription ? <pixiSprite texture={inscription} x={height * 0.11} y={-height * 0.31} anchor={0.5} width={94} height={48} rotation={-0.035} /> : null}
+    {text ? <ForestInscription worldX={worldX} height={height} text={text}/> : null}
     <TreeResidents height={height} target={target} />
   </pixiContainer>;
 }

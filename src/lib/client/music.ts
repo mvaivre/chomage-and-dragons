@@ -26,17 +26,6 @@ export const TRACKS: Record<"firelit" | "medieval" | "ambient" | "funny" | "peac
   funny: { id: "funny", src: "/audio/music/funny-medieval.mp3", title: "Funny Medieval Instrumental", artist: "VifotoFreeSounds", gain: 0.433, loopStart: 0.14, loopEnd: 112.248 },
 };
 
-export type MusicPhase = "intro" | "adventure";
-
-export function trackForPlace(where: string, phase: MusicPhase = "adventure"): MusicTrack {
-  if (phase === "intro") return TRACKS.peaceful;
-  if (["plaine", "foret", "lac", "taverne", "tavern"].includes(where)) return TRACKS.firelit;
-  if (where === "volcan") return TRACKS.medieval;
-  if (where === "orp" || where === "factory") return TRACKS.funny;
-  if (where === "marais" || where === "cascade" || where === "desert") return TRACKS.ambient;
-  return TRACKS.medieval;
-}
-
 interface Deck {
   audio: HTMLAudioElement;
   source: MediaElementAudioSourceNode;
@@ -309,8 +298,6 @@ let enabled = readEnabled();
 const listeners = new Set<(on: boolean) => void>();
 let player: MusicPlayer | null = null;
 let timer: number | null = null;
-let land = "plaine";
-let phase: MusicPhase = "intro";
 let ducked = false;
 
 function readEnabled(): boolean {
@@ -344,7 +331,8 @@ function tick(retryBlocked = false) {
     player = new MusicPlayer(output.ctx, output.out);
     player.setDucked(ducked);
   }
-  player.select(trackForPlace(land, phase));
+  // Keep the character selection's recording playing across the whole journey.
+  player.select(TRACKS.peaceful);
   player.resume(retryBlocked);
   player.update();
 }
@@ -374,19 +362,9 @@ export function startMusic(): () => void {
     timer = null;
     player?.dispose();
     player = null;
-    phase = "intro";
-    land = "plaine";
     ducked = false;
     delete (window as unknown as { __musicState?: () => unknown }).__musicState;
   };
-}
-
-export function setMusicPlace(where: string): void { land = where; }
-
-export function setMusicPhase(next: MusicPhase): void {
-  if (phase === next) return;
-  phase = next;
-  tick();
 }
 
 export function setMusicDucked(value: boolean): void {

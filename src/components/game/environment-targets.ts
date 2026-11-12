@@ -6,11 +6,12 @@ import type { EnvironmentKind } from "@/lib/game/environment";
 import { scene } from "./scene";
 
 export interface EnvironmentTarget {
-  id: string; kind: EnvironmentKind; homeX: number; factor: number;
+  id: string; kind: EnvironmentKind | "sign"; homeX: number; factor: number;
   worldX: number; worldY: number; width: number; height: number; visible: boolean;
   startedAt: number; visits: number;
   label?: string;
   lines?: readonly string[];
+  signText?: string;
 }
 
 export function isDrawn(node: Container | null): boolean {
@@ -51,8 +52,19 @@ export function moveEnvironmentTarget(id: string, worldX: number, worldY: number
   target.worldX = worldX; target.worldY = worldY; target.width = width; target.height = height;
 }
 
+/** Signs use the visible board or painted caption, with its current rotation. */
+export function updateSignTarget(id: string, node: Container | null, boardFraction = 1) {
+  if (!node || !isDrawn(node)) { showEnvironmentTarget(id, false); return; }
+  const { x, y, width, height } = node.getBounds();
+  const { camera } = scene;
+  const boardHeight = height * boardFraction;
+  moveEnvironmentTarget(id, camera.x + (x + width / 2) / camera.scale,
+    camera.y + (y + boardHeight / 2 - camera.screenOffsetY) / camera.scale, width / camera.scale, boardHeight / camera.scale);
+  showEnvironmentTarget(id, true);
+}
+
 /** The Pixi ticker supplies geometry; the accessible DOM supplies pointer/keyboard input. */
-export function useEnvironmentTarget(id: string, kind: EnvironmentKind, homeX: number, factor = 1) {
+export function useEnvironmentTarget(id: string, kind: EnvironmentTarget["kind"], homeX: number, factor = 1) {
   const target = useRef<EnvironmentTarget>({ id, kind, homeX, factor, worldX: homeX, worldY: 0, width: 0, height: 0, visible: false, startedAt: -Infinity, visits: 0 });
   useLayoutEffect(() => {
     const current = target.current;
@@ -60,6 +72,12 @@ export function useEnvironmentTarget(id: string, kind: EnvironmentKind, homeX: n
     environmentTargets.set(id, current);
     return () => { if (environmentTargets.get(id) === current) environmentTargets.delete(id); };
   }, [id, kind, homeX, factor]);
+  return target;
+}
+
+export function useSignTarget(id: string, text: string) {
+  const target = useEnvironmentTarget(id, "sign", 0);
+  useLayoutEffect(() => { updateEnvironmentTarget(id, { signText: text }); }, [id, text]);
   return target;
 }
 export function reactionProgress(target: EnvironmentTarget): number { return Math.min(1, Math.max(0, (performance.now() - target.startedAt) / 3600)); }

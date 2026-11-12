@@ -17,15 +17,13 @@ import { HiddenObjects, HiddenObjectOverlay } from "./HiddenObjects";
 import { RoadsideObject, type RoadsideEncounter } from "./RoadsideObject";
 import { Decor } from "./Decor";
 import { DecorEvents } from "./DecorEvents";
-import { interiorAt, type GroupDecor } from "@/lib/game/decor";
-import { setMusicPlace } from "@/lib/client/music";
+import type { GroupDecor } from "@/lib/game/decor";
 import { Interiors, ExteriorBuildings } from "./Interiors";
 import { Outdoors, SceneDoors } from "./SceneDoors";
 import { roomAt } from "@/lib/game/doors";
 import type { PlayerView } from "@/hooks/useGame";
 import {
   surfaceAt,
-  biomeAt,
   worldXFor,
   WORLD_LENGTH,
   JOURNEY_SURFACE_Y,
@@ -63,19 +61,6 @@ const REST_SURFACE = JOURNEY_SURFACE_Y;
 const FAR_FACTOR = 0.16;
 const BACKGROUND_FACTOR = 0.36;
 const MIDGROUND_FACTOR = 0.76;
-
-/**
- * The music follows the player's own hero: glancing at a friend or browsing never
- * retunes it. While the camera follows that hero, the room changes under the fade.
- */
-function MusicPosition({ meX, followingMe }: { meX: number | null; followingMe: boolean ;
-}) {
-  useTick(() => {
-    const x = meX ?? scene.focus;
-    setMusicPlace((followingMe ? scene.room?.id : interiorAt(x)?.id) ?? biomeAt(x).id);
-  });
-  return null;
-}
 
 /* ------------------------------------------------------------------ caméra */
 
@@ -373,7 +358,6 @@ function WorldScene({ onChestReached, hiddenFoundIds, atmosphere, onSceneReady, 
         if (!players.some(p => p.id === meId))
             onSceneReady();
     }, [players, meId, onSceneReady]);
-    const ownPlayer = players.find(player => player.id === meId);
     const ordered = players
         .map((player, index) => ({ player, lane: laneFor(index) }))
         .sort((a, b) => (a.player.id === meId ? 1 : 0) - (b.player.id === meId ? 1 : 0) || a.lane.dy - b.lane.dy);
@@ -382,7 +366,6 @@ function WorldScene({ onChestReached, hiddenFoundIds, atmosphere, onSceneReady, 
     <ViewportResidents />
     <DaylightClock />
     <CameraRig visualOffset={visualOffset} initialFocus={initialFocus} initialExploreCenter={initialExploreCenter} freeCamera={freeCamera}>
-      <MusicPosition meX={ownPlayer ? worldXFor(ownPlayer.position) : null} followingMe={!focusPlayerId || focusPlayerId === meId}/>
       <AtmosphereClock enabled={atmosphere}/>
       <Outdoors>
       <Sky />

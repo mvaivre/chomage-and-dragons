@@ -12,6 +12,7 @@ import { environmentBubble, parallaxX } from "./projection";
 import { markMotion, scene, sceneFrameListeners } from "./scene";
 import { fx } from "./fx";
 import { dragonReply } from "@/lib/game/dragon";
+import { signReaction } from "@/lib/game/sign-reactions";
 
 function pulse(target: EnvironmentTarget) {
   const x = scene.camera.x + parallaxX(target.worldX, scene.camera.x, scene.camera.viewW, target.factor);
@@ -33,7 +34,7 @@ function pulse(target: EnvironmentTarget) {
 }
 
 /** Which targets get a button: React re-renders only when this list changes. */
-interface Place { id: string; label: string; available: boolean; }
+interface Place { id: string; label: string; signText?: string; available: boolean; }
 interface Box { x: number; y: number; width: number; height: number; }
 
 /** A target's hit box in CSS pixels, false once it is hidden or off screen. */
@@ -103,6 +104,9 @@ function TargetButton({ place, onActivate, register }: {
     register: (id: string, node: HTMLButtonElement | null) => void;
 }) {
     const uiLocale = useLocale();
+    const label = place.signText
+        ? tr("Lire le panneau : {0}", [tr(place.signText, undefined, uiLocale)], uiLocale)
+        : tr(place.label, undefined, uiLocale);
     const drag = useRef<{
         x: number;
         y: number;
@@ -111,7 +115,7 @@ function TargetButton({ place, onActivate, register }: {
         pointer: number;
     } | null>(null);
     const moved = useRef(false);
-    return <button type="button" className="environment-target" aria-label={tr(place.label, undefined, uiLocale)} aria-disabled={!place.available} title={tr(place.label, undefined, uiLocale)} data-available={place.available} data-environment-id={place.id} ref={node => register(place.id, node)} onPointerDown={event => {
+    return <button type="button" className="environment-target" aria-label={label} aria-disabled={!place.available} title={label} data-available={place.available} data-environment-id={place.id} ref={node => register(place.id, node)} onPointerDown={event => {
             event.stopPropagation();
             if (!place.available || !event.isPrimary || event.button !== 0)
                 return;
@@ -182,10 +186,11 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
                 for (const target of targets) {
                     if (!project(target, box))
                         continue;
-                    next.push({ id: target.id, label: target.label ?? ENVIRONMENT_LABELS[target.kind], available: !busy && canExploreTarget(target.visible, paused) });
+                    const label = target.label ?? (target.kind === "sign" ? "" : ENVIRONMENT_LABELS[target.kind]);
+                    next.push({ id: target.id, label, signText: target.signText, available: !busy && canExploreTarget(target.visible, paused) });
                 }
             }
-            setPlaces(before => before.length === next.length && before.every((item, i) => item.id === next[i].id && item.label === next[i].label && item.available === next[i].available) ? before : next.length ? next : NO_PLACES);
+            setPlaces(before => before.length === next.length && before.every((item, i) => item.id === next[i].id && item.label === next[i].label && item.signText === next[i].signText && item.available === next[i].available) ? before : next.length ? next : NO_PLACES);
         };
         sync();
         const timer = window.setInterval(sync, 150);
@@ -223,6 +228,17 @@ export function EnvironmentOverlay({ meId, paused, busy = false, onDragonSwallow
             return;
         if (target.kind !== "dragon" && performance.now() - target.startedAt < 900)
             return;
+        if (target.kind === "sign") {
+            target.startedAt = performance.now();
+            const preset = signReaction(target.signText ?? "");
+            fx.burst({ preset, x: target.worldX, y: target.worldY, count: scene.reducedMotion ? 3 : preset === "confetti" ? 65 : preset === "letters" ? 6 : 12,
+                spreadX: target.width * .35, power: scene.reducedMotion ? .25 : .76 });
+            if (preset === "confetti") sfx.pop();
+            else sfx.press();
+            setSpeech(null);
+            markMotion();
+            return;
+        }
         if (target.kind === "dragon") {
             if (!meId)
                 return;
