@@ -8,6 +8,7 @@ import { characterById, type Character } from "@/lib/game/characters";
 import { SEASON } from "@/lib/config";
 import { SoundToggle } from "./SoundToggle";
 import { CrownArtwork } from "./Artwork";
+import { LanguagePicker } from "./LanguagePicker";
 /**
  * L'écran d'entrée.
  *
@@ -32,7 +33,7 @@ export function TitleScreen({ players, freeCharacters, groupName = null, require
     const [forging, setForging] = useState(players.length === 0);
     return (<div className="character-screen curtain absolute inset-0 z-30 overflow-y-auto">
       <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center gap-6 px-5 py-8">
-        <div className="entry-sound"><SoundToggle /></div>
+        <div className="entry-sound character-screen__controls"><LanguagePicker compact /><SoundToggle /></div>
         <header className="rise text-center">
           <p className="engrave text-xs opacity-70">{tr(SEASON.label, undefined, uiLocale)}</p>
           <h1 className="engrave mt-2 text-4xl leading-[1.15] sm:text-6xl">{tr("Chômage ", undefined, uiLocale)}<span className="mx-3 text-gold opacity-80">&</span>{tr("Dragons ", undefined, uiLocale)}</h1>

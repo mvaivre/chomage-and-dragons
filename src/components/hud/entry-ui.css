@@ -68,6 +68,22 @@
 .language-picker { display: flex; align-items: center; gap: 8px; color: #d8ca9f; font: 14px/1.3 var(--font-body), Georgia, serif; }
 .language-picker select { max-width: 160px; min-height: 40px; padding: 7px 10px; border: 1px solid #bba46a88; border-radius: 5px; background: #183229; color: #f2e8cc; font: inherit; cursor: pointer; }
 .language-picker select:focus-visible { outline: 2px solid #f1d08b; outline-offset: 3px; }
+.language-picker--compact {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #d4ca9b55;
+  border-radius: 50%;
+  background: #172921e8;
+  color: #f3eedc;
+  font: 700 12px/1 system-ui, sans-serif;
+}
+.language-picker--compact select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.language-picker--compact:has(select:focus-visible) { outline: 2px solid #f1d08b; outline-offset: 3px; }
+.character-screen__controls { display: flex; gap: 8px; align-items: center; }
+.character-screen__controls .language-picker--compact { width: 44px; height: 44px; }
 .world-choice__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .world-choice__top .world-choice__eyebrow { order: -1; margin: 0; text-align: left; }
 .world-choice .language-picker { gap: 5px; font-size: 13px; }

@@ -55,7 +55,7 @@ test('3D portraits turn, all three tutorial scenes are models, and every playabl
  await page.screenshot({path:'/tmp/louchomage-full-3d/characters.png'});
  await page.getByPlaceholder('Mika').fill('Courage');await page.getByRole('button',{name:'Entrer dans la partie',exact:true}).click();
  const before=await save(page);
- for(const [stage,actions] of [['road',['Essayer une candidature · +2 pas','Découvrir les coffres →']],['treasure',['Ouvrir le coffre','Essayer le pouvoir','Voyager ensemble →']],['company',['Commencer le voyage']]]){
+ for(const [stage,actions] of [['road',['Essayer une candidature · +8 pas','Découvrir les coffres →']],['treasure',['Ouvrir le coffre','Essayer le pouvoir','Voyager ensemble →']],['company',['Commencer le voyage']]]){
   await page.waitForFunction(()=>Number(document.querySelector('.initiation-scene--3d canvas')?.dataset.triangles)>100);
   for(const [width,height] of [[390,844],[1920,1080],[1280,800]]) {
    await page.setViewportSize({width,height});

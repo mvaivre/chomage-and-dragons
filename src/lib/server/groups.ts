@@ -120,6 +120,7 @@ export function authorize(state: GameState, action: GameAction, tokenPlayer: str
       if (!attempt) throw new GroupError(404, "Tentative inconnue.");
       return own(attempt.playerId);
     }
+    case "escapeCage":
     case "markCastSeen": {
       const cast = castsTargeting(state, [action.castId])[0];
       if (!cast) throw new GroupError(404, "Butin inconnu.");
@@ -143,7 +144,7 @@ export function validateContext(context: unknown, now = new Date()): ActionConte
   return { id: () => id, now: () => at };
 }
 
-const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun", "scheduleMeetup", "findHidden", "encounterMove"]);
+const ACTION_TYPES = new Set(["addEvent", "finishMiniGame", "castPower", "escapeCage", "markCastSeen", "settleShots", "undoLast", "addPlayer", "removePlayer", "cheer", "dailyRun", "scheduleMeetup", "findHidden", "encounterMove"]);
 
 export function validateAction(action: unknown): GameAction {
   const given = action as { type?: unknown } | null;
@@ -157,6 +158,10 @@ export function validateAction(action: unknown): GameAction {
   if (given.type === "findHidden") {
     const discovery = given as Partial<Extract<GameAction, { type: "findHidden" }>>;
     if (typeof discovery.playerId !== "string" || typeof discovery.itemId !== "string") throw new GroupError(400, "Personnage et objet caché requis.");
+  }
+  if (given.type === "escapeCage") {
+    const escape = given as Partial<Extract<GameAction, { type: "escapeCage" }>>;
+    if (typeof escape.castId !== "string" || typeof escape.path !== "string") throw new GroupError(400, "Cage et parcours requis.");
   }
   return given as GameAction;
 }

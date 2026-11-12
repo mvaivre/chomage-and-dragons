@@ -12,7 +12,7 @@ const { JOURNEY_TARGET } = await import('../src/lib/config.ts');
 
 test('actions keep their distance beyond both itinerary boundaries and interviews move backwards', () => {
   for (const start of [0, JOURNEY_TARGET - 2, JOURNEY_TARGET, JOURNEY_TARGET + 19, 2 * JOURNEY_TARGET - 2, 2 * JOURNEY_TARGET, 10 * JOURNEY_TARGET]) {
-    for (const [kind, delta] of [['candidature', 2], ['refus', 3], ['entretien', -3], ['rejetApresEntretien', 6]]) {
+    for (const [kind, delta] of [['candidature', 8], ['refus', 12], ['entretien', -3], ['rejetApresEntretien', 18]]) {
       assert.equal(stepsFor(kind), delta);
       const next = Math.max(0, start + delta);
       const distance = worldXFor(racePosition(next)) - worldXFor(racePosition(start));
@@ -20,6 +20,14 @@ test('actions keep their distance beyond both itinerary boundaries and interview
     }
   }
   assert.equal(journeySteps([{kind:'candidature'}, {kind:'refus'}, {kind:'entretien'}, {kind:'rejetApresEntretien'}]), 8);
+});
+
+test('three new applications or two new refusals take the hero to the forest', () => {
+  for (const [kind, count] of [['candidature', 3], ['refus', 2]]) {
+    const events = Array.from({length: count}, () => ({kind, journeyBase: stepsFor(kind)}));
+    assert.equal(biomeAt(worldXFor(racePosition(journeySteps(events.slice(1))))).id, 'plaine');
+    assert.equal(biomeAt(worldXFor(racePosition(journeySteps(events)))).id, 'foret');
+  }
 });
 
 test('the scenery repeats while hiring always leads to the next tavern', () => {
@@ -38,11 +46,11 @@ test('earned chests survive setbacks without being awarded twice', () => {
   events.push({kind: 'entretien'});
   const state = journeyProgress(events);
   assert.deepEqual(state, {steps:107, earnedChests:11});
-  assert.equal(availablePowers('me', state.earnedChests, []).length, 11);
+  assert.equal(availablePowers('me', state.earnedChests, []).filter(power => power.slot < 1000).length, 11);
   assert.equal(untilNextChest(state.steps, state.earnedChests), 13);
   events.push({kind:'refus'});
   assert.deepEqual(journeyProgress(events), {steps:110, earnedChests:11});
-  assert.equal(availablePowers('me', 11, [{playerId:'me',slot:10}]).length, 10);
+  assert.equal(availablePowers('me', 11, [{playerId:'me',slot:10}]).filter(power => power.slot < 1000).length, 10);
 });
 test('undo removes the chest only when its unlocking event no longer exists', () => {
   const events = Array.from({length: 5}, () => ({kind:'candidature'}));
@@ -97,9 +105,9 @@ test('a chest has one slot-machine attempt; a jackpot adds loot only while the c
   assert.equal(reserveChestGame(first.state, 'me', 0, 'event-y').offer, false, 'the chest index is what counts');
   const won = resolveMiniGame(first.state, first.attempt.id, 'won');
   assert.equal(won.events.length, 0, 'a chest game never adds journey steps');
-  assert.deepEqual(availablePowers('me', 1, [], won.miniGames).map(p => p.slot), [0, 1000]);
+  assert.deepEqual(availablePowers('me', 1, [], won.miniGames).filter(power => power.kind !== 'cage').map(p => p.slot), [0, 1000]);
   assert.deepEqual(availablePowers('me', 0, [], won.miniGames), [], 'undoing the chest hides the jackpot');
-  assert.deepEqual(availablePowers('me', 1, [{playerId: 'me', slot: 1000}], won.miniGames).map(p => p.slot), [0], 'a cast jackpot is spent');
+  assert.ok(!availablePowers('me', 1, [{playerId: 'me', slot: 1000}], won.miniGames).some(power => power.slot === 1000), 'a cast jackpot is spent');
   assert.equal(resolveMiniGame(first.state, first.attempt.id, 'lost').events.length, 0);
 });
 

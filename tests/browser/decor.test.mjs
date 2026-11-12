@@ -77,7 +77,7 @@ test('decor rooms, motion preferences and rare events work in the actual rendere
   assert.deepEqual(errors,[]);await context.close();
  });
  await t.test('entering the ORP announces the room after travel',async()=>{
-  const{context,page,errors}=await fixture(10);
+  const{context,page,errors}=await fixture(0);
   await page.locator('.action-button--refus').click();
   await page.locator('.moment-banner').filter({hasText:'Centre ORP'}).waitFor({timeout:15000});
   assert.deepEqual(errors,[]);await context.close();

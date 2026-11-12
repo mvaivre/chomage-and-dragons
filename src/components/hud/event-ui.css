@@ -38,6 +38,10 @@
 .game-adventure .reward-modal__close, .game-adventure .shot-inbox-later { min-height: 46px; padding: 10px 16px; border: 1px solid #dac58b77; border-radius: 3px; background: #d6c48c; color: #20372b; box-shadow: none; transform: none; font-size: 18px; }
 .game-adventure .reward-modal__close { justify-self: stretch; margin: 0 26px 24px 6px; }
 .game-adventure .reward-modal__close:hover { background: #e4d5a2; box-shadow: none; transform: none; }
+.reward-modal__actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 26px 24px 6px; }
+.game-adventure .reward-modal__actions .reward-modal__close { margin: 0; flex: 1 1 auto; }
+.reward-modal__jackpot { min-height: 46px; padding: 8px 14px; border: 1px solid #dac58b77; border-radius: 3px; color: #e4d7a9; cursor: pointer; }
+.reward-modal__jackpot:hover { background: #d6c48c22; }
 .game-adventure .shot-inbox-note { border: 0; color: #bdccb0; background: none; }
 .game-adventure .shot-inbox-actions { padding: 0 26px 24px 6px; gap: 8px; }
 .game-adventure .shot-inbox-actions .reward-modal__close { margin: 0; }
@@ -74,6 +78,8 @@
   .game-adventure .reward-modal__copy { padding: 10px 20px 20px; }
   .game-adventure .reward-modal__title { font-size: 29px; }
   .game-adventure .reward-modal__close { margin: 0 20px 20px; }
+  .reward-modal__actions { padding: 0 20px 20px; }
+  .reward-modal__jackpot { flex: 1 1 auto; }
   .game-adventure .shot-inbox-actions { grid-column: 1; padding: 0 20px 20px; }
   .game-adventure .toast-notice__panel { flex-wrap: wrap; }
   .game-adventure .toast-notice__panel button { flex-basis: 100%; }

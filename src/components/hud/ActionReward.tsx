@@ -21,6 +21,7 @@ interface ChestMoment {
   id: string;
   type: "chest";
   powerKind: PowerKind;
+  canPlay?: boolean;
 }
 
 export type RewardMoment = ActionMoment | ChestMoment;
@@ -60,9 +61,11 @@ const COPY: Record<
 export function ActionReward({
   moment,
   onDone,
+  onPlayChest,
 }: {
   moment: RewardMoment;
   onDone: () => void;
+  onPlayChest?: () => void;
 }) {
   const uiLocale = useLocale();
     const close = useRef<HTMLButtonElement>(null);
@@ -83,10 +86,13 @@ export function ActionReward({
 
         {chest ? (<ChestCopy moment={moment} titleId={`reward-title-${moment.id}`}/>) : (<ActionCopy moment={moment} titleId={`reward-title-${moment.id}`}/>)}
 
-        <button ref={close} type="button" onClick={onDone} className="reward-modal__close">
-          {tr(chest ? "Ranger le butin" : "Continuer l’aventure", undefined, uiLocale)}
-          <span aria-hidden>›</span>
-        </button>
+        <div className="reward-modal__actions">
+          <button ref={close} type="button" onClick={onDone} className="reward-modal__close">
+            {tr(chest ? "Ranger le butin" : "Continuer l’aventure", undefined, uiLocale)}
+            <span aria-hidden>›</span>
+          </button>
+          {onPlayChest ? <button type="button" className="reward-modal__jackpot" onClick={onPlayChest}>{tr("Tenter le jackpot", undefined, uiLocale)}</button> : null}
+        </div>
       </section>
     </div>);
 }

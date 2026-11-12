@@ -201,7 +201,7 @@ export function drawPigeonScene(
     ctx.block(0x836b46, mailbox, GROUND_Y * 0.76, 8, GROUND_Y * 0.48, 8, 3);
     ctx.block(0xb58a4b, mailbox, GROUND_Y / 2, 43, 44, 24, 8);
     ctx.block(0x2d433b, mailbox, GROUND_Y / 2, 30, 10, 2, 22);
-    ctx.text("×2", mailbox, GROUND_Y / 2 + 15, 12, "#f1d994", "center", 26);
+    ctx.text("+", mailbox, GROUND_Y / 2 + 15, 12, "#f1d994", "center", 26);
   }
   const y =
     sim.status === "crashed"

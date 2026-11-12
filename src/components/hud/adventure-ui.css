@@ -20,6 +20,38 @@
   width: min(390px, calc(100vw - 110px));
   container-type: normal;
 }
+.game-adventure .hud-company { flex: none; display: grid; gap: 6px; }
+.hud-company__row { display: flex; gap: 6px; justify-content: flex-end; }
+.company-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--travel-line);
+  border-radius: 50%;
+  background: var(--travel-ink);
+  color: var(--travel-paper);
+  cursor: pointer;
+}
+.company-button:hover { background: #2c4537; }
+.company-button:disabled { opacity: .55; cursor: default; }
+.company-button:focus-visible { outline: 2px solid #f1d08b; outline-offset: 3px; }
+.company-loot { position: relative; }
+.company-loot__art { width: 27px; height: 27px; }
+.company-loot > span:last-child {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 18px;
+  padding: 2px;
+  border: 1px solid #352a1d;
+  border-radius: 10px;
+  background: #e0ba67;
+  color: #34271c;
+  font: 700 10px/1.2 system-ui, sans-serif;
+}
+.troll-art { display: inline-block; aspect-ratio: 1; background-size: 400% 200%; background-repeat: no-repeat; }
+.game-adventure .adventure-menu .power-menu__trigger { scroll-margin-top: 10px; }
 .game-adventure .journey-card {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -460,21 +492,6 @@
   border-radius: 50%;
   background: none;
   box-shadow: none;
-}
-.game-adventure .adventure-menu .monthly-meetup {
-  max-width: none;
-  width: 100%;
-  margin: 0;
-  border: 1px solid #d7cba233;
-  border-radius: 6px;
-  background: none;
-}
-.game-adventure .adventure-menu .monthly-meetup__clock {
-  color: #c3c4a8;
-  border-color: #d7cba222;
-}
-.game-adventure .adventure-menu .monthly-meetup__date {
-  min-height: 56px;
 }
 .game-adventure .adventure-menu .power-menu {
   z-index: auto;

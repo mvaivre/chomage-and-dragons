@@ -5,9 +5,10 @@ import { clampScore } from "@/lib/game/scores";
 import { JOURNEY_STEPS } from "@/lib/config";
 import { validateMeetupInput } from "@/lib/game/monthly-meetup";
 import { hiddenItemForId } from "@/lib/game/hidden-objects";
+import { activeCage, availablePowers, CAGED_MESSAGE, POWERS, PRANK_DURATION_MS } from "@/lib/game/powers";
+import { solvedPrison } from "@/lib/game/prison";
 
 const ACTION_KINDS = new Set(Object.keys(JOURNEY_STEPS));
-const POWER_KINDS = new Set(["shot", "feuSacré", "fienteDragon", "paperasse", "crapaud"]);
 const RESULTS = new Set(["won", "lost", "skipped"]);
 const isId = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 80;
 
@@ -28,6 +29,7 @@ export type GameAction =
   | { type: "addEvent"; playerId: string; kind: ActionKind }
   | { type: "finishMiniGame"; attemptId: string; result: MiniGameResult; score?: number }
   | { type: "castPower"; playerId: string; targetPlayerId: string; kind: PowerKind; slot: number }
+  | { type: "escapeCage"; castId: string; path: string }
   | { type: "markCastSeen"; castId: string }
   | { type: "settleShots"; castIds: string[] }
   | { type: "undoLast"; playerId: string; kind?: ActionKind }
@@ -55,6 +57,7 @@ export interface ActionResults {
   addEvent: { event: GameEvent | null; offer: MiniGameKind | null; chestGame: ChestGameOffer | null; rejected?: string };
   finishMiniGame: { changed: boolean; chestGame: ChestGameOffer | null; rejected?: string };
   castPower: { cast: PowerCast; accepted: boolean; rejected?: string };
+  escapeCage: { escaped: boolean; rejected?: string };
   markCastSeen: { rejected?: string };
   settleShots: { rejected?: string };
   undoLast: { removed: GameEvent | null; rejected?: string };
@@ -89,11 +92,12 @@ function addEvent(state: GameState, action: Extract<GameAction, { type: "addEven
   const player = state.players.find((p) => p.id === action.playerId);
   if (!player) return { state, result: { event: null, offer: null, chestGame: null, rejected: "unknown player" } };
   if (player.hiredAt) return { state, result: { event: null, offer: null, chestGame: null, rejected: "player already hired" } };
-  const event: GameEvent = { id: context.id(), playerId: action.playerId, kind: action.kind, at: context.now() };
+  if (activeCage(state.casts, player.id)) return { state, result: { event: null, offer: null, chestGame: null, rejected: CAGED_MESSAGE } };
+  const event: GameEvent = { id: context.id(), playerId: action.playerId, kind: action.kind, at: context.now(), journeyBase: JOURNEY_STEPS[action.kind] };
   const reservation = reserveMiniGame(state, event);
   const wild = reserveEncounter(reservation.state, event);
   const crossed = reserveCrossedChest(state, { ...wild.state, events: [...state.events, reservation.event] }, action.playerId, event.id);
-  const replaced = Boolean(wild.encounter || crossed.chestGame?.offer);
+  const replaced = Boolean(wild.encounter);
   if (replaced) crossed.state = { ...crossed.state, miniGames: crossed.state.miniGames?.map(a => a.id === event.id && a.result === "pending" ? { ...a, result: "skipped" } : a) };
   const next: GameState = {
     ...crossed.state,
@@ -116,14 +120,36 @@ function finishMiniGame(state: GameState, action: Extract<GameAction, { type: "f
 
 function castPower(state: GameState, action: Extract<GameAction, { type: "castPower" }>, context: ActionContext) {
   const cast: PowerCast = { id: context.id(), playerId: action.playerId, targetPlayerId: action.targetPlayerId, kind: action.kind, slot: action.slot, at: context.now() };
-  if (!POWER_KINDS.has(action.kind) || !Number.isInteger(action.slot) || action.slot < 0) return { state, result: { cast, accepted: false, rejected: "unknown loot" } };
+  if (typeof action.kind !== "string" || !Object.hasOwn(POWERS, action.kind) || !Number.isSafeInteger(action.slot) || action.slot < 0) return { state, result: { cast, accepted: false, rejected: "unknown loot" } };
   const validPlayers = action.playerId !== action.targetPlayerId &&
     state.players.some((player) => player.id === action.playerId) &&
     state.players.some((player) => player.id === action.targetPlayerId);
   const slotIsFree = !state.casts.some((existing) => existing.playerId === action.playerId && existing.slot === action.slot);
   if (!validPlayers) return { state, result: { cast, accepted: false, rejected: "invalid players" } };
   if (!slotIsFree) return { state, result: { cast, accepted: false, rejected: "loot already cast" } };
+  const { earnedChests } = journeyProgress(state.events.filter(event => event.playerId === cast.playerId));
+  if (!availablePowers(cast.playerId, earnedChests, state.casts, state.miniGames).some(power => power.slot === cast.slot && power.kind === cast.kind)) {
+    return { state, result: { cast, accepted: false, rejected: "Ce butin n’est plus disponible." } };
+  }
+  if (cast.kind === "cage" && activeCage(state.casts, cast.targetPlayerId)) {
+    return { state, result: { cast, accepted: false, rejected: "Ce personnage est déjà en cage." } };
+  }
+  if (cast.kind === "feuSacré" || cast.kind === "miniTroll") {
+    cast.expiresAt = new Date(Date.parse(cast.at) + PRANK_DURATION_MS).toISOString();
+  }
   return { state: { ...state, casts: [...state.casts, cast] }, result: { cast, accepted: true } };
+}
+
+function escapeCage(state: GameState, action: Extract<GameAction, { type: "escapeCage" }>, context: ActionContext) {
+  const cage = state.casts.find(cast => cast.id === action.castId && cast.kind === "cage");
+  if (!cage) return { state, result: { escaped: false, rejected: "Cage introuvable." } };
+  if (cage.escapedAt) return { state, result: { escaped: true } };
+  if (!solvedPrison(cage.id, action.path)) return { state, result: { escaped: false, rejected: "Il te faut les deux clés et la sortie." } };
+  const at = context.now();
+  return {
+    state: { ...state, casts: state.casts.map(cast => cast === cage ? { ...cast, escapedAt: at, seenAt: cast.seenAt ?? at } : cast) },
+    result: { escaped: true },
+  };
 }
 
 function markCastSeen(state: GameState, action: Extract<GameAction, { type: "markCastSeen" }>, context: ActionContext) {
@@ -142,6 +168,7 @@ function settleShots(state: GameState, action: Extract<GameAction, { type: "sett
 
 /** Retire la dernière action de ce joueur : le clic de trop. Sans `kind`, la plus récente. */
 function undoLast(state: GameState, action: Extract<GameAction, { type: "undoLast" }>) {
+  if (activeCage(state.casts, action.playerId)) return { state, result: { removed: null, rejected: CAGED_MESSAGE } };
   const index = state.events.findLastIndex((e) => e.playerId === action.playerId && (action.kind === undefined || e.kind === action.kind));
   if (index === -1) return { state, result: { removed: null, rejected: "nothing to undo" } };
   const events = [...state.events];
@@ -221,10 +248,12 @@ function scheduleMeetup(state: GameState, action: Extract<GameAction, { type: "s
   const now = context.now();
   const rejected = validateMeetupInput(action.monthKey, action.at, action.place, new Date(now));
   if (rejected) return { state, result: { meetup: null, rejected } };
-  const meetup: MonthlyMeetup = { monthKey: action.monthKey, at: action.at, place: action.place.trim(), updatedBy: action.playerId, updatedAt: now };
   const previous = state.monthlyMeetups ?? [];
   const existing = previous.find((m) => m.monthKey === action.monthKey);
-  if (existing?.at === meetup.at && existing.place === meetup.place) return { state, result: { meetup: existing } };
+  const place = action.place.trim();
+  if (existing?.at === action.at && existing.place === place) return { state, result: { meetup: existing } };
+  const scheduledAt = existing?.at === action.at ? existing.scheduledAt ?? existing.updatedAt : now;
+  const meetup: MonthlyMeetup = { monthKey: action.monthKey, at: action.at, place, updatedBy: action.playerId, updatedAt: now, scheduledAt };
   return { state: { ...state, monthlyMeetups: [...previous.filter((m) => m.monthKey !== action.monthKey), meetup] }, result: { meetup } };
 }
 
@@ -266,6 +295,7 @@ export function applyAction<A extends GameAction>(state: GameState, action: A, c
     case "addEvent": return addEvent(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "finishMiniGame": return finishMiniGame(state, action) as { state: GameState; result: ActionResult<A> };
     case "castPower": return castPower(state, action, context) as { state: GameState; result: ActionResult<A> };
+    case "escapeCage": return escapeCage(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "markCastSeen": return markCastSeen(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "settleShots": return settleShots(state, action, context) as { state: GameState; result: ActionResult<A> };
     case "undoLast": return undoLast(state, action) as { state: GameState; result: ActionResult<A> };

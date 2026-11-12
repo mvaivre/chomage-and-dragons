@@ -1,11 +1,10 @@
 "use client";
 import { t as tr } from "@/lib/i18n/index";
 import { useLocale } from "@/lib/i18n/react";
-import { UiIcon } from "./UiIcon";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { MonthlyMeetup as Meetup } from "@/lib/data/types";
 import { monthKey, monthLabel } from "@/lib/game/calendar";
-import { editableMeetupMonths, meetupDateLabel, meetupLatestInput, monthClosesAt, monthCountdown, shiftMeetupMonth, validateMeetupInput, zurichDateTimeInput, zurichInputToIso, } from "@/lib/game/monthly-meetup";
+import { editableMeetupMonths, meetupDateLabel, meetupFill, meetupLatestInput, monthClosesAt, monthCountdown, nextMeetup, validateMeetupInput, zurichDateTimeInput, zurichInputToIso } from "@/lib/game/monthly-meetup";
 interface Props {
     meetups: Meetup[];
     playerId: string | null;
@@ -20,20 +19,20 @@ interface Props {
 export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false, onOpenChange }: Props) {
     const uiLocale = useLocale();
     const [now, setNow] = useState(() => new Date());
+    const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<string | null>(null);
     const [date, setDate] = useState("");
     const [place, setPlace] = useState("");
     const [error, setError] = useState<string | null>(null);
     const dialog = useRef<HTMLDialogElement>(null);
-    const opener = useRef<HTMLElement | null>(null);
+    const opener = useRef<HTMLButtonElement>(null);
     const titleId = useId();
     const dateId = useId();
     const placeId = useId();
     const monthId = useId();
-    const isEditing = editing !== null;
     const current = monthKey(now);
-    const currentMeetup = meetups.find((meetup) => meetup.monthKey === current);
-    const previousMeetup = meetups.find((meetup) => meetup.monthKey === shiftMeetupMonth(current, -1) && Date.parse(meetup.at) > now.getTime());
+    const upcoming = nextMeetup(meetups, now);
+    const fill = meetupFill(upcoming, now);
     const availableMonths = editableMeetupMonths(now);
     useEffect(() => {
         const update = () => setNow(new Date());
@@ -47,26 +46,25 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
         };
     }, []);
     useEffect(() => {
-        onOpenChange?.(isEditing);
-        if (!isEditing)
-            return;
-        dialog.current?.showModal();
-        return () => { onOpenChange?.(false); opener.current?.focus(); };
-    }, [isEditing, onOpenChange]);
+        if (!open) return;
+        const node = dialog.current;
+        node?.showModal();
+        const trigger = opener.current;
+        return () => { node?.close(); trigger?.focus(); };
+    }, [open]);
+    const close = () => {
+        setOpen(false);
+        setEditing(null);
+        onOpenChange?.(false);
+    };
     const fillMonth = (key: string, instant: Date) => {
         const meetup = meetups.find((item) => item.monthKey === key);
         const latest = Date.parse(zurichInputToIso(meetupLatestInput(key))!);
         const suggested = Math.min(latest, Math.max(monthClosesAt(key) - 5 * 3600000, instant.getTime() + 24 * 3600000));
         setEditing(key);
-        setDate(meetup ? zurichDateTimeInput(new Date(meetup.at)) : zurichDateTimeInput(new Date(suggested)));
+        setDate(zurichDateTimeInput(new Date(meetup && Date.parse(meetup.at) > instant.getTime() ? meetup.at : suggested)));
         setPlace(meetup?.place ?? "");
         setError(null);
-    };
-    const open = (key: string) => {
-        const instant = new Date();
-        setNow(instant);
-        opener.current = document.activeElement as HTMLElement | null;
-        fillMonth(key, instant);
     };
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -90,35 +88,39 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
         setEditing(null);
     };
     return <>
-    <section className="monthly-meetup pointer-events-auto" aria-label={tr("Couronne et verre du mois", undefined, uiLocale)}>
-      <div className="monthly-meetup__clock">
-        <span>{tr("Couronne · ", undefined, uiLocale)}{tr(monthLabel(current).split(" ")[0], undefined, uiLocale)}</span>
-        <time dateTime={new Date(monthClosesAt(current)).toISOString()} title={tr("Clôture du classement à minuit, heure de Zurich", undefined, uiLocale)}>
-          {tr(monthCountdown(current, now), undefined, uiLocale)}
-        </time>
-      </div>
-      <button type="button" className="monthly-meetup__date" onClick={() => open(current)} disabled={!playerId || disabled}>
-        <UiIcon name="mug" className="monthly-meetup__icon"/>
-        <span><small>{tr("Verre du mois", undefined, uiLocale)}</small><b>{tr(currentMeetup ? meetupDateLabel(currentMeetup.at) : "Une date à choisir", undefined, uiLocale)}</b>
-          {currentMeetup?.place ? <em>{currentMeetup.place}</em> : null}</span>
-        {playerId ? <span className="monthly-meetup__edit">{tr(currentMeetup ? "Changer" : "Fixer", undefined, uiLocale)}</span> : null}
+      <button type="button" ref={opener} className="company-button meetup-trigger" aria-haspopup="dialog"
+        aria-label={tr("Prochain verre", undefined, uiLocale)}
+        title={upcoming ? [meetupDateLabel(upcoming.at), upcoming.place].filter(Boolean).join(" · ") : tr("Prochain verre", undefined, uiLocale)}
+        disabled={disabled} onClick={() => { setNow(new Date()); setOpen(true); onOpenChange?.(true); }}>
+        <span className="meetup-mug" aria-hidden="true"><span className="meetup-mug__glass">
+          <span className="meetup-mug__fill" style={{ height: `${fill * 100}%` }} />
+        </span></span>
       </button>
-      {previousMeetup ? <button type="button" className="monthly-meetup__previous" onClick={() => open(previousMeetup.monthKey)} disabled={!playerId || disabled}>{tr("Verre de ", undefined, uiLocale)}{tr(monthLabel(previousMeetup.monthKey).split(" ")[0], undefined, uiLocale)} · {tr(meetupDateLabel(previousMeetup.at), undefined, uiLocale)}
-        {previousMeetup.place ? ` · ${previousMeetup.place}` : ""}
-      </button> : null}
-    </section>
-    {editing !== null ? <dialog className="meetup-editor pointer-events-auto" aria-labelledby={titleId} ref={dialog} onKeyDown={(event) => event.stopPropagation()} onCancel={() => setEditing(null)} onClose={() => setEditing(null)} onClick={(event) => {
+    {open ? <dialog className="meetup-editor pointer-events-auto" aria-labelledby={titleId} ref={dialog} onKeyDown={(event) => event.stopPropagation()} onCancel={event => { event.preventDefault(); close(); }} onClick={(event) => {
                 if (event.target !== event.currentTarget)
                     return;
                 const rect = event.currentTarget.getBoundingClientRect();
                 if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)
-                    setEditing(null);
+                    close();
             }}>
         <div className="meetup-editor__head">
-          <h3 id={titleId}>{tr("Verre du mois", undefined, uiLocale)}</h3>
-          <button type="button" onClick={() => setEditing(null)} aria-label={tr("Fermer", undefined, uiLocale)}>×</button>
+          <h3 id={titleId}>{tr("Prochain verre", undefined, uiLocale)}</h3>
+          <button type="button" onClick={close} aria-label={tr("Fermer", undefined, uiLocale)}>×</button>
         </div>
-        <form onSubmit={submit}>
+        {editing === null ? <>
+          <div className="meetup-summary">
+            {upcoming ? <>
+              <time dateTime={upcoming.at}>{meetupDateLabel(upcoming.at)}</time>
+              <p>{upcoming.place || tr("Lieu à préciser", undefined, uiLocale)}</p>
+            </> : <p>{tr("Une date à choisir", undefined, uiLocale)}</p>}
+          </div>
+          <p className="meetup-editor__hint">
+            {tr("Couronne · ", undefined, uiLocale)}{tr(monthLabel(current).split(" ")[0], undefined, uiLocale)} · <time dateTime={new Date(monthClosesAt(current)).toISOString()}>{tr(monthCountdown(current, now), undefined, uiLocale)}</time>
+          </p>
+          {playerId ? <button type="button" className="meetup-editor__save" onClick={() => fillMonth(upcoming && availableMonths.includes(upcoming.monthKey) ? upcoming.monthKey : current, new Date())}>
+            {tr(upcoming ? "Changer le rendez-vous" : "Fixer le rendez-vous", undefined, uiLocale)}
+          </button> : null}
+        </> : <form onSubmit={submit}>
           <label htmlFor={monthId}>{tr("Mois de la couronne", undefined, uiLocale)}</label>
           <select id={monthId} value={editing} onChange={(event) => fillMonth(event.target.value, new Date())}>
             {availableMonths.map((key) => <option key={key} value={key}>{tr(monthLabel(key), undefined, uiLocale)}</option>)}
@@ -130,7 +132,7 @@ export function MonthlyMeetup({ meetups, playerId, onSchedule, disabled = false,
           <p className="meetup-editor__hint">{tr("Tout le groupe peut modifier ce rendez-vous", undefined, uiLocale)}</p>
           {error ? <p className="meetup-editor__error" role="alert">{tr(error, undefined, uiLocale)}</p> : null}
           <button type="submit" className="meetup-editor__save">{tr(meetups.some((m) => m.monthKey === editing) ? "Changer le rendez-vous" : "Fixer le rendez-vous", undefined, uiLocale)}</button>
-        </form>
+        </form>}
     </dialog> : null}
   </>;
 }

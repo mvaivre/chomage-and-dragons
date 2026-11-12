@@ -7,7 +7,8 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 } });
 const { applyAction, fixedContext } = await import('../src/lib/game/reducer.ts');
 const { journeyProgress } = await import('../src/lib/game/scoring.ts');
-const { availablePowers } = await import('../src/lib/game/powers.ts');
+const { availablePowers, pranksByPlayer, PRANK_DURATION_MS } = await import('../src/lib/game/powers.ts');
+const { authorize, GroupError, validateAction } = await import('../src/lib/server/groups.ts');
 
 const T0 = '2026-09-16T10:00:00.000Z';
 const empty = () => ({ players: [], casts: [], events: [] });
@@ -39,14 +40,14 @@ test('players join with a trimmed name and a free character; bad requests leave 
 test('an action logs an event, offers its game, hires on embauche and reserves a crossed chest', () => {
   let state = withPlayers();
   const first = log(state, 'mika', 'candidature', 'e1');
-  assert.deepEqual(first.result.event, { id: 'e1', playerId: 'mika', kind: 'candidature', at: T0, miniGameId: 'e1' });
+  assert.deepEqual(first.result.event, { id: 'e1', playerId: 'mika', kind: 'candidature', at: T0, journeyBase: 8, miniGameId: 'e1' });
   assert.equal(first.result.offer, 'pigeon');
   assert.equal(first.result.chestGame, null);
   state = first.state;
-  for (let i = 0; i < 3; i++) state = log(state, 'mika', 'candidature', `c${i}`).state;
-  const crossing = log(state, 'mika', 'candidature', 'e5');
+  const crossing = log(state, 'mika', 'candidature', 'e2');
   assert.equal(journeyProgress(crossing.state.events).earnedChests, 1);
-  assert.deepEqual(crossing.result.chestGame, { attemptId: 'e5-chest-0', offer: true });
+  assert.deepEqual(crossing.result.chestGame, { attemptId: 'e2-chest-0', offer: true });
+  assert.equal(crossing.result.offer, 'keywords', 'the chest keeps the action challenge available');
   const hired = log(crossing.state, 'mika', 'embauche', 'h');
   assert.equal(hired.result.offer, null);
   assert.equal(hired.state.players[0].hiredAt, T0);
@@ -56,14 +57,13 @@ test('an action logs an event, offers its game, hires on embauche and reserves a
 });
 
 test('finishing a game awards once and can cross a chest; a stale result changes nothing', () => {
-  let state = withPlayers();
-  for (let i = 0; i < 4; i++) state = log(state, 'lou', 'candidature', `l${i}`).state;
+  const state = log(withPlayers(), 'lou', 'candidature', 'l0').state;
   assert.equal(journeyProgress(state.events).earnedChests, 0);
-  const won = applyAction(state, { type: 'finishMiniGame', attemptId: 'l3', result: 'won' }, fixedContext('x', T0));
+  const won = applyAction(state, { type: 'finishMiniGame', attemptId: 'l0', result: 'won' }, fixedContext('x', T0));
   assert.equal(won.result.changed, true);
-  assert.deepEqual(won.result.chestGame, { attemptId: 'l3-chest-0', offer: true });
+  assert.deepEqual(won.result.chestGame, { attemptId: 'l0-chest-0', offer: true });
   assert.equal(journeyProgress(won.state.events).steps, 10);
-  const again = applyAction(won.state, { type: 'finishMiniGame', attemptId: 'l3', result: 'won' }, fixedContext('x', T0));
+  const again = applyAction(won.state, { type: 'finishMiniGame', attemptId: 'l0', result: 'won' }, fixedContext('x', T0));
   assert.equal(again.result.changed, false);
   assert.equal(again.state, won.state);
 });
@@ -71,7 +71,7 @@ test('finishing a game awards once and can cross a chest; a stale result changes
 test('loot is cast once per slot between two distinct players, seen and settled idempotently', () => {
   let state = withPlayers();
   for (let i = 0; i < 5; i++) state = log(state, 'mika', 'candidature', `m${i}`).state;
-  assert.equal(availablePowers('mika', 1, state.casts, state.miniGames).length, 1);
+  assert.deepEqual(availablePowers('mika', 1, state.casts, state.miniGames).map(power => power.kind), ['shot', 'cage']);
   const self = applyAction(state, { type: 'castPower', playerId: 'mika', targetPlayerId: 'mika', kind: 'shot', slot: 0 }, fixedContext('cast0', T0));
   assert.equal(self.result.accepted, false);
   assert.equal(self.state, state);
@@ -87,6 +87,27 @@ test('loot is cast once per slot between two distinct players, seen and settled 
   assert.equal(settled.casts[0].seenAt, T1, 'seenAt is kept');
   assert.equal(settled.casts[0].settledAt, '2026-09-18T10:00:00.000Z');
   assert.deepEqual(applyAction(settled, { type: 'settleShots', castIds: ['cast1'] }, fixedContext('x', '2026-09-19T10:00:00.000Z')).state.casts, settled.casts);
+});
+
+test('pranks require earned loot; only the trapped player can submit a maze route', () => {
+  let state = withPlayers();
+  const cage = availablePowers('mika', 1, []).find(power => power.kind === 'cage');
+  const cast = { type: 'castPower', playerId: 'mika', targetPlayerId: 'lou', ...cage };
+  assert.equal(applyAction(state, cast, fixedContext('cage', T0)).result.accepted, false);
+  for (let i = 0; i < 3; i++) state = log(state, 'mika', 'candidature', `application-${i}`).state;
+  state = applyAction(state, cast, fixedContext('cage', T0)).state;
+  const escape = validateAction({ type: 'escapeCage', castId: 'cage', path: 'rr' });
+  assert.throws(() => authorize(state, escape, 'mika'), error => error instanceof GroupError && error.status === 403);
+  assert.doesNotThrow(() => authorize(state, escape, 'lou'));
+  assert.equal(applyAction(state, escape, fixedContext('attempt', T0)).state, state);
+  assert.equal(log(state, 'lou', 'refus', 'blocked').state, state);
+  for (const kind of ['miniTroll', 'feuSacré']) {
+    const loot = availablePowers('mika', 2, state.casts).find(power => power.kind === kind);
+    state = applyAction(state, { ...cast, ...loot }, fixedContext(kind, T0)).state;
+  }
+  const expiration = Date.parse(T0) + PRANK_DURATION_MS;
+  assert.deepEqual(Object.keys(pranksByPlayer(state.casts, expiration - 1).get('lou')).sort(), ['cage', 'smoke', 'troll']);
+  assert.deepEqual(Object.keys(pranksByPlayer(state.casts, expiration).get('lou')), ['cage']);
 });
 
 test('undo removes the last event of a kind and reopens the race; removal purges a player everywhere', () => {

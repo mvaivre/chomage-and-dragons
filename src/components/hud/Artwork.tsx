@@ -61,6 +61,8 @@ export function PowerArtwork({ kind, ...props }: ArtworkProps & {
     const experience = useExperience();
     if (experience === "3d")
         return <VoxelIcon name={POWER_ICONS[kind]} className={props.className}/>;
+    if (kind === "miniTroll")
+        return <span aria-hidden className={`troll-art ${props.className ?? ""}`} style={{ backgroundImage: `url(${POWER_ART.miniTroll})` }}/>;
     return <Artwork src={POWER_ART[kind]} {...props}/>;
 }
 const GAME_ART: Record<MiniGameKind, string> = {

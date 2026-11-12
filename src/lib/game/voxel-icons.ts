@@ -1,5 +1,5 @@
 /** Tiny isometric models for the UI. Pure geometry: no texture, WebGL or animation loop. */
-export const ICON_NAMES = ['pigeon','refusal','interview','stamp','castle','chest','crown','mug','fire','dragon','papers','frog','letter','key','scroll','compass','crystal','lamp','hammer','ghost','coins','flag','sword','snake','stack','paddle','undo','sound','effects','mute','applause','laugh','hug','book','map','menu','spark','tree','mountain','house'] as const;
+export const ICON_NAMES = ['pigeon','refusal','interview','stamp','castle','chest','crown','mug','fire','dragon','papers','frog','troll','letter','key','scroll','compass','crystal','lamp','hammer','ghost','coins','flag','sword','snake','stack','paddle','undo','sound','effects','mute','applause','laugh','hug','book','map','menu','spark','tree','mountain','house'] as const;
 export type VoxelIconName = typeof ICON_NAMES[number];
 type Box = { x:number; y:number; z:number; w:number; h:number; d:number; color:string };
 const C={ivory:'#e5dfbe',paper:'#f4edcf',gold:'#d5a84e',wood:'#8d613d',dark:'#35473e',green:'#63874f',red:'#b9574c',slate:'#729397',skin:'#dab58a',blue:'#608799'};
@@ -36,6 +36,13 @@ function model(name:VoxelIconName) {
   else for(let i=0;i<3;i++)box('#8e927e',0,(name==='papers'?1.4:.32),-.7+i*.6,2,.08,.15);break;
  case 'frog':
   box(C.green,0,.8,0,2.6,1.4,2.1);for(const s of[-1,1]){box('#84a563',s*1.3,.3,.7,1.2,.45,1.6);box('#94ad70',s*.8,1.8,.5,.75,.75,.75);box(C.dark,s*.8,1.9,.9,.28,.3,.12);}box(C.red,0,.9,1.1,1.2,.15,.1);break;
+ case 'troll':
+  box(C.green,0,1.7,0,2.4,2.4,1.8);box('#92a978',0,1.2,.9,2.5,1.1,.65);
+  box(C.dark,0,1.25,1.26,1.55,.24,.1);box('#acd86d',.36,.87,1.27,.20,.65,.13);
+  for(const s of [-1,1]) {
+   box(C.green,s*1.35,2,.02,.7,.55,.6);box(C.ivory,s*.52,1.8,.95,.45,.3,.12);
+   box(C.dark,s*.5,1.84,1.03,.16,.22,.09);box(C.ivory,s*.72,1.24,1.26,.2,.6,.18);
+  }break;
  case 'key':
   for(const x of[-.8,.8])box(C.gold,x,.25,-1.3,.5,.5,1.5);for(const z of[-2,-.6])box(C.gold,0,.25,z,1.4,.5,.4);box(C.gold,0,.25,1,.5,.5,3);for(const z of[1.3,2.2])box(C.gold,.6,.25,z,1,.5,.4);break;
  case 'compass':box(C.wood,0,.3,0,3.5,.6,3.5);box(C.gold,0,.68,0,3.1,.15,3.1);box(C.ivory,0,.8,0,2.5,.1,2.5);box(C.red,0,.92,-.55,.35,.15,1.3);box(C.blue,0,.92,.55,.35,.15,1.3);break;

@@ -5,7 +5,7 @@ registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier.startsWith('@/')) return nextResolve(new URL(`../src/${specifier.slice(2)}.ts`, import.meta.url).href, context);
   return nextResolve(specifier, context);
 } });
-const { zurichDateTimeInput, zurichInputToIso, monthClosesAt, monthCountdown, editableMeetupMonths, validateMeetupInput } = await import('../src/lib/game/monthly-meetup.ts');
+const { zurichDateTimeInput, zurichInputToIso, monthClosesAt, monthCountdown, editableMeetupMonths, validateMeetupInput, meetupFill, nextMeetup } = await import('../src/lib/game/monthly-meetup.ts');
 const { applyAction, fixedContext } = await import('../src/lib/game/reducer.ts');
 const { createMemoryDb } = await import('../src/lib/server/db.ts');
 const { createGroup, applyGroupAction, loadSnapshot, playerForToken, validateAction, GroupError } = await import('../src/lib/server/groups.ts');
@@ -44,7 +44,7 @@ test('monthly deadline counts down to Zurich midnight across DST, leap months an
 test('a drink date can be changed independently of the crown and all invalid input leaves state untouched', () => {
   const original = state();
   const first = applyAction(original, planned(), ctx('meetup'));
-  assert.deepEqual(first.result.meetup, { monthKey: '2026-10', at: '2026-10-30T18:00:00.000Z', place: 'La taverne', updatedBy: 'mika', updatedAt: T0 });
+  assert.deepEqual(first.result.meetup, { monthKey: '2026-10', at: '2026-10-30T18:00:00.000Z', place: 'La taverne', updatedBy: 'mika', updatedAt: T0, scheduledAt: T0 });
   assert.equal(first.state.events, original.events, 'the race journal does not change');
   const moved = applyAction(first.state, planned({ at: '2026-11-06T18:00:00.000Z', place: 'Au dragon' }), ctx('move'));
   assert.equal(moved.state.monthlyMeetups.length, 1, 'one shared meeting per crown month');
@@ -64,6 +64,19 @@ test('a drink date can be changed independently of the crown and all invalid inp
   }
   assert.equal(validateMeetupInput('2026-09', '2026-10-14T21:59:00.000Z', '', new Date(T0)), null, 'the previous crown can still get a drink');
   assert.ok(validateMeetupInput('2026-09', '2026-10-15T17:00:00.000Z', '', new Date(T0)));
+});
+
+test('the beer fills between scheduling and the next date, including after a venue change', () => {
+  const first = applyAction(state(), planned(), ctx('meetup'));
+  const upcoming = first.result.meetup;
+  const halfway = new Date((Date.parse(T0) + Date.parse(upcoming.at)) / 2);
+  const venue = applyAction(first.state, planned({ place: 'Chez le troll' }), ctx('venue', halfway.toISOString()));
+  assert.equal(meetupFill(upcoming, halfway), 0.5);
+  assert.equal(meetupFill(venue.result.meetup, halfway), 0.5);
+  assert.equal(meetupFill(upcoming, new Date(upcoming.at)), 1);
+  const later = { ...upcoming, monthKey: '2026-11', at: '2026-11-22T20:00:00.000Z' };
+  assert.equal(nextMeetup([later, upcoming], halfway), upcoming);
+  assert.equal(nextMeetup([later, upcoming], new Date('2026-10-31T00:00:00Z')), later);
 });
 
 test('group members can move the shared meeting, while guests and forged player ids cannot; reload preserves it', async () => {

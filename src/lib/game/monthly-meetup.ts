@@ -1,5 +1,19 @@
 import { localeTag } from "@/lib/i18n/index";
 import { monthKey } from "@/lib/game/calendar";
+import type { MonthlyMeetup } from "@/lib/data/types";
+
+export function nextMeetup(meetups: readonly MonthlyMeetup[], now: Date): MonthlyMeetup | undefined {
+  const instant = now.getTime();
+  return meetups.reduce<MonthlyMeetup | undefined>((next, meetup) =>
+    Date.parse(meetup.at) >= instant && (!next || meetup.at < next.at) ? meetup : next, undefined);
+}
+
+export function meetupFill(meetup: MonthlyMeetup | undefined, now: Date): number {
+  if (!meetup) return 0;
+  const start = Date.parse(meetup.scheduledAt ?? meetup.updatedAt);
+  const span = Date.parse(meetup.at) - start;
+  return span > 0 ? Math.max(0, Math.min(1, (now.getTime() - start) / span)) : 0;
+}
 
 /** All rendez-vous use the same calendar as the monthly crown. */
 export const MEETUP_TIME_ZONE = "Europe/Zurich";

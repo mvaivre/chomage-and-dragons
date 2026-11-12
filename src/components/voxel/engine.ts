@@ -37,6 +37,7 @@ import { scene, resetScene, residentReactions } from "./state";
 import { VoxelResources } from "./resources";
 import { makeChunk } from "./chunks";
 import { characterModel, dragonModel, propModel } from "./objects";
+import { updateHeroPranks, type HeroPrankAttachments } from "./hero-pranks";
 import {
   CHUNK_SIZE,
   FOREGROUND_DEPTH,
@@ -115,6 +116,7 @@ export interface WorldLabel {
 }
 type Actor = {
   root: THREE.Group;
+  pranks: HeroPrankAttachments;
   height: number;
   bodyRadius: number;
   obstacle: WalkingObstacle;
@@ -726,6 +728,7 @@ export function createVoxelWorld(
         const bodyRadius = Math.hypot(size.x, size.z) * .5;
         actor = {
           root,
+          pranks: {},
           height: size.y,
           bodyRadius,
           obstacle: { x: 0, y: 0, z: 0, radius: bodyRadius },
@@ -766,7 +769,7 @@ export function createVoxelWorld(
         actor.duration = Math.max(
           0.35,
           Math.min(
-            5,
+            3.6,
             (Math.abs(target - actor.x) / WORLD_LENGTH) * JOURNEY_TARGET * 0.32,
           ),
         );
@@ -958,6 +961,7 @@ export function createVoxelWorld(
         motion: scene.reducedMotion ? "idle" : gesture,
       });
       actor.root.visible = Math.abs(p.x - focusX) < 40;
+      updateHeroPranks(resources, actor.root, actor.height, actor.pranks, player.pranks, scene.reducedMotion ? 0 : time);
       scene.heroes.set(player.id, { x: actor.x, y: 646 });
     }
     for (const [id, actor] of actors)
@@ -1733,7 +1737,7 @@ export function createVoxelWorld(
           label(
             player.id,
             "player",
-            labelPoint.set(0, a.height + .25, 0).applyMatrix4(a.root.matrixWorld),
+            labelPoint.set(0, a.height + (player.pranks?.smoke ? 1.15 : player.pranks?.troll ? .65 : .25), 0).applyMatrix4(a.root.matrixWorld),
             player.name,
             a.x,
           );

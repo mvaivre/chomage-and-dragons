@@ -28,7 +28,7 @@ test('side quests work in the real renderer without changing the race',{timeout:
  await t.test('all three initiation rites teach the game without writing real actions',async()=>{
   const {context,page,errors}=await fixture({width:390,height:844},true);
   try{
-   for (const name of ['Essayer une candidature · +2 pas', 'Découvrir les coffres →', 'Ouvrir le coffre', 'Essayer le pouvoir', 'Voyager ensemble →', 'Commencer le voyage']) {
+   for (const name of ['Essayer une candidature · +8 pas', 'Découvrir les coffres →', 'Ouvrir le coffre', 'Essayer le pouvoir', 'Voyager ensemble →', 'Commencer le voyage']) {
     await page.getByRole('button',{name,exact:true}).click();
    }
    await ready(page);

@@ -10,7 +10,7 @@ test('the short rites fit mobile, restore progress, animate their examples and l
  const journal=()=>p.evaluate(()=>localStorage.getItem('louchomage:v2'));const before=await journal();
  for(const [w,h]of [[390,844],[320,568],[844,390],[1440,960]]) {await p.setViewportSize({width:w,height:h});assert.ok(await p.locator('.initiation-card').evaluate(n=>{const r=n.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1&&n.scrollWidth<=n.clientWidth;}));assert.ok(await p.locator('.initiation-primary').evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));await p.screenshot({path:`/tmp/louchomage-2d-initiation/${w}x${h}.png`});}
  await p.setViewportSize({width:390,height:844});
- await p.getByRole('button',{name:'Essayer une candidature · +2 pas',exact:true}).tap();
+ await p.getByRole('button',{name:'Essayer une candidature · +8 pas',exact:true}).tap();
  assert.equal(await p.locator('.initiation-primary').isDisabled(),true,'the brief motion plays before the next action');
  await p.getByRole('button',{name:'Découvrir les coffres →'}).tap();await p.getByRole('button',{name:'Ouvrir le coffre',exact:true}).tap();
  await p.reload();await p.getByRole('button',{name:'Essayer le pouvoir',exact:true}).waitFor();
@@ -20,6 +20,6 @@ test('the short rites fit mobile, restore progress, animate their examples and l
  assert.equal(await p.locator('.initiation-card').getByRole('button').count(),4,'one action, close, skip and restart; no quiz');
  await p.getByRole('button',{name:'Commencer le voyage',exact:true}).tap();await p.locator('.initiation-card').waitFor({state:'detached'});assert.equal(await journal(),before);
  await p.getByRole('button',{name:/Ouvrir le carnet/}).click();await p.getByRole('button',{name:'Quêtes',exact:true}).click();await p.locator('.adventure-menu__initiation').click();
- await p.getByRole('button',{name:'Essayer une candidature · +2 pas',exact:true}).waitFor();await p.keyboard.press('Escape');await p.locator('.initiation-card').waitFor({state:'detached'});assert.equal(await journal(),before);
+ await p.getByRole('button',{name:'Essayer une candidature · +8 pas',exact:true}).waitFor();await p.keyboard.press('Escape');await p.locator('.initiation-card').waitFor({state:'detached'});assert.equal(await journal(),before);
  assert.deepEqual(errors,[]);
 });

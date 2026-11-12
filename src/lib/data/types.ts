@@ -30,6 +30,8 @@ export interface GameEvent {
   kind: ActionKind;
   /** Instant ISO. Sert au score annuel, au classement mensuel et au facteur temps. */
   at: string;
+  /** Pas de base fixés à la déclaration. Les anciens journaux utilisent le barème historique. */
+  journeyBase?: number;
   /** Legacy: the first pigeon game doubled application travel. Kept for old journals. */
   journeyMultiplier?: 2;
   /** Extra journey steps won in mini-games. Also counted in the journey standings. */
@@ -73,7 +75,9 @@ export type PowerKind =
   | "feuSacré"
   | "fienteDragon"
   | "paperasse"
-  | "crapaud";
+  | "crapaud"
+  | "cage"
+  | "miniTroll";
 
 /** Un butin offert grâce à un coffre. Il n'affecte jamais le score ni le voyage. */
 export interface PowerCast {
@@ -88,6 +92,10 @@ export interface PowerCast {
   seenAt?: string;
   /** Un shot reste dû jusqu'à ce que sa cible l'ait honoré. */
   settledAt?: string;
+  /** Échéance enregistrée au lancement d’une farce temporaire. */
+  expiresAt?: string;
+  /** L’instant où la cible résout son labyrinthe. */
+  escapedAt?: string;
 }
 
 /** One run of the daily challenge: the same course for the whole group, once a day. */
@@ -121,6 +129,8 @@ export interface MonthlyMeetup {
   place: string;
   updatedBy: string;
   updatedAt: string;
+  /** Début du compte à rebours pour la date actuelle. */
+  scheduledAt?: string;
 }
 
 export interface Discovery {

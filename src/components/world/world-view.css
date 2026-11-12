@@ -25,3 +25,7 @@
 .world-view[aria-busy="true"] { z-index: 90; }
 
 @media (max-width: 600px) { .world-mode-switch { top: max(82px, calc(env(safe-area-inset-top) + 70px)); right: 12px; } }
+.world-mode-switch[data-in-game="true"] { top: max(18px, env(safe-area-inset-top)); right: 132px; }
+@media (max-width: 700px) {
+  .world-mode-switch[data-in-game="true"] { top: calc(max(14px, env(safe-area-inset-top)) + 104px); right: 14px; }
+}

@@ -127,7 +127,7 @@ test('modal games take the first keyboard input without clicking a direction con
       const { context, page, errors } = await fixture(true);
       try {
         const saved = await journal(page);
-        for (const [i, name] of ["Essayer une candidature · +2 pas", "Découvrir les coffres →", "Ouvrir le coffre", "Essayer le pouvoir", "Voyager ensemble →", "Commencer le voyage"].entries()) {
+        for (const [i, name] of ["Essayer une candidature · +8 pas", "Découvrir les coffres →", "Ouvrir le coffre", "Essayer le pouvoir", "Voyager ensemble →", "Commencer le voyage"].entries()) {
           const button = page.getByRole('button', {name, exact:true});
           if (mode === 'mouse') await button.click();
           else { await page.waitForFunction(()=>!document.querySelector('.initiation-primary')?.disabled); await button.focus(); await page.keyboard.press(i % 2 ? 'Space' : 'Enter'); }

@@ -123,7 +123,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
     const won = outcome === "won";
     const remaining = RAIN.required - caught.length;
     const instructions = phase === "result"
-        ? won ? "CV validé, pas doublés" : punchlineFor(`keywords:${seedId}`)
+        ? won ? "CV validé" : punchlineFor(`keywords:${seedId}`)
         : status === "ready"
             ? `Attrape uniquement les ${RAIN.required} mots de l’annonce`
             : remaining > 0 ? `Encore ${remaining} mot${remaining > 1 ? "s" : ""}` : "Le robot réfléchit…";
@@ -141,7 +141,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
         <span className="mini-game__tags-label">{tr("Annonce :", undefined, uiLocale)}</span>
         {sim.required.map(word => <span key={word} className="mini-game__tag" data-caught={caught.includes(word)}>{tr(word, undefined, uiLocale)}</span>)}
       </span>
-    </>} status={phase === "result" ? <><strong>{tr(won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`, undefined, uiLocale)}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice}/></> :
+    </>} status={phase === "result" ? <><strong>{won ? tr("+{0} pas au total", [base + bonus], uiLocale) : tr("+{0} pas conservés", [base], uiLocale)}</strong><ScoreLine score={score} unit="" record={record} best={best} practice={practice}/></> :
             <span>{tr(status === "ready" ? `Glisse ou ← → · ${RAIN.badAllowed} erreur permise` :
                     status === "running" ? (bad > 0 ? "Plus d’erreur permise." : "Glisse ou ← →") : won ? "Validé…" : "Rejeté…", undefined, uiLocale)}</span>} primary={{
             inArena: phase === "play" && status === "ready",
@@ -151,7 +151,7 @@ export function KeywordsGame({ seedId, onResolve, onDone, practice, record, best
         }} skip={phase === "play" && (status === "ready" || status === "running") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
     <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena mini-game__arena--drag" data-phase={phase} data-won={won} aria-label={tr("Déplacer le CV", undefined, uiLocale)} disabled={phase !== "play" || status === "ready"} onPointerDown={event => { event.preventDefault(); steerTo(event); }} onPointerMove={steerTo} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden/>
-      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "CV VALIDÉ ×2" : "REJETÉ PAR LE ROBOT", undefined, uiLocale)}</span> : null}
+      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "CV VALIDÉ" : "REJETÉ PAR LE ROBOT", undefined, uiLocale)}</span> : null}
     </button>
   </MiniGameShell>;
 }

@@ -18,14 +18,14 @@ export interface MiniGameCopy {
 
 export const MINI_GAMES: Record<MiniGameKind, MiniGameCopy> = {
   dragon: { kind: "dragon", misery: "Vol à obstacles", title: "La part du dragon", winFeedback: "Butin volé au dragon" },
-  pigeon: { kind: "pigeon", misery: "Livraison à travers les tours", title: "Le pigeon à reculons", winFeedback: "Livraison à reculons ×2" },
-  keywords: { kind: "keywords", misery: "Tri de mots-clés", title: "Le CV à mots-clés", winFeedback: "CV validé par le robot ×2" },
+  pigeon: { kind: "pigeon", misery: "Livraison à travers les tours", title: "Le pigeon à reculons", winFeedback: "Livraison à reculons réussie" },
+  keywords: { kind: "keywords", misery: "Tri de mots-clés", title: "Le CV à mots-clés", winFeedback: "CV validé par le robot" },
   stamp: { kind: "stamp", misery: "Jeu de précision", title: "Le Tampon de l’ORP", winFeedback: "Dossier conforme" },
   quiz: { kind: "quiz", misery: "Questions d’entretien", title: "Le Test de personnalité", winFeedback: "Mensonge avec panache" },
   ghosting: { kind: "ghosting", misery: "Jeu de réflexes", title: "Ne relance pas", winFeedback: "Recruteur attrapé au vol" },
   slots: { kind: "slots", misery: "Alignement des rouleaux", title: "Salaire selon expérience", winFeedback: "Jackpot : un butin de plus" },
-  pigeonRace: { kind: "pigeonRace", misery: "Course à obstacles", title: "Le Grand Prix des pigeons", winFeedback: "Pigeon champion ×2" },
-  paperCut: { kind: "paperCut", misery: "Découpage de dossiers", title: "Paperasse Ninja", winFeedback: "Dossiers réduits en confettis ×2" },
+  pigeonRace: { kind: "pigeonRace", misery: "Course à obstacles", title: "Le Grand Prix des pigeons", winFeedback: "Pigeon champion" },
+  paperCut: { kind: "paperCut", misery: "Découpage de dossiers", title: "Paperasse Ninja", winFeedback: "Dossiers réduits en confettis" },
   snake: { kind: "snake", misery: "Collecte de lettres", title: "La file d’attente infinie", winFeedback: "Courrier avalé, recruteur digéré" },
   maze: { kind: "maze", misery: "Exploration du labyrinthe", title: "Le labyrinthe des recruteurs", winFeedback: "Sortie de l’administration trouvée" },
   stack: { kind: "stack", misery: "Empilement de dossiers", title: "La tour des dossiers", winFeedback: "Paperasse impeccablement empilée" },

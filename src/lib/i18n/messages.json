@@ -3911,11 +3911,11 @@
     "CV",
     "CV"
   ],
-  "CV validé, pas doublés": [
-    "Validated CV, not doubled",
-    "Validierter Lebenslauf, nicht verdoppelt",
-    "CV validado, no duplicado",
-    "CV convalidato, non raddoppiato"
+  "CV validé": [
+    "Validated CV",
+    "Validierter Lebenslauf",
+    "CV validado",
+    "CV convalidato"
   ],
   "Attrape uniquement les {0} mots de l’annonce": [
     "Catch only {0} words from the ad",
@@ -4037,11 +4037,11 @@
     "Mover CV",
     "Spostare il CV"
   ],
-  "CV VALIDÉ ×2": [
-    "VALIDATED CV ×2",
+  "CV VALIDÉ": [
+    "VALIDATED CV",
     "VALIDIERTER CV × 2",
-    "VALIDATED CV ×2",
-    "VALIDATO CV ×2"
+    "VALIDATED CV",
+    "VALIDATO CV"
   ],
   "REJETÉ PAR LE ROBOT": [
     "BY THE ROBOT",
@@ -4079,11 +4079,11 @@
     "Registro personal · la empresa:",
     "Registro personale · l'azienda:"
   ],
-  "Livraison réussie, pas doublés": [
-    "Successful delivery, not doubled",
-    "Erfolgreiche Lieferung, nicht verdoppelt",
-    "Entrega exitosa, no duplicada",
-    "Consegna riuscita, non raddoppiata"
+  "Livraison réussie": [
+    "Successful delivery",
+    "Erfolgreiche Lieferung",
+    "Entrega exitosa",
+    "Consegna riuscita"
   ],
   "Franchis les {0} tours pour livrer le courrier": [
     "Franchised {0} tricks to deliver mail",
@@ -4151,10 +4151,10 @@
     "Ouch...",
     "Ahi..."
   ],
-  "LIVRÉ ! ×2": [
-    "LIVE! ×2",
-    "LEBEN! ×2",
-    "LIVE! ×2",
+  "LIVRÉ !": [
+    "LIVE!",
+    "LEBEN!",
+    "LIVE!",
     "LIVE!"
   ],
   "ADRESSE INTROUVABLE": [
@@ -7115,11 +7115,11 @@
     "Entrega por las torres",
     "Consegna attraverso le torri"
   ],
-  "Livraison à reculons ×2": [
-    "Back delivery ×2",
+  "Livraison à reculons réussie": [
+    "Back delivery",
     "Rücklieferung × 2",
-    "Entrega atrás ×2",
-    "Consegna posteriore ×2"
+    "Entrega atrás",
+    "Consegna posteriore"
   ],
   "Tri de mots-clés": [
     "Sorting keywords",
@@ -7127,11 +7127,11 @@
     "Clasificación de palabras clave",
     "Ordinare parole chiave"
   ],
-  "CV validé par le robot ×2": [
-    "CV validated by robot ×2",
-    "CV validiert durch Roboter ×2",
-    "CV validado por robot ×2",
-    "CV convalidato dal robot ×2"
+  "CV validé par le robot": [
+    "CV validated by robot",
+    "CV validiert durch Roboter",
+    "CV validado por robot",
+    "CV convalidato dal robot"
   ],
   "Jeu de précision": [
     "Accuracy set",
@@ -7193,11 +7193,11 @@
     "El Gran Premio de las palomas",
     "Gran Premio di piccioni"
   ],
-  "Pigeon champion ×2": [
-    "Champion Pigeon ×2",
+  "Pigeon champion": [
+    "Champion Pigeon",
     "Championtaube × 2",
-    "Champion Pigeon ×2",
-    "Campione Pigeon ×2"
+    "Champion Pigeon",
+    "Campione Pigeon"
   ],
   "Découpage de dossiers": [
     "Splitting of files",
@@ -7211,11 +7211,11 @@
     "Papeleo Ninja",
     "Paperwork Ninja"
   ],
-  "Dossiers réduits en confettis ×2": [
-    "Files reduced to confetti ×2",
+  "Dossiers réduits en confettis": [
+    "Files reduced to confetti",
     "Dateien reduziert auf Konfetti × 2",
-    "Archivos reducidos a confetti ×2",
-    "File ridotti a confetti ×2"
+    "Archivos reducidos a confetti",
+    "File ridotti a confetti"
   ],
   "Collecte de lettres": [
     "Collection of letters",
@@ -8286,145 +8286,145 @@
     "Chiama il rospo di LinkedIn."
   ],
   "Tu as l’aura d’un vieux mégot mouillé.": [
-    "You've had an old wet butt.",
+    "You’ve got the aura of a soggy cigarette butt.",
     "Du hattest einen alten nassen Hintern.",
     "Has tenido un viejo trasero húmedo.",
     "Hai avuto un vecchio culo bagnato."
   ],
   "Même une chaise aurait mieux géré ça.": [
-    "Even a chair would have handled this better.",
+    "A folding chair would’ve done a better job.",
     "Selbst ein Stuhl hätte das besser gehandhabt.",
     "Incluso una silla hubiera manejado esto mejor.",
     "Anche una sedia avrebbe gestito meglio questo."
   ],
   "Tu es la preuve que l’évolution a ses limites.": [
-    "You're proof that evolution has its limits.",
+    "Natural selection missed one.",
     "Sie sind der Beweis, dass die Evolution ihre Grenzen hat.",
     "Eres una prueba de que la evolución tiene sus límites.",
     "Sei la prova che l'evoluzione ha i suoi limiti."
   ],
   "Ton cerveau est actuellement en error 404.": [
-    "Your brain is currently in error 404.",
+    "Your last two brain cells are fighting for third place.",
     "Ihr Gehirn befindet sich derzeit im Fehler 404.",
     "Su cerebro está actualmente en error 404.",
     "Il tuo cervello è attualmente in errore 404."
   ],
   "Tu as le charisme d'une déclaration d'impôt.": [
-    "You have the charism of a tax return.",
+    "You have the charisma of a tax audit.",
     "Sie haben das Charisma einer Steuererklärung.",
     "Usted tiene el carisma de una declaración de impuestos.",
     "Hai il carisma di un ritorno fiscale."
   ],
   "Tu es remarquablement mauvais·e à cette activité.": [
-    "You are remarkably bad at this activity.",
+    "Holy shit, you’re bad at this.",
     "Sie sind bemerkenswert schlecht in dieser Aktivität.",
     "Usted es notablemente malo en esta actividad.",
     "Sei incredibilmente cattivo in questa attività."
   ],
   "On dirait que tu as été dessiné·e avec la main gauche.": [
-    "Looks like you were drawn with your left hand.",
+    "You look like a first draft someone gave up on.",
     "Sieht so aus, als wären Sie mit der linken Hand gezeichnet worden.",
     "Parece que te dibujaron con la mano izquierda.",
     "Sembra che tu sia stato disegnato con la mano sinistra."
   ],
   "Ton potentiel est actuellement porté disparu.": [
-    "Your potential is currently missing.",
+    "You peaked at the loading screen.",
     "Dein Potenzial fehlt derzeit.",
     "Su potencial está actualmente desaparecido.",
     "Il tuo potenziale è attualmente scomparso."
   ],
   "Tu es un échec avec des jambes.": [
-    "You're a failure with legs.",
+    "You’re a faceplant with legs.",
     "Du bist ein Versager mit Beinen.",
     "Eres un fracaso con las piernas.",
     "Sei un fallimento con le gambe."
   ],
   "J’ai rencontré des cailloux plus dynamiques.": [
-    "I met some more dynamic stones.",
+    "I’ve met rocks with better reflexes.",
     "Ich traf einige dynamischere Steine.",
     "Conocí piedras más dinámicas.",
     "Ho incontrato delle pietre più dinamiche."
   ],
   "Ton aura vient de démissionner.": [
-    "Your aura just resigned.",
+    "Even your aura just quit.",
     "Deine Aura ist gerade zurückgetreten.",
     "Tu aura acaba de renunciar.",
     "La tua aura si e' appena dimessa."
   ],
   "Tu as exactement l’énergie d’un lundi à 7h12.": [
-    "You have exactly the energy of a Monday at 7:12.",
+    "You’re a Monday morning with a health bar.",
     "Du hast genau die Energie eines Montags um 7:12 Uhr.",
     "Tienes exactamente la energía de un lunes a las 7:12.",
     "Hai esattamente l'energia di un lunedì alle 7:12."
   ],
   "Même ton ombre veut changer de groupe.": [
-    "Even your shadow wants to change groups.",
+    "Even your shadow wants off this team.",
     "Sogar dein Schatten möchte Gruppen wechseln.",
     "Incluso tu sombra quiere cambiar grupos.",
     "Anche la tua ombra vuole cambiare i gruppi."
   ],
   "Ton plan avait besoin d’un plan.": [
-    "Your plan needed a plan.",
+    "That plan died the second you touched it.",
     "Dein Plan brauchte einen Plan.",
     "Tu plan necesitaba un plan.",
     "Il tuo piano aveva bisogno di un piano."
   ],
   "Tu es le brouillon d’un personnage secondaire.": [
-    "You're the draft of a secondary character.",
+    "You’re the NPC people skip without reading.",
     "Du bist der Entwurf eines sekundären Charakters.",
     "Eres el borrador de un personaje secundario.",
     "Sei la bozza di un personaggio secondario."
   ],
   "J’ai vu des pommes de terre avec plus d’ambition.": [
-    "I saw potatoes with more ambition.",
+    "A bag of potatoes could outplay you.",
     "Ich sah Kartoffeln mit mehr Ehrgeiz.",
     "Vi papas con más ambición.",
     "Ho visto patate con più ambizione."
   ],
   "Tu as l’air d’avoir perdu une bataille contre ton propre réveil.": [
-    "You seem to have lost a battle against your own awakening.",
+    "Your alarm clock puts up a better fight.",
     "Du scheinst einen Kampf gegen dein eigenes Erwachen verloren zu haben.",
     "Pareces haber perdido una batalla contra tu propio despertar.",
     "Sembra che tu abbia perso una battaglia contro il tuo risveglio."
   ],
   "Ton existence manque cruellement de mise en page.": [
-    "Your existence is sorely lacking in layout.",
+    "Your résumé probably has a typo in your name.",
     "Deiner Existenz fehlt es schmerzlich an Layout.",
     "Su existencia carece de un diseño.",
     "La vostra esistenza è carente di layout."
   ],
   "Tu es le genre de personne qui rate un tutoriel.": [
-    "You're the kind of person missing a tutorial.",
+    "You could lose the tutorial on easy.",
     "Du bist die Art von Person, der ein Tutorial fehlt.",
     "Eres el tipo de persona que falta un tutorial.",
     "Sei il tipo di persona che manca un tutorial."
   ],
   "Tu as été béni·e par les dieux de la médiocrité.": [
-    "You were blessed by the gods of mediocrity.",
+    "If mediocrity had a final boss, it’d be you.",
     "Du wurdest von den Göttern der Mittelmäßigkeit gesegnet.",
     "Ustedes fueron bendecidos por los dioses de la mediocridad.",
     "Sei stato benedetto dagli dei della mediocrità."
   ],
   "Quelle énergie de figurant.": [
-    "What an energy of things.",
+    "You’re the extra they cut from the background.",
     "Was für eine Energie der Dinge.",
     "Qué energía de las cosas.",
     "Che energia."
   ],
   "Tu es une side quest qui dure depuis trois ans.": [
-    "You've been a quest side for three years.",
+    "You’d get fired from your own side quest.",
     "Du bist seit drei Jahren eine Quest-Seite.",
     "Has sido un lado de la búsqueda durante tres años.",
     "Sei stata una squadra di ricerca da tre anni."
   ],
   "Même ton personnage n’a pas confiance en toi.": [
-    "Even your character doesn't trust you.",
+    "Even your own character wants you benched.",
     "Sogar dein Charakter traut dir nicht.",
     "Incluso tu personaje no confía en ti.",
     "Anche il tuo personaggio non si fida di te."
   ],
   "Tu as l'air d'avoir été invoqué par erreur.": [
-    "You seem to have been mistakenly invoked.",
+    "Whoever summoned you is asking for a refund.",
     "Sie scheinen irrtümlich angerufen worden zu sein.",
     "Parece que te han invocado erróneamente.",
     "Sembra che tu sia stata erroneamente invocata."

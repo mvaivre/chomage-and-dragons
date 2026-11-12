@@ -194,7 +194,7 @@ function drawMailbox(ctx: CanvasRenderingContext2D, sim: PigeonSim, view: SceneV
   ctx.fillStyle = "#f9e6b2";
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("×2", x, SLOT_Y + boxH / 2 - 5);
+  ctx.fillText("+", x, SLOT_Y + boxH / 2 - 5);
   // The signal flag rises once the letter is in.
   const flag = Math.min(1, delivered);
   ctx.save();

@@ -2,7 +2,7 @@
 import { t as tr } from "@/lib/i18n/index";
 import { useLocale } from "@/lib/i18n/react";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlayerView } from "@/hooks/useGame";
 import type { AvailablePower } from "@/lib/game/powers";
 import { POWERS } from "@/lib/game/powers";
@@ -12,7 +12,8 @@ interface PowerDeckProps {
   me: PlayerView;
   players: PlayerView[];
   attentionToken: number;
-  onCast: (power: AvailablePower, targetId: string) => void;
+  initiallyOpen?: boolean;
+  onCast: (power: AvailablePower, targetId: string) => string | undefined;
 }
 
 /** Inventaire des butins gagnés dans les coffres, avec sélection explicite de cible. */
@@ -20,18 +21,35 @@ export function PowerDeck({
   me,
   players,
   attentionToken,
+  initiallyOpen = false,
   onCast,
 }: PowerDeckProps) {
   const uiLocale = useLocale();
-    const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [selected, setSelected] = useState<AvailablePower | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!initiallyOpen) return;
+    const frame = requestAnimationFrame(() => {
+      trigger.current?.scrollIntoView({ block: "start" });
+      trigger.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [initiallyOpen]);
   const targets = players.filter((player) => player.id !== me.id);
+  const inventory = new Map<AvailablePower["kind"], { power: AvailablePower; count: number }>();
+  for (const power of me.availablePowers) {
+    const owned = inventory.get(power.kind);
+    inventory.set(power.kind, owned ? { ...owned, count: owned.count + 1 } : { power, count: 1 });
+  }
 
   if (me.availablePowers.length === 0) return null;
 
   return (
     <div className="power-menu pointer-events-auto">
       <button
+        ref={trigger}
         key={attentionToken}
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -55,15 +73,15 @@ export function PowerDeck({
           </div>
 
           <div className="grid gap-2">
-            {me.availablePowers.map((power) => {
+            {[...inventory.values()].map(({ power, count }) => {
                 const definition = POWERS[power.kind];
                 const active = selected?.slot === power.slot;
-                return (<button key={power.slot} type="button" onClick={() => setSelected(active ? null : power)} className={`power-choice ${active ? "power-choice--active" : ""}`} aria-pressed={active}>
+                return (<button key={power.slot} type="button" onClick={() => { setSelected(active ? null : power); setError(null); }} className={`power-choice ${active ? "power-choice--active" : ""}`} aria-pressed={active}>
                   <span className="power-sigil" aria-hidden>
                     <PowerArtwork kind={power.kind} className="power-sigil__art"/>
                   </span>
                   <span className="min-w-0 text-left">
-                    <strong>{tr(definition.name, undefined, uiLocale)}</strong>
+                    <strong>{tr(definition.name, undefined, uiLocale)}{count > 1 ? ` ×${count}` : ""}</strong>
                     <small>{tr(definition.description, undefined, uiLocale)}</small>
                   </span>
                 </button>);
@@ -74,13 +92,15 @@ export function PowerDeck({
               <p className="text-xs font-bold tracking-[0.14em] text-parchment-ink/50 uppercase">{tr("Lancer sur ", undefined, uiLocale)}</p>
               {targets.length ? (<div className="mt-2 flex flex-wrap gap-2">
                   {targets.map((target) => (<button key={target.id} type="button" onClick={() => {
-                            onCast(selected, target.id);
+                            const rejected = onCast(selected, target.id);
+                            if (rejected) { setError(rejected); return; }
                             setSelected(null);
                             setOpen(false);
                         }} className="power-target">
                       {target.name}
                     </button>))}
                 </div>) : (<p className="mt-2 text-sm text-parchment-ink/55 italic">{tr("Invite un camarade. ", undefined, uiLocale)}</p>)}
+              {error ? <p className="meetup-editor__error" role="alert">{tr(error, undefined, uiLocale)}</p> : null}
             </div>) : null}
         </div>) : null}
     </div>);

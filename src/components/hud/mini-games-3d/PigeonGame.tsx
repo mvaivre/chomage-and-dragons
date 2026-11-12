@@ -211,7 +211,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
     const won = outcome === "won";
     const remaining = COURSE.towers - passed;
     const instructions = phase === "result"
-        ? won ? "Livraison réussie, pas doublés" : punchlineFor(`pigeon:${seedId}`)
+        ? won ? "Livraison réussie" : punchlineFor(`pigeon:${seedId}`)
         : status === "ready"
             ? `Franchis les ${COURSE.towers} tours pour livrer le courrier`
             : remaining > 0 ? `Encore ${remaining} tour${remaining > 1 ? "s" : ""}` : "Vise la fente dorée";
@@ -221,7 +221,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
       <span className="mini-game__lives">
         {Array.from({ length: COURSE.feathers }, (_, i) => <i key={i} className="mini-game__feather" data-lost={i >= feathers}/>)}
       </span>
-    </>} status={phase === "result" ? <><strong>{tr(won ? `×2 · +${base + bonus} pas` : `+${base} pas conservés`, undefined, uiLocale)}</strong><ScoreLine score={score} unit="m" record={record} best={best} practice={practice}/></> :
+    </>} status={phase === "result" ? <><strong>{won ? tr("+{0} pas au total", [base + bonus], uiLocale) : tr("+{0} pas conservés", [base], uiLocale)}</strong><ScoreLine score={score} unit="m" record={record} best={best} practice={practice}/></> :
             <span>{tr(status === "ready" ? `Touche ou Espace : voler · ${COURSE.feathers} plumes` :
                     status === "flying" ? "Touche ou Espace : voler" : won ? "Livraison…" : "Atterrissage forcé…", undefined, uiLocale)}</span>} primary={{
             inArena: phase === "play" && status === "ready",
@@ -231,7 +231,7 @@ export function PigeonGame({ seedId, onResolve, onDone, practice, record, best }
         }} skip={phase === "play" && (status === "ready" || status === "flying") ? { label: `Garder mes +${base} pas`, onClick: leave } : null}>
     <button ref={arena} type="button" tabIndex={-1} className="mini-game__arena" data-phase={phase} data-won={won} data-reduced={reducedMotion} aria-label={tr("Battre des ailes", undefined, uiLocale)} disabled={phase !== "play"} onPointerDown={event => { event.preventDefault(); flap(); }} onContextMenu={event => event.preventDefault()}>
       <canvas ref={canvas} className="mini-game__canvas" aria-hidden/>
-      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "LIVRÉ ! ×2" : "ADRESSE INTROUVABLE", undefined, uiLocale)}</span> : null}
+      {phase === "result" ? <span className="mini-game__stamp" aria-hidden>{tr(won ? "LIVRÉ !" : "ADRESSE INTROUVABLE", undefined, uiLocale)}</span> : null}
     </button>
   </MiniGameShell>;
 }

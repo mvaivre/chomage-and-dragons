@@ -93,6 +93,7 @@ test('wild encounters, captures, reloads and roadside games on desktop and mobil
       const {context,page,errors}=await fixture(viewport);
       try {
         await page.locator('.action-button--candidature').click();
+        await page.getByRole('button', { name: 'Ranger le butin', exact: true }).click();
         await page.locator('.wild-encounter[data-entrance="ready"][open]').waitFor();
         assert.equal(await page.locator('.mini-game-invite').count(),0);
         await page.screenshot({path:`${output}/${name}-offer.png`});
@@ -171,7 +172,9 @@ test('wild encounters, captures, reloads and roadside games on desktop and mobil
     const slots=await fixture({width:1280,height:800},4);
     try {
       await slots.page.locator('.action-button--candidature').click();
-      await slots.page.getByRole('button',{name:'Ranger le butin',exact:true}).click();
+      await slots.page.getByRole('button',{name:'Tenter le jackpot',exact:true}).click();
+      await slots.page.locator('.roadside-invite[open]').waitFor();
+      await slots.page.keyboard.press('Escape');
       await slots.page.getByRole('heading',{name:'Une machine à sous apparaît !'}).waitFor();
       await slots.page.screenshot({path:`${output}/roadside-slots.png`});
       await slots.page.getByRole('button',{name:'Tenter ma chance',exact:true}).click();

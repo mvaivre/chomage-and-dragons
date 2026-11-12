@@ -122,24 +122,26 @@ test('interiors and repeated laps keep the same canonical position in both rende
 test('a switch requested during an action waits for completion and keeps the resulting progress', { timeout: 90000 }, async t => {
   const browser = await chromium.launch({ executablePath, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
   t.after(() => browser.close());
-  const { page, context, errors } = await fixture(browser, 10);
+  const { page, context, errors } = await fixture(browser, 0);
   await page.locator('.action-button--refus').click();
   await page.getByRole('button', { name: '3D', exact: true }).click();
   await page.locator('.world-switch-pending').waitFor();
   assert.equal(await page.evaluate(() => window.__worldView().mode), '2d');
+  await page.getByRole('button', { name: 'Ranger le butin' }).click();
   await page.locator('.wild-encounter[open], .roadside-invite[open]').waitFor();
   await page.keyboard.press('Escape');
   await ready(page, '3d');
-  assert.equal((await snapshot(page)).world.players[0].steps, 13);
+  assert.equal((await snapshot(page)).world.players[0].steps, 12);
   assert.equal(await page.evaluate(() => window.__voxelWorld.room), 'orp');
   await page.locator('.action-button--candidature').click();
+  await page.getByRole('button', { name: 'Ranger le butin' }).click();
   await page.locator('.wild-encounter[open], .roadside-invite[open]').waitFor();
   await page.keyboard.press('Escape');
   await change(page, '2d');
-  assert.equal((await snapshot(page)).world.players[0].steps, 15);
+  assert.equal((await snapshot(page)).world.players[0].steps, 20);
   await page.locator('.action-undo').click();
-  await page.waitForFunction(() => Math.abs(window.__decorScene.heroes.get('test').x - (13 * 30240 / 200 - 80)) < .5);
-  assert.equal((await snapshot(page)).world.players[0].steps, 13);
+  await page.waitForFunction(() => Math.abs(window.__decorScene.heroes.get('test').x - (12 * 30240 / 200 - 80)) < .5);
+  assert.equal((await snapshot(page)).world.players[0].steps, 12);
   assert.deepEqual(errors, []); await context.close();
 });
 
@@ -214,7 +216,7 @@ test('a new character can enter, finish onboarding and play in either initial re
     await page.keyboard.press('Escape');
     const other = mode === '2d' ? '3d' : '2d';
     await change(page, other);
-    assert.equal((await snapshot(page)).world.players[0].steps, 2);
+    assert.equal((await snapshot(page)).world.players[0].steps, 8);
     assert.deepEqual(errors, []); await context.close();
   }
 });

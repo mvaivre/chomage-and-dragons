@@ -16,7 +16,7 @@ const log = (s, id = `event-${s.events.length}`, kind = 'candidature') => applyA
 const move = (s, m, e = s.encounters.at(-1)) => applyAction(s, {type:'encounterMove', encounterId:e.id, turn:e.turn, move:m}, fixedContext('turn',at));
 const wild = () => { let s = initial(); for (let i=0;i<3;i++) s=log(s).state; return s; };
 
-test('one roadside halt per journey, a wild encounter every third journey, all seven species over a cycle', () => {
+test('a wild encounter replaces the usual challenge every third journey, with all seven species over a cycle', () => {
   let s = initial(); const kinds = [];
   for (let i=0;i<21;i++) {
     const a = log(s); s = a.state;
@@ -26,7 +26,7 @@ test('one roadside halt per journey, a wild encounter every third journey, all s
       assert.equal(s.miniGames.find(m=>m.eventId===e.eventId&&m.action!=='chest').result,'skipped');
       s=move(s,'leave').state;
     } else assert.equal(s.encounters?.filter(activeEncounter).length??0,0);
-    if (a.result.chestGame) assert.equal(a.result.offer,null, 'a chest machine replaces the action halt');
+    if (a.result.chestGame) assert.ok(a.result.offer, 'the optional chest machine leaves the action challenge available');
   }
   assert.equal(new Set(kinds).size,7); assert.deepEqual([...kinds].sort(),[...MONSTER_KINDS].sort());
   assert.ok(!PLAYABLE_MINI_GAMES.some(g=>g.kind==='ghosting'));

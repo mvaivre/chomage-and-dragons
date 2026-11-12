@@ -1,0 +1,70 @@
+.cage-banner {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  white-space: nowrap;
+  padding: 5px 5px 5px 14px;
+  border: 1px solid #d8b373;
+  border-radius: 5px;
+  background: #232b28f5;
+  color: #f2dfb2;
+  font: 700 15px/1.15 var(--font-garamond), Georgia, serif;
+}
+.cage-banner button {
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 3px;
+  background: #e0ba67;
+  color: #282218;
+  cursor: pointer;
+}
+.prison-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(424px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  border: 1px solid #aa8c58;
+  border-radius: 8px;
+  padding: 18px;
+  background: #202c29;
+  color: #efe1bc;
+  box-shadow: 0 18px 64px #090e0cbb;
+  font: 16px/1.2 var(--font-garamond), Georgia, serif;
+}
+.prison-dialog::backdrop { background: #0b110ede; }
+.prison-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.prison-dialog h2 { margin: 0; font: 28px/1.1 var(--font-pirata), Georgia, serif; }
+.prison-dialog header button { width: 42px; height: 42px; font-size: 26px; cursor: pointer; }
+.prison-dialog > p { margin: 4px 0 12px; }
+.prison-maze {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  width: min(100%, 320px, max(160px, 100dvh - 205px));
+  margin: auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #8d7851;
+  border-radius: 4px;
+  background: #111816;
+}
+.prison-maze span { display: grid; place-items: center; position: relative; font: min(16px, 4vw)/1 system-ui, sans-serif; }
+.prison-maze [data-cell="wall"] { background: #454d44; box-shadow: inset 0 0 0 1px #60675877; }
+.prison-maze :is([data-cell="floor"], [data-cell="hero"], [data-cell="key"], [data-cell="exit"]) { background: #262f2a; }
+.prison-maze [data-cell="hero"]::after { content: ""; width: 58%; aspect-ratio: 1; border-radius: 50%; background: #ffd980; box-shadow: 0 0 10px #ffd980; }
+.prison-maze [data-cell="exit"] { color: #98c39a; }
+.prison-dialog__footer { display: grid; grid-template-columns: 1fr auto 1fr; gap: 4px; align-items: center; margin-top: 10px; }
+.prison-controls { display: grid; grid-template-columns: repeat(3, 44px); gap: 2px; }
+.prison-controls button { width: 44px; height: 42px; border: 1px solid #8e805f; border-radius: 3px; background: #344339; cursor: pointer; }
+.prison-controls button[data-direction="u"] { grid-column: 2; }
+.prison-controls button[data-direction="l"] { grid-column: 1; }
+.prison-controls button:active { background: #8e805f; }
+.prison-restart { min-height: 44px; text-align: right; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.prison-dialog [role="alert"] { margin: 8px 0 0; color: #f8bd9d; }
+.prison-dialog button:focus-visible, .cage-banner button:focus-visible { outline: 2px solid #ffd980; outline-offset: 2px; }

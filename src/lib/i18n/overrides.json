@@ -995,17 +995,17 @@
     "{0} · +{1} pasos extra",
     "{0} · +{1} passi bonus"
   ],
-  "CV validé, pas doublés": [
-    "CV approved, double steps",
-    "Lebenslauf angenommen, doppelte Schritte",
-    "CV aprobado, pasos dobles",
-    "CV approvato, passi raddoppiati"
+  "CV validé": [
+    "CV approved",
+    "Lebenslauf angenommen",
+    "CV aprobado",
+    "CV approvato"
   ],
-  "Livraison réussie, pas doublés": [
-    "Delivery complete, double steps",
-    "Zugestellt, doppelte Schritte",
-    "Entrega completada, pasos dobles",
-    "Consegna riuscita, passi raddoppiati"
+  "Livraison réussie": [
+    "Delivery complete",
+    "Zugestellt",
+    "Entrega completada",
+    "Consegna riuscita"
   ],
   "Dossier validé, 1 pas bonus": [
     "File approved, 1 bonus step",
@@ -1630,5 +1630,185 @@
     "Sammle diese Wörter in deinem Lebenslauf.",
     "Atrapa estas palabras en tu CV.",
     "Raccogli queste parole nel tuo CV."
+  ],
+  "Essayer une candidature · +{0} pas": [
+    "Try an application · +{0} steps",
+    "Eine Bewerbung ausprobieren · +{0} Schritte",
+    "Prueba una candidatura · +{0} pasos",
+    "Prova una candidatura · +{0} passi"
+  ],
+  "Prochain verre": [
+    "Next drinks",
+    "Nächster Umtrunk",
+    "Próxima quedada",
+    "Prossimo brindisi"
+  ],
+  "Lieu à préciser": [
+    "Venue to be decided",
+    "Ort noch offen",
+    "Lugar por decidir",
+    "Luogo da definire"
+  ],
+  "Au cachot !": [
+    "To the dungeon!",
+    "Ab in den Kerker!",
+    "¡Al calabozo!",
+    "In prigione!"
+  ],
+  "En cage": [
+    "Caged",
+    "Eingesperrt",
+    "Enjaulado",
+    "In gabbia"
+  ],
+  "Enferme un camarade. Pour sortir, il faut gagner le labyrinthe du cachot.": [
+    "Lock up a friend. They have to beat the dungeon maze to get out.",
+    "Sperr jemanden ein. Raus kommt nur, wer das Kerkerlabyrinth knackt.",
+    "Encierra a alguien. Para salir tendrá que superar el laberinto del calabozo.",
+    "Rinchiudi qualcuno. Per uscire dovrà superare il labirinto della prigione."
+  ],
+  "Troll à dos": [
+    "Troll backpack",
+    "Trollrucksack",
+    "Trol a cuestas",
+    "Troll a spalla"
+  ],
+  "Mini-troll": [
+    "Mini troll",
+    "Minitroll",
+    "Minitrol",
+    "Mini troll"
+  ],
+  "Accroche un mini-troll au dos d’un camarade. Trois jours de bave garantie.": [
+    "Strap a mini troll to a friend’s back. Three days of drool, guaranteed.",
+    "Schnall jemandem einen Minitroll auf den Rücken. Drei Tage Sabber garantiert.",
+    "Átale un minitrol a la espalda a alguien. Tres días de babas garantizados.",
+    "Lega un mini troll sulla schiena di qualcuno. Tre giorni di bava garantiti."
+  ],
+  "Crame la tête d’un camarade. Elle fume pendant trois jours.": [
+    "Set a friend’s head on fire. It’ll smoke for three days.",
+    "Zünde jemandem den Kopf an. Der qualmt drei Tage lang.",
+    "Préndele fuego a la cabeza de alguien. Echará humo durante tres días.",
+    "Dai fuoco alla testa di qualcuno. Fumerà per tre giorni."
+  ],
+  "Tu es en cage. Gagne le labyrinthe pour repartir.": [
+    "You’re caged. Beat the maze to get moving again.",
+    "Du bist eingesperrt. Knack das Labyrinth, um weiterzureisen.",
+    "Estás en una jaula. Supera el laberinto para seguir.",
+    "Sei in gabbia. Supera il labirinto per ripartire."
+  ],
+  "Ce butin n’est plus disponible.": [
+    "That loot is no longer available.",
+    "Diese Beute ist nicht mehr verfügbar.",
+    "Ese botín ya no está disponible.",
+    "Quel bottino non è più disponibile."
+  ],
+  "Ce personnage est déjà en cage.": [
+    "That character is already caged.",
+    "Diese Figur ist bereits eingesperrt.",
+    "Ese personaje ya está enjaulado.",
+    "Quel personaggio è già in gabbia."
+  ],
+  "Cage introuvable.": [
+    "Cage not found.",
+    "Käfig nicht gefunden.",
+    "Jaula no encontrada.",
+    "Gabbia non trovata."
+  ],
+  "Il te faut les deux clés et la sortie.": [
+    "You need both keys and the exit.",
+    "Du brauchst beide Schlüssel und den Ausgang.",
+    "Necesitas las dos llaves y la salida.",
+    "Ti servono entrambe le chiavi e l’uscita."
+  ],
+  "La cage résiste.": [
+    "The cage won’t budge.",
+    "Der Käfig rührt sich nicht.",
+    "La jaula no cede.",
+    "La gabbia non cede."
+  ],
+  "Recommence le labyrinthe.": [
+    "Restart the maze.",
+    "Starte das Labyrinth neu.",
+    "Reinicia el laberinto.",
+    "Ricomincia il labirinto."
+  ],
+  "Tenter l’évasion": [
+    "Try to escape",
+    "Flucht versuchen",
+    "Intentar escapar",
+    "Tentare la fuga"
+  ],
+  "Labyrinthe du cachot": [
+    "Dungeon maze",
+    "Kerkerlabyrinth",
+    "Laberinto del calabozo",
+    "Labirinto della prigione"
+  ],
+  "Trouve les deux clés dans le noir, puis rejoins la sortie.": [
+    "Find both keys in the dark, then reach the exit.",
+    "Finde im Dunkeln beide Schlüssel und dann den Ausgang.",
+    "Encuentra las dos llaves en la oscuridad y llega a la salida.",
+    "Trova entrambe le chiavi al buio, poi raggiungi l’uscita."
+  ],
+  "{0}/{1} clés": [
+    "{0}/{1} keys",
+    "{0}/{1} Schlüssel",
+    "{0}/{1} llaves",
+    "{0}/{1} chiavi"
+  ],
+  "Déplacements": [
+    "Movement",
+    "Steuerung",
+    "Movimiento",
+    "Movimento"
+  ],
+  "Haut": [
+    "Up",
+    "Oben",
+    "Arriba",
+    "Su"
+  ],
+  "Gauche": [
+    "Left",
+    "Links",
+    "Izquierda",
+    "Sinistra"
+  ],
+  "Bas": [
+    "Down",
+    "Unten",
+    "Abajo",
+    "Giù"
+  ],
+  "Droite": [
+    "Right",
+    "Rechts",
+    "Derecha",
+    "Destra"
+  ],
+  "Tu t’es évadé du cachot !": [
+    "You escaped the dungeon!",
+    "Du bist aus dem Kerker entkommen!",
+    "¡Has escapado del calabozo!",
+    "Sei evaso dalla prigione!"
+  ],
+  "{0} t’a lancé cette farce.": [
+    "{0} pulled this prank on you.",
+    "{0} hat dir diesen Streich gespielt.",
+    "{0} te ha gastado esta broma.",
+    "{0} ti ha fatto questo scherzo."
+  ],
+  "+{0} pas au total": [
+    "+{0} steps in total",
+    "+{0} Schritte insgesamt",
+    "+{0} pasos en total",
+    "+{0} passi in totale"
+  ],
+  "Tenter le jackpot": [
+    "Try for the jackpot",
+    "Jackpot versuchen",
+    "Ir a por el premio",
+    "Tenta il jackpot"
   ]
 }

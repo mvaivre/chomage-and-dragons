@@ -1,13 +1,16 @@
 import { JOURNEY_STEPS, STEPS_PER_LEVEL } from "@/lib/config";
 import type { ActionKind, GameEvent } from "@/lib/data/types";
 
+const LEGACY_JOURNEY_STEPS = { candidature: 2, refus: 3, entretien: -3, rejetApresEntretien: 6, embauche: 0 } as const;
+
 export function stepsFor(kind: ActionKind): number {
   return JOURNEY_STEPS[kind];
 }
 
 export function stepsForEvent(event: GameEvent): number {
-  const legacyDouble = event.kind === "candidature" && event.journeyMultiplier === 2 ? stepsFor(event.kind) : 0;
-  return stepsFor(event.kind) + legacyDouble + (event.journeyBonus ?? 0);
+  const base = event.journeyBase ?? LEGACY_JOURNEY_STEPS[event.kind];
+  const multiplier = event.kind === "candidature" && event.journeyMultiplier === 2 ? 2 : 1;
+  return base * multiplier + (event.journeyBonus ?? 0);
 }
 
 /** Replay the journal: ordinary setbacks never revoke an earned chest. Undo does. */

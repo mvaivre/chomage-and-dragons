@@ -14,7 +14,7 @@ import type {
 } from "@/lib/data/types";
 import { currentMonthKey, seasonMonthKeys } from "@/lib/game/calendar";
 import { CHARACTERS } from "@/lib/game/characters";
-import { availablePowers, type AvailablePower } from "@/lib/game/powers";
+import { availablePowers, pranksByPlayer, type AvailablePower, type PlayerPranks } from "@/lib/game/powers";
 import { hiredPosition, racePosition } from "@/lib/game/progress";
 import { journeyProgress, levelFromSteps } from "@/lib/game/scoring";
 import { applyAction, type ActionContext, type GameAction } from "@/lib/game/reducer";
@@ -48,6 +48,7 @@ export interface PlayerView {
   position: number;
   counts: Record<ActionKind, number>;
   availablePowers: AvailablePower[];
+  pranks?: PlayerPranks;
   /** Shots reçus mais pas encore honorés. */
   shotsOwed: number;
   /** Renseigné après une embauche : quitte la course, garde ses pas. */
@@ -77,11 +78,13 @@ export function useGame(mode: GameMode = LOCAL) {
   // Lecture directe : ce composant n'est jamais rendu côté serveur (voir
   // GameBoardLoader), donc localStorage est disponible dès le premier rendu.
   const [state, setState] = useState<GameState>(() => (remote ? EMPTY : localStore.load()));
+  const latestState = useRef(state);
   const [loaded, setLoaded] = useState(!remote);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [remoteMe, setRemoteMe] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<{ status: number; message: string } | null>(null);
   const [monthKeyNow, setMonthKeyNow] = useState(currentMonthKey);
+  const [prankClock, setPrankClock] = useState(Date.now);
   const version = useRef(0);
   const inflight = useRef(0);
   /** Counts the actions sent; a poll that overlapped one is stale and ignored. */
@@ -95,8 +98,21 @@ export function useGame(mode: GameMode = LOCAL) {
     return () => { window.clearInterval(timer); window.removeEventListener("focus", refreshMonth); };
   }, []);
 
+  useEffect(() => {
+    const next = state.casts.reduce((soonest, cast) => {
+      const expires = Date.parse(cast.expiresAt ?? "");
+      return expires > prankClock ? Math.min(soonest, expires) : soonest;
+    }, Infinity);
+    if (!Number.isFinite(next)) return;
+    const refresh = () => setPrankClock(Date.now());
+    const timer = window.setTimeout(refresh, Math.max(0, next - Date.now()));
+    window.addEventListener("focus", refresh);
+    return () => { window.clearTimeout(timer); window.removeEventListener("focus", refresh); };
+  }, [state.casts, prankClock]);
+
   const adopt = useCallback((snapshot: { state: GameState; version: number; name?: string; me?: string | null }) => {
     version.current = snapshot.version;
+    latestState.current = snapshot.state;
     setState(snapshot.state);
     if (snapshot.name !== undefined) setGroupName(snapshot.name);
     if (snapshot.me !== undefined) setRemoteMe(snapshot.me);
@@ -139,6 +155,7 @@ export function useGame(mode: GameMode = LOCAL) {
     const applied = applyAction(base, action, context);
     if (applied.state !== base) {
       if (!remote) localStore.save(applied.state);
+      latestState.current = applied.state;
       setState(applied.state);
     }
     if (remote && applied.state !== base) {
@@ -174,14 +191,19 @@ export function useGame(mode: GameMode = LOCAL) {
 
   const castPower = useCallback(
     (playerId: string, targetPlayerId: string, kind: PowerKind, slot: number) => {
-      return commit(state, { type: "castPower", playerId, targetPlayerId, kind, slot }, freshContext()).result.cast;
+      return commit(state, { type: "castPower", playerId, targetPlayerId, kind, slot }, freshContext()).result;
     },
     [state, commit],
   );
 
-  const markCastSeen = useCallback((castId: string) => {
-    commit(state, { type: "markCastSeen", castId }, freshContext());
+  const escapeCage = useCallback((castId: string, path: string) => {
+    return commit(state, { type: "escapeCage", castId, path }, freshContext()).result;
   }, [state, commit]);
+
+  const markCastSeen = useCallback((castId: string) => {
+    // Several received pranks can be acknowledged in the same frame.
+    commit(latestState.current, { type: "markCastSeen", castId }, freshContext());
+  }, [commit]);
 
   const settleShots = useCallback((castIds: string[]) => {
     commit(state, { type: "settleShots", castIds }, freshContext());
@@ -257,6 +279,7 @@ export function useGame(mode: GameMode = LOCAL) {
   );
 
   const players = useMemo<PlayerView[]>(() => {
+    const pranks = pranksByPlayer(state.casts, prankClock);
     return state.players.map((player) => {
       const standing = seasonStandings.find((s) => s.playerId === player.id);
       const applications = standing?.counts.candidature ?? 0;
@@ -285,6 +308,7 @@ export function useGame(mode: GameMode = LOCAL) {
             embauche: 0,
           } as Record<ActionKind, number>),
         availablePowers: availablePowers(player.id, earnedChests, state.casts, state.miniGames),
+        pranks: pranks.get(player.id),
         shotsOwed: state.casts.filter(
           (cast) =>
             cast.kind === "shot" &&
@@ -294,7 +318,7 @@ export function useGame(mode: GameMode = LOCAL) {
         hiredAt: player.hiredAt,
       };
     });
-  }, [state.players, state.events, state.casts, state.miniGames, seasonStandings]);
+  }, [state.players, state.events, state.casts, state.miniGames, seasonStandings, prankClock]);
 
   const totals = useMemo(() => collectiveTotals(state.events), [state]);
 
@@ -343,6 +367,7 @@ export function useGame(mode: GameMode = LOCAL) {
     addEvent,
     finishMiniGame,
     castPower,
+    escapeCage,
     markCastSeen,
     settleShots,
     undoLast,

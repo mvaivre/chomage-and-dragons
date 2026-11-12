@@ -76,9 +76,9 @@ test('the final tavern renders, responds and respects motion preferences',{timeo
  await t.test('entry, exit over the lap boundary and reverse travel use real door transitions',async()=>{
   const{context,page,errors}=await fixture({steps:186,hired:false});
   await page.locator('.action-button--refus').click();
-  await page.waitForFunction(()=>window.__decorScene.room?.id==='tavern'&&!window.__decorScene.doorTransition&&Math.abs(window.__decorScene.heroes.get('test').x-(189*30240/200-80))<1,null,{timeout:20000});
+  await page.waitForFunction(()=>window.__decorScene.room?.id==='tavern'&&!window.__decorScene.doorTransition&&Math.abs(window.__decorScene.heroes.get('test').x-(198*30240/200-80))<1,null,{timeout:20000});
   assert.deepEqual(errors,[]);await context.close();
-  const exit=await fixture({steps:200,hired:false});
+  const exit=await fixture({steps:194,hired:false});
   await exit.page.locator('.action-button--candidature').click();
   await exit.page.waitForFunction(()=>!window.__decorScene.room&&!window.__decorScene.doorTransition&&Math.abs(window.__decorScene.heroes.get('test').x-(202*30240/200-80))<1,null,{timeout:15000});
   await exit.page.reload();

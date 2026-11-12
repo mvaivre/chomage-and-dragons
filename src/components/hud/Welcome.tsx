@@ -4,7 +4,7 @@ import { useLocale } from "@/lib/i18n/react";
 
 import { useEffect, useRef, useState } from "react";
 import {
-  advanceInitiation, createInitiationProgress, INITIATION_KEY,
+  advanceInitiation, createInitiationProgress, INITIATION_EXAMPLE_STEPS, INITIATION_KEY,
   initiationStorageKey, parseInitiationProgress,
 } from "@/lib/game/initiation";
 import { sfx } from "@/lib/client/sound";
@@ -96,7 +96,7 @@ export function Welcome({ onClose, scope, characterId = "barde" }: {
         }
         setProgress(advanceInitiation);
     };
-    const label = progress.stage === 0 ? progress.journeyDone ? "Découvrir les coffres →" : "Essayer une candidature · +2 pas"
+    const label = progress.stage === 0 ? progress.journeyDone ? "Découvrir les coffres →" : `Essayer une candidature · +${INITIATION_EXAMPLE_STEPS} pas`
         : progress.stage === 1 ? !progress.chestOpen ? "Ouvrir le coffre" : !progress.powerCast ? "Essayer le pouvoir" : "Voyager ensemble →" : "Commencer le voyage";
     return <dialog ref={dialog} className="initiation-card initiation-quick" aria-labelledby="initiation-title" onCancel={event => { event.preventDefault(); leave(); }} onKeyDown={event => event.stopPropagation()} onKeyUp={event => event.stopPropagation()}>
     <header className="initiation-card__header"><div><p className="initiation-eyebrow">{tr("Les premiers pas", undefined, uiLocale)}</p><span className="initiation-card__subtitle">{tr("Trois petits essais · environ 20 secondes", undefined, uiLocale)}</span></div>

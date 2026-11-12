@@ -155,9 +155,9 @@ function finishFade({ env, ctx, player }) {
 }
 
 test('recorded tracks follow the menu and the landscape', () => {
-  for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.firelit);
+  for (const place of ['plaine', 'orp', 'factory', 'marais', 'desert', 'taverne']) assert.equal(trackForPlace(place, 'intro'), TRACKS.peaceful);
   for (const place of ['taverne', 'tavern']) assert.equal(trackForPlace(place), TRACKS.firelit);
-  for (const place of ['plaine', 'foret', 'lac']) assert.equal(trackForPlace(place), TRACKS.peaceful);
+  for (const place of ['plaine', 'foret', 'lac']) assert.equal(trackForPlace(place), TRACKS.firelit);
   for (const place of ['orp', 'factory']) assert.equal(trackForPlace(place), TRACKS.funny);
   for (const place of ['marais', 'desert', 'cascade']) assert.equal(trackForPlace(place), TRACKS.ambient);
   for (const place of ['volcan', 'montagne', 'unknown']) assert.equal(trackForPlace(place), TRACKS.medieval);
@@ -328,13 +328,13 @@ test('the game honours phase, sound settings, page visibility and cleanup', asyn
     setMusicPlace('factory');
     stop = startMusic();
     primeAudio(); env.dispatch('pointerdown'); env.tick(); await settle();
-    const intro = Media.instances.find(media => media.src === TRACKS.firelit.src && !media.paused);
-    assert.equal(intro?.src, TRACKS.firelit.src, 'scenery does not override the selection theme');
+    const intro = Media.instances.find(media => media.src === TRACKS.peaceful.src && !media.paused);
+    assert.equal(intro?.src, TRACKS.peaceful.src, 'scenery does not override the selection theme');
     assert.equal(intro.paused, false);
     setMusicPlace('plaine');
     setMusicPhase('adventure'); env.tick(); await settle();
-    const adventure = Media.instances.find(media => media.src === TRACKS.peaceful.src && !media.paused);
-    assert.equal(adventure.src, TRACKS.peaceful.src);
+    const adventure = Media.instances.find(media => media.src === TRACKS.firelit.src && !media.paused);
+    assert.equal(adventure.src, TRACKS.firelit.src);
     const count = Media.instances.length;
     adventure.currentTime = 24;
     setMusicPlace('foret'); setMusicPhase('adventure'); env.tick(); await settle();
@@ -396,7 +396,7 @@ test('the first click unlocks music without userActivation and resumes an interr
     const ctx=audioOutput().ctx;ctx.state='interrupted';
     assert.equal(audioOutput().ctx.state,'interrupted','polling the output never retries a blocked resume');
     Media.inGesture=true;env.dispatch('click');Media.inGesture=false;await settle();
-    assert.equal(ctx.state,'running');assert.equal(window.__musicState().track,'firelit');
+    assert.equal(ctx.state,'running');assert.equal(window.__musicState().track,'peaceful');
     assert.ok(Media.instances.every(m=>m.unlocked));
   } finally {stop?.();env.restore();}
 });

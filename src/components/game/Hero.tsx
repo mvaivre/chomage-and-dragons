@@ -16,6 +16,7 @@ import { fx, fxTexture } from "./fx";
 import { atlasFrames, useDirectTexture } from "./textures";
 import { CHARACTER_ANIMATIONS, characterFrame, poseFacing, type HeroMotion } from "./animation";
 import { GOLD_LIGHT, NAME_STYLE, TAG_STYLE } from "./style";
+import { HeroMiniTroll, HeroSmoke, paintCage } from "./HeroPranks";
 
 /** Somme de contrôle d'une chaîne, pour amorcer un tirage reproductible. */
 function hash(text: string): number {
@@ -305,7 +306,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         const leg: TravelLeg = {
           from: at.current,
           to: next.target,
-          steps: Math.max(1, next.steps),
+          steps: Math.max(1, Math.min(12, next.steps)),
           index: 0,
           elapsed: 0,
           gait,
@@ -466,6 +467,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
     }
     if (selfMarker.current) {
       selfMarker.current.scale.set(1);
+      selfMarker.current.x = player.pranks?.smoke || player.pranks?.cage ? 56 : 0;
       selfMarker.current.y = -HERO_HEIGHT - 16 - (scene.reducedMotion ? 0 : Math.abs(Math.sin(phase.current * 1.3)) * 6);
     }
     if (lantern.current) {
@@ -527,6 +529,7 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
       <pixiGraphics draw={drawShadow} />
 
       <pixiContainer ref={rig}>
+        {player.pranks?.troll ? <HeroMiniTroll /> : null}
         {texture ? <pixiSprite
           ref={art}
           texture={poses?.[0] ?? texture}
@@ -535,7 +538,9 @@ export function Hero({ player, isMe, isFocused, lane, onTravelDone, onChestReach
         /> : null}
 
         {player.hiredAt ? <HiredCrown /> : null}
+        {player.pranks?.smoke ? <HeroSmoke /> : null}
       </pixiContainer>
+      {player.pranks?.cage ? <pixiGraphics draw={paintCage} /> : null}
 
       {isMe ? (
         <pixiContainer ref={selfMarker} y={-HERO_HEIGHT - 46}>
